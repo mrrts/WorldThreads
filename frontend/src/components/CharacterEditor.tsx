@@ -1,0 +1,463 @@
+import { useState, useEffect, useCallback } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Field, FieldGroup } from "@/components/ui/field";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogBody } from "@/components/ui/dialog";
+import { Save, Plus, X, BookTemplate, ImagePlus, Loader2, Check } from "lucide-react";
+import { CHARACTER_TEMPLATES, type CharacterTemplate } from "@/lib/character-templates";
+import { api, type Character, type PortraitInfo } from "@/lib/tauri";
+import type { useAppStore } from "@/hooks/use-app-store";
+
+interface Props {
+  store: ReturnType<typeof useAppStore>;
+}
+
+export function CharacterEditor({ store }: Props) {
+  const ch = store.activeCharacter;
+  const [form, setForm] = useState<Partial<Character>>({});
+  const [dirty, setDirty] = useState(false);
+  const [showTemplates, setShowTemplates] = useState(false);
+  const [templateSearch, setTemplateSearch] = useState("");
+  const [portraits, setPortraits] = useState<PortraitInfo[]>([]);
+  const [generatingPortrait, setGeneratingPortrait] = useState(false);
+  const [showGallery, setShowGallery] = useState(false);
+
+  const loadPortraits = useCallback(async (characterId: string) => {
+    try {
+      const list = await api.listPortraits(characterId);
+      setPortraits(list);
+    } catch {
+      setPortraits([]);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (ch) {
+      setForm({
+        display_name: ch.display_name,
+        identity: ch.identity,
+        voice_rules: [...(ch.voice_rules ?? [])],
+        boundaries: [...(ch.boundaries ?? [])],
+        backstory_facts: [...(ch.backstory_facts ?? [])],
+        avatar_color: ch.avatar_color,
+        state: structuredClone(ch.state),
+      });
+      setDirty(false);
+      loadPortraits(ch.character_id);
+    }
+  }, [ch?.character_id, loadPortraits]);
+
+  if (!ch) {
+    return (
+      <div className="flex-1 flex items-center justify-center text-muted-foreground">
+        <div className="text-center space-y-2">
+          <p className="text-lg">No character selected</p>
+          <p className="text-sm text-muted-foreground/60">Select a character to edit their canon</p>
+        </div>
+      </div>
+    );
+  }
+
+  const activePortrait = portraits.find((p) => p.is_active);
+
+  const handleGeneratePortrait = async () => {
+    if (!ch || !store.apiKey) return;
+    setGeneratingPortrait(true);
+    try {
+      const portrait = await api.generatePortrait(store.apiKey, ch.character_id);
+      setPortraits((prev) => [portrait, ...prev.map((p) => ({ ...p, is_active: false }))]);
+      await store.refreshPortrait(ch.character_id);
+    } catch (e) {
+      store.setError?.(String(e));
+    } finally {
+      setGeneratingPortrait(false);
+    }
+  };
+
+  const handleSelectPortrait = async (portrait: PortraitInfo) => {
+    if (!ch) return;
+    try {
+      await api.setActivePortrait(ch.character_id, portrait.portrait_id);
+      setPortraits((prev) =>
+        prev.map((p) => ({ ...p, is_active: p.portrait_id === portrait.portrait_id }))
+      );
+      setShowGallery(false);
+      await store.refreshPortrait(ch.character_id);
+    } catch (e) {
+      store.setError?.(String(e));
+    }
+  };
+
+  const update = (patch: Partial<Character>) => {
+    setForm((f) => ({ ...f, ...patch }));
+    setDirty(true);
+  };
+
+  const handleSave = async () => {
+    await store.updateCharacter({ ...ch, ...form } as Character);
+    setDirty(false);
+  };
+
+  const applyTemplate = (template: CharacterTemplate) => {
+    setForm((f) => ({
+      ...f,
+      display_name: f.display_name || template.name.replace(/^The /, ""),
+      identity: template.identity,
+      voice_rules: [...template.voice_rules],
+      boundaries: [...template.boundaries],
+      backstory_facts: [...template.backstory_facts],
+      avatar_color: template.avatar_color,
+      state: {
+        mood: template.mood,
+        trust_user: template.trust_user,
+        goals: [...template.goals],
+        open_loops: [...template.open_loops],
+        last_seen: (f.state as Character["state"])?.last_seen ?? { day_index: 1, time_of_day: "MORNING" },
+      },
+    }));
+    setDirty(true);
+    setShowTemplates(false);
+  };
+
+  const filteredTemplates = templateSearch.trim()
+    ? CHARACTER_TEMPLATES.filter(
+        (t) =>
+          t.name.toLowerCase().includes(templateSearch.toLowerCase()) ||
+          t.tagline.toLowerCase().includes(templateSearch.toLowerCase()),
+      )
+    : CHARACTER_TEMPLATES;
+
+  return (
+    <>
+      <div className="flex-1 flex flex-col min-h-0">
+        <div className="px-6 py-3 border-b border-border flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            {activePortrait?.data_url ? (
+              <button
+                onClick={() => setShowGallery(true)}
+                className="w-10 h-10 rounded-full overflow-hidden ring-2 ring-primary/30 hover:ring-primary/60 transition-all cursor-pointer flex-shrink-0"
+              >
+                <img src={activePortrait.data_url} alt="" className="w-full h-full object-cover" />
+              </button>
+            ) : (
+              <span
+                className="w-4 h-4 rounded-full ring-2 ring-white/10"
+                style={{ backgroundColor: form.avatar_color ?? ch.avatar_color }}
+              />
+            )}
+            <div>
+              <h1 className="font-semibold">{form.display_name ?? ch.display_name}</h1>
+              <span className="text-xs text-muted-foreground/50">Character Canon</span>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            {dirty && (
+              <span className="text-xs text-primary bg-primary/10 px-2 py-0.5 rounded-full">
+                Unsaved changes
+              </span>
+            )}
+            <Button size="sm" variant="outline" onClick={() => { setTemplateSearch(""); setShowTemplates(true); }}>
+              <BookTemplate size={14} className="mr-1.5" /> Starter Templates
+            </Button>
+            <Button size="sm" onClick={handleSave} disabled={!dirty}>
+              <Save size={14} className="mr-1.5" /> Save
+            </Button>
+          </div>
+        </div>
+
+        <ScrollArea className="flex-1 px-6 py-6">
+          <div className="max-w-2xl space-y-8">
+            {/* Portrait Section */}
+            <FieldGroup label="Portrait">
+              <div className="flex items-start gap-4">
+                {activePortrait?.data_url ? (
+                  <button
+                    onClick={() => setShowGallery(true)}
+                    className="w-32 h-32 rounded-2xl overflow-hidden ring-2 ring-border hover:ring-primary/50 transition-all cursor-pointer flex-shrink-0"
+                  >
+                    <img src={activePortrait.data_url} alt="" className="w-full h-full object-cover" />
+                  </button>
+                ) : (
+                  <div className="w-32 h-32 rounded-2xl border-2 border-dashed border-border flex items-center justify-center flex-shrink-0">
+                    <span className="text-muted-foreground/40 text-xs text-center px-2">No portrait yet</span>
+                  </div>
+                )}
+                <div className="flex flex-col gap-2 pt-1">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={handleGeneratePortrait}
+                    disabled={generatingPortrait || !store.apiKey}
+                  >
+                    {generatingPortrait ? (
+                      <><Loader2 size={14} className="mr-1.5 animate-spin" /> Generating...</>
+                    ) : (
+                      <><ImagePlus size={14} className="mr-1.5" /> Generate Portrait</>
+                    )}
+                  </Button>
+                  {portraits.length > 1 && (
+                    <Button size="sm" variant="ghost" onClick={() => setShowGallery(true)}>
+                      View all ({portraits.length})
+                    </Button>
+                  )}
+                  <p className="text-[11px] text-muted-foreground leading-relaxed max-w-[220px]">
+                    Generates a watercolor portrait from this character's canon using DALL-E 3.
+                  </p>
+                </div>
+              </div>
+            </FieldGroup>
+            <FieldGroup label="Basics">
+              <div className="grid grid-cols-2 gap-4">
+                <Field label="Name">
+                  <Input value={form.display_name ?? ""} onChange={(e) => update({ display_name: e.target.value })} />
+                </Field>
+                <Field label="Avatar Color">
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="color"
+                      value={form.avatar_color ?? "#c4a882"}
+                      onChange={(e) => update({ avatar_color: e.target.value })}
+                      className="w-9 h-9 rounded-lg border border-input cursor-pointer bg-transparent p-0.5"
+                    />
+                    <Input className="flex-1 font-mono text-xs" value={form.avatar_color ?? ""} onChange={(e) => update({ avatar_color: e.target.value })} />
+                  </div>
+                </Field>
+              </div>
+            </FieldGroup>
+
+            <FieldGroup label="Identity & Voice">
+              <Field label="Identity" hint="Core personality, demeanor, how they see the world">
+                <Textarea
+                  className="min-h-[120px]"
+                  value={form.identity ?? ""}
+                  onChange={(e) => update({ identity: e.target.value })}
+                  placeholder="Quiet, observant, with a dark sense of humor. Speaks in half-truths..."
+                />
+              </Field>
+
+              <ArrayField
+                label="Voice Rules"
+                hint="How this character talks — style, cadence, quirks"
+                items={(form.voice_rules ?? []) as string[]}
+                onChange={(items) => update({ voice_rules: items })}
+                placeholder="e.g. Uses short sentences. Avoids exclamation marks."
+              />
+
+              <ArrayField
+                label="Boundaries"
+                hint="Lines this character never crosses"
+                items={(form.boundaries ?? []) as string[]}
+                onChange={(items) => update({ boundaries: items })}
+                placeholder="e.g. Never reveals their real name."
+              />
+            </FieldGroup>
+
+            <FieldGroup label="Backstory">
+              <ArrayField
+                label="Facts"
+                hint="Established truths about this character"
+                items={(form.backstory_facts ?? []) as string[]}
+                onChange={(items) => update({ backstory_facts: items })}
+                placeholder="e.g. Grew up near the lighthouse."
+              />
+            </FieldGroup>
+
+            <FieldGroup label="Current State">
+              <div className="grid grid-cols-2 gap-4">
+                <Field label="Mood" hint="-1 (dark) to 1 (bright)">
+                  <div className="flex items-center gap-3">
+                    <input
+                      type="range"
+                      min="-1"
+                      max="1"
+                      step="0.1"
+                      value={form.state?.mood ?? 0}
+                      onChange={(e) => update({ state: { ...form.state as Character["state"], mood: Number(e.target.value) } })}
+                      className="flex-1 accent-primary h-1.5 cursor-pointer"
+                    />
+                    <span className="text-xs font-mono text-muted-foreground w-8 text-right">
+                      {(form.state?.mood ?? 0).toFixed(1)}
+                    </span>
+                  </div>
+                </Field>
+                <Field label="Trust" hint="0 (none) to 1 (full)">
+                  <div className="flex items-center gap-3">
+                    <input
+                      type="range"
+                      min="0"
+                      max="1"
+                      step="0.1"
+                      value={form.state?.trust_user ?? 0.5}
+                      onChange={(e) => update({ state: { ...form.state as Character["state"], trust_user: Number(e.target.value) } })}
+                      className="flex-1 accent-primary h-1.5 cursor-pointer"
+                    />
+                    <span className="text-xs font-mono text-muted-foreground w-8 text-right">
+                      {(form.state?.trust_user ?? 0.5).toFixed(1)}
+                    </span>
+                  </div>
+                </Field>
+              </div>
+              <ArrayField
+                label="Goals"
+                hint="What this character is currently trying to do"
+                items={form.state?.goals ?? []}
+                onChange={(goals) => update({ state: { ...form.state as Character["state"], goals } })}
+                placeholder="e.g. Find the missing map piece"
+              />
+              <ArrayField
+                label="Open Loops"
+                hint="Unresolved threads that may surface in conversation"
+                items={form.state?.open_loops ?? []}
+                onChange={(open_loops) => update({ state: { ...form.state as Character["state"], open_loops } })}
+                placeholder="e.g. Ask user about the locked door"
+              />
+            </FieldGroup>
+          </div>
+        </ScrollArea>
+      </div>
+
+      {/* Portrait Gallery Modal */}
+      <Dialog open={showGallery} onClose={() => setShowGallery(false)} className="max-w-2xl">
+        <DialogContent>
+          <DialogHeader onClose={() => setShowGallery(false)}>
+            <DialogTitle>Portrait Gallery</DialogTitle>
+            <DialogDescription>
+              {portraits.length} portrait{portraits.length !== 1 ? "s" : ""} generated. Click to set as active.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogBody className="p-0">
+            <ScrollArea className="max-h-[500px]">
+              <div className="grid grid-cols-3 gap-3 p-4">
+                {portraits.map((p) => (
+                  <button
+                    key={p.portrait_id}
+                    onClick={() => handleSelectPortrait(p)}
+                    className={`relative rounded-xl overflow-hidden border-2 transition-all cursor-pointer aspect-square group ${
+                      p.is_active ? "border-primary ring-2 ring-primary/30" : "border-border hover:border-primary/40"
+                    }`}
+                  >
+                    {p.data_url ? (
+                      <img src={p.data_url} alt="" className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="w-full h-full bg-muted flex items-center justify-center text-muted-foreground text-xs">Missing</div>
+                    )}
+                    {p.is_active && (
+                      <div className="absolute top-2 right-2 w-6 h-6 rounded-full bg-primary flex items-center justify-center">
+                        <Check size={14} className="text-primary-foreground" />
+                      </div>
+                    )}
+                    <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent p-2 pt-6 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <p className="text-[10px] text-white/80">
+                        {new Date(p.created_at).toLocaleDateString()}
+                      </p>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </ScrollArea>
+          </DialogBody>
+        </DialogContent>
+      </Dialog>
+
+      {/* Template Picker Modal */}
+      <Dialog open={showTemplates} onClose={() => setShowTemplates(false)} className="max-w-2xl">
+        <DialogContent>
+          <DialogHeader onClose={() => setShowTemplates(false)}>
+            <DialogTitle>Choose a Template</DialogTitle>
+            <DialogDescription>Pick an archetype to pre-fill all fields. You can customize everything after.</DialogDescription>
+          </DialogHeader>
+          <DialogBody className="p-0">
+            <div className="px-6 py-3 border-b border-border">
+              <Input
+                autoFocus
+                placeholder="Search templates..."
+                value={templateSearch}
+                onChange={(e) => setTemplateSearch(e.target.value)}
+              />
+            </div>
+            <ScrollArea className="max-h-[420px]">
+              <div className="grid grid-cols-2 gap-2 p-4">
+                {filteredTemplates.map((template) => (
+                  <button
+                    key={template.name}
+                    onClick={() => applyTemplate(template)}
+                    className="text-left p-3.5 rounded-xl border border-border bg-card/50 hover:bg-accent/50 hover:border-primary/30 transition-all cursor-pointer group"
+                  >
+                    <div className="flex items-center gap-2.5 mb-1.5">
+                      <span className="text-lg">{template.emoji}</span>
+                      <span className="font-medium text-sm group-hover:text-primary transition-colors">{template.name}</span>
+                      <span className="ml-auto w-2.5 h-2.5 rounded-full flex-shrink-0 ring-1 ring-white/10" style={{ backgroundColor: template.avatar_color }} />
+                    </div>
+                    <p className="text-xs text-muted-foreground leading-relaxed">{template.tagline}</p>
+                  </button>
+                ))}
+                {filteredTemplates.length === 0 && (
+                  <div className="col-span-2 py-8 text-center text-muted-foreground text-sm">
+                    No templates match your search
+                  </div>
+                )}
+              </div>
+            </ScrollArea>
+          </DialogBody>
+        </DialogContent>
+      </Dialog>
+    </>
+  );
+}
+
+function ArrayField({ label, hint, items, onChange, placeholder }: {
+  label: string;
+  hint?: string;
+  items: string[];
+  onChange: (items: string[]) => void;
+  placeholder: string;
+}) {
+  const [newItem, setNewItem] = useState("");
+
+  return (
+    <Field label={label} hint={hint}>
+      <div className="space-y-2">
+        {items.map((item, i) => (
+          <div key={i} className="flex items-start gap-2 group">
+            <div className="mt-2.5 w-1.5 h-1.5 rounded-full bg-primary/40 flex-shrink-0" />
+            <Input className="flex-1" value={item} onChange={(e) => {
+              const updated = [...items];
+              updated[i] = e.target.value;
+              onChange(updated);
+            }} />
+            <Button variant="ghost" size="icon" className="h-9 w-9 opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive flex-shrink-0" onClick={() => {
+              onChange(items.filter((_, j) => j !== i));
+            }}>
+              <X size={14} />
+            </Button>
+          </div>
+        ))}
+        <div className="flex items-center gap-2">
+          <div className="w-1.5 h-1.5 rounded-full bg-border flex-shrink-0" />
+          <Input
+            className="flex-1"
+            value={newItem}
+            onChange={(e) => setNewItem(e.target.value)}
+            placeholder={placeholder}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && newItem.trim()) {
+                onChange([...items, newItem.trim()]);
+                setNewItem("");
+              }
+            }}
+          />
+          <Button variant="outline" size="sm" className="h-9 flex-shrink-0" onClick={() => {
+            if (newItem.trim()) {
+              onChange([...items, newItem.trim()]);
+              setNewItem("");
+            }
+          }}>
+            <Plus size={14} className="mr-1" /> Add
+          </Button>
+        </div>
+      </div>
+    </Field>
+  );
+}

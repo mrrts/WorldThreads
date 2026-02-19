@@ -1,0 +1,240 @@
+use rusqlite::Connection;
+
+pub fn run_migrations(conn: &Connection) -> Result<(), rusqlite::Error> {
+    conn.execute_batch("
+        CREATE TABLE IF NOT EXISTS worlds (
+            world_id TEXT PRIMARY KEY,
+            name TEXT NOT NULL DEFAULT 'Untitled World',
+            description TEXT NOT NULL DEFAULT '',
+            tone_tags TEXT NOT NULL DEFAULT '[]',
+            invariants TEXT NOT NULL DEFAULT '[]',
+            state TEXT NOT NULL DEFAULT '{}',
+            created_at TEXT NOT NULL DEFAULT (datetime('now')),
+            updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+        );
+
+        CREATE TABLE IF NOT EXISTS user_profiles (
+            world_id TEXT PRIMARY KEY REFERENCES worlds(world_id) ON DELETE CASCADE,
+            display_name TEXT NOT NULL DEFAULT 'Me',
+            description TEXT NOT NULL DEFAULT '',
+            facts TEXT NOT NULL DEFAULT '[]',
+            updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+        );
+
+        CREATE TABLE IF NOT EXISTS characters (
+            character_id TEXT PRIMARY KEY,
+            world_id TEXT NOT NULL REFERENCES worlds(world_id) ON DELETE CASCADE,
+            display_name TEXT NOT NULL,
+            identity TEXT NOT NULL DEFAULT '',
+            voice_rules TEXT NOT NULL DEFAULT '[]',
+            boundaries TEXT NOT NULL DEFAULT '[]',
+            backstory_facts TEXT NOT NULL DEFAULT '[]',
+            relationships TEXT NOT NULL DEFAULT '{}',
+            state TEXT NOT NULL DEFAULT '{}',
+            avatar_color TEXT NOT NULL DEFAULT '#c4a882',
+            is_archived INTEGER NOT NULL DEFAULT 0,
+            created_at TEXT NOT NULL DEFAULT (datetime('now')),
+            updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+        );
+
+        CREATE TABLE IF NOT EXISTS threads (
+            thread_id TEXT PRIMARY KEY,
+            character_id TEXT NOT NULL REFERENCES characters(character_id) ON DELETE CASCADE,
+            world_id TEXT NOT NULL REFERENCES worlds(world_id) ON DELETE CASCADE,
+            created_at TEXT NOT NULL DEFAULT (datetime('now'))
+        );
+
+        CREATE TABLE IF NOT EXISTS messages (
+            message_id TEXT PRIMARY KEY,
+            thread_id TEXT NOT NULL REFERENCES threads(thread_id) ON DELETE CASCADE,
+            role TEXT NOT NULL CHECK(role IN ('user', 'assistant', 'system')),
+            content TEXT NOT NULL,
+            tokens_estimate INTEGER NOT NULL DEFAULT 0,
+            created_at TEXT NOT NULL DEFAULT (datetime('now'))
+        );
+        CREATE INDEX IF NOT EXISTS idx_messages_thread ON messages(thread_id, created_at);
+
+        CREATE TABLE IF NOT EXISTS world_events (
+            event_id TEXT PRIMARY KEY,
+            world_id TEXT NOT NULL REFERENCES worlds(world_id) ON DELETE CASCADE,
+            day_index INTEGER NOT NULL DEFAULT 0,
+            time_of_day TEXT NOT NULL DEFAULT 'MORNING',
+            summary TEXT NOT NULL,
+            involved_characters TEXT NOT NULL DEFAULT '[]',
+            hooks TEXT NOT NULL DEFAULT '[]',
+            trigger_type TEXT NOT NULL DEFAULT 'after_user_message',
+            created_at TEXT NOT NULL DEFAULT (datetime('now'))
+        );
+        CREATE INDEX IF NOT EXISTS idx_world_events_world ON world_events(world_id, created_at);
+
+        CREATE TABLE IF NOT EXISTS memory_artifacts (
+            artifact_id TEXT PRIMARY KEY,
+            artifact_type TEXT NOT NULL,
+            subject_id TEXT NOT NULL,
+            world_id TEXT NOT NULL REFERENCES worlds(world_id) ON DELETE CASCADE,
+            content TEXT NOT NULL,
+            sources TEXT NOT NULL DEFAULT '[]',
+            created_at TEXT NOT NULL DEFAULT (datetime('now')),
+            updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+        );
+        CREATE INDEX IF NOT EXISTS idx_memory_subject ON memory_artifacts(subject_id, artifact_type);
+
+        CREATE TABLE IF NOT EXISTS settings (
+            key TEXT PRIMARY KEY,
+            value TEXT NOT NULL
+        );
+
+        CREATE TABLE IF NOT EXISTS tick_cache (
+            cache_key TEXT PRIMARY KEY,
+            result TEXT NOT NULL,
+            created_at TEXT NOT NULL DEFAULT (datetime('now'))
+        );
+
+        CREATE TABLE IF NOT EXISTS message_count_tracker (
+            thread_id TEXT PRIMARY KEY,
+            count_since_maintenance INTEGER NOT NULL DEFAULT 0
+        );
+
+        CREATE TABLE IF NOT EXISTS character_portraits (
+            portrait_id TEXT PRIMARY KEY,
+            character_id TEXT NOT NULL REFERENCES characters(character_id) ON DELETE CASCADE,
+            prompt TEXT NOT NULL,
+            file_name TEXT NOT NULL,
+            is_active INTEGER NOT NULL DEFAULT 0,
+            created_at TEXT NOT NULL DEFAULT (datetime('now'))
+        );
+        CREATE INDEX IF NOT EXISTS idx_portraits_character ON character_portraits(character_id);
+
+        CREATE TABLE IF NOT EXISTS world_images (
+            image_id TEXT PRIMARY KEY,
+            world_id TEXT NOT NULL REFERENCES worlds(world_id) ON DELETE CASCADE,
+            prompt TEXT NOT NULL,
+            file_name TEXT NOT NULL,
+            is_active INTEGER NOT NULL DEFAULT 0,
+            created_at TEXT NOT NULL DEFAULT (datetime('now'))
+        );
+        CREATE INDEX IF NOT EXISTS idx_world_images_world ON world_images(world_id);
+
+        CREATE TABLE IF NOT EXISTS chat_backgrounds (
+            character_id TEXT PRIMARY KEY REFERENCES characters(character_id) ON DELETE CASCADE,
+            bg_type TEXT NOT NULL DEFAULT 'color',
+            bg_color TEXT NOT NULL DEFAULT '',
+            bg_image_id TEXT NOT NULL DEFAULT '',
+            bg_blur INTEGER NOT NULL DEFAULT 0,
+            updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+        );
+
+        CREATE TABLE IF NOT EXISTS token_usage (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            call_type TEXT NOT NULL,
+            model TEXT NOT NULL,
+            prompt_tokens INTEGER NOT NULL DEFAULT 0,
+            completion_tokens INTEGER NOT NULL DEFAULT 0,
+            created_at TEXT NOT NULL DEFAULT (datetime('now'))
+        );
+        CREATE INDEX IF NOT EXISTS idx_token_usage_date ON token_usage(created_at);
+
+        CREATE TABLE IF NOT EXISTS reactions (
+            reaction_id TEXT PRIMARY KEY,
+            message_id TEXT NOT NULL REFERENCES messages(message_id) ON DELETE CASCADE,
+            emoji TEXT NOT NULL,
+            reactor TEXT NOT NULL CHECK(reactor IN ('user', 'assistant')),
+            created_at TEXT NOT NULL DEFAULT (datetime('now'))
+        );
+        CREATE INDEX IF NOT EXISTS idx_reactions_message ON reactions(message_id);
+    ")?;
+
+    // Migrate old content-synced FTS tables to standalone ones.
+    // Old schema had content_rowid=rowid which doesn't work with TEXT PKs.
+    let needs_fts_migration: bool = conn.query_row(
+        "SELECT count(*) > 0 FROM sqlite_master WHERE type='table' AND name='messages_fts' AND sql LIKE '%content_rowid%'",
+        [], |r| r.get(0),
+    ).unwrap_or(false);
+
+    if needs_fts_migration {
+        conn.execute_batch("
+            DROP TABLE IF EXISTS messages_fts;
+            DROP TABLE IF EXISTS world_events_fts;
+        ")?;
+    }
+
+    conn.execute_batch("
+        CREATE VIRTUAL TABLE IF NOT EXISTS messages_fts USING fts5(
+            message_id UNINDEXED,
+            thread_id UNINDEXED,
+            content,
+            tokenize='porter'
+        );
+
+        CREATE VIRTUAL TABLE IF NOT EXISTS world_events_fts USING fts5(
+            event_id UNINDEXED,
+            world_id UNINDEXED,
+            summary,
+            tokenize='porter'
+        );
+    ")?;
+
+    // If we just migrated, backfill FTS from existing data
+    if needs_fts_migration {
+        conn.execute_batch("
+            INSERT INTO messages_fts (message_id, thread_id, content)
+            SELECT message_id, thread_id, content FROM messages;
+
+            INSERT INTO world_events_fts (event_id, world_id, summary)
+            SELECT event_id, world_id, summary FROM world_events;
+        ")?;
+    }
+
+    let has_vec: bool = conn
+        .query_row(
+            "SELECT count(*) > 0 FROM sqlite_master WHERE type='table' AND name='vec_chunks'",
+            [],
+            |r| r.get(0),
+        )
+        .unwrap_or(false);
+
+    if !has_vec {
+        conn.execute_batch("
+            CREATE VIRTUAL TABLE IF NOT EXISTS vec_chunks USING vec0(
+                embedding float[1536]
+            );
+
+            CREATE TABLE IF NOT EXISTS chunk_metadata (
+                rowid INTEGER PRIMARY KEY,
+                chunk_id TEXT NOT NULL UNIQUE,
+                source_type TEXT NOT NULL,
+                source_id TEXT NOT NULL,
+                world_id TEXT NOT NULL,
+                content TEXT NOT NULL,
+                created_at TEXT NOT NULL DEFAULT (datetime('now'))
+            );
+        ")?;
+    }
+
+    // Add is_archived column to characters if missing (migration for existing DBs)
+    let has_archived: bool = conn
+        .query_row(
+            "SELECT count(*) > 0 FROM pragma_table_info('characters') WHERE name = 'is_archived'",
+            [],
+            |r| r.get(0),
+        )
+        .unwrap_or(false);
+
+    if !has_archived {
+        conn.execute_batch("ALTER TABLE characters ADD COLUMN is_archived INTEGER NOT NULL DEFAULT 0")?;
+    }
+
+    let has_bg_image_id: bool = conn
+        .query_row(
+            "SELECT count(*) > 0 FROM pragma_table_info('chat_backgrounds') WHERE name = 'bg_image_id'",
+            [],
+            |r| r.get(0),
+        )
+        .unwrap_or(false);
+
+    if !has_bg_image_id {
+        conn.execute_batch("ALTER TABLE chat_backgrounds ADD COLUMN bg_image_id TEXT NOT NULL DEFAULT ''")?;
+    }
+
+    Ok(())
+}

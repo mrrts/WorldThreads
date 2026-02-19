@@ -1,0 +1,42 @@
+# Dependencies
+node_modules/
+frontend/node_modules/
+frontend/dist/
+
+# Rust
+src-tauri/target/
+
+# Stronghold vault & salt (contains encrypted secrets)
+vault.hold
+salt.txt
+
+# OS
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+
+# IDE
+.idea/
+.vscode/
+*.code-workspace
+
+# Env
+.env
+.env.*
+!.env.example
+
+# Database
+*.db
+*.db-wal
+*.db-shm
+
+# Generated portraits/images (app data, not source)
+portraits/
+
+# Logs
+*.log
+
+# Tauri build output
+src-tauri/gen/

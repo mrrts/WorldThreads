@@ -1,0 +1,234 @@
+use crate::ai::openai::{self, ImageRequest};
+use crate::db::queries::*;
+use crate::db::Database;
+use chrono::Utc;
+use serde::{Deserialize, Serialize};
+use std::path::PathBuf;
+use tauri::State;
+
+#[derive(Clone)]
+pub struct PortraitsDir(pub PathBuf);
+
+fn json_array_to_strings(val: &serde_json::Value) -> Vec<String> {
+    match val.as_array() {
+        Some(arr) => arr.iter().filter_map(|v| v.as_str().map(|s| s.to_string())).collect(),
+        None => Vec::new(),
+    }
+}
+
+fn build_portrait_prompt(character: &Character, world: &World) -> String {
+    let mut parts = vec![
+        "Studio Ghibli watercolor portrait of a character.".to_string(),
+        "Soft, painterly style with visible brushstrokes, warm muted tones, delicate linework.".to_string(),
+        "Gentle ambient lighting, dreamy atmosphere, like a frame from a Miyazaki film.".to_string(),
+        "Close-up face and bust portrait only, slight three-quarter angle, expressive eyes. Framing ends at the upper chest.".to_string(),
+    ];
+
+    parts.push(format!("Character name: {}", character.display_name));
+
+    if !character.identity.is_empty() {
+        let identity = if character.identity.len() > 300 {
+            format!("{}...", &character.identity[..300])
+        } else {
+            character.identity.clone()
+        };
+        parts.push(format!("Personality and appearance: {identity}"));
+    }
+
+    let backstory = json_array_to_strings(&character.backstory_facts);
+    if !backstory.is_empty() {
+        let facts = backstory.iter().take(3).cloned().collect::<Vec<_>>().join("; ");
+        parts.push(format!("Key traits: {facts}"));
+    }
+
+    if !world.description.is_empty() {
+        let desc = if world.description.len() > 150 {
+            format!("{}...", &world.description[..150])
+        } else {
+            world.description.clone()
+        };
+        parts.push(format!("World setting: {desc}"));
+    }
+
+    parts.push("No text, no words, no letters, no watermarks, no labels, no captions, no UI elements, no names.".to_string());
+
+    parts.join(" ")
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct PortraitInfo {
+    pub portrait_id: String,
+    pub character_id: String,
+    pub prompt: String,
+    pub is_active: bool,
+    pub created_at: String,
+    pub data_url: String,
+}
+
+fn portrait_to_info(p: &Portrait, portraits_dir: &std::path::Path) -> PortraitInfo {
+    let file_path = portraits_dir.join(&p.file_name);
+    let data_url = if file_path.exists() {
+        let bytes = std::fs::read(&file_path).unwrap_or_default();
+        format!("data:image/png;base64,{}", base64_encode(&bytes))
+    } else {
+        String::new()
+    };
+    PortraitInfo {
+        portrait_id: p.portrait_id.clone(),
+        character_id: p.character_id.clone(),
+        prompt: p.prompt.clone(),
+        is_active: p.is_active,
+        created_at: p.created_at.clone(),
+        data_url,
+    }
+}
+
+fn base64_encode(bytes: &[u8]) -> String {
+    const CHARS: &[u8] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+    let mut result = String::with_capacity((bytes.len() + 2) / 3 * 4);
+    for chunk in bytes.chunks(3) {
+        let b0 = chunk[0] as u32;
+        let b1 = if chunk.len() > 1 { chunk[1] as u32 } else { 0 };
+        let b2 = if chunk.len() > 2 { chunk[2] as u32 } else { 0 };
+        let triple = (b0 << 16) | (b1 << 8) | b2;
+        result.push(CHARS[((triple >> 18) & 0x3F) as usize] as char);
+        result.push(CHARS[((triple >> 12) & 0x3F) as usize] as char);
+        if chunk.len() > 1 {
+            result.push(CHARS[((triple >> 6) & 0x3F) as usize] as char);
+        } else {
+            result.push('=');
+        }
+        if chunk.len() > 2 {
+            result.push(CHARS[(triple & 0x3F) as usize] as char);
+        } else {
+            result.push('=');
+        }
+    }
+    result
+}
+
+#[tauri::command]
+pub async fn generate_portrait_cmd(
+    db: State<'_, Database>,
+    portraits_dir: State<'_, PortraitsDir>,
+    api_key: String,
+    character_id: String,
+) -> Result<PortraitInfo, String> {
+    let (character, world) = {
+        let conn = db.conn.lock().map_err(|e| e.to_string())?;
+        let ch = get_character(&conn, &character_id).map_err(|e| e.to_string())?;
+        let w = get_world(&conn, &ch.world_id).map_err(|e| e.to_string())?;
+        (ch, w)
+    };
+
+    let prompt = build_portrait_prompt(&character, &world);
+    log::info!("[Portrait] Generating for '{}': {:.120}...", character.display_name, prompt);
+
+    let request = ImageRequest {
+        model: "dall-e-3".to_string(),
+        prompt: prompt.clone(),
+        n: 1,
+        size: "1024x1024".to_string(),
+        quality: "standard".to_string(),
+        response_format: "b64_json".to_string(),
+    };
+
+    let response = openai::generate_image(&api_key, &request).await?;
+    let b64 = response.data.first()
+        .and_then(|d| d.b64_json.as_ref())
+        .ok_or_else(|| "No image data in response".to_string())?;
+
+    let image_bytes = base64_decode(b64)
+        .map_err(|e| format!("Failed to decode image: {e}"))?;
+
+    let portrait_id = uuid::Uuid::new_v4().to_string();
+    let file_name = format!("{portrait_id}.png");
+    let dir = &portraits_dir.0;
+    std::fs::create_dir_all(dir).map_err(|e| format!("Failed to create portraits dir: {e}"))?;
+    let file_path = dir.join(&file_name);
+    std::fs::write(&file_path, &image_bytes).map_err(|e| format!("Failed to save image: {e}"))?;
+
+    log::info!("[Portrait] Saved {} ({} bytes)", file_name, image_bytes.len());
+
+    let portrait = Portrait {
+        portrait_id: portrait_id.clone(),
+        character_id: character_id.clone(),
+        prompt,
+        file_name: file_name.clone(),
+        is_active: true,
+        created_at: Utc::now().to_rfc3339(),
+    };
+
+    {
+        let conn = db.conn.lock().map_err(|e| e.to_string())?;
+        // Deactivate all existing, then insert new as active
+        let _ = conn.execute("UPDATE character_portraits SET is_active = 0 WHERE character_id = ?1", rusqlite::params![character_id]);
+        create_portrait(&conn, &portrait).map_err(|e| e.to_string())?;
+    }
+
+    Ok(portrait_to_info(&portrait, dir))
+}
+
+fn base64_decode(input: &str) -> Result<Vec<u8>, String> {
+    const DECODE: [u8; 128] = {
+        let mut table = [255u8; 128];
+        let chars = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+        let mut i = 0;
+        while i < 64 {
+            table[chars[i] as usize] = i as u8;
+            i += 1;
+        }
+        table
+    };
+
+    let input = input.as_bytes();
+    let mut result = Vec::with_capacity(input.len() * 3 / 4);
+    let mut buf = 0u32;
+    let mut bits = 0;
+
+    for &b in input {
+        if b == b'=' || b == b'\n' || b == b'\r' { continue; }
+        if b >= 128 { return Err("Invalid base64 character".to_string()); }
+        let val = DECODE[b as usize];
+        if val == 255 { return Err(format!("Invalid base64 character: {}", b as char)); }
+        buf = (buf << 6) | val as u32;
+        bits += 6;
+        if bits >= 8 {
+            bits -= 8;
+            result.push((buf >> bits) as u8);
+            buf &= (1 << bits) - 1;
+        }
+    }
+    Ok(result)
+}
+
+#[tauri::command]
+pub fn list_portraits_cmd(
+    db: State<Database>,
+    portraits_dir: State<PortraitsDir>,
+    character_id: String,
+) -> Result<Vec<PortraitInfo>, String> {
+    let conn = db.conn.lock().map_err(|e| e.to_string())?;
+    let portraits = list_portraits(&conn, &character_id).map_err(|e| e.to_string())?;
+    Ok(portraits.iter().map(|p| portrait_to_info(p, &portraits_dir.0)).collect())
+}
+
+#[tauri::command]
+pub fn set_active_portrait_cmd(
+    db: State<Database>,
+    character_id: String,
+    portrait_id: String,
+) -> Result<(), String> {
+    let conn = db.conn.lock().map_err(|e| e.to_string())?;
+    set_active_portrait(&conn, &character_id, &portrait_id).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub fn get_active_portrait_cmd(
+    db: State<Database>,
+    portraits_dir: State<PortraitsDir>,
+    character_id: String,
+) -> Result<Option<PortraitInfo>, String> {
+    let conn = db.conn.lock().map_err(|e| e.to_string())?;
+    Ok(get_active_portrait(&conn, &character_id).map(|p| portrait_to_info(&p, &portraits_dir.0)))
+}
