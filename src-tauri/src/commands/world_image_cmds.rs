@@ -4,13 +4,14 @@ use crate::db::Database;
 use crate::commands::portrait_cmds::PortraitsDir;
 use chrono::Utc;
 use serde::{Deserialize, Serialize};
+use std::path::Path;
 use tauri::State;
 
 fn build_world_image_prompt(world: &World) -> String {
     let mut parts = vec![
-        "Studio Ghibli watercolor landscape painting.".to_string(),
-        "Soft, painterly style with visible brushstrokes, warm muted tones, delicate linework.".to_string(),
-        "Gentle ambient lighting, dreamy atmosphere, like a panoramic frame from a Miyazaki film.".to_string(),
+        "Hand-painted watercolor landscape in a lush, storybook anime style.".to_string(),
+        "Soft cel-shaded edges dissolving into wet-on-wet washes, visible paper texture, warm earth tones with pops of verdant green and sky blue.".to_string(),
+        "Gentle diffused natural lighting, nostalgic and contemplative mood, wide panoramic composition.".to_string(),
         "Wide establishing shot, rich environmental detail, no characters or people in the scene.".to_string(),
     ];
 
@@ -43,6 +44,7 @@ pub struct WorldImageInfo {
     pub world_id: String,
     pub prompt: String,
     pub is_active: bool,
+    pub source: String,
     pub created_at: String,
     pub data_url: String,
 }
@@ -60,6 +62,7 @@ fn image_to_info(img: &WorldImage, dir: &std::path::Path) -> WorldImageInfo {
         world_id: img.world_id.clone(),
         prompt: img.prompt.clone(),
         is_active: img.is_active,
+        source: img.source.clone(),
         created_at: img.created_at.clone(),
         data_url,
     }
@@ -169,6 +172,7 @@ pub async fn generate_world_image_cmd(
         prompt,
         file_name,
         is_active: true,
+        source: "generated".to_string(),
         created_at: Utc::now().to_rfc3339(),
     };
 
@@ -228,4 +232,185 @@ pub fn update_chat_background_cmd(
 ) -> Result<(), String> {
     let conn = db.conn.lock().map_err(|e| e.to_string())?;
     upsert_chat_background(&conn, &bg).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub async fn generate_world_image_with_prompt_cmd(
+    db: State<'_, Database>,
+    portraits_dir: State<'_, PortraitsDir>,
+    api_key: String,
+    world_id: String,
+    custom_prompt: String,
+) -> Result<WorldImageInfo, String> {
+    let mut prompt_parts = vec![
+        "Hand-painted watercolor landscape in a lush, storybook anime style.".to_string(),
+        "Soft cel-shaded edges dissolving into wet-on-wet washes, visible paper texture, warm earth tones with pops of verdant green and sky blue.".to_string(),
+        "Gentle diffused natural lighting, nostalgic and contemplative mood.".to_string(),
+        "Wide establishing shot, rich environmental detail.".to_string(),
+    ];
+    prompt_parts.push(custom_prompt.clone());
+    prompt_parts.push("No text, no watermarks, no UI elements.".to_string());
+
+    let prompt = prompt_parts.join(" ");
+    log::info!("[WorldImage] Custom prompt for '{}': {:.120}...", world_id, prompt);
+
+    let request = ImageRequest {
+        model: "dall-e-3".to_string(),
+        prompt: prompt.clone(),
+        n: 1,
+        size: "1792x1024".to_string(),
+        quality: "standard".to_string(),
+        response_format: "b64_json".to_string(),
+    };
+
+    let response = openai::generate_image(&api_key, &request).await?;
+    let b64 = response.data.first()
+        .and_then(|d| d.b64_json.as_ref())
+        .ok_or_else(|| "No image data in response".to_string())?;
+
+    let image_bytes = base64_decode(b64)
+        .map_err(|e| format!("Failed to decode image: {e}"))?;
+
+    let image_id = uuid::Uuid::new_v4().to_string();
+    let file_name = format!("world_{image_id}.png");
+    let dir = &portraits_dir.0;
+    std::fs::create_dir_all(dir).map_err(|e| format!("Failed to create dir: {e}"))?;
+    std::fs::write(dir.join(&file_name), &image_bytes)
+        .map_err(|e| format!("Failed to save image: {e}"))?;
+
+    let img = WorldImage {
+        image_id,
+        world_id: world_id.clone(),
+        prompt: custom_prompt,
+        file_name,
+        is_active: false,
+        source: "generated".to_string(),
+        created_at: Utc::now().to_rfc3339(),
+    };
+
+    {
+        let conn = db.conn.lock().map_err(|e| e.to_string())?;
+        create_world_image(&conn, &img).map_err(|e| e.to_string())?;
+    }
+
+    Ok(image_to_info(&img, dir))
+}
+
+#[tauri::command]
+pub fn upload_world_image_cmd(
+    db: State<Database>,
+    portraits_dir: State<PortraitsDir>,
+    world_id: String,
+    image_data: String,
+    label: String,
+) -> Result<WorldImageInfo, String> {
+    let raw = if image_data.contains(',') {
+        image_data.split(',').nth(1).unwrap_or(&image_data)
+    } else {
+        &image_data
+    };
+
+    let image_bytes = base64_decode(raw)
+        .map_err(|e| format!("Failed to decode image: {e}"))?;
+
+    let image_id = uuid::Uuid::new_v4().to_string();
+    let file_name = format!("world_{image_id}.png");
+    let dir = &portraits_dir.0;
+    std::fs::create_dir_all(dir).map_err(|e| format!("Failed to create dir: {e}"))?;
+    std::fs::write(dir.join(&file_name), &image_bytes)
+        .map_err(|e| format!("Failed to save image: {e}"))?;
+
+    let img = WorldImage {
+        image_id,
+        world_id: world_id.clone(),
+        prompt: label,
+        file_name,
+        is_active: false,
+        source: "uploaded".to_string(),
+        created_at: Utc::now().to_rfc3339(),
+    };
+
+    {
+        let conn = db.conn.lock().map_err(|e| e.to_string())?;
+        create_world_image(&conn, &img).map_err(|e| e.to_string())?;
+    }
+
+    Ok(image_to_info(&img, dir))
+}
+
+// ─── Unified gallery: every image in a world ─────────────────────────────────
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct GalleryItem {
+    pub id: String,
+    pub data_url: String,
+    pub prompt: String,
+    pub category: String,
+    pub label: String,
+    pub created_at: String,
+}
+
+fn file_to_data_url(dir: &Path, file_name: &str) -> String {
+    let path = dir.join(file_name);
+    if path.exists() {
+        let bytes = std::fs::read(&path).unwrap_or_default();
+        format!("data:image/png;base64,{}", base64_encode(&bytes))
+    } else {
+        String::new()
+    }
+}
+
+#[tauri::command]
+pub fn list_world_gallery_cmd(
+    db: State<Database>,
+    portraits_dir: State<PortraitsDir>,
+    world_id: String,
+) -> Result<Vec<GalleryItem>, String> {
+    let conn = db.conn.lock().map_err(|e| e.to_string())?;
+    let dir = &portraits_dir.0;
+    let mut items: Vec<GalleryItem> = Vec::new();
+
+    let world_imgs = list_world_images(&conn, &world_id).map_err(|e| e.to_string())?;
+    for img in &world_imgs {
+        let src = if img.source == "uploaded" { "Uploaded" } else { "Generated" };
+        items.push(GalleryItem {
+            id: img.image_id.clone(),
+            data_url: file_to_data_url(dir, &img.file_name),
+            prompt: img.prompt.clone(),
+            category: "world".to_string(),
+            label: format!("World · {src}"),
+            created_at: img.created_at.clone(),
+        });
+    }
+
+    let portraits = list_portraits_for_world(&conn, &world_id).map_err(|e| e.to_string())?;
+    for (p, char_name) in &portraits {
+        items.push(GalleryItem {
+            id: p.portrait_id.clone(),
+            data_url: file_to_data_url(dir, &p.file_name),
+            prompt: p.prompt.clone(),
+            category: "character".to_string(),
+            label: char_name.clone(),
+            created_at: p.created_at.clone(),
+        });
+    }
+
+    if let Ok(profile) = get_user_profile(&conn, &world_id) {
+        if !profile.avatar_file.is_empty() {
+            let data_url = file_to_data_url(dir, &profile.avatar_file);
+            if !data_url.is_empty() {
+                items.push(GalleryItem {
+                    id: format!("user_{}", world_id),
+                    data_url,
+                    prompt: String::new(),
+                    category: "user".to_string(),
+                    label: profile.display_name,
+                    created_at: profile.updated_at,
+                });
+            }
+        }
+    }
+
+    items.sort_by(|a, b| b.created_at.cmp(&a.created_at));
+    Ok(items)
 }

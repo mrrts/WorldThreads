@@ -1,3 +1,4 @@
+use crate::ai::mood;
 use crate::ai::orchestrator::{self, TickResult};
 use crate::db::queries::*;
 use crate::db::Database;
@@ -27,7 +28,8 @@ pub async fn send_message_cmd(
 ) -> Result<SendMessageResult, String> {
     // Phase 1: Read everything from DB, persist user message, build retrieval context
     let (world, character, thread, recent_msgs, recent_events, characters, model_config,
-         retrieved, cache_key, cached_tick, should_run_maintenance, user_profile) = {
+         retrieved, cache_key, cached_tick, should_run_maintenance, user_profile,
+         current_mood, mood_enabled, mood_drift_rate) = {
         let conn = db.conn.lock().map_err(|e| e.to_string())?;
         let character = get_character(&conn, &character_id).map_err(|e| e.to_string())?;
         let world = get_world(&conn, &character.world_id).map_err(|e| e.to_string())?;
@@ -108,8 +110,15 @@ pub async fn send_message_cmd(
 
         let user_profile = get_user_profile(&conn, &character.world_id).ok();
 
+        let current_mood = get_character_mood(&conn, &character_id);
+        let mood_enabled = get_setting(&conn, "mood_drift_enabled")
+            .ok().flatten().map(|v| v == "true").unwrap_or(true);
+        let mood_drift_rate = get_setting(&conn, "mood_drift_rate")
+            .ok().flatten().and_then(|v| v.parse::<f64>().ok());
+
         (world, character, thread, recent_msgs, recent_events, characters, model_config,
-         retrieved, cache_key, cached_tick, should_run_maintenance, user_profile)
+         retrieved, cache_key, cached_tick, should_run_maintenance, user_profile,
+         current_mood, mood_enabled, mood_drift_rate)
     };
 
     // Phase 2: Run world tick (async, no DB lock)
@@ -199,11 +208,47 @@ pub async fn send_message_cmd(
 
     log::info!("[Memory] Total retrieval context: {} items passed to dialogue", full_retrieved.len());
 
+    // Phase 5b: Mood drift
+    let mood_directive = if mood_enabled {
+        let current = current_mood.as_ref()
+            .map(mood::MoodVector::from)
+            .unwrap_or_else(mood::MoodVector::neutral);
+        let target = mood::compute_mood_target(&world, &character, &recent_msgs);
+        let drifted = mood::drift_mood(&current, &target, mood_drift_rate);
+        let directive = mood::mood_to_style_directive(&drifted);
+
+        let history = current_mood.as_ref()
+            .map(|m| m.history.clone())
+            .unwrap_or_else(|| serde_json::Value::Array(vec![]));
+        let new_history = mood::append_mood_history(&history, &drifted);
+
+        let updated = CharacterMood {
+            character_id: character_id.clone(),
+            valence: drifted.valence,
+            energy: drifted.energy,
+            tension: drifted.tension,
+            history: new_history,
+            updated_at: Utc::now().to_rfc3339(),
+        };
+        {
+            let conn = db.conn.lock().map_err(|e| e.to_string())?;
+            let _ = upsert_character_mood(&conn, &updated);
+        }
+        log::info!("[Mood] {} → v={:.2} e={:.2} t={:.2} | directive: {:.60}",
+            character.display_name, drifted.valence, drifted.energy, drifted.tension,
+            if directive.is_empty() { "(neutral)" } else { &directive });
+
+        if directive.is_empty() { None } else { Some(directive) }
+    } else {
+        None
+    };
+
     // Phase 6: Run dialogue (async, no DB lock)
     let (reply_text, dialogue_usage) = orchestrator::run_dialogue(
         &api_key, &model_config.dialogue_model,
         &world, &character, &recent_msgs, &all_events_for_dialogue, &full_retrieved,
         user_profile.as_ref(),
+        mood_directive.as_deref(),
     ).await?;
     let tokens = dialogue_usage.as_ref().map(|u| u.total_tokens).unwrap_or(0);
     if let Some(u) = &dialogue_usage {

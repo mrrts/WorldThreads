@@ -18,9 +18,9 @@ fn json_array_to_strings(val: &serde_json::Value) -> Vec<String> {
 
 fn build_portrait_prompt(character: &Character, world: &World) -> String {
     let mut parts = vec![
-        "Studio Ghibli watercolor portrait of a character.".to_string(),
-        "Soft, painterly style with visible brushstrokes, warm muted tones, delicate linework.".to_string(),
-        "Gentle ambient lighting, dreamy atmosphere, like a frame from a Miyazaki film.".to_string(),
+        "Hand-painted watercolor portrait of a character in a lush, storybook anime style.".to_string(),
+        "Soft cel-shaded edges dissolving into wet-on-wet washes, visible paper texture, warm earth tones with pops of verdant green and sky blue.".to_string(),
+        "Gentle diffused natural lighting, nostalgic and contemplative mood, as if lifted from an illustrated fairy tale.".to_string(),
         "Close-up face and bust portrait only, slight three-quarter angle, expressive eyes. Framing ends at the upper chest.".to_string(),
     ];
 

@@ -18,6 +18,7 @@ pub fn run_migrations(conn: &Connection) -> Result<(), rusqlite::Error> {
             display_name TEXT NOT NULL DEFAULT 'Me',
             description TEXT NOT NULL DEFAULT '',
             facts TEXT NOT NULL DEFAULT '[]',
+            avatar_file TEXT NOT NULL DEFAULT '',
             updated_at TEXT NOT NULL DEFAULT (datetime('now'))
         );
 
@@ -111,6 +112,7 @@ pub fn run_migrations(conn: &Connection) -> Result<(), rusqlite::Error> {
             prompt TEXT NOT NULL,
             file_name TEXT NOT NULL,
             is_active INTEGER NOT NULL DEFAULT 0,
+            source TEXT NOT NULL DEFAULT 'generated',
             created_at TEXT NOT NULL DEFAULT (datetime('now'))
         );
         CREATE INDEX IF NOT EXISTS idx_world_images_world ON world_images(world_id);
@@ -142,6 +144,15 @@ pub fn run_migrations(conn: &Connection) -> Result<(), rusqlite::Error> {
             created_at TEXT NOT NULL DEFAULT (datetime('now'))
         );
         CREATE INDEX IF NOT EXISTS idx_reactions_message ON reactions(message_id);
+
+        CREATE TABLE IF NOT EXISTS character_mood (
+            character_id TEXT PRIMARY KEY REFERENCES characters(character_id) ON DELETE CASCADE,
+            valence REAL NOT NULL DEFAULT 0.0,
+            energy REAL NOT NULL DEFAULT 0.0,
+            tension REAL NOT NULL DEFAULT 0.0,
+            history TEXT NOT NULL DEFAULT '[]',
+            updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+        );
     ")?;
 
     // Migrate old content-synced FTS tables to standalone ones.
@@ -235,6 +246,42 @@ pub fn run_migrations(conn: &Connection) -> Result<(), rusqlite::Error> {
     if !has_bg_image_id {
         conn.execute_batch("ALTER TABLE chat_backgrounds ADD COLUMN bg_image_id TEXT NOT NULL DEFAULT ''")?;
     }
+
+    let has_avatar_file: bool = conn
+        .query_row(
+            "SELECT count(*) > 0 FROM pragma_table_info('user_profiles') WHERE name = 'avatar_file'",
+            [],
+            |r| r.get(0),
+        )
+        .unwrap_or(false);
+
+    if !has_avatar_file {
+        conn.execute_batch("ALTER TABLE user_profiles ADD COLUMN avatar_file TEXT NOT NULL DEFAULT ''")?;
+    }
+
+    let has_source: bool = conn
+        .query_row(
+            "SELECT count(*) > 0 FROM pragma_table_info('world_images') WHERE name = 'source'",
+            [],
+            |r| r.get(0),
+        )
+        .unwrap_or(false);
+
+    if !has_source {
+        conn.execute_batch("ALTER TABLE world_images ADD COLUMN source TEXT NOT NULL DEFAULT 'generated'")?;
+    }
+
+    // Scrub "Studio Ghibli" / "Miyazaki" references from stored prompts
+    conn.execute_batch("
+        UPDATE world_images SET prompt = REPLACE(REPLACE(REPLACE(prompt,
+            'Studio Ghibli watercolor landscape painting. ', 'Watercolor landscape painting. '),
+            'like a panoramic frame from a Miyazaki film', 'wide panoramic composition'),
+            'Studio Ghibli ', '');
+        UPDATE character_portraits SET prompt = REPLACE(REPLACE(REPLACE(prompt,
+            'Studio Ghibli watercolor portrait of a character.', 'Watercolor portrait of a character.'),
+            'like a frame from a Miyazaki film', 'dreamy atmosphere'),
+            'Studio Ghibli ', '');
+    ")?;
 
     Ok(())
 }

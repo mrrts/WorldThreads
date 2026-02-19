@@ -1,7 +1,7 @@
 use crate::db::queries::{Character, Message, UserProfile, World, WorldEvent};
 use serde_json::Value;
 
-pub fn build_dialogue_system_prompt(world: &World, character: &Character, recent_events: &[WorldEvent], user_profile: Option<&UserProfile>) -> String {
+pub fn build_dialogue_system_prompt(world: &World, character: &Character, recent_events: &[WorldEvent], user_profile: Option<&UserProfile>, mood_directive: Option<&str>) -> String {
     let mut parts = Vec::new();
 
     parts.push(format!(
@@ -67,6 +67,12 @@ pub fn build_dialogue_system_prompt(world: &World, character: &Character, recent
             user_parts.push(format!("Facts about them:\n{}", facts.iter().map(|f| format!("- {f}")).collect::<Vec<_>>().join("\n")));
         }
         parts.push(format!("THE USER:\n{}", user_parts.join("\n")));
+    }
+
+    if let Some(directive) = mood_directive {
+        if !directive.is_empty() {
+            parts.push(format!("MOOD:\n{directive}"));
+        }
     }
 
     parts.push(r#"BEHAVIOR:

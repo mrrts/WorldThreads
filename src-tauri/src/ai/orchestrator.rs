@@ -83,8 +83,9 @@ pub async fn run_dialogue(
     recent_events: &[WorldEvent],
     retrieved_snippets: &[String],
     user_profile: Option<&UserProfile>,
+    mood_directive: Option<&str>,
 ) -> Result<(String, Option<openai::Usage>), String> {
-    let system = prompts::build_dialogue_system_prompt(world, character, recent_events, user_profile);
+    let system = prompts::build_dialogue_system_prompt(world, character, recent_events, user_profile, mood_directive);
     let messages = prompts::build_dialogue_messages(&system, recent_messages, retrieved_snippets);
 
     let request = ChatRequest {

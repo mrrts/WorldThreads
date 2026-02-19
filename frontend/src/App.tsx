@@ -10,9 +10,11 @@ import { UserProfileEditor } from "@/components/UserProfileEditor";
 import { WorldFeed } from "@/components/WorldFeed";
 import { SettingsPanel } from "@/components/SettingsPanel";
 import { SceneView } from "@/components/SceneView";
-import { MessageSquare, Globe, Users, Settings, Sparkles, Coins } from "lucide-react";
+import { Gallery } from "@/components/Gallery";
+import { MoodDebugPanel } from "@/components/MoodDebugPanel";
+import { MessageSquare, Globe, Users, Settings, Sparkles, Coins, Image } from "lucide-react";
 
-type View = "chat" | "world" | "character" | "feed" | "settings" | "scene";
+type View = "chat" | "world" | "character" | "feed" | "settings" | "scene" | "gallery";
 type CharSubView = "grid" | "editor" | "profile";
 
 export default function App() {
@@ -76,6 +78,7 @@ export default function App() {
         <NavButton icon={<MessageSquare size={20} />} active={view === "chat"} onClick={handleChatNav} title="Chat" />
         <NavButton icon={<Globe size={20} />} active={view === "world"} onClick={() => setViewTracked("world")} title="World Canon" />
         <NavButton icon={<Users size={20} />} active={view === "character"} onClick={handleCharNav} title="Characters" />
+        <NavButton icon={<Image size={20} />} active={view === "gallery"} onClick={() => setViewTracked("gallery")} title="Gallery" />
         <NavButton icon={<Sparkles size={20} />} active={view === "feed"} onClick={() => setViewTracked("feed")} title="World Feed" />
         <NavButton icon={<span className="text-lg">◆</span>} active={view === "scene"} onClick={() => setViewTracked("scene")} title="Scene" />
         <div className="flex-1" />
@@ -112,10 +115,13 @@ export default function App() {
             />
           ) : <CharacterEditor store={store} />
         )}
+        {view === "gallery" && <Gallery store={store} />}
         {view === "feed" && <WorldFeed store={store} />}
         {view === "settings" && <SettingsPanel store={store} />}
         {view === "scene" && <SceneView store={store} />}
       </main>
+
+      <MoodDebugPanel characterId={store.activeCharacter?.character_id} />
     </div>
   );
 }
@@ -227,7 +233,7 @@ function UsageBadge({ sending }: { sending: boolean }) {
           )}
 
           <p className="text-[10px] text-muted-foreground/50 leading-relaxed mt-3 pt-2 border-t border-border/50">
-            Includes: dialogue replies, world ticks, emoji reactions, memory summaries, embeddings, and portrait generation.
+            Includes: dialogue replies, world ticks, emoji reactions, memory summaries, embeddings, image generation, and any other API calls for new features.
           </p>
         </div>
       )}

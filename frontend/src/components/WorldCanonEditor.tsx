@@ -6,10 +6,11 @@ import { Badge } from "@/components/ui/badge";
 import { Select } from "@/components/ui/select";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Field, FieldGroup } from "@/components/ui/field";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
-import { Save, Plus, X, Trash2, AlertTriangle, ImagePlus, Loader2, Check } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogBody, DialogFooter } from "@/components/ui/dialog";
+import { Save, Plus, X, Trash2, AlertTriangle, ImagePlus, Loader2, Check, BookTemplate } from "lucide-react";
 import type { useAppStore } from "@/hooks/use-app-store";
 import { api, type World, type WorldState, type WorldImageInfo } from "@/lib/tauri";
+import { WORLD_TEMPLATES, type WorldTemplate } from "@/lib/world-templates";
 
 interface Props {
   store: ReturnType<typeof useAppStore>;
@@ -27,6 +28,8 @@ export function WorldCanonEditor({ store }: Props) {
   const [generatingImage, setGeneratingImage] = useState(false);
   const [worldImages, setWorldImages] = useState<WorldImageInfo[]>([]);
   const [showGallery, setShowGallery] = useState(false);
+  const [showTemplates, setShowTemplates] = useState(false);
+  const [templateSearch, setTemplateSearch] = useState("");
 
   useEffect(() => {
     if (world) {
@@ -100,6 +103,32 @@ export function WorldCanonEditor({ store }: Props) {
     setDirty(false);
   };
 
+  const applyTemplate = (t: WorldTemplate) => {
+    setForm((f) => ({
+      ...f,
+      name: t.name,
+      description: t.description,
+      tone_tags: [...t.tone_tags],
+      invariants: [...t.invariants],
+      state: {
+        time: { day_index: 1, time_of_day: t.time_of_day },
+        location: { current_scene: t.current_scene },
+        global_arcs: [],
+        facts: [],
+      },
+    }));
+    setDirty(true);
+    setShowTemplates(false);
+  };
+
+  const filteredTemplates = templateSearch.trim()
+    ? WORLD_TEMPLATES.filter(
+        (t) =>
+          t.name.toLowerCase().includes(templateSearch.toLowerCase()) ||
+          t.tagline.toLowerCase().includes(templateSearch.toLowerCase()),
+      )
+    : WORLD_TEMPLATES;
+
   const tags = (form.tone_tags ?? []) as string[];
   const invariants = (form.invariants ?? []) as string[];
   const state = (form.state ?? world.state) as WorldState;
@@ -115,6 +144,9 @@ export function WorldCanonEditor({ store }: Props) {
                 Unsaved changes
               </span>
             )}
+            <Button size="sm" variant="outline" onClick={() => { setTemplateSearch(""); setShowTemplates(true); }}>
+              <BookTemplate size={14} className="mr-1.5" /> Starter Templates
+            </Button>
             <Button size="sm" onClick={handleSave} disabled={!dirty}>
               <Save size={14} className="mr-1.5" /> Save
             </Button>
@@ -132,7 +164,7 @@ export function WorldCanonEditor({ store }: Props) {
 
             <FieldGroup label="World Image">
               <p className="text-xs text-muted-foreground mb-3">
-                Generate a watercolor landscape for this world. It can be used as a chat background or shown on the world card.
+                Generate a watercolor landscape from the world description. Visit the <strong>Gallery</strong> to generate with custom prompts, upload images, or manage all world images.
               </p>
               <div className="flex items-start gap-4">
                 {store.activeWorldImage?.data_url ? (
@@ -306,6 +338,47 @@ export function WorldCanonEditor({ store }: Props) {
           </DialogContent>
         </Dialog>
       )}
+
+      <Dialog open={showTemplates} onClose={() => setShowTemplates(false)} className="max-w-2xl">
+        <DialogContent>
+          <DialogHeader onClose={() => setShowTemplates(false)}>
+            <DialogTitle>Choose a World Template</DialogTitle>
+            <DialogDescription>Pick a genre to pre-fill all fields. You can customize everything after.</DialogDescription>
+          </DialogHeader>
+          <DialogBody className="p-0">
+            <div className="px-6 py-3 border-b border-border">
+              <Input
+                autoFocus
+                placeholder="Search templates..."
+                value={templateSearch}
+                onChange={(e) => setTemplateSearch(e.target.value)}
+              />
+            </div>
+            <ScrollArea className="max-h-[420px]">
+              <div className="grid grid-cols-2 gap-2 p-4">
+                {filteredTemplates.map((template) => (
+                  <button
+                    key={template.name}
+                    onClick={() => applyTemplate(template)}
+                    className="text-left p-3.5 rounded-xl border border-border bg-card/50 hover:bg-accent/50 hover:border-primary/30 transition-all cursor-pointer group"
+                  >
+                    <div className="flex items-center gap-2.5 mb-1.5">
+                      <span className="text-lg">{template.emoji}</span>
+                      <span className="font-medium text-sm group-hover:text-primary transition-colors">{template.name}</span>
+                    </div>
+                    <p className="text-xs text-muted-foreground leading-relaxed">{template.tagline}</p>
+                  </button>
+                ))}
+                {filteredTemplates.length === 0 && (
+                  <div className="col-span-2 py-8 text-center text-muted-foreground text-sm">
+                    No templates match your search
+                  </div>
+                )}
+              </div>
+            </ScrollArea>
+          </DialogBody>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={showDelete} onClose={() => setShowDelete(false)}>
         <DialogContent>

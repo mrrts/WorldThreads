@@ -424,6 +424,15 @@ export function useAppStore() {
     }
   }, [setError]);
 
+  const loadUserProfile = useCallback(async (worldId: string) => {
+    try {
+      const userProfile = await api.getUserProfile(worldId);
+      setState((s) => ({ ...s, userProfile }));
+    } catch (e) {
+      setError(String(e));
+    }
+  }, [setError]);
+
   const refreshWorldImage = useCallback(async () => {
     if (!state.activeWorld) return;
     try {
@@ -521,6 +530,7 @@ export function useAppStore() {
     refreshPortrait,
     refreshWorldImage,
     updateUserProfile,
+    loadUserProfile,
     selectUserProfile,
     clearChatError,
     setError,

@@ -79,28 +79,38 @@ pub struct UserProfile {
     pub display_name: String,
     pub description: String,
     pub facts: Value,
+    pub avatar_file: String,
     pub updated_at: String,
 }
 
 pub fn get_user_profile(conn: &Connection, world_id: &str) -> Result<UserProfile, rusqlite::Error> {
     conn.query_row(
-        "SELECT world_id, display_name, description, facts, updated_at FROM user_profiles WHERE world_id = ?1",
+        "SELECT world_id, display_name, description, facts, avatar_file, updated_at FROM user_profiles WHERE world_id = ?1",
         params![world_id],
         |row| Ok(UserProfile {
             world_id: row.get(0)?,
             display_name: row.get(1)?,
             description: row.get(2)?,
             facts: serde_json::from_str(&row.get::<_, String>(3)?).unwrap_or_default(),
-            updated_at: row.get(4)?,
+            avatar_file: row.get(4)?,
+            updated_at: row.get(5)?,
         }),
     )
 }
 
 pub fn upsert_user_profile(conn: &Connection, p: &UserProfile) -> Result<(), rusqlite::Error> {
     conn.execute(
-        "INSERT INTO user_profiles (world_id, display_name, description, facts, updated_at) VALUES (?1, ?2, ?3, ?4, datetime('now'))
-         ON CONFLICT(world_id) DO UPDATE SET display_name=?2, description=?3, facts=?4, updated_at=datetime('now')",
-        params![p.world_id, p.display_name, p.description, p.facts.to_string()],
+        "INSERT INTO user_profiles (world_id, display_name, description, facts, avatar_file, updated_at) VALUES (?1, ?2, ?3, ?4, ?5, datetime('now'))
+         ON CONFLICT(world_id) DO UPDATE SET display_name=?2, description=?3, facts=?4, avatar_file=?5, updated_at=datetime('now')",
+        params![p.world_id, p.display_name, p.description, p.facts.to_string(), p.avatar_file],
+    )?;
+    Ok(())
+}
+
+pub fn set_user_avatar_file(conn: &Connection, world_id: &str, avatar_file: &str) -> Result<(), rusqlite::Error> {
+    conn.execute(
+        "UPDATE user_profiles SET avatar_file = ?2, updated_at = datetime('now') WHERE world_id = ?1",
+        params![world_id, avatar_file],
     )?;
     Ok(())
 }
@@ -479,6 +489,27 @@ pub fn set_active_portrait(conn: &Connection, character_id: &str, portrait_id: &
     Ok(())
 }
 
+/// All portraits for all characters belonging to a given world.
+pub fn list_portraits_for_world(conn: &Connection, world_id: &str) -> Result<Vec<(Portrait, String)>, rusqlite::Error> {
+    let mut stmt = conn.prepare(
+        "SELECT p.portrait_id, p.character_id, p.prompt, p.file_name, p.is_active, p.created_at, c.display_name
+         FROM character_portraits p
+         JOIN characters c ON c.character_id = p.character_id
+         WHERE c.world_id = ?1
+         ORDER BY p.created_at DESC"
+    )?;
+    let rows = stmt.query_map(params![world_id], |row| {
+        Ok((
+            Portrait {
+                portrait_id: row.get(0)?, character_id: row.get(1)?, prompt: row.get(2)?,
+                file_name: row.get(3)?, is_active: row.get(4)?, created_at: row.get(5)?,
+            },
+            row.get::<_, String>(6)?,
+        ))
+    })?;
+    rows.collect()
+}
+
 // ─── World Images ────────────────────────────────────────────────────────────
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -488,25 +519,27 @@ pub struct WorldImage {
     pub prompt: String,
     pub file_name: String,
     pub is_active: bool,
+    pub source: String,
     pub created_at: String,
 }
 
 pub fn create_world_image(conn: &Connection, img: &WorldImage) -> Result<(), rusqlite::Error> {
     conn.execute(
-        "INSERT INTO world_images (image_id, world_id, prompt, file_name, is_active, created_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
-        params![img.image_id, img.world_id, img.prompt, img.file_name, img.is_active, img.created_at],
+        "INSERT INTO world_images (image_id, world_id, prompt, file_name, is_active, source, created_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
+        params![img.image_id, img.world_id, img.prompt, img.file_name, img.is_active, img.source, img.created_at],
     )?;
     Ok(())
 }
 
 pub fn list_world_images(conn: &Connection, world_id: &str) -> Result<Vec<WorldImage>, rusqlite::Error> {
     let mut stmt = conn.prepare(
-        "SELECT image_id, world_id, prompt, file_name, is_active, created_at FROM world_images WHERE world_id = ?1 ORDER BY created_at DESC"
+        "SELECT image_id, world_id, prompt, file_name, is_active, source, created_at FROM world_images WHERE world_id = ?1 ORDER BY created_at DESC"
     )?;
     let rows = stmt.query_map(params![world_id], |row| {
         Ok(WorldImage {
             image_id: row.get(0)?, world_id: row.get(1)?, prompt: row.get(2)?,
-            file_name: row.get(3)?, is_active: row.get(4)?, created_at: row.get(5)?,
+            file_name: row.get(3)?, is_active: row.get(4)?, source: row.get(5)?,
+            created_at: row.get(6)?,
         })
     })?;
     rows.collect()
@@ -514,11 +547,12 @@ pub fn list_world_images(conn: &Connection, world_id: &str) -> Result<Vec<WorldI
 
 pub fn get_active_world_image(conn: &Connection, world_id: &str) -> Option<WorldImage> {
     conn.query_row(
-        "SELECT image_id, world_id, prompt, file_name, is_active, created_at FROM world_images WHERE world_id = ?1 AND is_active = 1",
+        "SELECT image_id, world_id, prompt, file_name, is_active, source, created_at FROM world_images WHERE world_id = ?1 AND is_active = 1",
         params![world_id],
         |row| Ok(WorldImage {
             image_id: row.get(0)?, world_id: row.get(1)?, prompt: row.get(2)?,
-            file_name: row.get(3)?, is_active: row.get(4)?, created_at: row.get(5)?,
+            file_name: row.get(3)?, is_active: row.get(4)?, source: row.get(5)?,
+            created_at: row.get(6)?,
         }),
     ).ok()
 }
@@ -696,6 +730,43 @@ pub fn search_vectors(conn: &Connection, world_id: &str, embedding: &[f32], limi
         Ok((row.get::<_, String>(0)?, row.get::<_, f64>(1)?))
     })?;
     rows.collect()
+}
+
+// ─── Character Mood ─────────────────────────────────────────────────────────
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct CharacterMood {
+    pub character_id: String,
+    pub valence: f64,
+    pub energy: f64,
+    pub tension: f64,
+    pub history: Value,
+    pub updated_at: String,
+}
+
+pub fn get_character_mood(conn: &Connection, character_id: &str) -> Option<CharacterMood> {
+    conn.query_row(
+        "SELECT character_id, valence, energy, tension, history, updated_at FROM character_mood WHERE character_id = ?1",
+        params![character_id],
+        |row| Ok(CharacterMood {
+            character_id: row.get(0)?,
+            valence: row.get(1)?,
+            energy: row.get(2)?,
+            tension: row.get(3)?,
+            history: serde_json::from_str(&row.get::<_, String>(4)?).unwrap_or(Value::Array(vec![])),
+            updated_at: row.get(5)?,
+        }),
+    ).ok()
+}
+
+pub fn upsert_character_mood(conn: &Connection, mood: &CharacterMood) -> Result<(), rusqlite::Error> {
+    conn.execute(
+        "INSERT INTO character_mood (character_id, valence, energy, tension, history, updated_at)
+         VALUES (?1, ?2, ?3, ?4, ?5, datetime('now'))
+         ON CONFLICT(character_id) DO UPDATE SET valence=?2, energy=?3, tension=?4, history=?5, updated_at=datetime('now')",
+        params![mood.character_id, mood.valence, mood.energy, mood.tension, mood.history.to_string()],
+    )?;
+    Ok(())
 }
 
 // ─── Settings ───────────────────────────────────────────────────────────────

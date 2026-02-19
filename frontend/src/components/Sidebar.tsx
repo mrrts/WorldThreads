@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -18,6 +18,12 @@ export function Sidebar({ store, onNavigate }: Props) {
   const [showNewChar, setShowNewChar] = useState(false);
   const [charName, setCharName] = useState("");
   const [showArchived, setShowArchived] = useState(false);
+  const [userAvatarUrl, setUserAvatarUrl] = useState("");
+
+  useEffect(() => {
+    if (!store.activeWorld) { setUserAvatarUrl(""); return; }
+    api.getUserAvatar(store.activeWorld.world_id).then((url) => setUserAvatarUrl(url || ""));
+  }, [store.activeWorld?.world_id, store.userProfile?.avatar_file]);
   const [hoverWorld, setHoverWorld] = useState<string | null>(null);
   const [hoverChar, setHoverChar] = useState<string | null>(null);
   const [worldImageCache, setWorldImageCache] = useState<Record<string, WorldImageInfo | null>>({});
@@ -83,13 +89,20 @@ export function Sidebar({ store, onNavigate }: Props) {
               >
                 <button
                   onClick={() => store.selectWorld(w)}
-                  className={`w-full text-left px-2.5 py-1.5 rounded-lg text-sm transition-all cursor-pointer ${
+                  className={`w-full text-left rounded-lg text-sm transition-all cursor-pointer overflow-hidden ${
                     store.activeWorld?.world_id === w.world_id
                       ? "bg-primary/15 text-primary font-medium"
                       : "text-muted-foreground hover:text-foreground hover:bg-accent/50"
                   }`}
                 >
-                  {w.name}
+                  <span className="block px-2.5 py-1.5">{w.name}</span>
+                  {store.activeWorld?.world_id === w.world_id && store.activeWorldImage?.data_url && (
+                    <img
+                      src={store.activeWorldImage.data_url}
+                      alt=""
+                      className="w-full h-20 object-cover rounded-b-lg"
+                    />
+                  )}
                 </button>
                 {hoverWorld === w.world_id && (
                   <div className="absolute left-full top-0 ml-2 z-50 w-64 bg-card border border-border rounded-xl shadow-2xl shadow-black/40 overflow-hidden animate-in fade-in zoom-in-95 duration-150">
@@ -136,9 +149,13 @@ export function Sidebar({ store, onNavigate }: Props) {
                       : "text-muted-foreground hover:text-foreground hover:bg-accent/50"
                   }`}
                 >
-                  <div className="w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
-                    <User size={13} className="text-primary" />
-                  </div>
+                  {userAvatarUrl ? (
+                    <img src={userAvatarUrl} alt="" className="w-6 h-6 rounded-full object-cover flex-shrink-0" />
+                  ) : (
+                    <div className="w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
+                      <User size={13} className="text-primary" />
+                    </div>
+                  )}
                   {store.userProfile?.display_name || "Me"}
                 </button>
 

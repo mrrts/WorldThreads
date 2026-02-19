@@ -4,6 +4,7 @@ pub mod character_cmds;
 pub mod chat_cmds;
 pub mod event_cmds;
 pub mod memory_cmds;
+pub mod mood_cmds;
 pub mod portrait_cmds;
 pub mod reaction_cmds;
 pub mod settings_cmds;

@@ -6,6 +6,7 @@ use commands::character_cmds::*;
 use commands::chat_cmds::*;
 use commands::event_cmds::*;
 use commands::memory_cmds::*;
+use commands::mood_cmds::*;
 use commands::portrait_cmds::*;
 use commands::reaction_cmds::*;
 use commands::settings_cmds::*;
@@ -89,13 +90,22 @@ pub fn run() {
             get_active_portrait_cmd,
             get_user_profile_cmd,
             update_user_profile_cmd,
+            generate_user_avatar_cmd,
+            upload_user_avatar_cmd,
+            get_user_avatar_cmd,
             get_today_usage_cmd,
             generate_world_image_cmd,
+            generate_world_image_with_prompt_cmd,
+            upload_world_image_cmd,
             list_world_images_cmd,
+            list_world_gallery_cmd,
             get_active_world_image_cmd,
             set_active_world_image_cmd,
             get_chat_background_cmd,
             update_chat_background_cmd,
+            get_character_mood_cmd,
+            get_mood_settings_cmd,
+            set_mood_settings_cmd,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

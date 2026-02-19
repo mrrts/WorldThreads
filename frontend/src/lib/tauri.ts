@@ -93,6 +93,7 @@ export interface UserProfile {
   display_name: string;
   description: string;
   facts: string[];
+  avatar_file: string;
   updated_at: string;
 }
 
@@ -109,9 +110,19 @@ export interface WorldImageInfo {
   image_id: string;
   world_id: string;
   prompt: string;
+  source: string;
   is_active: boolean;
   created_at: string;
   data_url: string;
+}
+
+export interface GalleryItem {
+  id: string;
+  data_url: string;
+  prompt: string;
+  category: "world" | "character" | "user";
+  label: string;
+  created_at: string;
 }
 
 export interface ChatBackground {
@@ -121,6 +132,20 @@ export interface ChatBackground {
   bg_image_id: string;
   bg_blur: number;
   updated_at: string;
+}
+
+export interface CharacterMood {
+  character_id: string;
+  valence: number;
+  energy: number;
+  tension: number;
+  history: Array<{ v: number; e: number; t: number }>;
+  updated_at: string;
+}
+
+export interface MoodSettings {
+  enabled: boolean;
+  drift_rate: number;
 }
 
 export interface DailyUsage {
@@ -223,6 +248,12 @@ export const api = {
 
   getUserProfile: (worldId: string) => invoke<UserProfile | null>("get_user_profile_cmd", { worldId }),
   updateUserProfile: (profile: UserProfile) => invoke<void>("update_user_profile_cmd", { profile }),
+  generateUserAvatar: (apiKey: string, worldId: string) =>
+    invoke<string>("generate_user_avatar_cmd", { apiKey, worldId }),
+  uploadUserAvatar: (worldId: string, imageData: string) =>
+    invoke<string>("upload_user_avatar_cmd", { worldId, imageData }),
+  getUserAvatar: (worldId: string) =>
+    invoke<string>("get_user_avatar_cmd", { worldId }),
 
   listCharacters: (worldId: string) => invoke<Character[]>("list_characters_cmd", { worldId }),
   getCharacter: (characterId: string) => invoke<Character>("get_character_cmd", { characterId }),
@@ -268,8 +299,14 @@ export const api = {
 
   generateWorldImage: (apiKey: string, worldId: string) =>
     invoke<WorldImageInfo>("generate_world_image_cmd", { apiKey, worldId }),
+  generateWorldImageWithPrompt: (apiKey: string, worldId: string, customPrompt: string) =>
+    invoke<WorldImageInfo>("generate_world_image_with_prompt_cmd", { apiKey, worldId, customPrompt }),
+  uploadWorldImage: (worldId: string, imageData: string, label: string) =>
+    invoke<WorldImageInfo>("upload_world_image_cmd", { worldId, imageData, label }),
   listWorldImages: (worldId: string) =>
     invoke<WorldImageInfo[]>("list_world_images_cmd", { worldId }),
+  listWorldGallery: (worldId: string) =>
+    invoke<GalleryItem[]>("list_world_gallery_cmd", { worldId }),
   getActiveWorldImage: (worldId: string) =>
     invoke<WorldImageInfo | null>("get_active_world_image_cmd", { worldId }),
   setActiveWorldImage: (worldId: string, imageId: string) =>
@@ -279,6 +316,11 @@ export const api = {
     invoke<ChatBackground | null>("get_chat_background_cmd", { characterId }),
   updateChatBackground: (bg: ChatBackground) =>
     invoke<void>("update_chat_background_cmd", { bg }),
+
+  getCharacterMood: (characterId: string) =>
+    invoke<CharacterMood | null>("get_character_mood_cmd", { characterId }),
+  getMoodSettings: () => invoke<MoodSettings>("get_mood_settings_cmd"),
+  setMoodSettings: (settings: MoodSettings) => invoke<void>("set_mood_settings_cmd", { settings }),
 
   addReaction: (messageId: string, emoji: string, reactor: string) =>
     invoke<Reaction>("add_reaction_cmd", { messageId, emoji, reactor }),

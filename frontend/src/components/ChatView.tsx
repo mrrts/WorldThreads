@@ -5,7 +5,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Send, Loader2, SmilePlus, X, Paintbrush, Check } from "lucide-react";
 import type { useAppStore } from "@/hooks/use-app-store";
-import { api, type Reaction, type ChatBackground, type WorldImageInfo } from "@/lib/tauri";
+import { api, type Reaction, type ChatBackground, type GalleryItem } from "@/lib/tauri";
 
 const QUICK_EMOJIS = ["❤️", "😂", "😮", "😢", "🔥", "👍", "👎", "💀", "🙏", "✨", "👀", "💯"];
 
@@ -93,12 +93,18 @@ export function ChatView({ store }: Props) {
   const [chatBg, setChatBg] = useState<ChatBackground | null>(null);
   const [showBgPicker, setShowBgPicker] = useState(false);
   const [showBgImagePicker, setShowBgImagePicker] = useState(false);
-  const [worldImages, setWorldImages] = useState<WorldImageInfo[]>([]);
+  const [galleryItems, setGalleryItems] = useState<GalleryItem[]>([]);
   const [bgImageUrl, setBgImageUrl] = useState<string>("");
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const bgPickerRef = useRef<HTMLDivElement>(null);
   const charPortrait = store.activeCharacter ? store.activePortraits[store.activeCharacter.character_id] : undefined;
+  const [userAvatarUrl, setUserAvatarUrl] = useState("");
+
+  useEffect(() => {
+    if (!store.activeWorld) { setUserAvatarUrl(""); return; }
+    api.getUserAvatar(store.activeWorld.world_id).then((url) => setUserAvatarUrl(url || ""));
+  }, [store.activeWorld?.world_id, store.userProfile?.avatar_file]);
 
   const charId = store.activeCharacter?.character_id;
   const worldId = store.activeWorld?.world_id;
@@ -110,12 +116,12 @@ export function ChatView({ store }: Props) {
 
   useEffect(() => {
     if (!worldId) return;
-    api.listWorldImages(worldId).then(setWorldImages).catch(() => {});
-  }, [worldId, store.activeWorldImage?.image_id]);
+    api.listWorldGallery(worldId).then(setGalleryItems).catch(() => {});
+  }, [worldId, store.activeWorldImage?.image_id, store.activePortraits, store.userProfile?.avatar_file]);
 
   useEffect(() => {
     if (chatBg?.bg_type === "world_image" && chatBg.bg_image_id) {
-      const cached = worldImages.find((i) => i.image_id === chatBg.bg_image_id);
+      const cached = galleryItems.find((i) => i.id === chatBg.bg_image_id);
       if (cached?.data_url) {
         setBgImageUrl(cached.data_url);
       }
@@ -124,7 +130,7 @@ export function ChatView({ store }: Props) {
     } else {
       setBgImageUrl("");
     }
-  }, [chatBg?.bg_type, chatBg?.bg_image_id, worldImages, store.activeWorldImage]);
+  }, [chatBg?.bg_type, chatBg?.bg_image_id, galleryItems, store.activeWorldImage]);
 
   const saveBg = useCallback((patch: Partial<ChatBackground>) => {
     if (!charId) return;
@@ -267,7 +273,7 @@ export function ChatView({ store }: Props) {
                   )}
                 </div>
 
-                {worldImages.length > 0 && (
+                {galleryItems.length > 0 && (
                   <div>
                     <label className="flex items-center gap-2 cursor-pointer">
                       <input
@@ -275,12 +281,12 @@ export function ChatView({ store }: Props) {
                         name="bgtype"
                         checked={chatBg?.bg_type === "world_image"}
                         onChange={() => {
-                          const first = worldImages.find((i) => i.is_active) ?? worldImages[0];
-                          saveBg({ bg_type: "world_image", bg_image_id: first?.image_id ?? "", bg_blur: 0 });
+                          const first = galleryItems[0];
+                          saveBg({ bg_type: "world_image", bg_image_id: first?.id ?? "", bg_blur: 0 });
                         }}
                         className="accent-primary"
                       />
-                      <span className="text-xs">World image</span>
+                      <span className="text-xs">Gallery image</span>
                     </label>
                     {chatBg?.bg_type === "world_image" && (
                       <div className="mt-1.5 ml-5 space-y-2">
@@ -291,7 +297,7 @@ export function ChatView({ store }: Props) {
                           onClick={() => setShowBgImagePicker(true)}
                           className="text-[11px] text-primary hover:text-primary/80 transition-colors cursor-pointer"
                         >
-                          Choose image ({worldImages.length})
+                          Choose image ({galleryItems.length})
                         </button>
                         <div className="flex items-center gap-2">
                           <span className="text-[10px] text-muted-foreground w-8">Blur</span>
@@ -356,10 +362,10 @@ export function ChatView({ store }: Props) {
                     )
                   )}
                   <div
-                    className={`relative group max-w-[80%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed ${
+                    className={`relative group rounded-2xl px-4 py-2.5 text-sm leading-relaxed ${
                       isUser
-                        ? "bg-primary text-primary-foreground rounded-br-md"
-                        : "bg-secondary text-secondary-foreground rounded-bl-md"
+                        ? "bg-primary text-primary-foreground rounded-br-md max-w-[80%]"
+                        : "bg-secondary text-secondary-foreground rounded-bl-md max-w-[80%]"
                     }`}
                   >
                     {/* Reaction button — overlaps the top corner of the bubble */}
@@ -397,9 +403,12 @@ export function ChatView({ store }: Props) {
                       {new Date(msg.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                     </p>
                   </div>
+                  {isUser && userAvatarUrl && (
+                    <img src={userAvatarUrl} alt="" className="w-[72px] h-[72px] rounded-full object-cover ring-2 ring-border flex-shrink-0 mb-1" />
+                  )}
                 </div>
 
-                <div className={!isUser ? "pl-20" : ""}>
+                <div className={!isUser ? "pl-20" : userAvatarUrl ? "pr-20" : ""}>
                   <ReactionBubbles reactions={reactions} isUser={isUser} />
                 </div>
               </div>
@@ -511,37 +520,38 @@ export function ChatView({ store }: Props) {
               <X size={16} />
             </button>
           </div>
-          <div className="grid grid-cols-2 gap-3 max-h-[60vh] overflow-y-auto pr-1">
-            {worldImages.map((img) => (
+          <div className="grid grid-cols-3 gap-3 max-h-[60vh] overflow-y-auto pr-1">
+            {galleryItems.map((item) => (
               <button
-                key={img.image_id}
+                key={item.id}
                 onClick={() => {
-                  saveBg({ bg_type: "world_image", bg_image_id: img.image_id });
+                  saveBg({ bg_type: "world_image", bg_image_id: item.id });
                   setShowBgImagePicker(false);
                 }}
                 className={`relative rounded-xl overflow-hidden ring-2 transition-all cursor-pointer ${
-                  chatBg?.bg_image_id === img.image_id
+                  chatBg?.bg_image_id === item.id
                     ? "ring-primary shadow-lg"
                     : "ring-transparent hover:ring-border"
                 }`}
               >
-                {img.data_url && (
-                  <img src={img.data_url} alt="" className="w-full aspect-video object-cover" />
+                {item.data_url && (
+                  <img src={item.data_url} alt="" className={`w-full object-cover ${item.category === "character" || item.category === "user" ? "aspect-square" : "aspect-video"}`} />
                 )}
-                {chatBg?.bg_image_id === img.image_id && (
+                {chatBg?.bg_image_id === item.id && (
                   <div className="absolute top-2 right-2 w-6 h-6 rounded-full bg-primary flex items-center justify-center">
                     <Check size={14} className="text-primary-foreground" />
                   </div>
                 )}
                 <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/60 to-transparent px-3 pb-2 pt-6">
-                  <p className="text-white text-[10px]">{new Date(img.created_at).toLocaleDateString()}</p>
+                  <p className="text-white/80 text-[10px] line-clamp-1">{item.label}</p>
+                  <p className="text-white/50 text-[9px] mt-0.5">{new Date(item.created_at).toLocaleDateString()}</p>
                 </div>
               </button>
             ))}
           </div>
-          {worldImages.length === 0 && (
+          {galleryItems.length === 0 && (
             <p className="text-sm text-muted-foreground text-center py-8">
-              No world images generated yet. Generate one in the World Canon editor.
+              No images yet. Generate or upload images in the Gallery.
             </p>
           )}
         </div>
