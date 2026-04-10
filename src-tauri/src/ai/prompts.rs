@@ -391,7 +391,7 @@ pub fn build_scene_description_prompt(
     msgs.push(crate::ai::openai::ChatMessage {
         role: "user".to_string(),
         content: format!(
-            "Here is the recent conversation:\n\n{}\n\nDescribe the current scene as a single illustration showing both {} and {}.",
+            "Here is the recent conversation:\n\n{}\n\nDescribe the current scene as a single illustration showing both {} and {}. Focus especially on the last two messages — depict the physical situation, positions, and actions happening right now in this moment.",
             conversation.join("\n"),
             user_name,
             character.display_name,
