@@ -366,5 +366,17 @@ pub fn run_migrations(conn: &Connection) -> Result<(), rusqlite::Error> {
         WHERE role = 'illustration' AND content LIKE '{%\"data_url\"%';
     ")?;
 
+    // Add video_file column to world_images for illustrations that have been animated
+    let has_video_file: bool = conn
+        .query_row(
+            "SELECT count(*) > 0 FROM pragma_table_info('world_images') WHERE name = 'video_file'",
+            [],
+            |r| r.get(0),
+        )
+        .unwrap_or(false);
+    if !has_video_file {
+        conn.execute_batch("ALTER TABLE world_images ADD COLUMN video_file TEXT NOT NULL DEFAULT ''")?;
+    }
+
     Ok(())
 }

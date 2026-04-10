@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef, startTransition, type ReactNode } from "react";
 import { useAppStore } from "@/hooks/use-app-store";
 import { api, type DailyUsage } from "@/lib/tauri";
+import { convertFileSrc } from "@tauri-apps/api/core";
 import { Sidebar } from "@/components/Sidebar";
 import { ChatView } from "@/components/ChatView";
 import { WorldCanonEditor } from "@/components/WorldCanonEditor";
@@ -226,9 +227,16 @@ function NavButton({ icon, active, onClick, title, description }: { icon: React.
 
 function IllustrationPopout({ initialMessageId, characterId }: { initialMessageId: string; characterId: string }) {
   const [illustrations, setIllustrations] = useState<Array<{ id: string; data_url: string }>>([]);
+  const [videoFiles, setVideoFiles] = useState<Record<string, string>>({});
+  const [mediaDir, setMediaDir] = useState("");
   const [selectedId, setSelectedId] = useState(initialMessageId);
   const [loading, setLoading] = useState(true);
   const [imageLoading, setImageLoading] = useState(true);
+  const [playingVideo, setPlayingVideo] = useState(false);
+
+  useEffect(() => {
+    api.getMediaDir().then(setMediaDir).catch(() => {});
+  }, []);
 
   useEffect(() => {
     (async () => {
@@ -238,6 +246,16 @@ function IllustrationPopout({ initialMessageId, characterId }: { initialMessageI
           .filter((m) => m.role === "illustration")
           .map((m) => ({ id: m.message_id, data_url: m.content }));
         setIllustrations(illus);
+
+        // Load video files for each illustration
+        const vf: Record<string, string> = {};
+        for (const il of illus) {
+          try {
+            const f = await api.getVideoFile(il.id);
+            if (f) vf[il.id] = f;
+          } catch { /* ignore */ }
+        }
+        setVideoFiles(vf);
       } catch {
         // ignore
       } finally {
@@ -247,6 +265,7 @@ function IllustrationPopout({ initialMessageId, characterId }: { initialMessageI
   }, [characterId]);
 
   const selected = illustrations.find((i) => i.id === selectedId);
+  const selectedVideo = videoFiles[selectedId];
 
   if (loading) {
     return (
@@ -278,13 +297,25 @@ function IllustrationPopout({ initialMessageId, characterId }: { initialMessageI
             <div className="animate-spin w-6 h-6 border-2 border-white/20 border-t-white rounded-full" />
           </div>
         )}
-        <img
-          key={selectedId}
-          src={selected.data_url}
-          alt="Illustration"
-          className={`max-w-full max-h-full object-contain ${imageLoading ? "opacity-0" : "opacity-100"} transition-opacity`}
-          onLoad={() => setImageLoading(false)}
-        />
+        {playingVideo && selectedVideo && mediaDir ? (
+          <video
+            key={`video-${selectedId}`}
+            src={convertFileSrc(`${mediaDir}/${selectedVideo}`)}
+            autoPlay
+            loop
+            playsInline
+            className={`max-w-full max-h-full object-contain`}
+            onLoadedData={() => setImageLoading(false)}
+          />
+        ) : (
+          <img
+            key={selectedId}
+            src={selected.data_url}
+            alt="Illustration"
+            className={`max-w-full max-h-full object-contain ${imageLoading ? "opacity-0" : "opacity-100"} transition-opacity`}
+            onLoad={() => setImageLoading(false)}
+          />
+        )}
       </div>
       {illustrations.length > 1 && (
         <div className="flex-shrink-0 border-t border-border bg-card/50 px-2 py-2">
@@ -292,14 +323,23 @@ function IllustrationPopout({ initialMessageId, characterId }: { initialMessageI
             {illustrations.map((illus) => (
               <button
                 key={illus.id}
-                onClick={() => { setSelectedId(illus.id); setImageLoading(true); }}
-                className={`flex-shrink-0 w-16 h-11 rounded-lg overflow-hidden transition-all cursor-pointer ${
+                onClick={() => {
+                  setSelectedId(illus.id);
+                  setImageLoading(true);
+                  setPlayingVideo(!!videoFiles[illus.id]);
+                }}
+                className={`relative flex-shrink-0 w-16 h-11 rounded-lg overflow-hidden transition-all cursor-pointer ${
                   illus.id === selectedId
                     ? "ring-2 ring-primary ring-offset-1 ring-offset-black"
                     : "ring-1 ring-white/10 opacity-60 hover:opacity-100"
                 }`}
               >
                 <img src={illus.data_url} alt="" className="w-full h-full object-cover" />
+                {videoFiles[illus.id] && (
+                  <div className="absolute bottom-0.5 right-0.5 w-3.5 h-3.5 rounded-full bg-purple-600 flex items-center justify-center">
+                    <span className="text-white text-[6px]">&#9654;</span>
+                  </div>
+                )}
               </button>
             ))}
           </div>

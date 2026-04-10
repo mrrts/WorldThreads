@@ -517,3 +517,8 @@ pub fn set_portrait_from_gallery_cmd(
 
     Ok(portrait_to_info(&portrait, dir))
 }
+
+#[tauri::command]
+pub fn get_media_dir_cmd(portraits_dir: State<PortraitsDir>) -> Result<String, String> {
+    Ok(portraits_dir.0.to_string_lossy().to_string())
+}

@@ -24,6 +24,9 @@ export interface AppState {
   generatingNarrative: string | null;
   /** Character ID currently generating an illustration, or null */
   generatingIllustration: string | null;
+  generatingVideo: string | null;
+  /** Map of illustration message_id → video filename */
+  videoFiles: Record<string, string>;
   totalMessages: number;
   loadingOlder: boolean;
   chatError: string | null;
@@ -67,6 +70,8 @@ export function useAppStore() {
     sending: null,
     generatingNarrative: null,
     generatingIllustration: null,
+    generatingVideo: null,
+    videoFiles: {},
     chatError: null,
     lastFailedContent: null,
     error: null,
@@ -634,6 +639,46 @@ export function useAppStore() {
     }
   }, [state.activeCharacter, state.apiKey]);
 
+  const loadVideoFiles = useCallback(async (messages: Message[]) => {
+    const illustrationIds = messages.filter((m) => m.role === "illustration").map((m) => m.message_id);
+    if (illustrationIds.length === 0) return {};
+    const result: Record<string, string> = {};
+    for (const id of illustrationIds) {
+      try {
+        const vf = await api.getVideoFile(id);
+        if (vf) result[id] = vf;
+      } catch { /* ignore */ }
+    }
+    return result;
+  }, []);
+
+  const generateVideo = useCallback(async (illustrationMessageId: string, customPrompt?: string) => {
+    if (!state.activeCharacter || !state.apiKey) return;
+
+    const googleApiKey = await api.getGoogleApiKey();
+    if (!googleApiKey) {
+      setState((s) => ({ ...s, chatError: "Google AI Studio API key required for video generation. Add it in Settings." }));
+      return;
+    }
+
+    setState((s) => ({ ...s, generatingVideo: state.activeCharacter!.character_id, chatError: null }));
+
+    try {
+      const videoFile = await api.generateVideo(state.apiKey, googleApiKey, state.activeCharacter.character_id, illustrationMessageId, customPrompt);
+      setState((s) => ({
+        ...s,
+        generatingVideo: null,
+        videoFiles: { ...s.videoFiles, [illustrationMessageId]: videoFile },
+      }));
+    } catch (e) {
+      setState((s) => ({
+        ...s,
+        generatingVideo: null,
+        chatError: String(e),
+      }));
+    }
+  }, [state.activeCharacter, state.apiKey]);
+
   const resetToMessage = useCallback(async (messageId: string) => {
     if (!state.activeCharacter || !state.apiKey) return;
 
@@ -873,6 +918,7 @@ export function useAppStore() {
     deleteIllustration,
     regenerateIllustration,
     adjustIllustration,
+    generateVideo,
     resetToMessage,
     setApiKey,
     setModelConfig,

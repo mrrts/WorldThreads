@@ -301,7 +301,7 @@ pub async fn run_narrative_with_base(
     });
 
     for m in recent_messages {
-        if m.role == "illustration" {
+        if m.role == "illustration" || m.role == "video" {
             continue;
         }
         msgs.push(openai::ChatMessage {

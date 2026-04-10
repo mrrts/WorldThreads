@@ -3,7 +3,8 @@ import Markdown from "react-markdown";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { Send, Loader2, SmilePlus, X, Check, Copy, ExternalLink, BookOpen, RotateCcw, MessageSquare, Settings, Image, Trash2, RefreshCw, SlidersHorizontal } from "lucide-react";
+import { Send, Loader2, SmilePlus, X, Check, Copy, ExternalLink, BookOpen, RotateCcw, MessageSquare, Settings, Image, Trash2, RefreshCw, SlidersHorizontal, Video } from "lucide-react";
+import { convertFileSrc } from "@tauri-apps/api/core";
 import { WebviewWindow } from "@tauri-apps/api/webviewWindow";
 import type { useAppStore } from "@/hooks/use-app-store";
 import { api, type Reaction } from "@/lib/tauri";
@@ -136,6 +137,39 @@ export function ChatView({ store }: Props) {
   const isSending = store.sending === charId;
   const isGeneratingNarrative = store.generatingNarrative === charId;
   const isGeneratingIllustration = store.generatingIllustration === charId;
+  const isGeneratingVideo = store.generatingVideo === charId;
+  const [mediaDir, setMediaDir] = useState("");
+  const [playingVideo, setPlayingVideo] = useState<string | null>(null);
+  const [videoFiles, setVideoFiles] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    api.getMediaDir().then(setMediaDir).catch(() => {});
+  }, []);
+
+  // Load video files for illustration messages
+  useEffect(() => {
+    const illustrationMsgs = store.messages.filter((m) => m.role === "illustration");
+    if (illustrationMsgs.length === 0) return;
+    (async () => {
+      const updates: Record<string, string> = {};
+      for (const msg of illustrationMsgs) {
+        try {
+          const vf = await api.getVideoFile(msg.message_id);
+          if (vf) updates[msg.message_id] = vf;
+        } catch { /* ignore */ }
+      }
+      if (Object.keys(updates).length > 0) {
+        setVideoFiles((prev) => ({ ...prev, ...updates }));
+      }
+    })();
+  }, [store.messages]);
+
+  // Also update videoFiles from store (after generateVideo completes)
+  useEffect(() => {
+    if (Object.keys(store.videoFiles).length > 0) {
+      setVideoFiles((prev) => ({ ...prev, ...store.videoFiles }));
+    }
+  }, [store.videoFiles]);
 
   const prevScrollHeightRef = useRef(0);
   const isLoadingOlderRef = useRef(false);
@@ -380,11 +414,33 @@ export function ChatView({ store }: Props) {
                       <span>Illustration</span>
                     </div>
                     <div className="px-2 pb-2 relative">
-                      <img
-                        src={msg.content}
-                        alt="Scene illustration"
-                        className="w-full rounded-lg"
-                      />
+                      {playingVideo === msg.message_id && videoFiles[msg.message_id] && mediaDir ? (
+                        <video
+                          src={convertFileSrc(`${mediaDir}/${videoFiles[msg.message_id]}`)}
+                          autoPlay
+                          loop
+                          playsInline
+                          className="w-full rounded-lg cursor-pointer"
+                          onClick={() => setPlayingVideo(null)}
+                        />
+                      ) : (
+                        <>
+                          <img
+                            src={msg.content}
+                            alt="Scene illustration"
+                            className="w-full rounded-lg"
+                          />
+                          {videoFiles[msg.message_id] && (
+                            <button
+                              onClick={() => setPlayingVideo(msg.message_id)}
+                              className="absolute bottom-4 right-4 w-10 h-10 rounded-full bg-black/70 text-white flex items-center justify-center cursor-pointer hover:bg-purple-600 transition-colors backdrop-blur-sm"
+                              title="Play animation"
+                            >
+                              <Video size={18} />
+                            </button>
+                          )}
+                        </>
+                      )}
                       {!isPending && !isSending && (
                         <div className="absolute top-4 right-4 flex gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
                           <button
@@ -428,6 +484,14 @@ export function ChatView({ store }: Props) {
                             title="Open in window"
                           >
                             <ExternalLink size={14} />
+                          </button>
+                          <button
+                            onClick={() => store.generateVideo(msg.message_id)}
+                            className="w-8 h-8 rounded-full bg-black/60 text-white flex items-center justify-center cursor-pointer hover:bg-purple-600 transition-colors backdrop-blur-sm"
+                            title="Animate illustration"
+                            disabled={isGeneratingVideo}
+                          >
+                            <Video size={14} />
                           </button>
                         </div>
                       )}
@@ -528,7 +592,7 @@ export function ChatView({ store }: Props) {
               </div>
             );
           })}
-          {isSending && !isGeneratingNarrative && !isGeneratingIllustration && (
+          {isSending && !isGeneratingNarrative && !isGeneratingIllustration && !isGeneratingVideo && (
             <div className="flex items-end gap-2 justify-start">
               {charPortrait?.data_url ? (
                 <img src={charPortrait.data_url} alt="" className="w-[72px] h-[72px] rounded-full object-cover ring-2 ring-border flex-shrink-0 mb-1" />
@@ -564,6 +628,17 @@ export function ChatView({ store }: Props) {
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500/60 animate-bounce [animation-delay:0ms]" />
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500/60 animate-bounce [animation-delay:150ms]" />
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500/60 animate-bounce [animation-delay:300ms]" />
+              </div>
+            </div>
+          )}
+          {isGeneratingVideo && (
+            <div className="flex justify-center my-2">
+              <div className="rounded-xl px-5 py-3 bg-gradient-to-br from-purple-950/40 to-purple-900/20 border border-purple-700/30 flex items-center gap-2 text-purple-500/70">
+                <Video size={14} className="animate-pulse" />
+                <span className="text-xs italic">Generating video... this may take a few minutes</span>
+                <span className="w-1.5 h-1.5 rounded-full bg-purple-500/60 animate-bounce [animation-delay:0ms]" />
+                <span className="w-1.5 h-1.5 rounded-full bg-purple-500/60 animate-bounce [animation-delay:150ms]" />
+                <span className="w-1.5 h-1.5 rounded-full bg-purple-500/60 animate-bounce [animation-delay:300ms]" />
               </div>
             </div>
           )}

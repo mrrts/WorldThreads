@@ -1,4 +1,6 @@
+use crate::ai::google;
 use crate::ai::mood;
+use crate::ai::openai::{self, ChatRequest};
 use crate::ai::orchestrator;
 use crate::commands::portrait_cmds::PortraitsDir;
 use crate::db::queries::*;
@@ -965,6 +967,142 @@ pub async fn adjust_illustration_cmd(
     Ok(IllustrationResult {
         illustration_message: illustration_msg,
     })
+}
+
+/// Generate a video from an existing illustration. Attaches the video file to the illustration's
+/// world_images record via the video_file column. Returns the video filename.
+#[tauri::command]
+pub async fn generate_video_cmd(
+    db: State<'_, Database>,
+    portraits_dir: State<'_, PortraitsDir>,
+    api_key: String,
+    google_api_key: String,
+    character_id: String,
+    illustration_message_id: String,
+    custom_prompt: Option<String>,
+) -> Result<String, String> {
+    // Load context
+    let (character, recent_msgs, model_config, user_profile, illustration_file) = {
+        let conn = db.conn.lock().map_err(|e| e.to_string())?;
+        let character = get_character(&conn, &character_id).map_err(|e| e.to_string())?;
+        let thread = get_thread_for_character(&conn, &character_id).map_err(|e| e.to_string())?;
+        let model_config = orchestrator::load_model_config(&conn);
+        let recent_msgs = list_messages(&conn, &thread.thread_id, 30).map_err(|e| e.to_string())?;
+        let user_profile = get_user_profile(&conn, &character.world_id).ok();
+
+        let file_name: String = conn.query_row(
+            "SELECT file_name FROM world_images WHERE image_id = ?1",
+            params![illustration_message_id], |r| r.get(0),
+        ).map_err(|_| "Illustration not found in gallery".to_string())?;
+
+        (character, recent_msgs, model_config, user_profile, file_name)
+    };
+
+    let dir = &portraits_dir.0;
+
+    // Read the illustration image
+    let image_bytes = std::fs::read(dir.join(&illustration_file))
+        .map_err(|e| format!("Failed to read illustration: {e}"))?;
+    let image_b64 = base64_encode_bytes(&image_bytes);
+
+    // Generate animation prompt (or use custom)
+    let animation_prompt = if let Some(ref custom) = custom_prompt {
+        if !custom.is_empty() {
+            custom.clone()
+        } else {
+            generate_animation_prompt(&api_key, &model_config, &character, user_profile.as_ref(), &recent_msgs).await?
+        }
+    } else {
+        generate_animation_prompt(&api_key, &model_config, &character, user_profile.as_ref(), &recent_msgs).await?
+    };
+
+    // Build the full Veo prompt: animation direction + character context
+    let user_name = user_profile.as_ref()
+        .map(|p| p.display_name.as_str())
+        .unwrap_or("the human");
+
+    let veo_prompt = format!(
+        "Watercolor illustration animation. {animation_prompt} The scene shows {user} and {char} together.",
+        user = user_name,
+        char = character.display_name,
+    );
+
+    log::info!("[Video] Veo prompt: {:.300}", veo_prompt);
+
+    // Start Veo generation with the illustration as the first frame
+    let operation = google::start_veo_generation(
+        &google_api_key,
+        "veo-3.1-generate-001",
+        Some(&image_b64),
+        &veo_prompt,
+        Some(5),
+        Some("16:9"),
+    ).await?;
+
+    // Poll until done
+    let video_uri = google::poll_veo_until_done(&google_api_key, &operation).await?;
+
+    // Download video
+    let video_bytes = google::download_video(&video_uri, &google_api_key).await?;
+
+    // Save video file alongside the illustration
+    let video_file = format!("video_{illustration_message_id}.mp4");
+    std::fs::write(dir.join(&video_file), &video_bytes)
+        .map_err(|e| format!("Failed to save video: {e}"))?;
+
+    log::info!("[Video] Saved {} ({} bytes)", video_file, video_bytes.len());
+
+    // Attach video to the illustration's world_images record
+    {
+        let conn = db.conn.lock().map_err(|e| e.to_string())?;
+        conn.execute(
+            "UPDATE world_images SET video_file = ?1 WHERE image_id = ?2",
+            params![video_file, illustration_message_id],
+        ).map_err(|e| e.to_string())?;
+    }
+
+    Ok(video_file)
+}
+
+/// Get the video file name for an illustration, if one has been generated.
+#[tauri::command]
+pub fn get_video_file_cmd(
+    db: State<'_, Database>,
+    illustration_message_id: String,
+) -> Result<String, String> {
+    let conn = db.conn.lock().map_err(|e| e.to_string())?;
+    let video_file: String = conn.query_row(
+        "SELECT COALESCE(video_file, '') FROM world_images WHERE image_id = ?1",
+        params![illustration_message_id], |r| r.get(0),
+    ).unwrap_or_default();
+    Ok(video_file)
+}
+
+/// Helper: generate animation prompt via chat model
+async fn generate_animation_prompt(
+    api_key: &str,
+    model_config: &orchestrator::ModelConfig,
+    character: &Character,
+    user_profile: Option<&UserProfile>,
+    recent_msgs: &[Message],
+) -> Result<String, String> {
+    use crate::ai::prompts;
+
+    let messages = prompts::build_animation_prompt(character, user_profile, recent_msgs);
+    let request = ChatRequest {
+        model: model_config.dialogue_model.clone(),
+        messages,
+        temperature: Some(0.9),
+        max_completion_tokens: Some(200),
+        response_format: None,
+    };
+    let response = openai::chat_completion_with_base(
+        &model_config.chat_api_base(), api_key, &request,
+    ).await?;
+    let prompt = response.choices.first()
+        .map(|c| c.message.content.clone())
+        .ok_or_else(|| "No animation prompt from model".to_string())?;
+    Ok(prompt)
 }
 
 #[derive(Debug, Serialize, Deserialize)]

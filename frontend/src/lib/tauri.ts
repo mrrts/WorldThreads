@@ -94,6 +94,7 @@ export interface IllustrationResult {
   illustration_message: Message;
 }
 
+
 export interface ResetToMessageResult {
   deleted_count: number;
   new_response: SendMessageResult | null;
@@ -191,6 +192,7 @@ export interface MemoryArtifact {
 const VAULT_PASSWORD = "world-threads-vault";
 const CLIENT_NAME = "world-threads";
 const API_KEY_RECORD = "openai_api_key";
+const GOOGLE_API_KEY_RECORD = "google_ai_api_key";
 
 let _stronghold: Stronghold | null = null;
 let _client: Client | null = null;
@@ -242,6 +244,26 @@ async function setApiKeyInVault(key: string): Promise<void> {
   const store = client.getStore();
   const data = Array.from(new TextEncoder().encode(key));
   await store.insert(API_KEY_RECORD, data);
+  await _stronghold!.save();
+}
+
+async function getGoogleApiKeyFromVault(): Promise<string> {
+  try {
+    const client = await getVaultClient();
+    const store = client.getStore();
+    const data = await withTimeout(store.get(GOOGLE_API_KEY_RECORD), 3000);
+    if (!data || data.length === 0) return "";
+    return new TextDecoder().decode(new Uint8Array(data));
+  } catch {
+    return "";
+  }
+}
+
+async function setGoogleApiKeyInVault(key: string): Promise<void> {
+  const client = await getVaultClient();
+  const store = client.getStore();
+  const data = Array.from(new TextEncoder().encode(key));
+  await store.insert(GOOGLE_API_KEY_RECORD, data);
   await _stronghold!.save();
 }
 
@@ -306,6 +328,11 @@ export const api = {
     invoke<IllustrationResult>("regenerate_illustration_cmd", { apiKey, characterId, messageId }),
   adjustIllustration: (apiKey: string, characterId: string, messageId: string, instructions: string) =>
     invoke<IllustrationResult>("adjust_illustration_cmd", { apiKey, characterId, messageId, instructions }),
+  generateVideo: (apiKey: string, googleApiKey: string, characterId: string, illustrationMessageId: string, customPrompt?: string) =>
+    invoke<string>("generate_video_cmd", { apiKey, googleApiKey, characterId, illustrationMessageId, customPrompt: customPrompt ?? null }),
+  getVideoFile: (illustrationMessageId: string) =>
+    invoke<string>("get_video_file_cmd", { illustrationMessageId }),
+  getMediaDir: () => invoke<string>("get_media_dir_cmd"),
   resetToMessage: (apiKey: string, characterId: string, messageId: string) =>
     invoke<ResetToMessageResult>("reset_to_message_cmd", { apiKey, characterId, messageId }),
   getMessages: (characterId: string, limit?: number, offset?: number) =>
@@ -319,6 +346,8 @@ export const api = {
   getApiKey: () => getApiKeyFromVault(),
   setApiKey: (key: string) => setApiKeyInVault(key),
   migrateApiKey: () => migrateApiKeyToVault(),
+  getGoogleApiKey: () => getGoogleApiKeyFromVault(),
+  setGoogleApiKey: (key: string) => setGoogleApiKeyInVault(key),
   getBudgetMode: () => invoke<boolean>("get_budget_mode_cmd"),
   setBudgetMode: (enabled: boolean) => invoke<void>("set_budget_mode_cmd", { enabled }),
   listLocalModels: (url: string) => invoke<LocalModelInfo[]>("list_local_models_cmd", { url }),

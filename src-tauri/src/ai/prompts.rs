@@ -122,7 +122,7 @@ pub fn build_dialogue_messages(
     });
 
     for m in recent_messages {
-        if m.role == "illustration" {
+        if m.role == "illustration" || m.role == "video" {
             continue;
         }
         msgs.push(crate::ai::openai::ChatMessage {
@@ -375,7 +375,7 @@ pub fn build_scene_description_prompt(
 
     // Include recent conversation as context (skip illustrations)
     let conversation: Vec<String> = recent_messages.iter()
-        .filter(|m| m.role != "illustration")
+        .filter(|m| m.role != "illustration" && m.role != "video")
         .map(|m| {
             let speaker = if m.role == "user" {
                 user_name.to_string()
@@ -399,6 +399,71 @@ pub fn build_scene_description_prompt(
     });
 
     msgs
+}
+
+pub fn build_animation_prompt(
+    character: &Character,
+    user_profile: Option<&UserProfile>,
+    recent_messages: &[Message],
+) -> Vec<crate::ai::openai::ChatMessage> {
+    let user_name = user_profile
+        .map(|p| p.display_name.as_str())
+        .unwrap_or("the human");
+
+    let mut system_parts = vec![format!(
+        r#"You are a motion director. Given a conversation between {user} and {char}, write a vivid animation direction (2-4 sentences) describing how to bring a still illustration of their current scene to life as a short video.
+
+The animation should be a natural continuation of the action and emotion in the scene. Be bold — characters can move, gesture, react, shift position, interact with objects, and express themselves. The environment can change too: weather, light, background activity.
+
+Keep it PG-13. No nudity, explicit sexual content, or graphic violence. Romantic or tense moments are fine, but keep them tasteful and implied rather than explicit.
+Do NOT describe camera movements or use technical film terms. Just describe what happens — the motion, the action, the life in the scene.
+Write ONLY the animation direction, nothing else."#,
+        user = user_name,
+        char = character.display_name,
+    )];
+
+    // Include character descriptions so the prompt can reference them
+    if !character.identity.is_empty() {
+        let id = if character.identity.len() > 150 { format!("{}...", &character.identity[..150]) } else { character.identity.clone() };
+        system_parts.push(format!("{} is: {}", character.display_name, id));
+    }
+    if let Some(profile) = user_profile {
+        if !profile.description.is_empty() {
+            let desc = if profile.description.len() > 150 { format!("{}...", &profile.description[..150]) } else { profile.description.clone() };
+            system_parts.push(format!("{} is: {}", profile.display_name, desc));
+        }
+    }
+
+    let system = system_parts.join("\n\n");
+
+    let conversation: Vec<String> = recent_messages.iter()
+        .filter(|m| m.role != "illustration" && m.role != "video")
+        .rev().take(6).collect::<Vec<_>>().into_iter().rev()
+        .map(|m| {
+            let speaker = if m.role == "user" {
+                user_name.to_string()
+            } else if m.role == "narrative" {
+                "[Narrative]".to_string()
+            } else {
+                character.display_name.clone()
+            };
+            format!("{}: {}", speaker, m.content)
+        })
+        .collect();
+
+    vec![
+        crate::ai::openai::ChatMessage {
+            role: "system".to_string(),
+            content: system,
+        },
+        crate::ai::openai::ChatMessage {
+            role: "user".to_string(),
+            content: format!(
+                "Recent conversation:\n{}\n\nWrite the animation direction for the current scene.",
+                conversation.join("\n"),
+            ),
+        },
+    ]
 }
 
 fn json_array_to_strings(val: &Value) -> Vec<String> {

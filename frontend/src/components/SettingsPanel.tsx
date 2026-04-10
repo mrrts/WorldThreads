@@ -16,7 +16,9 @@ interface Props {
 
 export function SettingsPanel({ store }: Props) {
   const [apiKey, setApiKey] = useState(store.apiKey);
+  const [googleApiKey, setGoogleApiKey] = useState("");
   const [showKey, setShowKey] = useState(false);
+  const [showGoogleKey, setShowGoogleKey] = useState(false);
   const [config, setConfig] = useState<ModelConfig>(store.modelConfig);
   const [dirty, setDirty] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -28,6 +30,10 @@ export function SettingsPanel({ store }: Props) {
     setApiKey(store.apiKey);
     setConfig(store.modelConfig);
   }, [store.apiKey, store.modelConfig]);
+
+  useEffect(() => {
+    api.getGoogleApiKey().then(setGoogleApiKey);
+  }, []);
 
   const fetchLocalModels = useCallback(async (url: string) => {
     setLoadingModels(true);
@@ -51,6 +57,7 @@ export function SettingsPanel({ store }: Props) {
 
   const handleSave = async () => {
     await store.setApiKey(apiKey);
+    await api.setGoogleApiKey(googleApiKey);
     await store.setModelConfig(config);
     setDirty(false);
     setSaved(true);
@@ -141,7 +148,7 @@ export function SettingsPanel({ store }: Props) {
           </FieldGroup>
 
           <FieldGroup label="API Key">
-            <Field label="OpenAI API Key" hint={isLocal ? "Still required for embeddings and image generation." : "Stored locally. Only sent to the OpenAI API."}>
+            <Field label="OpenAI API Key" hint={isLocal ? "Still required for embeddings and image generation. Stored securely in your local keychain." : "Stored securely in your local keychain. Only sent to the OpenAI API."}>
               <div className="relative">
                 <Input
                   type={showKey ? "text" : "password"}
@@ -156,6 +163,24 @@ export function SettingsPanel({ store }: Props) {
                   onClick={() => setShowKey(!showKey)}
                 >
                   {showKey ? <EyeOff size={15} /> : <Eye size={15} />}
+                </button>
+              </div>
+            </Field>
+            <Field label="Google AI Studio API Key" hint="For Gemini models and video generation. Stored securely in your local keychain.">
+              <div className="relative">
+                <Input
+                  type={showGoogleKey ? "text" : "password"}
+                  value={googleApiKey}
+                  onChange={(e) => { setGoogleApiKey(e.target.value); setDirty(true); }}
+                  placeholder="AIza..."
+                  className="pr-10 font-mono text-xs"
+                />
+                <button
+                  type="button"
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground cursor-pointer transition-colors"
+                  onClick={() => setShowGoogleKey(!showGoogleKey)}
+                >
+                  {showGoogleKey ? <EyeOff size={15} /> : <Eye size={15} />}
                 </button>
               </div>
             </Field>
