@@ -97,61 +97,6 @@ pub async fn chat_completion_with_base(base_url: &str, api_key: &str, request: &
     serde_json::from_str(&body).map_err(|e| format!("Parse error: {e}"))
 }
 
-// ─── Vision (multimodal) Chat ───────────────────────────────────────────────
-
-#[derive(Debug, Serialize)]
-#[serde(tag = "type")]
-pub enum ContentPart {
-    #[serde(rename = "text")]
-    Text { text: String },
-    #[serde(rename = "image_url")]
-    ImageUrl { image_url: ImageUrlDetail },
-}
-
-#[derive(Debug, Serialize)]
-pub struct ImageUrlDetail {
-    pub url: String,
-    pub detail: String,
-}
-
-#[derive(Debug, Serialize)]
-pub struct VisionMessage {
-    pub role: String,
-    pub content: Vec<ContentPart>,
-}
-
-#[derive(Debug, Serialize)]
-pub struct VisionChatRequest {
-    pub model: String,
-    pub messages: Vec<VisionMessage>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub temperature: Option<f64>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub max_completion_tokens: Option<u32>,
-}
-
-pub async fn vision_chat_completion_with_base(base_url: &str, api_key: &str, request: &VisionChatRequest) -> Result<ChatResponse, String> {
-    let client = Client::new();
-    let url = format!("{base_url}/chat/completions");
-    let mut builder = client.post(&url).json(request);
-    if !api_key.is_empty() {
-        builder = builder.header("Authorization", format!("Bearer {api_key}"));
-    }
-    let resp = builder.send().await.map_err(|e| format!("Network error: {e}"))?;
-
-    let status = resp.status();
-    let body = resp.text().await.map_err(|e| format!("Read error: {e}"))?;
-
-    if !status.is_success() {
-        if let Ok(err) = serde_json::from_str::<ApiError>(&body) {
-            return Err(format!("API error ({}): {}", status, err.error.message));
-        }
-        return Err(format!("API error ({}): {}", status, body));
-    }
-
-    serde_json::from_str(&body).map_err(|e| format!("Parse error: {e}"))
-}
-
 // ─── Image Generation ───────────────────────────────────────────────────────
 
 #[derive(Debug, Serialize)]
@@ -196,7 +141,6 @@ pub async fn generate_image_with_base(base_url: &str, api_key: &str, request: &I
         }
     };
 
-    let request_json = serde_json::to_string(request).unwrap_or_default();
     log_debug(&format!("REQUEST url={base_url}/images/generations model={} size={} quality={}", request.model, request.size, request.quality));
     log_debug(&format!("REQUEST body (prompt truncated): model={} n={} size={} quality={} prompt={:.200}", request.model, request.n, request.size, request.quality, request.prompt));
 
@@ -251,14 +195,14 @@ pub async fn generate_image_with_base(base_url: &str, api_key: &str, request: &I
     }
 }
 
-/// Generate an image with a reference image input (gpt-image edit endpoint).
-/// The reference image is sent as a multipart file part.
+/// Generate an image with reference image inputs (gpt-image edit endpoint).
+/// Multiple reference images are sent as multipart file parts.
 pub async fn generate_image_edit_with_base(
     base_url: &str,
     api_key: &str,
     model: &str,
     prompt: &str,
-    reference_image: &[u8],
+    reference_images: &[Vec<u8>],
     size: &str,
     quality: &str,
     output_format: Option<&str>,
@@ -272,24 +216,27 @@ pub async fn generate_image_edit_with_base(
         }
     };
 
-    log_debug(&format!("EDIT REQUEST url={base_url}/images/edits model={model} size={size} quality={quality} ref_image_bytes={}", reference_image.len()));
+    let total_bytes: usize = reference_images.iter().map(|img| img.len()).sum();
+    log_debug(&format!("EDIT REQUEST url={base_url}/images/edits model={model} size={size} quality={quality} ref_images={} total_bytes={}", reference_images.len(), total_bytes));
     log_debug(&format!("EDIT PROMPT (truncated): {:.200}", prompt));
 
     let client = Client::new();
     let url = format!("{base_url}/images/edits");
-
-    let image_part = reqwest::multipart::Part::bytes(reference_image.to_vec())
-        .file_name("reference.png")
-        .mime_str("image/png")
-        .map_err(|e| format!("Failed to create image part: {e}"))?;
 
     let mut form = reqwest::multipart::Form::new()
         .text("model", model.to_string())
         .text("prompt", prompt.to_string())
         .text("n", "1")
         .text("size", size.to_string())
-        .text("quality", quality.to_string())
-        .part("image[]", image_part);
+        .text("quality", quality.to_string());
+
+    for (i, img_bytes) in reference_images.iter().enumerate() {
+        let part = reqwest::multipart::Part::bytes(img_bytes.clone())
+            .file_name(format!("reference_{i}.png"))
+            .mime_str("image/png")
+            .map_err(|e| format!("Failed to create image part: {e}"))?;
+        form = form.part("image[]", part);
+    }
 
     if let Some(fmt) = output_format {
         form = form.text("output_format", fmt.to_string());

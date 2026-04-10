@@ -600,27 +600,6 @@ pub fn delete_portrait(conn: &Connection, portrait_id: &str) -> Result<String, r
     Ok(file_name)
 }
 
-/// All portraits for all characters belonging to a given world.
-pub fn list_portraits_for_world(conn: &Connection, world_id: &str) -> Result<Vec<(Portrait, String)>, rusqlite::Error> {
-    let mut stmt = conn.prepare(
-        "SELECT p.portrait_id, p.character_id, p.prompt, p.file_name, p.is_active, p.created_at, c.display_name
-         FROM character_portraits p
-         JOIN characters c ON c.character_id = p.character_id
-         WHERE c.world_id = ?1
-         ORDER BY p.created_at DESC"
-    )?;
-    let rows = stmt.query_map(params![world_id], |row| {
-        Ok((
-            Portrait {
-                portrait_id: row.get(0)?, character_id: row.get(1)?, prompt: row.get(2)?,
-                file_name: row.get(3)?, is_active: row.get(4)?, created_at: row.get(5)?,
-            },
-            row.get::<_, String>(6)?,
-        ))
-    })?;
-    rows.collect()
-}
-
 // ─── World Images ────────────────────────────────────────────────────────────
 
 #[derive(Debug, Serialize, Deserialize, Clone)]

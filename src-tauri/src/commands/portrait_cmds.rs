@@ -277,28 +277,37 @@ pub async fn generate_portrait_variation_cmd(
     api_key: String,
     character_id: String,
 ) -> Result<PortraitInfo, String> {
-    let (character, world, active_portrait, mc) = {
+    let (character, world, all_portraits, mc) = {
         let conn = db.conn.lock().map_err(|e| e.to_string())?;
         let ch = get_character(&conn, &character_id).map_err(|e| e.to_string())?;
         let w = get_world(&conn, &ch.world_id).map_err(|e| e.to_string())?;
-        let ap = get_active_portrait(&conn, &character_id)
-            .ok_or_else(|| "No active portrait to create a variation from".to_string())?;
+        let portraits = list_portraits(&conn, &character_id).map_err(|e| e.to_string())?;
+        if portraits.is_empty() {
+            return Err("No portraits to create a variation from".to_string());
+        }
         let mc = orchestrator::load_model_config(&conn);
-        (ch, w, ap, mc)
+        (ch, w, portraits, mc)
     };
 
-    let file_path = portraits_dir.0.join(&active_portrait.file_name);
-    if !file_path.exists() {
-        return Err("Active portrait file not found on disk".to_string());
+    // Load all portrait images from disk
+    let mut reference_images: Vec<Vec<u8>> = Vec::new();
+    for portrait in &all_portraits {
+        let file_path = portraits_dir.0.join(&portrait.file_name);
+        if file_path.exists() {
+            if let Ok(bytes) = std::fs::read(&file_path) {
+                reference_images.push(bytes);
+            }
+        }
     }
-    let image_bytes = std::fs::read(&file_path)
-        .map_err(|e| format!("Failed to read portrait file: {e}"))?;
+    if reference_images.is_empty() {
+        return Err("No portrait files found on disk".to_string());
+    }
 
     let mut prompt_parts = vec![
         "Hand-painted watercolor portrait in a lush, realistic illustration style.".to_string(),
         "Soft edges dissolving into wet-on-wet washes, visible paper texture, warm earth tones with pops of verdant green and sky blue.".to_string(),
         "Gentle diffused natural lighting, nostalgic and contemplative mood.".to_string(),
-        format!("Generate a new portrait of the SAME person shown in the reference image, but in a DIFFERENT pose, angle, or situation. The character must be clearly recognizable as the same person."),
+        format!("Generate a new portrait of the SAME person shown in the reference images, but in a DIFFERENT pose, angle, or situation. The character must be clearly recognizable as the same person across all portraits."),
         format!("Character name: {}", character.display_name),
     ];
 
@@ -320,16 +329,16 @@ pub async fn generate_portrait_variation_cmd(
         prompt_parts.push(format!("World setting: {desc}"));
     }
 
-    prompt_parts.push("Show the character in a different pose, angle, expression, or situation than the reference image. Vary the composition while keeping them unmistakably the same person.".to_string());
+    prompt_parts.push("Show the character in a different pose, angle, expression, or situation than the reference images. Vary the composition while keeping them unmistakably the same person.".to_string());
     prompt_parts.push("CRITICAL: The image must contain absolutely no text, no words, no letters, no numbers, no writing, no labels, no titles, no captions, no watermarks, no signatures, no UI elements, no names.".to_string());
 
     let prompt = prompt_parts.join(" ");
 
-    log::info!("[PortraitVariation] Generating variation for '{}' with reference image ({} bytes)", character.display_name, image_bytes.len());
+    log::info!("[PortraitVariation] Generating variation for '{}' with {} reference images", character.display_name, reference_images.len());
 
     let response = openai::generate_image_edit_with_base(
         &mc.openai_api_base(), &api_key, &mc.image_model,
-        &prompt, &image_bytes,
+        &prompt, &reference_images,
         "1024x1024", mc.image_quality(),
         mc.image_output_format().as_deref(),
     ).await?;
