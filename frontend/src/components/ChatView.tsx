@@ -105,6 +105,7 @@ export function ChatView({ store }: Props) {
   const [adjustIllustrationId, setAdjustIllustrationId] = useState<string | null>(null);
   const [adjustInstructions, setAdjustInstructions] = useState("");
   const [showIllustrationPicker, setShowIllustrationPicker] = useState(false);
+  const [illustrationInstructions, setIllustrationInstructions] = useState("");
   const [narrationTone, setNarrationTone] = useState("Auto");
   const [narrationInstructions, setNarrationInstructions] = useState("");
   const [responseLength, setResponseLength] = useState("Auto");
@@ -415,7 +416,7 @@ export function ChatView({ store }: Props) {
                                 if (existing) { await existing.setFocus(); return; }
                               } catch { /* not found */ }
                               new WebviewWindow(label, {
-                                url: `index.html?illustration=${msg.message_id}`,
+                                url: `index.html?illustration=${msg.message_id}&character=${store.activeCharacter!.character_id}`,
                                 title: "Illustration",
                                 width: 1280,
                                 height: 760,
@@ -846,7 +847,7 @@ export function ChatView({ store }: Props) {
       </Dialog>
 
       <Dialog open={showIllustrationPicker} onClose={() => setShowIllustrationPicker(false)} className="max-w-sm">
-        <div className="p-5 space-y-4">
+        <div className="p-5 space-y-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Image size={18} className="text-emerald-500" />
@@ -859,27 +860,32 @@ export function ChatView({ store }: Props) {
               <X size={16} />
             </button>
           </div>
-          <p className="text-xs text-muted-foreground">Choose a quality level for the scene illustration.</p>
-          <div className="space-y-2">
+          <div>
+            <label className="text-xs font-medium text-muted-foreground block mb-1.5">Custom Instructions (optional)</label>
+            <textarea
+              value={illustrationInstructions}
+              onChange={(e) => setIllustrationInstructions(e.target.value)}
+              placeholder="e.g. Show them outdoors in the rain. Frame it from a low angle..."
+              className="w-full min-h-[60px] max-h-[120px] resize-y rounded-lg border border-input bg-transparent px-3 py-2 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+              rows={2}
+            />
+          </div>
+          <div className="flex gap-2">
             {([
-              { tier: "low", label: "Quick Sketch", desc: "1024px square, low quality", detail: "Fastest and cheapest" },
-              { tier: "medium", label: "Standard", desc: "1024px square, medium quality", detail: "Good balance of speed and detail" },
-              { tier: "high", label: "High Fidelity", desc: "1536x1024 landscape, medium quality", detail: "Best detail and cinematic framing" },
-            ] as const).map(({ tier, label, desc, detail }) => (
+              { tier: "low", label: "Quick" },
+              { tier: "medium", label: "Standard" },
+              { tier: "high", label: "High Fidelity" },
+            ] as const).map(({ tier, label }) => (
               <button
                 key={tier}
                 onClick={() => {
                   setShowIllustrationPicker(false);
-                  store.generateIllustration(tier);
+                  store.generateIllustration(tier, illustrationInstructions.trim() || undefined);
+                  setIllustrationInstructions("");
                 }}
-                className="w-full text-left rounded-xl border border-border hover:border-emerald-500/40 hover:bg-emerald-500/5 p-3.5 transition-all cursor-pointer group"
+                className="flex-1 rounded-lg border border-border hover:border-emerald-500/40 hover:bg-emerald-500/5 px-3 py-2 transition-all cursor-pointer text-center"
               >
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium group-hover:text-emerald-400 transition-colors">{label}</span>
-                  <span className="text-[10px] text-muted-foreground/60 uppercase tracking-wider">{tier}</span>
-                </div>
-                <p className="text-xs text-muted-foreground mt-0.5">{desc}</p>
-                <p className="text-[10px] text-muted-foreground/50 mt-0.5">{detail}</p>
+                <span className="text-xs font-medium">{label}</span>
               </button>
             ))}
           </div>

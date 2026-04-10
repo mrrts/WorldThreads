@@ -616,6 +616,7 @@ pub async fn generate_illustration_cmd(
     api_key: String,
     character_id: String,
     quality_tier: Option<String>,
+    custom_instructions: Option<String>,
 ) -> Result<IllustrationResult, String> {
     let (world, character, thread, recent_msgs, model_config, user_profile) = {
         let conn = db.conn.lock().map_err(|e| e.to_string())?;
@@ -681,6 +682,7 @@ pub async fn generate_illustration_cmd(
         &world, &character, &recent_msgs,
         user_profile.as_ref(),
         &reference_images,
+        custom_instructions.as_deref(),
     ).await?;
 
     if let Some(u) = &chat_usage {
@@ -815,7 +817,7 @@ pub async fn regenerate_illustration_cmd(
     }
 
     // Generate a new one (reuses the full generate_illustration_cmd logic)
-    generate_illustration_cmd(db, portraits_dir, api_key, character_id, Some("high".to_string())).await
+    generate_illustration_cmd(db, portraits_dir, api_key, character_id, Some("high".to_string()), None).await
 }
 
 #[tauri::command]

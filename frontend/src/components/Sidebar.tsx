@@ -279,11 +279,36 @@ export function Sidebar({ store, onNavigate }: Props) {
                   <span className="text-[10px] font-semibold uppercase tracking-wider">World State</span>
                 </div>
                 {store.activeWorld.state.time && (
-                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                     <Sparkles size={10} className="text-primary/50" />
                     <span>Day {store.activeWorld.state.time.day_index}</span>
+                    <button
+                      onClick={() => {
+                        if (!store.activeWorld) return;
+                        const newState = structuredClone(store.activeWorld.state);
+                        newState.time.day_index += 1;
+                        store.updateWorldState(newState);
+                      }}
+                      className="w-4 h-4 rounded flex items-center justify-center text-muted-foreground/50 hover:text-foreground hover:bg-accent transition-colors cursor-pointer"
+                      title="Advance day"
+                    >
+                      <Plus size={10} />
+                    </button>
                     <span className="text-border">·</span>
-                    <span>{store.activeWorld.state.time.time_of_day}</span>
+                    <select
+                      value={store.activeWorld.state.time.time_of_day}
+                      onChange={(e) => {
+                        if (!store.activeWorld) return;
+                        const newState = structuredClone(store.activeWorld.state);
+                        newState.time.time_of_day = e.target.value;
+                        store.updateWorldState(newState);
+                      }}
+                      className="bg-transparent border-none text-xs text-muted-foreground cursor-pointer focus:outline-none hover:text-foreground transition-colors p-0"
+                    >
+                      {["DAWN", "MORNING", "MIDDAY", "AFTERNOON", "EVENING", "NIGHT", "LATE NIGHT"].map((t) => (
+                        <option key={t} value={t}>{t}</option>
+                      ))}
+                    </select>
                   </div>
                 )}
                 {store.activeWorld.state.location && (

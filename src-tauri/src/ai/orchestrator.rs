@@ -352,6 +352,7 @@ pub async fn generate_illustration_with_base(
     recent_messages: &[Message],
     user_profile: Option<&UserProfile>,
     reference_images: &[Vec<u8>],
+    custom_instructions: Option<&str>,
 ) -> Result<(String, Vec<u8>, Option<openai::Usage>), String> {
     // Step 1: Generate scene description
     let scene_messages = prompts::build_scene_description_prompt(world, character, user_profile, recent_messages);
@@ -402,6 +403,13 @@ pub async fn generate_illustration_with_base(
     }
 
     prompt_parts.push(format!("SCENE:\n{scene_description}"));
+
+    if let Some(instructions) = custom_instructions {
+        if !instructions.is_empty() {
+            prompt_parts.push(format!("USER'S SPECIFIC REQUEST: {instructions}"));
+        }
+    }
+
     prompt_parts.push("CRITICAL: The image must contain absolutely no text, no words, no letters, no numbers, no writing, no labels, no titles, no captions, no watermarks, no signatures, no UI elements, no names.".to_string());
 
     let prompt = prompt_parts.join(" ");

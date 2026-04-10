@@ -535,13 +535,13 @@ export function useAppStore() {
     }
   }, [state.activeCharacter, state.apiKey]);
 
-  const generateIllustration = useCallback(async (qualityTier?: string) => {
+  const generateIllustration = useCallback(async (qualityTier?: string, customInstructions?: string) => {
     if (!state.activeCharacter || !state.apiKey) return;
 
     setState((s) => ({ ...s, sending: state.activeCharacter!.character_id, generatingIllustration: state.activeCharacter!.character_id, chatError: null }));
 
     try {
-      const result = await api.generateIllustration(state.apiKey, state.activeCharacter.character_id, qualityTier);
+      const result = await api.generateIllustration(state.apiKey, state.activeCharacter.character_id, qualityTier, customInstructions);
       setState((s) => ({
         ...s,
         messages: [...s.messages, result.illustration_message],

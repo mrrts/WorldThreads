@@ -25,8 +25,9 @@ export default function App() {
     return <PortraitPopout characterId={popoutCharacterId} />;
   }
   const illustrationMsgId = params.get("illustration");
-  if (illustrationMsgId) {
-    return <IllustrationPopout messageId={illustrationMsgId} />;
+  const illustrationCharId = params.get("character");
+  if (illustrationMsgId && illustrationCharId) {
+    return <IllustrationPopout initialMessageId={illustrationMsgId} characterId={illustrationCharId} />;
   }
 
   return <MainApp />;
@@ -223,50 +224,41 @@ function NavButton({ icon, active, onClick, title, description }: { icon: React.
   );
 }
 
-function IllustrationPopout({ messageId }: { messageId: string }) {
-  const [dataUrl, setDataUrl] = useState("");
+function IllustrationPopout({ initialMessageId, characterId }: { initialMessageId: string; characterId: string }) {
+  const [illustrations, setIllustrations] = useState<Array<{ id: string; data_url: string }>>([]);
+  const [selectedId, setSelectedId] = useState(initialMessageId);
   const [loading, setLoading] = useState(true);
+  const [imageLoading, setImageLoading] = useState(true);
 
   useEffect(() => {
-    // The illustration content is stored as the message content (a data URL).
-    // We need to find it via the gallery since we can't query a single message by ID directly.
-    // But the world_images table has the file linked by image_id = message_id.
-    // Simplest: use getSetting to... actually, let's just look it up from the gallery.
-    // The image_id in world_images matches the message_id.
-    // We don't have a direct "get world image by id" command, but we can list all and find it.
-    // Actually simpler: the message content IS the data URL. We just need to get the message.
-    // But we don't have a get-single-message command. Let me use the gallery approach.
-    // The gallery items have data_url populated. Let's list all worlds and search.
     (async () => {
       try {
-        const worlds = await api.listWorlds();
-        for (const w of worlds) {
-          const gallery = await api.listWorldGallery(w.world_id);
-          const match = gallery.find((g) => g.id === messageId);
-          if (match?.data_url) {
-            setDataUrl(match.data_url);
-            break;
-          }
-        }
+        const page = await api.getMessages(characterId);
+        const illus = page.messages
+          .filter((m) => m.role === "illustration")
+          .map((m) => ({ id: m.message_id, data_url: m.content }));
+        setIllustrations(illus);
       } catch {
         // ignore
       } finally {
         setLoading(false);
       }
     })();
-  }, [messageId]);
+  }, [characterId]);
+
+  const selected = illustrations.find((i) => i.id === selectedId);
 
   if (loading) {
     return (
-      <div className="h-screen bg-background flex items-center justify-center">
-        <div className="animate-pulse text-primary text-2xl">...</div>
+      <div className="h-screen bg-black flex items-center justify-center">
+        <div className="animate-spin w-6 h-6 border-2 border-white/20 border-t-white rounded-full" />
       </div>
     );
   }
 
-  if (!dataUrl) {
+  if (!selected) {
     return (
-      <div className="h-screen bg-background flex items-center justify-center text-muted-foreground text-sm">
+      <div className="h-screen bg-black flex items-center justify-center text-muted-foreground text-sm">
         Illustration not found
       </div>
     );
@@ -280,13 +272,39 @@ function IllustrationPopout({ messageId }: { messageId: string }) {
       >
         <span className="text-xs text-muted-foreground">Illustration</span>
       </div>
-      <div className="flex-1 overflow-auto min-h-0">
+      <div className="flex-1 min-h-0 relative flex items-center justify-center p-2">
+        {imageLoading && (
+          <div className="absolute inset-0 flex items-center justify-center z-10">
+            <div className="animate-spin w-6 h-6 border-2 border-white/20 border-t-white rounded-full" />
+          </div>
+        )}
         <img
-          src={dataUrl}
+          key={selectedId}
+          src={selected.data_url}
           alt="Illustration"
-          className="w-full"
+          className={`max-w-full max-h-full object-contain ${imageLoading ? "opacity-0" : "opacity-100"} transition-opacity`}
+          onLoad={() => setImageLoading(false)}
         />
       </div>
+      {illustrations.length > 1 && (
+        <div className="flex-shrink-0 border-t border-border bg-card/50 px-2 py-2">
+          <div className="flex gap-1.5 overflow-x-auto scrollbar-none [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none]">
+            {illustrations.map((illus) => (
+              <button
+                key={illus.id}
+                onClick={() => { setSelectedId(illus.id); setImageLoading(true); }}
+                className={`flex-shrink-0 w-16 h-11 rounded-lg overflow-hidden transition-all cursor-pointer ${
+                  illus.id === selectedId
+                    ? "ring-2 ring-primary ring-offset-1 ring-offset-black"
+                    : "ring-1 ring-white/10 opacity-60 hover:opacity-100"
+                }`}
+              >
+                <img src={illus.data_url} alt="" className="w-full h-full object-cover" />
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
