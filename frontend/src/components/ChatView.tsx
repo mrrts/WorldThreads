@@ -3,8 +3,7 @@ import Markdown from "react-markdown";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { Send, Loader2, SmilePlus, X, Check, Copy, ExternalLink, BookOpen, RotateCcw, MessageSquare, Settings, Image, Trash2, RefreshCw, SlidersHorizontal, Video } from "lucide-react";
-import { convertFileSrc } from "@tauri-apps/api/core";
+import { Send, Loader2, SmilePlus, X, Check, Copy, ExternalLink, BookOpen, RotateCcw, MessageSquare, Settings, Image, Trash2, RefreshCw, SlidersHorizontal, Video, Repeat, Square, Download, Crosshair, ChevronLeft, ChevronRight } from "lucide-react";
 import { WebviewWindow } from "@tauri-apps/api/webviewWindow";
 import type { useAppStore } from "@/hooks/use-app-store";
 import { api, type Reaction } from "@/lib/tauri";
@@ -105,6 +104,20 @@ export function ChatView({ store }: Props) {
   const [showNarrationSettings, setShowNarrationSettings] = useState(false);
   const [adjustIllustrationId, setAdjustIllustrationId] = useState<string | null>(null);
   const [adjustInstructions, setAdjustInstructions] = useState("");
+  const [videoModalId, setVideoModalId] = useState<string | null>(null);
+  const [videoPrompt, setVideoPrompt] = useState("");
+  const [videoDuration, setVideoDuration] = useState(8);
+  const [videoStyle, setVideoStyle] = useState("action-no-dialogue");
+  const [videoTab, setVideoTab] = useState<"generate" | "upload">("generate");
+  const [uploadingVideo, setUploadingVideo] = useState(false);
+  const [downloadedId, setDownloadedId] = useState<string | null>(null);
+  const [removeVideoConfirmId, setRemoveVideoConfirmId] = useState<string | null>(null);
+  const [animationReadyId, setAnimationReadyId] = useState<string | null>(null);
+  const [illustrationModalId, setIllustrationModalId] = useState<string | null>(null);
+  const [modalSelectedId, setModalSelectedId] = useState<string | null>(null);
+  const [modalPlayingVideo, setModalPlayingVideo] = useState(false);
+  const [modalImageLoading, setModalImageLoading] = useState(false);
+  const [modalIllustrations, setModalIllustrations] = useState<Array<{ id: string; content: string }>>([]);
   const [showIllustrationPicker, setShowIllustrationPicker] = useState(false);
   const [illustrationInstructions, setIllustrationInstructions] = useState("");
   const [narrationTone, setNarrationTone] = useState("Auto");
@@ -137,14 +150,42 @@ export function ChatView({ store }: Props) {
   const isSending = store.sending === charId;
   const isGeneratingNarrative = store.generatingNarrative === charId;
   const isGeneratingIllustration = store.generatingIllustration === charId;
-  const isGeneratingVideo = store.generatingVideo === charId;
-  const [mediaDir, setMediaDir] = useState("");
+  const isGeneratingVideo = !!store.generatingVideo;
   const [playingVideo, setPlayingVideo] = useState<string | null>(null);
+  const [loopVideo, setLoopVideo] = useState<Record<string, boolean>>({});
   const [videoFiles, setVideoFiles] = useState<Record<string, string>>({});
+  const [videoDataUrls, setVideoDataUrls] = useState<Record<string, string>>({});
 
-  useEffect(() => {
-    api.getMediaDir().then(setMediaDir).catch(() => {});
+  const loadVideoBlobUrl = useCallback(async (videoFile: string): Promise<string> => {
+    const bytes = await api.getVideoBytes(videoFile);
+    const blob = new Blob([new Uint8Array(bytes)], { type: "video/mp4" });
+    return URL.createObjectURL(blob);
   }, []);
+
+  const playVideo = useCallback(async (messageId: string) => {
+    setPlayingVideo(messageId);
+    if (!videoDataUrls[messageId] && videoFiles[messageId]) {
+      try {
+        const blobUrl = await loadVideoBlobUrl(videoFiles[messageId]);
+        setVideoDataUrls((prev) => ({ ...prev, [messageId]: blobUrl }));
+      } catch {
+        setPlayingVideo(null);
+      }
+    }
+  }, [videoDataUrls, videoFiles, loadVideoBlobUrl]);
+
+  // Stop video when scrolled out of view
+  useEffect(() => {
+    if (!playingVideo) return;
+    const el = document.querySelector(`[data-message-id="${playingVideo}"]`);
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => { if (!entry.isIntersecting) setPlayingVideo(null); },
+      { threshold: 0 }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [playingVideo]);
 
   // Load video files for illustration messages
   useEffect(() => {
@@ -155,7 +196,7 @@ export function ChatView({ store }: Props) {
       for (const msg of illustrationMsgs) {
         try {
           const vf = await api.getVideoFile(msg.message_id);
-          if (vf) updates[msg.message_id] = vf;
+          if (vf && vf.length > 0) updates[msg.message_id] = vf;
         } catch { /* ignore */ }
       }
       if (Object.keys(updates).length > 0) {
@@ -165,34 +206,36 @@ export function ChatView({ store }: Props) {
   }, [store.messages]);
 
   // Also update videoFiles from store (after generateVideo completes)
+  const prevGeneratingVideoRef = useRef<string | null>(null);
   useEffect(() => {
     if (Object.keys(store.videoFiles).length > 0) {
       setVideoFiles((prev) => ({ ...prev, ...store.videoFiles }));
     }
-  }, [store.videoFiles]);
+    // Detect when video generation completes: was generating, now not, and we have a new file
+    const prev = prevGeneratingVideoRef.current;
+    if (prev && !store.generatingVideo && store.videoFiles[prev]) {
+      setAnimationReadyId(prev);
+    }
+    prevGeneratingVideoRef.current = store.generatingVideo;
+  }, [store.videoFiles, store.generatingVideo]);
 
-  const prevScrollHeightRef = useRef(0);
-  const isLoadingOlderRef = useRef(false);
-  const messageCountRef = useRef(0);
+  const lastMessageIdRef = useRef<string | null>(null);
 
-  // Scroll to bottom only when new messages arrive at the end (not when older ones are prepended)
+  // Scroll to bottom when new messages are appended at the end
   useEffect(() => {
     const el = scrollRef.current;
     if (!el) return;
-    const prevCount = messageCountRef.current;
-    const newCount = store.messages.length;
-    messageCountRef.current = newCount;
 
-    if (isLoadingOlderRef.current) {
-      // Older messages were prepended — restore scroll position
-      const addedHeight = el.scrollHeight - prevScrollHeightRef.current;
-      el.scrollTop = addedHeight;
-      isLoadingOlderRef.current = false;
-    } else {
-      // New messages at the end — scroll to bottom
+    const lastMsg = store.messages[store.messages.length - 1];
+    const lastId = lastMsg?.message_id ?? null;
+    const prevLastId = lastMessageIdRef.current;
+
+    if (lastId !== prevLastId && lastId !== null) {
       el.scrollTop = el.scrollHeight;
     }
-  }, [store.messages, isSending]);
+
+    lastMessageIdRef.current = lastId;
+  }, [store.messages]);
 
   // Auto-focus input after AI response arrives
   useEffect(() => {
@@ -201,15 +244,6 @@ export function ChatView({ store }: Props) {
     }
   }, [isSending]);
 
-  const handleScroll = useCallback(() => {
-    const el = scrollRef.current;
-    if (!el || store.loadingOlder || !store.hasMoreMessages) return;
-    if (el.scrollTop < 80) {
-      isLoadingOlderRef.current = true;
-      prevScrollHeightRef.current = el.scrollHeight;
-      store.loadOlderMessages();
-    }
-  }, [store.loadingOlder, store.hasMoreMessages, store.loadOlderMessages]);
 
   const handleSend = async () => {
     const text = input.trim();
@@ -341,27 +375,8 @@ export function ChatView({ store }: Props) {
       </div>
 
       <div className="flex-1 relative overflow-hidden z-10">
-        <ScrollArea ref={scrollRef} className="h-full px-4 py-3" onScroll={handleScroll}>
+        <ScrollArea ref={scrollRef} className="h-full px-4 py-3">
         <div>
-        {store.loadingOlder && (
-          <div className="flex justify-center py-3">
-            <Loader2 size={18} className="animate-spin text-muted-foreground" />
-          </div>
-        )}
-        {store.hasMoreMessages && !store.loadingOlder && store.messages.length > 0 && (
-          <div className="flex justify-center py-2">
-            <button
-              onClick={() => {
-                isLoadingOlderRef.current = true;
-                prevScrollHeightRef.current = scrollRef.current?.scrollHeight ?? 0;
-                store.loadOlderMessages();
-              }}
-              className="text-xs text-muted-foreground/60 hover:text-muted-foreground transition-colors cursor-pointer"
-            >
-              Load older messages
-            </button>
-          </div>
-        )}
         {store.messages.length === 0 && (
           <div className="text-center text-muted-foreground py-12">
             <p className="text-lg mb-1">Start a conversation</p>
@@ -407,92 +422,187 @@ export function ChatView({ store }: Props) {
 
             if (msg.role === "illustration") {
               return (
-                <div key={msg.message_id} className="flex justify-center my-3">
-                  <div className="relative group max-w-[95%] rounded-xl overflow-hidden bg-gradient-to-br from-emerald-950/30 to-emerald-900/10 border border-emerald-700/20 backdrop-blur-sm">
+                <div key={msg.message_id} data-message-id={msg.message_id} className="flex justify-center my-3">
+                  <div className="relative group max-w-[95%] rounded-xl bg-gradient-to-br from-emerald-950/30 to-emerald-900/10 border border-emerald-700/20 backdrop-blur-sm">
                     <div className="flex items-center gap-1.5 px-4 pt-3 pb-1.5 text-[10px] uppercase tracking-wider text-emerald-500/70 font-semibold">
                       <Image size={12} />
                       <span>Illustration</span>
                     </div>
                     <div className="px-2 pb-2 relative">
-                      {playingVideo === msg.message_id && videoFiles[msg.message_id] && mediaDir ? (
-                        <video
-                          src={convertFileSrc(`${mediaDir}/${videoFiles[msg.message_id]}`)}
-                          autoPlay
-                          loop
-                          playsInline
-                          className="w-full rounded-lg cursor-pointer"
-                          onClick={() => setPlayingVideo(null)}
-                        />
-                      ) : (
+                      <img
+                        src={msg.content}
+                        alt="Scene illustration"
+                        loading="lazy"
+                        className={`w-full rounded-lg cursor-pointer ${playingVideo === msg.message_id && videoDataUrls[msg.message_id] ? "invisible" : ""}`}
+                        onClick={async () => {
+                          setIllustrationModalId(msg.message_id);
+                          setModalSelectedId(msg.message_id);
+                          setModalPlayingVideo(false);
+                          setModalImageLoading(false);
+                          // Load all illustrations for the carousel
+                          if (store.activeCharacter) {
+                            try {
+                              const page = await api.getMessages(store.activeCharacter.character_id);
+                              const illus = page.messages
+                                .filter((m) => m.role === "illustration")
+                                .map((m) => ({ id: m.message_id, content: m.content }));
+                              setModalIllustrations(illus);
+                              // Also load video files for carousel indicators
+                              for (const il of illus) {
+                                if (!videoFiles[il.id]) {
+                                  api.getVideoFile(il.id).then((vf) => {
+                                    if (vf) setVideoFiles((prev) => ({ ...prev, [il.id]: vf }));
+                                  }).catch(() => {});
+                                }
+                              }
+                            } catch { /* ignore */ }
+                          }
+                        }}
+                      />
+                      {playingVideo === msg.message_id && videoDataUrls[msg.message_id] && (
                         <>
-                          <img
-                            src={msg.content}
-                            alt="Scene illustration"
-                            className="w-full rounded-lg"
+                          <video
+                            src={videoDataUrls[msg.message_id]}
+                            autoPlay
+                            loop={!!loopVideo[msg.message_id]}
+                            playsInline
+                            className="absolute inset-2 w-[calc(100%-16px)] h-[calc(100%-16px)] object-contain rounded-lg"
+                            onEnded={() => { if (!loopVideo[msg.message_id]) setPlayingVideo(null); }}
                           />
-                          {videoFiles[msg.message_id] && (
-                            <button
-                              onClick={() => setPlayingVideo(msg.message_id)}
-                              className="absolute bottom-4 right-4 w-10 h-10 rounded-full bg-black/70 text-white flex items-center justify-center cursor-pointer hover:bg-purple-600 transition-colors backdrop-blur-sm"
-                              title="Play animation"
-                            >
-                              <Video size={18} />
-                            </button>
-                          )}
+                          <button
+                            onClick={() => setPlayingVideo(null)}
+                            className="absolute bottom-4 right-4 w-10 h-10 rounded-full bg-black/70 text-white flex items-center justify-center cursor-pointer hover:bg-red-600 transition-colors backdrop-blur-sm opacity-0 group-hover:opacity-100"
+                            title="Stop"
+                          >
+                            <Square size={14} fill="white" />
+                          </button>
                         </>
+                      )}
+                      {playingVideo !== msg.message_id && videoFiles[msg.message_id] && (
+                        <div className="absolute bottom-4 right-4 flex gap-1.5">
+                          <button
+                            onClick={() => setLoopVideo((prev) => ({ ...prev, [msg.message_id]: !prev[msg.message_id] }))}
+                            className={`w-10 h-10 rounded-full backdrop-blur-sm flex items-center justify-center cursor-pointer transition-colors ${
+                              loopVideo[msg.message_id]
+                                ? "bg-purple-600 text-white"
+                                : "bg-black/70 text-white/50 hover:text-white hover:bg-black/80"
+                            }`}
+                            title={loopVideo[msg.message_id] ? "Loop on" : "Loop off"}
+                          >
+                            <Repeat size={14} />
+                          </button>
+                          <button
+                            onClick={() => playVideo(msg.message_id)}
+                            className="w-10 h-10 rounded-full bg-black/70 text-white flex items-center justify-center cursor-pointer hover:bg-purple-600 transition-colors backdrop-blur-sm"
+                            title="Play animation"
+                          >
+                            <span className="text-lg ml-0.5">&#9654;</span>
+                          </button>
+                        </div>
+                      )}
+                      {playingVideo === msg.message_id && !videoDataUrls[msg.message_id] && (
+                        <div className="absolute inset-2 flex items-center justify-center bg-black/30 rounded-lg">
+                          <div className="animate-spin w-8 h-8 border-2 border-white/20 border-t-white rounded-full" />
+                        </div>
                       )}
                       {!isPending && !isSending && (
                         <div className="absolute top-4 right-4 flex gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <button
-                            onClick={() => { setAdjustIllustrationId(msg.message_id); setAdjustInstructions(""); }}
-                            className="w-8 h-8 rounded-full bg-black/60 text-white flex items-center justify-center cursor-pointer hover:bg-black/80 transition-colors backdrop-blur-sm"
-                            title="Adjust illustration"
-                          >
-                            <SlidersHorizontal size={14} />
-                          </button>
-                          <button
-                            onClick={() => store.regenerateIllustration(msg.message_id)}
-                            className="w-8 h-8 rounded-full bg-black/60 text-white flex items-center justify-center cursor-pointer hover:bg-black/80 transition-colors backdrop-blur-sm"
-                            title="Regenerate illustration"
-                          >
-                            <RefreshCw size={14} />
-                          </button>
-                          <button
-                            onClick={() => store.deleteIllustration(msg.message_id)}
-                            className="w-8 h-8 rounded-full bg-black/60 text-white flex items-center justify-center cursor-pointer hover:bg-destructive transition-colors backdrop-blur-sm"
-                            title="Delete illustration"
-                          >
-                            <Trash2 size={14} />
-                          </button>
-                          <button
-                            onClick={async () => {
-                              const label = `illus-${msg.message_id.slice(0, 8)}`;
-                              try {
-                                const existing = await WebviewWindow.getByLabel(label);
-                                if (existing) { await existing.setFocus(); return; }
-                              } catch { /* not found */ }
-                              new WebviewWindow(label, {
-                                url: `index.html?illustration=${msg.message_id}&character=${store.activeCharacter!.character_id}`,
-                                title: "Illustration",
-                                width: 1280,
-                                height: 760,
-                                resizable: true,
-                                decorations: true,
-                              });
-                            }}
-                            className="w-8 h-8 rounded-full bg-black/60 text-white flex items-center justify-center cursor-pointer hover:bg-black/80 transition-colors backdrop-blur-sm"
-                            title="Open in window"
-                          >
-                            <ExternalLink size={14} />
-                          </button>
-                          <button
-                            onClick={() => store.generateVideo(msg.message_id)}
-                            className="w-8 h-8 rounded-full bg-black/60 text-white flex items-center justify-center cursor-pointer hover:bg-purple-600 transition-colors backdrop-blur-sm"
-                            title="Animate illustration"
-                            disabled={isGeneratingVideo}
-                          >
-                            <Video size={14} />
-                          </button>
+                          <div className="relative group/adj">
+                            <button
+                              onClick={() => { setAdjustIllustrationId(msg.message_id); setAdjustInstructions(""); }}
+                              className="w-8 h-8 rounded-full bg-black/60 text-white flex items-center justify-center cursor-pointer hover:bg-black/80 transition-colors backdrop-blur-sm"
+                            >
+                              <SlidersHorizontal size={14} />
+                            </button>
+                            <span className="absolute top-full left-1/2 -translate-x-1/2 mt-1.5 px-2 py-0.5 text-[10px] font-medium text-white bg-black rounded-md shadow-lg whitespace-nowrap opacity-0 group-hover/adj:opacity-100 pointer-events-none transition-opacity">Adjust</span>
+                          </div>
+                          <div className="relative group/regen">
+                            <button
+                              onClick={() => store.regenerateIllustration(msg.message_id)}
+                              className="w-8 h-8 rounded-full bg-black/60 text-white flex items-center justify-center cursor-pointer hover:bg-black/80 transition-colors backdrop-blur-sm"
+                            >
+                              <RefreshCw size={14} />
+                            </button>
+                            <span className="absolute top-full left-1/2 -translate-x-1/2 mt-1.5 px-2 py-0.5 text-[10px] font-medium text-white bg-black rounded-md shadow-lg whitespace-nowrap opacity-0 group-hover/regen:opacity-100 pointer-events-none transition-opacity">Regenerate</span>
+                          </div>
+                          <div className="relative group/del">
+                            <button
+                              onClick={() => store.deleteIllustration(msg.message_id)}
+                              className="w-8 h-8 rounded-full bg-black/60 text-white flex items-center justify-center cursor-pointer hover:bg-destructive transition-colors backdrop-blur-sm"
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                            <span className="absolute top-full left-1/2 -translate-x-1/2 mt-1.5 px-2 py-0.5 text-[10px] font-medium text-white bg-black rounded-md shadow-lg whitespace-nowrap opacity-0 group-hover/del:opacity-100 pointer-events-none transition-opacity">Delete</span>
+                          </div>
+                          <div className="relative group/pop">
+                            <button
+                              onClick={async () => {
+                                const label = `illus-${msg.message_id.slice(0, 8)}`;
+                                try {
+                                  const existing = await WebviewWindow.getByLabel(label);
+                                  if (existing) { await existing.setFocus(); return; }
+                                } catch { /* not found */ }
+                                new WebviewWindow(label, {
+                                  url: `index.html?illustration=${msg.message_id}&character=${store.activeCharacter!.character_id}`,
+                                  title: "Illustration",
+                                  width: 1280,
+                                  height: 760,
+                                  resizable: true,
+                                  decorations: true,
+                                });
+                              }}
+                              className="w-8 h-8 rounded-full bg-black/60 text-white flex items-center justify-center cursor-pointer hover:bg-black/80 transition-colors backdrop-blur-sm"
+                            >
+                              <ExternalLink size={14} />
+                            </button>
+                            <span className="absolute top-full left-1/2 -translate-x-1/2 mt-1.5 px-2 py-0.5 text-[10px] font-medium text-white bg-black rounded-md shadow-lg whitespace-nowrap opacity-0 group-hover/pop:opacity-100 pointer-events-none transition-opacity">Pop Out</span>
+                          </div>
+                          <div className="relative group/dl">
+                            <button
+                              onClick={async () => {
+                                await api.downloadIllustration(msg.message_id);
+                                setDownloadedId(msg.message_id);
+                                setTimeout(() => setDownloadedId(null), 1500);
+                              }}
+                              className="w-8 h-8 rounded-full bg-black/60 text-white flex items-center justify-center cursor-pointer hover:bg-black/80 transition-colors backdrop-blur-sm"
+                            >
+                              {downloadedId === msg.message_id ? <Check size={14} /> : <Download size={14} />}
+                            </button>
+                            <span className="absolute top-full left-1/2 -translate-x-1/2 mt-1.5 px-2 py-0.5 text-[10px] font-medium text-white bg-black rounded-md shadow-lg whitespace-nowrap opacity-0 group-hover/dl:opacity-100 pointer-events-none transition-opacity">{downloadedId === msg.message_id ? "Saved!" : "Download"}</span>
+                          </div>
+                          <div className="relative group/vid">
+                            {videoFiles[msg.message_id] ? (
+                              <button
+                                onClick={() => setRemoveVideoConfirmId(msg.message_id)}
+                                className="w-8 h-8 rounded-full bg-black/60 text-white flex items-center justify-center cursor-pointer hover:bg-destructive transition-colors backdrop-blur-sm"
+                              >
+                                <span className="relative">
+                                  <Video size={14} />
+                                  <span className="absolute inset-0 flex items-center justify-center">
+                                    <span className="block w-[18px] h-[1.5px] bg-white rotate-45" />
+                                  </span>
+                                </span>
+                              </button>
+                            ) : (
+                              <button
+                                onClick={() => { setVideoModalId(msg.message_id); setVideoPrompt(""); setVideoDuration(8); setVideoStyle("action-no-dialogue"); setVideoTab("generate"); }}
+                                className="w-8 h-8 rounded-full bg-black/60 text-white flex items-center justify-center cursor-pointer hover:bg-purple-600 transition-colors backdrop-blur-sm"
+                                disabled={isGeneratingVideo}
+                              >
+                                <Video size={14} />
+                              </button>
+                            )}
+                            <span className="absolute top-full left-1/2 -translate-x-1/2 mt-1.5 px-2 py-0.5 text-[10px] font-medium text-white bg-black rounded-md shadow-lg whitespace-nowrap opacity-0 group-hover/vid:opacity-100 pointer-events-none transition-opacity">{videoFiles[msg.message_id] ? "Remove Video" : "Animate"}</span>
+                          </div>
+                        </div>
+                      )}
+                      {store.generatingVideo === msg.message_id && (
+                        <div className="absolute inset-x-2 bottom-2 rounded-b-lg bg-gradient-to-t from-purple-950/90 to-purple-950/40 backdrop-blur-sm px-4 py-2.5 flex items-center gap-2 text-purple-300/90">
+                          <Video size={14} className="animate-pulse" />
+                          <span className="text-xs italic">Generating animation...</span>
+                          <span className="w-1.5 h-1.5 rounded-full bg-purple-400/60 animate-bounce [animation-delay:0ms]" />
+                          <span className="w-1.5 h-1.5 rounded-full bg-purple-400/60 animate-bounce [animation-delay:150ms]" />
+                          <span className="w-1.5 h-1.5 rounded-full bg-purple-400/60 animate-bounce [animation-delay:300ms]" />
                         </div>
                       )}
                     </div>
@@ -631,20 +741,31 @@ export function ChatView({ store }: Props) {
               </div>
             </div>
           )}
-          {isGeneratingVideo && (
-            <div className="flex justify-center my-2">
-              <div className="rounded-xl px-5 py-3 bg-gradient-to-br from-purple-950/40 to-purple-900/20 border border-purple-700/30 flex items-center gap-2 text-purple-500/70">
-                <Video size={14} className="animate-pulse" />
-                <span className="text-xs italic">Generating video... this may take a few minutes</span>
-                <span className="w-1.5 h-1.5 rounded-full bg-purple-500/60 animate-bounce [animation-delay:0ms]" />
-                <span className="w-1.5 h-1.5 rounded-full bg-purple-500/60 animate-bounce [animation-delay:150ms]" />
-                <span className="w-1.5 h-1.5 rounded-full bg-purple-500/60 animate-bounce [animation-delay:300ms]" />
-              </div>
-            </div>
-          )}
         </div>
         </div>
       </ScrollArea>
+      {animationReadyId && (
+        <div className="absolute bottom-4 right-4 z-20 bg-card border border-purple-500/30 rounded-xl shadow-xl shadow-black/30 px-4 py-3 flex items-center gap-3 animate-in fade-in slide-in-from-bottom-2 duration-200">
+          <Video size={16} className="text-purple-400 flex-shrink-0" />
+          <span className="text-sm font-medium">Animation is ready!</span>
+          <button
+            onClick={() => {
+              const el = document.querySelector(`[data-message-id="${animationReadyId}"]`);
+              if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
+              setAnimationReadyId(null);
+            }}
+            className="px-2.5 py-1 text-xs font-medium bg-purple-600 hover:bg-purple-700 text-white rounded-lg cursor-pointer transition-colors"
+          >
+            Go
+          </button>
+          <button
+            onClick={() => setAnimationReadyId(null)}
+            className="text-muted-foreground hover:text-foreground cursor-pointer transition-colors"
+          >
+            <X size={14} />
+          </button>
+        </div>
+      )}
       </div>
 
       {store.chatError && (
@@ -1009,6 +1130,364 @@ export function ChatView({ store }: Props) {
               }}
             >
               Adjust
+            </Button>
+          </div>
+        </div>
+      </Dialog>
+
+      <Dialog open={!!videoModalId} onClose={() => setVideoModalId(null)} className="max-w-sm">
+        <div className="p-5 space-y-4 bg-card/95 backdrop-blur-md border border-border rounded-xl shadow-2xl shadow-black/50">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Video size={18} className="text-purple-500" />
+              <h3 className="font-semibold">Animate Illustration</h3>
+            </div>
+            <button
+              onClick={() => setVideoModalId(null)}
+              className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-muted transition-colors cursor-pointer"
+            >
+              <X size={16} />
+            </button>
+          </div>
+
+          <div className="flex border-b border-border">
+            <button
+              onClick={() => setVideoTab("generate")}
+              className={`flex-1 pb-2 text-xs font-medium text-center border-b-2 transition-colors cursor-pointer ${
+                videoTab === "generate" ? "border-purple-500 text-purple-400" : "border-transparent text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              Generate
+            </button>
+            <button
+              onClick={() => setVideoTab("upload")}
+              className={`flex-1 pb-2 text-xs font-medium text-center border-b-2 transition-colors cursor-pointer ${
+                videoTab === "upload" ? "border-purple-500 text-purple-400" : "border-transparent text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              Upload
+            </button>
+          </div>
+
+          {videoTab === "generate" ? (
+            <>
+              <div>
+                <label className="text-xs font-medium text-muted-foreground block mb-1.5">Style</label>
+                <div className="grid grid-cols-2 gap-1.5">
+                  {([
+                    { value: "still", label: "Still" },
+                    { value: "dialogue", label: "Dialogue" },
+                    { value: "action-no-dialogue", label: "Action (Silent)" },
+                    { value: "action-dialogue", label: "Action + Dialogue" },
+                  ] as const).map(({ value, label }) => (
+                    <button
+                      key={value}
+                      onClick={() => setVideoStyle(value)}
+                      className={`rounded-lg px-3 py-1.5 text-xs font-medium transition-all cursor-pointer ${
+                        videoStyle === value
+                          ? "bg-purple-600 text-white"
+                          : "border border-border hover:border-purple-500/40 hover:bg-purple-500/5"
+                      }`}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <label className="text-xs font-medium text-muted-foreground block mb-1.5">Custom Direction (optional)</label>
+                <textarea
+                  value={videoPrompt}
+                  onChange={(e) => setVideoPrompt(e.target.value)}
+                  placeholder="e.g. She turns to look out the window as rain begins to fall..."
+                  className="w-full min-h-[60px] max-h-[120px] resize-y rounded-lg border border-input bg-transparent px-3 py-2 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+                  rows={2}
+                />
+                <p className="text-[10px] text-muted-foreground mt-1">Leave blank to auto-generate from conversation context.</p>
+              </div>
+
+              <div>
+                <label className="text-xs font-medium text-muted-foreground block mb-1.5">Duration: {videoDuration}s</label>
+                <input
+                  type="range"
+                  min={4}
+                  max={8}
+                  value={videoDuration}
+                  onChange={(e) => setVideoDuration(Number(e.target.value))}
+                  className="w-full accent-purple-500"
+                />
+                <div className="flex justify-between text-[10px] text-muted-foreground/50 mt-0.5">
+                  <span>4s</span>
+                  <span>8s</span>
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-2">
+                <Button variant="ghost" size="sm" onClick={() => setVideoModalId(null)}>
+                  Cancel
+                </Button>
+                <Button
+                  size="sm"
+                  className="bg-purple-600 hover:bg-purple-700 text-white"
+                  onClick={() => {
+                    if (videoModalId) {
+                      store.generateVideo(videoModalId, videoPrompt.trim() || undefined, videoDuration, videoStyle);
+                      setVideoModalId(null);
+                    }
+                  }}
+                >
+                  Generate Video
+                </Button>
+              </div>
+            </>
+          ) : (
+            <>
+              <div>
+                <p className="text-xs text-muted-foreground mb-3">Upload a video file to attach to this illustration.</p>
+                <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-border rounded-xl cursor-pointer hover:border-purple-500/40 hover:bg-purple-500/5 transition-all">
+                  <Video size={24} className="text-muted-foreground/50 mb-2" />
+                  <span className="text-xs text-muted-foreground">Click to select a video file</span>
+                  <span className="text-[10px] text-muted-foreground/50 mt-0.5">MP4, WebM, or MOV</span>
+                  <input
+                    type="file"
+                    accept="video/mp4,video/webm,video/quicktime,.mp4,.webm,.mov"
+                    className="hidden"
+                    onChange={async (e) => {
+                      const file = e.target.files?.[0];
+                      if (!file || !videoModalId) return;
+                      setUploadingVideo(true);
+                      try {
+                        const reader = new FileReader();
+                        const dataUrl = await new Promise<string>((resolve, reject) => {
+                          reader.onload = () => resolve(reader.result as string);
+                          reader.onerror = reject;
+                          reader.readAsDataURL(file);
+                        });
+                        const videoFile = await api.uploadVideo(videoModalId, dataUrl);
+                        setVideoFiles((prev) => ({ ...prev, [videoModalId]: videoFile }));
+                        setVideoModalId(null);
+                      } catch (err) {
+                        store.setError?.(String(err));
+                      } finally {
+                        setUploadingVideo(false);
+                      }
+                    }}
+                  />
+                </label>
+              </div>
+
+              {uploadingVideo && (
+                <div className="flex items-center justify-center gap-2 text-purple-400">
+                  <Loader2 size={14} className="animate-spin" />
+                  <span className="text-xs">Uploading video...</span>
+                </div>
+              )}
+
+              <div className="flex justify-end">
+                <Button variant="ghost" size="sm" onClick={() => setVideoModalId(null)}>
+                  Cancel
+                </Button>
+              </div>
+            </>
+          )}
+        </div>
+      </Dialog>
+
+      {illustrationModalId && (() => {
+        const selId = modalSelectedId ?? illustrationModalId;
+        // Use modalIllustrations if loaded, fall back to current messages
+        const allIllustrations = modalIllustrations.length > 0
+          ? modalIllustrations
+          : store.messages.filter((m) => m.role === "illustration").map((m) => ({ id: m.message_id, content: m.content }));
+        const selectedItem = allIllustrations.find((i) => i.id === selId);
+        if (!selectedItem) return null;
+        const modalVideoFile = videoFiles[selId];
+        const modalVideoUrl = videoDataUrls[selId];
+        return (
+          <Dialog open onClose={() => { setIllustrationModalId(null); setModalPlayingVideo(false); }} className="max-w-[90vw]">
+            <div className="flex flex-col max-h-[90vh]">
+              <div className="relative flex items-center justify-center min-h-0 flex-1 overflow-hidden group/modal">
+                {modalImageLoading && !modalPlayingVideo && (
+                  <div className="absolute inset-0 flex items-center justify-center z-10">
+                    <div className="animate-spin w-6 h-6 border-2 border-white/20 border-t-white rounded-full" />
+                  </div>
+                )}
+                {modalPlayingVideo && modalVideoUrl ? (
+                  <video
+                    key={`modal-video-${selId}`}
+                    src={modalVideoUrl}
+                    autoPlay
+                    loop
+                    playsInline
+                    className="max-w-full max-h-[75vh] object-contain rounded-t-2xl"
+                  />
+                ) : (
+                  <img
+                    key={`modal-img-${selId}`}
+                    src={selectedItem.content}
+                    alt="Illustration"
+                    className={`max-w-full max-h-[75vh] object-contain rounded-t-2xl ${modalImageLoading ? "opacity-0" : "opacity-100"} transition-opacity`}
+                    onLoad={() => setModalImageLoading(false)}
+                  />
+                )}
+                <button
+                  onClick={() => { setIllustrationModalId(null); setModalPlayingVideo(false); }}
+                  className="absolute top-3 right-3 z-20 w-8 h-8 flex items-center justify-center rounded-full bg-black/50 text-white hover:bg-black/70 transition-colors cursor-pointer backdrop-blur-sm"
+                >
+                  <X size={16} />
+                </button>
+                <div className="absolute top-3 left-3 z-20 flex gap-1.5 opacity-0 group-hover/modal:opacity-100 transition-opacity">
+                  <div className="relative group/mdl-dl">
+                    <button
+                      onClick={async () => {
+                        await api.downloadIllustration(selId);
+                        setDownloadedId(selId);
+                        setTimeout(() => setDownloadedId(null), 1500);
+                      }}
+                      className="w-8 h-8 rounded-full bg-black/50 text-white flex items-center justify-center cursor-pointer hover:bg-black/70 transition-colors backdrop-blur-sm"
+                    >
+                      {downloadedId === selId ? <Check size={14} /> : <Download size={14} />}
+                    </button>
+                    <span className="absolute top-full left-1/2 -translate-x-1/2 mt-1.5 px-2 py-0.5 text-[10px] font-medium text-white bg-black rounded-md shadow-lg whitespace-nowrap opacity-0 group-hover/mdl-dl:opacity-100 pointer-events-none transition-opacity">{downloadedId === selId ? "Saved!" : "Download"}</span>
+                  </div>
+                  <div className="relative group/mdl-goto">
+                    <button
+                      onClick={async () => {
+                        setIllustrationModalId(null);
+                        setModalPlayingVideo(false);
+                        // All messages are already loaded — just scroll to the illustration
+                        await new Promise((r) => setTimeout(r, 100));
+                        const el = document.querySelector(`[data-message-id="${selId}"]`);
+                        if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
+                      }}
+                      className="w-8 h-8 rounded-full bg-black/50 text-white flex items-center justify-center cursor-pointer hover:bg-black/70 transition-colors backdrop-blur-sm"
+                    >
+                      <Crosshair size={14} />
+                    </button>
+                    <span className="absolute top-full left-1/2 -translate-x-1/2 mt-1.5 px-2 py-0.5 text-[10px] font-medium text-white bg-black rounded-md shadow-lg whitespace-nowrap opacity-0 group-hover/mdl-goto:opacity-100 pointer-events-none transition-opacity">Go to Image</span>
+                  </div>
+                </div>
+                {modalVideoFile && !modalPlayingVideo && (
+                  <button
+                    onClick={async () => {
+                      if (!modalVideoUrl) {
+                        try {
+                          const url = await loadVideoBlobUrl(modalVideoFile);
+                          setVideoDataUrls((prev) => ({ ...prev, [selId]: url }));
+                        } catch { return; }
+                      }
+                      setModalPlayingVideo(true);
+                    }}
+                    className="absolute bottom-4 right-4 z-20 w-12 h-12 rounded-full bg-black/70 text-white flex items-center justify-center cursor-pointer hover:bg-purple-600 transition-colors backdrop-blur-sm"
+                  >
+                    <span className="text-xl ml-0.5">&#9654;</span>
+                  </button>
+                )}
+                {modalPlayingVideo && (
+                  <button
+                    onClick={() => setModalPlayingVideo(false)}
+                    className="absolute bottom-4 right-4 z-20 w-12 h-12 rounded-full bg-black/70 text-white flex items-center justify-center cursor-pointer hover:bg-red-600 transition-colors backdrop-blur-sm"
+                  >
+                    <Square size={16} fill="white" />
+                  </button>
+                )}
+                {allIllustrations.length > 1 && (<>
+                  <button
+                    onClick={() => {
+                      const idx = allIllustrations.findIndex((i) => i.id === selId);
+                      const prev = idx <= 0 ? allIllustrations.length - 1 : idx - 1;
+                      setModalSelectedId(allIllustrations[prev].id);
+                      setModalImageLoading(true);
+                      setModalPlayingVideo(false);
+                    }}
+                    className="absolute left-2 top-1/2 -translate-y-1/2 z-20 w-10 h-10 rounded-full bg-black/50 text-white flex items-center justify-center cursor-pointer hover:bg-black/70 transition-all backdrop-blur-sm opacity-0 group-hover/modal:opacity-100"
+                  >
+                    <ChevronLeft size={20} />
+                  </button>
+                  <button
+                    onClick={() => {
+                      const idx = allIllustrations.findIndex((i) => i.id === selId);
+                      const next = idx >= allIllustrations.length - 1 ? 0 : idx + 1;
+                      setModalSelectedId(allIllustrations[next].id);
+                      setModalImageLoading(true);
+                      setModalPlayingVideo(false);
+                    }}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 z-20 w-10 h-10 rounded-full bg-black/50 text-white flex items-center justify-center cursor-pointer hover:bg-black/70 transition-all backdrop-blur-sm opacity-0 group-hover/modal:opacity-100"
+                  >
+                    <ChevronRight size={20} />
+                  </button>
+                </>)}
+              </div>
+              {allIllustrations.length > 1 && (
+                <div className="flex-shrink-0 bg-card/80 backdrop-blur-sm rounded-b-2xl px-3 py-2 border-t border-border/30">
+                  <div className="flex gap-1.5 overflow-x-auto scrollbar-none [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none]">
+                    {allIllustrations.map((illus) => (
+                      <button
+                        key={illus.id}
+                        onClick={() => {
+                          setModalSelectedId(illus.id);
+                          setModalImageLoading(true);
+                          setModalPlayingVideo(false);
+                        }}
+                        className={`relative flex-shrink-0 w-16 h-11 rounded-lg overflow-hidden transition-all cursor-pointer ${
+                          illus.id === selId
+                            ? "ring-2 ring-primary ring-offset-1 ring-offset-card"
+                            : "ring-1 ring-border opacity-60 hover:opacity-100"
+                        }`}
+                      >
+                        <img src={illus.content} alt="" className="w-full h-full object-cover" />
+                        {videoFiles[illus.id] && (
+                          <div className="absolute bottom-0.5 right-0.5 w-3.5 h-3.5 rounded-full bg-purple-600 flex items-center justify-center">
+                            <span className="text-white text-[6px]">&#9654;</span>
+                          </div>
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </Dialog>
+        );
+      })()}
+
+      <Dialog open={!!removeVideoConfirmId} onClose={() => setRemoveVideoConfirmId(null)} className="max-w-xs">
+        <div className="p-5 space-y-4 bg-card/95 backdrop-blur-md border border-border rounded-xl shadow-2xl shadow-black/50">
+          <div className="flex items-center gap-2">
+            <Video size={18} className="text-destructive" />
+            <h3 className="font-semibold">Remove Video</h3>
+          </div>
+          <p className="text-sm text-muted-foreground">
+            This will permanently delete the video attached to this illustration. The illustration itself will remain.
+          </p>
+          <div className="flex justify-end gap-2">
+            <Button variant="ghost" size="sm" onClick={() => setRemoveVideoConfirmId(null)}>
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={async () => {
+                if (!removeVideoConfirmId) return;
+                try {
+                  await api.removeVideo(removeVideoConfirmId);
+                  setVideoFiles((prev) => {
+                    const next = { ...prev };
+                    delete next[removeVideoConfirmId];
+                    return next;
+                  });
+                  setVideoDataUrls((prev) => {
+                    const next = { ...prev };
+                    delete next[removeVideoConfirmId];
+                    return next;
+                  });
+                  if (playingVideo === removeVideoConfirmId) setPlayingVideo(null);
+                } catch { /* ignore */ }
+                setRemoveVideoConfirmId(null);
+              }}
+            >
+              Remove
             </Button>
           </div>
         </div>

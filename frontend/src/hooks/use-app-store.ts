@@ -160,7 +160,7 @@ export function useAppStore() {
         activePortraits = await loadActivePortraits([...characters, ...archivedCharacters]);
         if (characters.length > 0) {
           activeCharacter = characters[0];
-          const page = await api.getMessages(activeCharacter.character_id, PAGE_SIZE);
+          const page = await api.getMessages(activeCharacter.character_id);
           messages = page.messages;
           totalMessages = page.total;
           reactions = await loadReactions(messages);
@@ -183,11 +183,14 @@ export function useAppStore() {
         apiKey: apiKey ?? "",
         budgetMode,
         autoRespond: true,
+        autoRespond: true,
         loadingOlder: false,
         loading: false,
-        sending: false,
-        generatingNarrative: false,
-    generatingIllustration: false,
+        sending: null,
+        generatingNarrative: null,
+        generatingIllustration: null,
+        generatingVideo: null,
+        videoFiles: {},
         error: null,
         editingUserProfile: false,
         chatError: null,
@@ -229,7 +232,7 @@ export function useAppStore() {
       let reactions: Record<string, Reaction[]> = {};
       if (characters.length > 0) {
         activeCharacter = characters[0];
-        const page = await api.getMessages(activeCharacter.character_id, PAGE_SIZE);
+        const page = await api.getMessages(activeCharacter.character_id);
         messages = page.messages;
         totalMessages = page.total;
         reactions = await loadReactions(messages);
@@ -246,7 +249,7 @@ export function useAppStore() {
   const selectCharacter = useCallback(async (character: Character) => {
     setState((s) => ({ ...s, activeCharacter: character, messages: [], totalMessages: 0, reactions: {}, editingUserProfile: false, chatError: null, lastFailedContent: null }));
     try {
-      const page = await api.getMessages(character.character_id, PAGE_SIZE);
+      const page = await api.getMessages(character.character_id);
       const reactions = await loadReactions(page.messages);
       setState((s) => {
         if (s.activeCharacter?.character_id !== character.character_id) return s;
@@ -329,7 +332,7 @@ export function useAppStore() {
       await api.deleteCharacter(characterId);
       const characters = await api.listCharacters(state.activeWorld.world_id);
       const activeCharacter = characters[0] ?? null;
-      const page = activeCharacter ? await api.getMessages(activeCharacter.character_id, PAGE_SIZE) : { messages: [], total: 0 };
+      const page = activeCharacter ? await api.getMessages(activeCharacter.character_id) : { messages: [], total: 0 };
       setState((s) => ({ ...s, characters, activeCharacter, messages: page.messages, totalMessages: page.total }));
     } catch (e) {
       setError(String(e));
@@ -363,7 +366,7 @@ export function useAppStore() {
       let messages = wasActive ? [] as Message[] : state.messages;
       let totalMessages = wasActive ? 0 : state.totalMessages;
       if (wasActive && activeCharacter) {
-        const page = await api.getMessages(activeCharacter.character_id, PAGE_SIZE);
+        const page = await api.getMessages(activeCharacter.character_id);
         messages = page.messages;
         totalMessages = page.total;
       }
@@ -652,7 +655,7 @@ export function useAppStore() {
     return result;
   }, []);
 
-  const generateVideo = useCallback(async (illustrationMessageId: string, customPrompt?: string) => {
+  const generateVideo = useCallback(async (illustrationMessageId: string, customPrompt?: string, durationSeconds?: number, style?: string) => {
     if (!state.activeCharacter || !state.apiKey) return;
 
     const googleApiKey = await api.getGoogleApiKey();
@@ -661,20 +664,26 @@ export function useAppStore() {
       return;
     }
 
-    setState((s) => ({ ...s, generatingVideo: state.activeCharacter!.character_id, chatError: null }));
+    setState((s) => ({ ...s, generatingVideo: illustrationMessageId, chatError: null }));
 
     try {
-      const videoFile = await api.generateVideo(state.apiKey, googleApiKey, state.activeCharacter.character_id, illustrationMessageId, customPrompt);
+      const videoFile = await api.generateVideo(state.apiKey, googleApiKey, state.activeCharacter.character_id, illustrationMessageId, customPrompt, durationSeconds, style);
       setState((s) => ({
         ...s,
         generatingVideo: null,
         videoFiles: { ...s.videoFiles, [illustrationMessageId]: videoFile },
       }));
     } catch (e) {
+      const err = String(e);
+      const userMsg = err.includes("DAILY_LIMIT_REACHED")
+        ? "You've reached the max daily video generations."
+        : err.includes("RATE_LIMITED")
+          ? "Video generation rate limit reached. Try again in a few minutes."
+          : err;
       setState((s) => ({
         ...s,
         generatingVideo: null,
-        chatError: String(e),
+        chatError: userMsg,
       }));
     }
   }, [state.activeCharacter, state.apiKey]);
@@ -724,7 +733,7 @@ export function useAppStore() {
     } catch (e) {
       // Reload messages from DB to get correct state after partial failure
       if (state.activeCharacter) {
-        const page = await api.getMessages(state.activeCharacter.character_id, PAGE_SIZE);
+        const page = await api.getMessages(state.activeCharacter.character_id);
         const reactions = await loadReactions(page.messages);
         setState((s) => ({
           ...s,
@@ -742,25 +751,7 @@ export function useAppStore() {
     setState((s) => ({ ...s, chatError: null, lastFailedContent: null }));
   }, []);
 
-  const loadOlderMessages = useCallback(async () => {
-    if (!state.activeCharacter || state.loadingOlder) return;
-    if (state.messages.length >= state.totalMessages) return;
-    setState((s) => ({ ...s, loadingOlder: true }));
-    try {
-      const offset = state.messages.length;
-      const page = await api.getMessages(state.activeCharacter.character_id, PAGE_SIZE, offset);
-      const olderReactions = await loadReactions(page.messages);
-      setState((s) => ({
-        ...s,
-        messages: [...page.messages, ...s.messages],
-        reactions: { ...olderReactions, ...s.reactions },
-        loadingOlder: false,
-      }));
-    } catch (e) {
-      setError(String(e));
-      setState((s) => ({ ...s, loadingOlder: false }));
-    }
-  }, [state.activeCharacter, state.messages.length, state.totalMessages, state.loadingOlder, setError, loadReactions]);
+  // loadOlderMessages is no longer needed — all messages are loaded at once
 
   const setApiKey = useCallback(async (key: string) => {
     try {
@@ -893,11 +884,8 @@ export function useAppStore() {
     }
   }, [state.reactions, setError]);
 
-  const hasMoreMessages = state.messages.length < state.totalMessages;
-
   return {
     ...state,
-    hasMoreMessages,
     loadWorlds,
     selectWorld,
     selectCharacter,
@@ -931,7 +919,6 @@ export function useAppStore() {
     loadUserProfile,
     selectUserProfile,
     clearChatError,
-    loadOlderMessages,
     setError,
   };
 }

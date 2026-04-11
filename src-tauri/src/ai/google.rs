@@ -19,20 +19,14 @@ struct VeoRequest {
 struct VeoInstance {
     prompt: String,
     #[serde(skip_serializing_if = "Option::is_none")]
-    image: Option<VeoInlineImage>,
+    image: Option<VeoImageInput>,
 }
 
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
-struct VeoInlineImage {
-    inline_data: VeoInlineData,
-}
-
-#[derive(Debug, Serialize)]
-#[serde(rename_all = "camelCase")]
-struct VeoInlineData {
+struct VeoImageInput {
+    bytes_base64_encoded: String,
     mime_type: String,
-    data: String,
 }
 
 #[derive(Debug, Serialize)]
@@ -47,6 +41,8 @@ struct VeoParameters {
     person_generation: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     negative_prompt: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    generate_audio: Option<bool>,
 }
 
 // ─── Response Types ─────────────────────────────────────────────────────────
@@ -110,16 +106,17 @@ pub async fn start_veo_generation(
     prompt: &str,
     duration_seconds: Option<u32>,
     aspect_ratio: Option<&str>,
+    generate_audio: Option<bool>,
 ) -> Result<String, String> {
     let url = format!("{VEO_BASE_URL}/models/{model}:predictLongRunning?key={api_key}");
 
+    let is_lite = model.contains("lite");
+
     let instance = VeoInstance {
         prompt: prompt.to_string(),
-        image: image_b64.map(|b64| VeoInlineImage {
-            inline_data: VeoInlineData {
-                mime_type: "image/png".to_string(),
-                data: b64.to_string(),
-            },
+        image: image_b64.map(|b64| VeoImageInput {
+            bytes_base64_encoded: b64.to_string(),
+            mime_type: "image/png".to_string(),
         }),
     };
 
@@ -129,8 +126,11 @@ pub async fn start_veo_generation(
             sample_count: 1,
             duration_seconds,
             aspect_ratio: aspect_ratio.map(|s| s.to_string()),
-            person_generation: Some("allow_all".to_string()),
-            negative_prompt: Some("text, words, letters, watermark, UI, blurry, distorted faces".to_string()),
+            person_generation: None,
+            negative_prompt: if is_lite { None } else {
+                Some("text, words, letters, watermark, UI, blurry, distorted faces, cartoon, anime, painterly, flat colors, cel shading".to_string())
+            },
+            generate_audio,
         },
     };
 
@@ -160,6 +160,15 @@ pub async fn start_veo_generation(
 
     if !status.is_success() {
         log_debug(&format!("VEO START ERROR: {body}"));
+        if status.as_u16() == 429 {
+            return Err("RATE_LIMITED".to_string());
+        }
+        // Try to extract a readable error message
+        if let Ok(parsed) = serde_json::from_str::<serde_json::Value>(&body) {
+            if let Some(msg) = parsed.get("error").and_then(|e| e.get("message")).and_then(|m| m.as_str()) {
+                return Err(format!("Veo error: {msg}"));
+            }
+        }
         return Err(format!("Veo API error ({}): {}", status, &body[..body.len().min(500)]));
     }
 

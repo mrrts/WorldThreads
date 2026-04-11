@@ -328,10 +328,18 @@ export const api = {
     invoke<IllustrationResult>("regenerate_illustration_cmd", { apiKey, characterId, messageId }),
   adjustIllustration: (apiKey: string, characterId: string, messageId: string, instructions: string) =>
     invoke<IllustrationResult>("adjust_illustration_cmd", { apiKey, characterId, messageId, instructions }),
-  generateVideo: (apiKey: string, googleApiKey: string, characterId: string, illustrationMessageId: string, customPrompt?: string) =>
-    invoke<string>("generate_video_cmd", { apiKey, googleApiKey, characterId, illustrationMessageId, customPrompt: customPrompt ?? null }),
+  generateVideo: (apiKey: string, googleApiKey: string, characterId: string, illustrationMessageId: string, customPrompt?: string, durationSeconds?: number, style?: string) =>
+    invoke<string>("generate_video_cmd", { apiKey, googleApiKey, characterId, illustrationMessageId, customPrompt: customPrompt ?? null, durationSeconds: durationSeconds ?? null, style: style ?? null }),
   getVideoFile: (illustrationMessageId: string) =>
-    invoke<string>("get_video_file_cmd", { illustrationMessageId }),
+    invoke<string | null>("get_video_file_cmd", { illustrationMessageId }),
+  removeVideo: (illustrationMessageId: string) =>
+    invoke<void>("remove_video_cmd", { illustrationMessageId }),
+  uploadVideo: (illustrationMessageId: string, videoData: string) =>
+    invoke<string>("upload_video_cmd", { illustrationMessageId, videoData }),
+  downloadIllustration: (illustrationMessageId: string) =>
+    invoke<string>("download_illustration_cmd", { illustrationMessageId }),
+  getVideoBytes: (videoFile: string) =>
+    invoke<number[]>("get_video_bytes_cmd", { videoFile }),
   getMediaDir: () => invoke<string>("get_media_dir_cmd"),
   resetToMessage: (apiKey: string, characterId: string, messageId: string) =>
     invoke<ResetToMessageResult>("reset_to_message_cmd", { apiKey, characterId, messageId }),
