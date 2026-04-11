@@ -21,6 +21,7 @@ pub fn build_dialogue_system_prompt(
     mood_directive: Option<&str>,
     response_length: Option<&str>,
     group_context: Option<&GroupContext>,
+    tone: Option<&str>,
 ) -> String {
     let mut parts = Vec::new();
 
@@ -127,6 +128,12 @@ pub fn build_dialogue_system_prompt(
             "Medium" => parts.push("RESPONSE LENGTH:\nAim for 4–6 sentences. Give enough detail to be engaging and expressive, but don't ramble. This applies regardless of the length of previous messages.".to_string()),
             "Long" => parts.push("RESPONSE LENGTH:\nWrite 7 or more sentences. Be detailed, expansive, and richly expressive. Take your time with the moment — describe, reflect, react fully. This applies regardless of the length of previous messages.".to_string()),
             _ => {} // "Auto" or unknown — no directive
+        }
+    }
+
+    if let Some(t) = tone {
+        if !t.is_empty() && t != "Auto" {
+            parts.push(format!("TONE:\nAdopt a {t} tone in your responses. Let this flavor influence your word choice, emotional register, and the way you engage with the conversation."));
         }
     }
 

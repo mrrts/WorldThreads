@@ -124,8 +124,9 @@ pub async fn run_dialogue_with_base(
     response_length: Option<&str>,
     group_context: Option<&prompts::GroupContext>,
     character_names: Option<&std::collections::HashMap<String, String>>,
+    tone: Option<&str>,
 ) -> Result<(String, Option<openai::Usage>), String> {
-    let system = prompts::build_dialogue_system_prompt(world, character, user_profile, mood_directive, response_length, group_context);
+    let system = prompts::build_dialogue_system_prompt(world, character, user_profile, mood_directive, response_length, group_context, tone);
     let messages = prompts::build_dialogue_messages(&system, recent_messages, retrieved_snippets, character_names);
 
     let request = ChatRequest {

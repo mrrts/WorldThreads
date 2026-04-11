@@ -188,11 +188,12 @@ pub async fn send_group_message_cmd(
             .collect();
         let group_context = GroupContext { other_characters: other_chars };
 
-        // Load response_length setting for this character
-        let response_length = {
+        // Load settings scoped to the group chat
+        let (response_length, narration_tone) = {
             let conn = db.conn.lock().map_err(|e| e.to_string())?;
-            get_setting(&conn, &format!("response_length.{}", character.character_id))
-                .ok().flatten()
+            let rl = get_setting(&conn, &format!("response_length.{}", gc.group_chat_id)).ok().flatten();
+            let nt = get_setting(&conn, &format!("narration_tone.{}", gc.group_chat_id)).ok().flatten();
+            (rl, nt)
         };
 
         // Re-fetch recent messages (includes previous characters' responses)
@@ -220,6 +221,7 @@ pub async fn send_group_message_cmd(
             response_length.as_deref(),
             Some(&group_context),
             Some(&character_names),
+            narration_tone.as_deref(),
         ).await?;
 
         // Strip any [CharacterName]: prefix the LLM may have added
@@ -323,10 +325,11 @@ pub async fn prompt_group_character_cmd(
         });
     }
 
-    let response_length = {
+    let (response_length, narration_tone) = {
         let conn = db.conn.lock().map_err(|e| e.to_string())?;
-        get_setting(&conn, &format!("response_length.{}", character_id))
-            .ok().flatten()
+        let rl = get_setting(&conn, &format!("response_length.{}", gc.group_chat_id)).ok().flatten();
+        let nt = get_setting(&conn, &format!("narration_tone.{}", gc.group_chat_id)).ok().flatten();
+        (rl, nt)
     };
 
     let (raw_reply, usage) = orchestrator::run_dialogue_with_base(
@@ -337,6 +340,7 @@ pub async fn prompt_group_character_cmd(
         response_length.as_deref(),
         Some(&group_context),
         Some(&character_names),
+        narration_tone.as_deref(),
     ).await?;
 
     let reply_text = strip_character_prefix(&raw_reply, &character.display_name);
@@ -552,12 +556,12 @@ pub async fn generate_group_narrative_cmd(
     let primary_character = characters.first()
         .ok_or_else(|| "No characters in group chat".to_string())?;
 
-    // Load narration settings from first character
+    // Load narration settings scoped to the group chat
     let (narration_tone, narration_instructions) = {
         let conn = db.conn.lock().map_err(|e| e.to_string())?;
-        let tone = get_setting(&conn, &format!("narration_tone.{}", primary_character.character_id))
+        let tone = get_setting(&conn, &format!("narration_tone.{}", group_chat_id))
             .ok().flatten();
-        let instructions = get_setting(&conn, &format!("narration_instructions.{}", primary_character.character_id))
+        let instructions = get_setting(&conn, &format!("narration_instructions.{}", group_chat_id))
             .ok().flatten();
         (tone, instructions)
     };

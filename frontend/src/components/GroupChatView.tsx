@@ -65,7 +65,6 @@ export function GroupChatView({ store }: Props) {
   const [responseLength, setResponseLength] = useState("Auto");
   const [narrationDirty, setNarrationDirty] = useState(false);
 
-  const charId = groupCharIds[0] ?? undefined;
   const chatId = store.activeGroupChat?.group_chat_id;
 
   useEffect(() => {
@@ -74,23 +73,23 @@ export function GroupChatView({ store }: Props) {
   }, [store.activeWorld?.world_id, store.userProfile?.avatar_file]);
 
   useEffect(() => {
-    if (!charId) return;
+    if (!chatId) return;
     Promise.all([
-      api.getSetting(`narration_tone.${charId}`),
-      api.getSetting(`narration_instructions.${charId}`),
-      api.getSetting(`response_length.${charId}`),
+      api.getSetting(`narration_tone.${chatId}`),
+      api.getSetting(`narration_instructions.${chatId}`),
+      api.getSetting(`response_length.${chatId}`),
     ]).then(([tone, instructions, length]) => {
       setNarrationTone(tone || "Auto");
       setNarrationInstructions(instructions || "");
       setResponseLength(length || "Auto");
       setNarrationDirty(false);
     });
-  }, [charId]);
+  }, [chatId]);
 
   // Derived: is this group chat currently loading?
   const isSending = store.sending === chatId;
-  const isGeneratingNarrative = store.generatingNarrative === charId;
-  const isGeneratingIllustration = store.generatingIllustration === charId;
+  const isGeneratingNarrative = store.generatingNarrative === chatId;
+  const isGeneratingIllustration = store.generatingIllustration === chatId;
   const isGeneratingVideo = !!store.generatingVideo;
   const [playingVideo, setPlayingVideo] = useState<string | null>(null);
   const [loopVideo, setLoopVideo] = useState<Record<string, boolean>>({});
@@ -753,7 +752,7 @@ export function GroupChatView({ store }: Props) {
       <NarrationSettingsModal
         open={showNarrationSettings}
         onClose={() => { setShowNarrationSettings(false); setNarrationDirty(false); }}
-        charId={charId}
+        charId={chatId}
         narrationTone={narrationTone}
         setNarrationTone={setNarrationTone}
         narrationInstructions={narrationInstructions}
@@ -763,11 +762,11 @@ export function GroupChatView({ store }: Props) {
         narrationDirty={narrationDirty}
         setNarrationDirty={setNarrationDirty}
         onSave={async () => {
-          if (!charId) return;
+          if (!chatId) return;
           await Promise.all([
-            api.setSetting(`narration_tone.${charId}`, narrationTone),
-            api.setSetting(`narration_instructions.${charId}`, narrationInstructions),
-            api.setSetting(`response_length.${charId}`, responseLength),
+            api.setSetting(`narration_tone.${chatId}`, narrationTone),
+            api.setSetting(`narration_instructions.${chatId}`, narrationInstructions),
+            api.setSetting(`response_length.${chatId}`, responseLength),
           ]);
           setNarrationDirty(false);
           setShowNarrationSettings(false);

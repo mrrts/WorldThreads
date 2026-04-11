@@ -54,7 +54,7 @@ pub async fn send_message_cmd(
     // Phase 1: Read everything from DB, persist user message, build retrieval context
     let (world, character, thread, recent_msgs, model_config,
          retrieved, should_run_maintenance, user_profile,
-         current_mood, mood_enabled, mood_drift_rate, response_length) = {
+         current_mood, mood_enabled, mood_drift_rate, response_length, narration_tone) = {
         let conn = db.conn.lock().map_err(|e| e.to_string())?;
         let character = get_character(&conn, &character_id).map_err(|e| e.to_string())?;
         let world = get_world(&conn, &character.world_id).map_err(|e| e.to_string())?;
@@ -114,10 +114,12 @@ pub async fn send_message_cmd(
 
         let response_length = get_setting(&conn, &format!("response_length.{}", character_id))
             .ok().flatten();
+        let narration_tone = get_setting(&conn, &format!("narration_tone.{}", character_id))
+            .ok().flatten();
 
         (world, character, thread, recent_msgs, model_config,
          retrieved, should_run_maintenance, user_profile,
-         current_mood, mood_enabled, mood_drift_rate, response_length)
+         current_mood, mood_enabled, mood_drift_rate, response_length, narration_tone)
     };
 
     // Phase 2: Vector search (if embeddings exist) — requires OpenAI, skip for LM Studio
@@ -208,7 +210,7 @@ pub async fn send_message_cmd(
         user_profile.as_ref(),
         mood_directive.as_deref(),
         response_length.as_deref(),
-        None, None,
+        None, None, narration_tone.as_deref(),
     ).await?;
     let tokens = dialogue_usage.as_ref().map(|u| u.total_tokens).unwrap_or(0);
     if let Some(u) = &dialogue_usage {
@@ -385,7 +387,7 @@ pub async fn prompt_character_cmd(
     character_id: String,
 ) -> Result<PromptCharacterResult, String> {
     let (world, character, thread, recent_msgs, model_config, retrieved,
-         user_profile, current_mood, mood_enabled, response_length) = {
+         user_profile, current_mood, mood_enabled, response_length, narration_tone) = {
         let conn = db.conn.lock().map_err(|e| e.to_string())?;
         let character = get_character(&conn, &character_id).map_err(|e| e.to_string())?;
         let world = get_world(&conn, &character.world_id).map_err(|e| e.to_string())?;
@@ -405,9 +407,11 @@ pub async fn prompt_character_cmd(
             .ok().flatten().map(|v| v == "true").unwrap_or(true);
         let response_length = get_setting(&conn, &format!("response_length.{}", character_id))
             .ok().flatten();
+        let narration_tone = get_setting(&conn, &format!("narration_tone.{}", character_id))
+            .ok().flatten();
 
         (world, character, thread, recent_msgs, model_config, retrieved,
-         user_profile, current_mood, mood_enabled, response_length)
+         user_profile, current_mood, mood_enabled, response_length, narration_tone)
     };
 
     // Mood
@@ -463,7 +467,7 @@ pub async fn prompt_character_cmd(
         user_profile.as_ref(),
         mood_directive.as_deref(),
         response_length.as_deref(),
-        None, None,
+        None, None, narration_tone.as_deref(),
     ).await?;
 
     if let Some(u) = &dialogue_usage {
@@ -1470,7 +1474,7 @@ pub async fn reset_to_message_cmd(
     // Phase 3: If the anchor is a user message in a 1-on-1 chat, generate a new character response
     // (Skip for group chats — no automatic re-generation)
     if anchor_role == "user" && !is_group {
-        let (recent_msgs, retrieved, user_profile, current_mood, mood_enabled, response_length) = {
+        let (recent_msgs, retrieved, user_profile, current_mood, mood_enabled, response_length, narration_tone) = {
             let conn = db.conn.lock().map_err(|e| e.to_string())?;
             let recent_msgs = list_messages(&conn, &thread_id, 30).map_err(|e| e.to_string())?;
 
@@ -1495,8 +1499,10 @@ pub async fn reset_to_message_cmd(
                 .ok().flatten().map(|v| v == "true").unwrap_or(true);
             let response_length = get_setting(&conn, &format!("response_length.{}", character_id))
                 .ok().flatten();
+            let narration_tone = get_setting(&conn, &format!("narration_tone.{}", character_id))
+                .ok().flatten();
 
-            (recent_msgs, retrieved, user_profile, current_mood, mood_enabled, response_length)
+            (recent_msgs, retrieved, user_profile, current_mood, mood_enabled, response_length, narration_tone)
         };
 
         // Mood directive
@@ -1537,7 +1543,7 @@ pub async fn reset_to_message_cmd(
             user_profile.as_ref(),
             mood_directive.as_deref(),
             response_length.as_deref(),
-            None, None,
+            None, None, narration_tone.as_deref(),
         ).await?;
 
         if let Some(u) = &dialogue_usage {
