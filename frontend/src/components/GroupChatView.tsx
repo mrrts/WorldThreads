@@ -62,9 +62,9 @@ export function GroupChatView({ store }: Props) {
   const [illustrationInstructions, setIllustrationInstructions] = useState("");
   const [usePreviousScene, setUsePreviousScene] = useState(false);
   const [includeSceneSummary, setIncludeSceneSummary] = useState(true);
-  const [narrationTone, setNarrationTone] = useState("Auto");
+  const [narrationTone, setNarrationTone] = useState("Cinematic");
   const [narrationInstructions, setNarrationInstructions] = useState("");
-  const [responseLength, setResponseLength] = useState("Auto");
+  const [responseLength, setResponseLength] = useState("Short");
   const [narrationDirty, setNarrationDirty] = useState(false);
 
   const chatId = store.activeGroupChat?.group_chat_id;
@@ -92,9 +92,9 @@ export function GroupChatView({ store }: Props) {
       api.getSetting(`narration_instructions.${chatId}`),
       api.getSetting(`response_length.${chatId}`),
     ]).then(([tone, instructions, length]) => {
-      setNarrationTone(tone || "Auto");
+      setNarrationTone(tone || "Cinematic");
       setNarrationInstructions(instructions || "");
-      setResponseLength(length || "Auto");
+      setResponseLength(length || "Short");
       setNarrationDirty(false);
     });
   }, [chatId]);
@@ -277,7 +277,7 @@ export function GroupChatView({ store }: Props) {
         <button
           onClick={() => setShowNarrationSettings(true)}
           className={`flex-shrink-0 h-8 rounded-lg flex items-center gap-1.5 px-2.5 text-xs font-medium transition-colors cursor-pointer ${
-            (narrationTone !== "Auto" || narrationInstructions) ? "text-amber-500 hover:text-amber-400 hover:bg-amber-500/10" : "text-muted-foreground hover:text-foreground hover:bg-accent"
+            (narrationTone !== "Cinematic" || responseLength !== "Short" || narrationInstructions) ? "text-amber-500 hover:text-amber-400 hover:bg-amber-500/10" : "text-muted-foreground hover:text-foreground hover:bg-accent"
           }`}
           title="Narration settings"
         >
