@@ -491,5 +491,17 @@ pub fn run_migrations(conn: &Connection) -> Result<(), rusqlite::Error> {
         }
     }
 
+    // Purge illustration/video content from FTS indexes (base64 data should never be indexed)
+    conn.execute_batch("
+        DELETE FROM messages_fts WHERE message_id IN (
+            SELECT message_id FROM messages WHERE role IN ('illustration', 'video')
+        );
+    ").ok();
+    conn.execute_batch("
+        DELETE FROM group_messages_fts WHERE message_id IN (
+            SELECT message_id FROM group_messages WHERE role IN ('illustration', 'video')
+        );
+    ").ok();
+
     Ok(())
 }

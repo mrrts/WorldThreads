@@ -451,10 +451,13 @@ pub fn create_message(conn: &Connection, m: &Message) -> Result<(), rusqlite::Er
         "INSERT INTO messages (message_id, thread_id, role, content, tokens_estimate, sender_character_id, created_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
         params![m.message_id, m.thread_id, m.role, m.content, m.tokens_estimate, m.sender_character_id, m.created_at],
     )?;
-    conn.execute(
-        "INSERT INTO messages_fts (message_id, thread_id, content) VALUES (?1, ?2, ?3)",
-        params![m.message_id, m.thread_id, m.content],
-    ).ok();
+    // Don't index illustration/video content in FTS — they contain binary data (base64)
+    if m.role != "illustration" && m.role != "video" {
+        conn.execute(
+            "INSERT INTO messages_fts (message_id, thread_id, content) VALUES (?1, ?2, ?3)",
+            params![m.message_id, m.thread_id, m.content],
+        ).ok();
+    }
     Ok(())
 }
 
@@ -639,7 +642,7 @@ pub fn create_group_message(conn: &Connection, m: &Message) -> Result<(), rusqli
         "INSERT INTO group_messages (message_id, thread_id, role, content, tokens_estimate, sender_character_id, created_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
         params![m.message_id, m.thread_id, m.role, m.content, m.tokens_estimate, m.sender_character_id, m.created_at],
     )?;
-    if m.role != "illustration" {
+    if m.role != "illustration" && m.role != "video" {
         conn.execute(
             "INSERT INTO group_messages_fts (message_id, thread_id, content) VALUES (?1, ?2, ?3)",
             params![m.message_id, m.thread_id, m.content],

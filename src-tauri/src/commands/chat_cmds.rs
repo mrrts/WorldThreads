@@ -92,6 +92,9 @@ pub async fn send_message_cmd(
         if !fts_query.is_empty() {
             match search_messages_fts(&conn, &thread.thread_id, &fts_query, 6) {
                 Ok(fts_msgs) => {
+                    let fts_msgs: Vec<_> = fts_msgs.into_iter()
+                        .filter(|m| m.role != "illustration" && m.role != "video")
+                        .collect();
                     log::info!("[Memory] FTS messages: {} results for {:?}", fts_msgs.len(), fts_query);
                     for m in fts_msgs {
                         retrieved.push(format!("[{}] {}: {}", m.created_at, m.role, m.content));
@@ -1514,7 +1517,7 @@ pub async fn reset_to_message_cmd(
             let fts_query = sanitize_fts_query(&anchor_content);
             if !fts_query.is_empty() {
                 if let Ok(fts_msgs) = search_messages_fts(&conn, &thread_id, &fts_query, 6) {
-                    for m in fts_msgs {
+                    for m in fts_msgs.into_iter().filter(|m| m.role != "illustration" && m.role != "video") {
                         retrieved.push(format!("[{}] {}: {}", m.created_at, m.role, m.content));
                     }
                 }
