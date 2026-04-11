@@ -50,7 +50,22 @@ export interface Message {
   role: "user" | "assistant" | "system" | "narrative" | "illustration";
   content: string;
   tokens_estimate: number;
+  sender_character_id: string | null;
   created_at: string;
+}
+
+export interface GroupChat {
+  group_chat_id: string;
+  world_id: string;
+  character_ids: string[];
+  thread_id: string;
+  display_name: string;
+  created_at: string;
+}
+
+export interface SendGroupMessageResult {
+  user_message: Message;
+  character_responses: Message[];
 }
 
 export interface PaginatedMessages {
@@ -423,4 +438,20 @@ export const api = {
     invoke<void>("remove_reaction_cmd", { messageId, emoji, reactor }),
   getReactions: (messageIds: string[]) =>
     invoke<Reaction[]>("get_reactions_cmd", { messageIds }),
+
+  // Group chats
+  createGroupChat: (worldId: string, characterIds: string[]) =>
+    invoke<GroupChat>("create_group_chat_cmd", { worldId, characterIds }),
+  listGroupChats: (worldId: string) =>
+    invoke<GroupChat[]>("list_group_chats_cmd", { worldId }),
+  deleteGroupChat: (groupChatId: string) =>
+    invoke<void>("delete_group_chat_cmd", { groupChatId }),
+  getGroupMessages: (groupChatId: string) =>
+    invoke<PaginatedMessages>("get_group_messages_cmd", { groupChatId }),
+  saveGroupUserMessage: (groupChatId: string, content: string) =>
+    invoke<Message>("save_group_user_message_cmd", { groupChatId, content }),
+  sendGroupMessage: (apiKey: string, groupChatId: string, content: string) =>
+    invoke<SendGroupMessageResult>("send_group_message_cmd", { apiKey, groupChatId, content }),
+  promptGroupCharacter: (apiKey: string, groupChatId: string, characterId: string) =>
+    invoke<Message>("prompt_group_character_cmd", { apiKey, groupChatId, characterId }),
 };
