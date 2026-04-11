@@ -120,6 +120,8 @@ export function ChatView({ store }: Props) {
   const [modalIllustrations, setModalIllustrations] = useState<Array<{ id: string; content: string }>>([]);
   const [showIllustrationPicker, setShowIllustrationPicker] = useState(false);
   const [illustrationInstructions, setIllustrationInstructions] = useState("");
+  const [usePreviousScene, setUsePreviousScene] = useState(false);
+  const [includeSceneSummary, setIncludeSceneSummary] = useState(true);
   const [narrationTone, setNarrationTone] = useState("Auto");
   const [narrationInstructions, setNarrationInstructions] = useState("");
   const [responseLength, setResponseLength] = useState("Auto");
@@ -192,15 +194,15 @@ export function ChatView({ store }: Props) {
     const illustrationMsgs = store.messages.filter((m) => m.role === "illustration");
     if (illustrationMsgs.length === 0) return;
     (async () => {
-      const updates: Record<string, string> = {};
+      const videoUpdates: Record<string, string> = {};
       for (const msg of illustrationMsgs) {
         try {
           const vf = await api.getVideoFile(msg.message_id);
-          if (vf && vf.length > 0) updates[msg.message_id] = vf;
+          if (vf && vf.length > 0) videoUpdates[msg.message_id] = vf;
         } catch { /* ignore */ }
       }
-      if (Object.keys(updates).length > 0) {
-        setVideoFiles((prev) => ({ ...prev, ...updates }));
+      if (Object.keys(videoUpdates).length > 0) {
+        setVideoFiles((prev) => ({ ...prev, ...videoUpdates }));
       }
     })();
   }, [store.messages]);
@@ -236,6 +238,14 @@ export function ChatView({ store }: Props) {
 
     lastMessageIdRef.current = lastId;
   }, [store.messages]);
+
+  // Scroll to bottom when narrative/illustration generation starts
+  useEffect(() => {
+    if (isGeneratingNarrative || isGeneratingIllustration) {
+      const el = scrollRef.current;
+      if (el) el.scrollTop = el.scrollHeight;
+    }
+  }, [isGeneratingNarrative, isGeneratingIllustration]);
 
   // Auto-focus input after AI response arrives
   useEffect(() => {
@@ -433,6 +443,7 @@ export function ChatView({ store }: Props) {
                         src={msg.content}
                         alt="Scene illustration"
                         loading="lazy"
+                        style={store.aspectRatios[msg.message_id] ? { aspectRatio: String(store.aspectRatios[msg.message_id]) } : undefined}
                         className={`w-full rounded-lg cursor-pointer ${playingVideo === msg.message_id && videoDataUrls[msg.message_id] ? "invisible" : ""}`}
                         onClick={async () => {
                           setIllustrationModalId(msg.message_id);
@@ -705,7 +716,9 @@ export function ChatView({ store }: Props) {
           {isSending && !isGeneratingNarrative && !isGeneratingIllustration && !isGeneratingVideo && (
             <div className="flex items-end gap-2 justify-start">
               {charPortrait?.data_url ? (
-                <img src={charPortrait.data_url} alt="" className="w-[72px] h-[72px] rounded-full object-cover ring-2 ring-border flex-shrink-0 mb-1" />
+                <button onClick={() => setShowPortraitModal(true)} className="cursor-pointer flex-shrink-0 mb-1">
+                  <img src={charPortrait.data_url} alt="" className="w-[72px] h-[72px] rounded-full object-cover ring-2 ring-border hover:ring-primary/50 transition-all" />
+                </button>
               ) : (
                 <span
                   className="w-[72px] h-[72px] rounded-full flex-shrink-0 mb-1 ring-1 ring-white/10"
@@ -855,9 +868,14 @@ export function ChatView({ store }: Props) {
               setInput(e.target.value);
               e.target.style.height = "auto";
               e.target.style.height = Math.min(e.target.scrollHeight, 200) + "px";
+              // Keep chat scrolled to bottom as textarea grows
+              requestAnimationFrame(() => {
+                const el = scrollRef.current;
+                if (el) el.scrollTop = el.scrollHeight;
+              });
             }}
             onKeyDown={handleKeyDown}
-            placeholder={`Message ${store.activeCharacter.display_name}...`}
+            placeholder={`Talk to ${store.activeCharacter.display_name}...`}
             className="flex-1 min-h-[40px] max-h-[200px] resize-none rounded-xl border border-input bg-transparent px-4 py-2.5 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring scrollbar-none [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none]"
             rows={1}
             disabled={isSending || (store.autoRespond && !store.apiKey)}
@@ -1066,6 +1084,31 @@ export function ChatView({ store }: Props) {
               rows={2}
             />
           </div>
+          {(() => {
+            const prevIllus = store.messages.filter((m) => m.role === "illustration");
+            const lastIllus = prevIllus[prevIllus.length - 1];
+            if (!lastIllus) return null;
+            return (
+              <label className="flex items-center gap-2 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={usePreviousScene}
+                  onChange={(e) => setUsePreviousScene(e.target.checked)}
+                  className="accent-emerald-500 w-3.5 h-3.5"
+                />
+                <span className="text-xs text-muted-foreground">Use previous illustration for visual continuity</span>
+              </label>
+            );
+          })()}
+          <label className="flex items-center gap-2 cursor-pointer select-none">
+            <input
+              type="checkbox"
+              checked={includeSceneSummary}
+              onChange={(e) => setIncludeSceneSummary(e.target.checked)}
+              className="accent-emerald-500 w-3.5 h-3.5"
+            />
+            <span className="text-xs text-muted-foreground">Include current scene summary</span>
+          </label>
           <div className="flex gap-2">
             {([
               { tier: "low", label: "Quick" },
@@ -1075,9 +1118,14 @@ export function ChatView({ store }: Props) {
               <button
                 key={tier}
                 onClick={() => {
+                  const prevIllus = store.messages.filter((m) => m.role === "illustration");
+                  const lastIllus = prevIllus[prevIllus.length - 1];
+                  const prevId = usePreviousScene && lastIllus ? lastIllus.message_id : undefined;
                   setShowIllustrationPicker(false);
-                  store.generateIllustration(tier, illustrationInstructions.trim() || undefined);
+                  store.generateIllustration(tier, illustrationInstructions.trim() || undefined, prevId, includeSceneSummary);
                   setIllustrationInstructions("");
+                  setUsePreviousScene(false);
+                  setIncludeSceneSummary(true);
                 }}
                 className="flex-1 rounded-lg border border-border hover:border-emerald-500/40 hover:bg-emerald-500/5 px-3 py-2 transition-all cursor-pointer text-center"
               >

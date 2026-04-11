@@ -192,6 +192,7 @@ pub async fn generate_world_image_cmd(
         is_active: true,
         source: "generated".to_string(),
         created_at: Utc::now().to_rfc3339(),
+        aspect_ratio: 0.0,
     };
 
     {
@@ -310,6 +311,7 @@ pub async fn generate_world_image_with_prompt_cmd(
         is_active: false,
         source: "generated".to_string(),
         created_at: Utc::now().to_rfc3339(),
+        aspect_ratio: 0.0,
     };
 
     {
@@ -352,6 +354,7 @@ pub fn upload_world_image_cmd(
         is_active: false,
         source: "uploaded".to_string(),
         created_at: Utc::now().to_rfc3339(),
+        aspect_ratio: 0.0,
     };
 
     {

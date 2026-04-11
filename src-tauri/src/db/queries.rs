@@ -651,25 +651,26 @@ pub struct WorldImage {
     pub is_active: bool,
     pub source: String,
     pub created_at: String,
+    pub aspect_ratio: f64,
 }
 
 pub fn create_world_image(conn: &Connection, img: &WorldImage) -> Result<(), rusqlite::Error> {
     conn.execute(
-        "INSERT INTO world_images (image_id, world_id, prompt, file_name, is_active, source, created_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
-        params![img.image_id, img.world_id, img.prompt, img.file_name, img.is_active, img.source, img.created_at],
+        "INSERT INTO world_images (image_id, world_id, prompt, file_name, is_active, source, created_at, aspect_ratio) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
+        params![img.image_id, img.world_id, img.prompt, img.file_name, img.is_active, img.source, img.created_at, img.aspect_ratio],
     )?;
     Ok(())
 }
 
 pub fn list_world_images(conn: &Connection, world_id: &str) -> Result<Vec<WorldImage>, rusqlite::Error> {
     let mut stmt = conn.prepare(
-        "SELECT image_id, world_id, prompt, file_name, is_active, source, created_at FROM world_images WHERE world_id = ?1 ORDER BY created_at DESC"
+        "SELECT image_id, world_id, prompt, file_name, is_active, source, created_at, aspect_ratio FROM world_images WHERE world_id = ?1 ORDER BY created_at DESC"
     )?;
     let rows = stmt.query_map(params![world_id], |row| {
         Ok(WorldImage {
             image_id: row.get(0)?, world_id: row.get(1)?, prompt: row.get(2)?,
             file_name: row.get(3)?, is_active: row.get(4)?, source: row.get(5)?,
-            created_at: row.get(6)?,
+            created_at: row.get(6)?, aspect_ratio: row.get(7)?,
         })
     })?;
     rows.collect()
@@ -677,12 +678,12 @@ pub fn list_world_images(conn: &Connection, world_id: &str) -> Result<Vec<WorldI
 
 pub fn get_active_world_image(conn: &Connection, world_id: &str) -> Option<WorldImage> {
     conn.query_row(
-        "SELECT image_id, world_id, prompt, file_name, is_active, source, created_at FROM world_images WHERE world_id = ?1 AND is_active = 1",
+        "SELECT image_id, world_id, prompt, file_name, is_active, source, created_at, aspect_ratio FROM world_images WHERE world_id = ?1 AND is_active = 1",
         params![world_id],
         |row| Ok(WorldImage {
             image_id: row.get(0)?, world_id: row.get(1)?, prompt: row.get(2)?,
             file_name: row.get(3)?, is_active: row.get(4)?, source: row.get(5)?,
-            created_at: row.get(6)?,
+            created_at: row.get(6)?, aspect_ratio: row.get(7)?,
         }),
     ).ok()
 }

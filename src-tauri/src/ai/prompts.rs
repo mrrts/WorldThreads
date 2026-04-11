@@ -364,7 +364,7 @@ pub fn build_scene_description_prompt(
 - Do NOT include dialogue, speech bubbles, or text.
 - Do NOT include meta-instructions like "paint this" or "in watercolor style" — just describe the scene itself.
 - Both characters must appear in the scene.
-- Keep the description PG-13. No nudity, explicit sexual content, or graphic violence. Romantic or tense moments are fine, but keep them tasteful and implied rather than explicit."#.to_string());
+- Keep the description PG. No nudity, explicit sexual content, or graphic violence. Romantic or tense moments are fine, but keep them tasteful and implied rather than explicit."#.to_string());
 
     let system = system_parts.join("\n\n");
 
@@ -415,7 +415,7 @@ pub fn build_animation_prompt(
 
 The animation should be a natural continuation of the action and emotion in the scene. Be bold — characters can move, gesture, react, shift position, interact with objects, and express themselves. The environment can change too: weather, light, background activity.
 
-Keep it PG-13. No nudity, explicit sexual content, or graphic violence. Romantic or tense moments are fine, but keep them tasteful and implied rather than explicit.
+Keep it PG. No nudity, explicit sexual content, or graphic violence. Romantic or tense moments are fine, but keep them tasteful and implied rather than explicit.
 Do NOT describe camera movements or use technical film terms. Just describe what happens — the motion, the action, the life in the scene.
 Write ONLY the animation direction, nothing else."#,
         user = user_name,

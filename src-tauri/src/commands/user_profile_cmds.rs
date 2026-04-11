@@ -114,6 +114,7 @@ pub async fn generate_user_avatar_cmd(
             is_active: false,
             source: "user_avatar".to_string(),
             created_at: chrono::Utc::now().to_rfc3339(),
+            aspect_ratio: 1.0,
         };
         let _ = create_world_image(&conn, &img);
     }

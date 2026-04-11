@@ -320,8 +320,8 @@ export const api = {
     invoke<PromptCharacterResult>("prompt_character_cmd", { apiKey, characterId }),
   generateNarrative: (apiKey: string, characterId: string) =>
     invoke<NarrativeResult>("generate_narrative_cmd", { apiKey, characterId }),
-  generateIllustration: (apiKey: string, characterId: string, qualityTier?: string, customInstructions?: string) =>
-    invoke<IllustrationResult>("generate_illustration_cmd", { apiKey, characterId, qualityTier: qualityTier ?? null, customInstructions: customInstructions ?? null }),
+  generateIllustration: (apiKey: string, characterId: string, qualityTier?: string, customInstructions?: string, previousIllustrationId?: string, includeSceneSummary?: boolean) =>
+    invoke<IllustrationResult>("generate_illustration_cmd", { apiKey, characterId, qualityTier: qualityTier ?? null, customInstructions: customInstructions ?? null, previousIllustrationId: previousIllustrationId ?? null, includeSceneSummary: includeSceneSummary ?? true }),
   deleteIllustration: (messageId: string) =>
     invoke<void>("delete_illustration_cmd", { messageId }),
   regenerateIllustration: (apiKey: string, characterId: string, messageId: string) =>
@@ -330,6 +330,8 @@ export const api = {
     invoke<IllustrationResult>("adjust_illustration_cmd", { apiKey, characterId, messageId, instructions }),
   generateVideo: (apiKey: string, googleApiKey: string, characterId: string, illustrationMessageId: string, customPrompt?: string, durationSeconds?: number, style?: string) =>
     invoke<string>("generate_video_cmd", { apiKey, googleApiKey, characterId, illustrationMessageId, customPrompt: customPrompt ?? null, durationSeconds: durationSeconds ?? null, style: style ?? null }),
+  getIllustrationAspectRatio: (illustrationMessageId: string) =>
+    invoke<number>("get_illustration_aspect_ratio_cmd", { illustrationMessageId }),
   getVideoFile: (illustrationMessageId: string) =>
     invoke<string | null>("get_video_file_cmd", { illustrationMessageId }),
   removeVideo: (illustrationMessageId: string) =>

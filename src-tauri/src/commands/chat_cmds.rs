@@ -619,6 +619,8 @@ pub async fn generate_illustration_cmd(
     character_id: String,
     quality_tier: Option<String>,
     custom_instructions: Option<String>,
+    previous_illustration_id: Option<String>,
+    include_scene_summary: Option<bool>,
 ) -> Result<IllustrationResult, String> {
     let (world, character, thread, recent_msgs, model_config, user_profile) = {
         let conn = db.conn.lock().map_err(|e| e.to_string())?;
@@ -661,6 +663,23 @@ pub async fn generate_illustration_cmd(
         }
     }
 
+    // Previous illustration as reference (if requested)
+    let has_previous = if let Some(ref prev_id) = previous_illustration_id {
+        let conn = db.conn.lock().map_err(|e| e.to_string())?;
+        if let Ok(file_name) = conn.query_row(
+            "SELECT file_name FROM world_images WHERE image_id = ?1",
+            params![prev_id], |r| r.get::<_, String>(0),
+        ) {
+            let path = dir.join(&file_name);
+            if path.exists() {
+                if let Ok(bytes) = std::fs::read(&path) {
+                    reference_images.push(bytes);
+                    true
+                } else { false }
+            } else { false }
+        } else { false }
+    } else { false };
+
     // Resolve quality tier to image size and quality
     let tier = quality_tier.as_deref().unwrap_or("high");
     let (img_size, img_quality) = match tier {
@@ -685,6 +704,8 @@ pub async fn generate_illustration_cmd(
         user_profile.as_ref(),
         &reference_images,
         custom_instructions.as_deref(),
+        has_previous,
+        include_scene_summary.unwrap_or(true),
     ).await?;
 
     if let Some(u) = &chat_usage {
@@ -701,6 +722,7 @@ pub async fn generate_illustration_cmd(
 
     log::info!("[Illustration] Saved {} ({} bytes)", file_name, image_bytes.len());
 
+    let aspect = png_aspect_ratio(&image_bytes);
     let b64 = base64_encode_bytes(&image_bytes);
     let data_url = format!("data:image/png;base64,{b64}");
     let now = Utc::now().to_rfc3339();
@@ -717,6 +739,7 @@ pub async fn generate_illustration_cmd(
             is_active: false,
             source: "illustration".to_string(),
             created_at: now.clone(),
+            aspect_ratio: aspect,
         };
         let _ = create_world_image(&conn, &img);
 
@@ -768,6 +791,17 @@ fn base64_encode_bytes(bytes: &[u8]) -> String {
         }
     }
     out
+}
+
+/// Get aspect ratio (width/height) from PNG image bytes.
+fn png_aspect_ratio(bytes: &[u8]) -> f64 {
+    if bytes.len() >= 24 && &bytes[0..4] == b"\x89PNG" {
+        let w = u32::from_be_bytes([bytes[16], bytes[17], bytes[18], bytes[19]]) as f64;
+        let h = u32::from_be_bytes([bytes[20], bytes[21], bytes[22], bytes[23]]) as f64;
+        if h > 0.0 { w / h } else { 1.0 }
+    } else {
+        1.0
+    }
 }
 
 /// Delete a single illustration: message, gallery entry, and file on disk.
@@ -832,7 +866,7 @@ pub async fn regenerate_illustration_cmd(
     }
 
     // Generate a new one (reuses the full generate_illustration_cmd logic)
-    generate_illustration_cmd(db, portraits_dir, api_key, character_id, Some("high".to_string()), None).await
+    generate_illustration_cmd(db, portraits_dir, api_key, character_id, Some("high".to_string()), None, None, None).await
 }
 
 #[tauri::command]
@@ -939,6 +973,7 @@ pub async fn adjust_illustration_cmd(
     std::fs::write(dir.join(&file_name), &new_image_bytes)
         .map_err(|e| format!("Failed to save adjusted illustration: {e}"))?;
 
+    let aspect = png_aspect_ratio(&new_image_bytes);
     let b64_out = base64_encode_bytes(&new_image_bytes);
     let data_url = format!("data:image/png;base64,{b64_out}");
     let now = Utc::now().to_rfc3339();
@@ -954,6 +989,7 @@ pub async fn adjust_illustration_cmd(
             is_active: false,
             source: "illustration".to_string(),
             created_at: now.clone(),
+            aspect_ratio: aspect,
         };
         let _ = create_world_image(&conn, &img);
 
@@ -1216,6 +1252,39 @@ pub fn upload_video_cmd(
     ).map_err(|e| e.to_string())?;
 
     Ok(video_file)
+}
+
+/// Get the aspect ratio for an illustration. Returns 0.0 if unknown.
+#[tauri::command]
+pub fn get_illustration_aspect_ratio_cmd(
+    db: State<'_, Database>,
+    portraits_dir: State<'_, PortraitsDir>,
+    illustration_message_id: String,
+) -> Result<f64, String> {
+    let conn = db.conn.lock().map_err(|e| e.to_string())?;
+    let (ratio, file_name): (f64, String) = conn.query_row(
+        "SELECT COALESCE(aspect_ratio, 0.0), file_name FROM world_images WHERE image_id = ?1",
+        params![illustration_message_id], |r| Ok((r.get(0)?, r.get(1)?)),
+    ).unwrap_or((0.0, String::new()));
+
+    // Backfill if unknown
+    if ratio == 0.0 && !file_name.is_empty() {
+        let path = portraits_dir.0.join(&file_name);
+        if path.exists() {
+            if let Ok(bytes) = std::fs::read(&path) {
+                let ar = png_aspect_ratio(&bytes);
+                if ar > 0.0 {
+                    let _ = conn.execute(
+                        "UPDATE world_images SET aspect_ratio = ?1 WHERE image_id = ?2",
+                        params![ar, illustration_message_id],
+                    );
+                    return Ok(ar);
+                }
+            }
+        }
+    }
+
+    Ok(ratio)
 }
 
 /// Get the video file name for an illustration, if one has been generated.

@@ -378,5 +378,17 @@ pub fn run_migrations(conn: &Connection) -> Result<(), rusqlite::Error> {
         conn.execute_batch("ALTER TABLE world_images ADD COLUMN video_file TEXT NOT NULL DEFAULT ''")?;
     }
 
+    // Add aspect_ratio column to world_images for layout stability
+    let has_aspect_ratio: bool = conn
+        .query_row(
+            "SELECT count(*) > 0 FROM pragma_table_info('world_images') WHERE name = 'aspect_ratio'",
+            [],
+            |r| r.get(0),
+        )
+        .unwrap_or(false);
+    if !has_aspect_ratio {
+        conn.execute_batch("ALTER TABLE world_images ADD COLUMN aspect_ratio REAL NOT NULL DEFAULT 0.0")?;
+    }
+
     Ok(())
 }

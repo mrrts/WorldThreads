@@ -27,6 +27,7 @@ export interface AppState {
   generatingVideo: string | null;
   /** Map of illustration message_id → video filename */
   videoFiles: Record<string, string>;
+  aspectRatios: Record<string, number>;
   totalMessages: number;
   loadingOlder: boolean;
   chatError: string | null;
@@ -72,6 +73,7 @@ export function useAppStore() {
     generatingIllustration: null,
     generatingVideo: null,
     videoFiles: {},
+    aspectRatios: {},
     chatError: null,
     lastFailedContent: null,
     error: null,
@@ -140,6 +142,7 @@ export function useAppStore() {
       let messages: Message[] = [];
       let totalMessages = 0;
       let reactions: Record<string, Reaction[]> = {};
+      let aspectRatios: Record<string, number> = {};
       let activePortraits: Record<string, PortraitInfo> = {};
       let activeWorldImage: WorldImageInfo | null = null;
       let userProfile: UserProfile | null = null;
@@ -163,7 +166,10 @@ export function useAppStore() {
           const page = await api.getMessages(activeCharacter.character_id);
           messages = page.messages;
           totalMessages = page.total;
-          reactions = await loadReactions(messages);
+          [reactions, aspectRatios] = await Promise.all([
+            loadReactions(messages),
+            loadAspectRatios(messages),
+          ]);
         }
       }
 
@@ -176,6 +182,7 @@ export function useAppStore() {
         messages,
         totalMessages,
         reactions,
+        aspectRatios,
         activePortraits,
         activeWorldImage,
         userProfile,
@@ -191,6 +198,7 @@ export function useAppStore() {
         generatingIllustration: null,
         generatingVideo: null,
         videoFiles: {},
+    aspectRatios: {},
         error: null,
         editingUserProfile: false,
         chatError: null,
@@ -246,14 +254,30 @@ export function useAppStore() {
     }
   }, [setError, loadReactions, loadActivePortraits]);
 
+  const loadAspectRatios = useCallback(async (messages: Message[]) => {
+    const illustrationIds = messages.filter((m) => m.role === "illustration").map((m) => m.message_id);
+    if (illustrationIds.length === 0) return {};
+    const result: Record<string, number> = {};
+    for (const id of illustrationIds) {
+      try {
+        const ar = await api.getIllustrationAspectRatio(id);
+        if (ar > 0) result[id] = ar;
+      } catch { /* ignore */ }
+    }
+    return result;
+  }, []);
+
   const selectCharacter = useCallback(async (character: Character) => {
     setState((s) => ({ ...s, activeCharacter: character, messages: [], totalMessages: 0, reactions: {}, editingUserProfile: false, chatError: null, lastFailedContent: null }));
     try {
       const page = await api.getMessages(character.character_id);
-      const reactions = await loadReactions(page.messages);
+      const [reactions, aspectRatios] = await Promise.all([
+        loadReactions(page.messages),
+        loadAspectRatios(page.messages),
+      ]);
       setState((s) => {
         if (s.activeCharacter?.character_id !== character.character_id) return s;
-        return { ...s, messages: page.messages, totalMessages: page.total, reactions };
+        return { ...s, messages: page.messages, totalMessages: page.total, reactions, aspectRatios };
       });
     } catch (e) {
       setError(String(e));
@@ -543,13 +567,13 @@ export function useAppStore() {
     }
   }, [state.activeCharacter, state.apiKey]);
 
-  const generateIllustration = useCallback(async (qualityTier?: string, customInstructions?: string) => {
+  const generateIllustration = useCallback(async (qualityTier?: string, customInstructions?: string, previousIllustrationId?: string, includeSceneSummary?: boolean) => {
     if (!state.activeCharacter || !state.apiKey) return;
 
     setState((s) => ({ ...s, sending: state.activeCharacter!.character_id, generatingIllustration: state.activeCharacter!.character_id, chatError: null }));
 
     try {
-      const result = await api.generateIllustration(state.apiKey, state.activeCharacter.character_id, qualityTier, customInstructions);
+      const result = await api.generateIllustration(state.apiKey, state.activeCharacter.character_id, qualityTier, customInstructions, previousIllustrationId, includeSceneSummary);
       setState((s) => ({
         ...s,
         messages: [...s.messages, result.illustration_message],

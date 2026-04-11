@@ -353,28 +353,34 @@ pub async fn generate_illustration_with_base(
     user_profile: Option<&UserProfile>,
     reference_images: &[Vec<u8>],
     custom_instructions: Option<&str>,
+    has_previous_scene: bool,
+    include_scene_summary: bool,
 ) -> Result<(String, Vec<u8>, Option<openai::Usage>), String> {
-    // Step 1: Generate scene description
-    let scene_messages = prompts::build_scene_description_prompt(world, character, user_profile, recent_messages);
+    // Step 1: Generate scene description (if requested)
+    let (scene_description, chat_usage) = if include_scene_summary {
+        let scene_messages = prompts::build_scene_description_prompt(world, character, user_profile, recent_messages);
 
-    let scene_request = ChatRequest {
-        model: chat_model.to_string(),
-        messages: scene_messages,
-        temperature: Some(0.9),
-        max_completion_tokens: Some(500),
-        response_format: None,
+        let scene_request = ChatRequest {
+            model: chat_model.to_string(),
+            messages: scene_messages,
+            temperature: Some(0.9),
+            max_completion_tokens: Some(500),
+            response_format: None,
+        };
+
+        let scene_response = openai::chat_completion_with_base(base_url, api_key, &scene_request).await?;
+        let desc = scene_response
+            .choices
+            .first()
+            .map(|c| c.message.content.clone())
+            .ok_or_else(|| "No scene description from model".to_string())?;
+
+        log::info!("[Illustration] Scene description ({} chars): {:.200}", desc.len(), desc);
+        (desc, scene_response.usage)
+    } else {
+        log::info!("[Illustration] Skipping scene summary (user opted out)");
+        (String::new(), None)
     };
-
-    let scene_response = openai::chat_completion_with_base(base_url, api_key, &scene_request).await?;
-    let scene_description = scene_response
-        .choices
-        .first()
-        .map(|c| c.message.content.clone())
-        .ok_or_else(|| "No scene description from model".to_string())?;
-
-    let chat_usage = scene_response.usage;
-
-    log::info!("[Illustration] Scene description ({} chars): {:.200}", scene_description.len(), scene_description);
 
     // Step 2: Generate illustration with reference portraits
     let user_name = user_profile
@@ -402,7 +408,16 @@ pub async fn generate_illustration_with_base(
         ));
     }
 
-    prompt_parts.push(format!("SCENE:\n{scene_description}"));
+    if has_previous_scene && reference_images.len() >= 3 {
+        prompt_parts.push(
+            "The third reference image is the PREVIOUS scene. Use it for visual continuity of setting, \
+             character positions, and atmosphere, but advance the scene to match the new description.".to_string()
+        );
+    }
+
+    if !scene_description.is_empty() {
+        prompt_parts.push(format!("SCENE:\n{scene_description}"));
+    }
 
     if let Some(instructions) = custom_instructions {
         if !instructions.is_empty() {
