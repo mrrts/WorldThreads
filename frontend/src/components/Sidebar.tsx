@@ -413,7 +413,7 @@ export function Sidebar({ store, onNavigate }: Props) {
         <DialogContent>
           <DialogHeader onClose={() => { setShowGroupPicker(false); setSelectedGroupMembers([]); }}>
             <DialogTitle>Create Group Chat</DialogTitle>
-            <DialogDescription>Select 2-3 characters to start a group conversation.</DialogDescription>
+            <DialogDescription>Select 2 characters to start a group conversation.</DialogDescription>
           </DialogHeader>
           <DialogBody>
             <div className="grid grid-cols-2 gap-2">
@@ -427,7 +427,7 @@ export function Sidebar({ store, onNavigate }: Props) {
                       setSelectedGroupMembers((prev) =>
                         selected
                           ? prev.filter((id) => id !== ch.character_id)
-                          : prev.length >= 3 ? prev : [...prev, ch.character_id]
+                          : prev.length >= 2 ? prev : [...prev, ch.character_id]
                       );
                     }}
                     className={`flex items-center gap-2.5 p-2.5 rounded-xl border-2 transition-all cursor-pointer ${
@@ -456,7 +456,7 @@ export function Sidebar({ store, onNavigate }: Props) {
                 onNavigate?.("chat");
               }}
             >
-              Create ({selectedGroupMembers.length}/3)
+              Create ({selectedGroupMembers.length}/2)
             </Button>
           </DialogFooter>
         </DialogContent>

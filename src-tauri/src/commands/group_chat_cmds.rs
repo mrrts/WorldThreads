@@ -21,8 +21,8 @@ pub fn create_group_chat_cmd(
     world_id: String,
     character_ids: Vec<String>,
 ) -> Result<GroupChat, String> {
-    if character_ids.len() < 2 || character_ids.len() > 3 {
-        return Err("Group chats require 2-3 characters".to_string());
+    if character_ids.len() != 2 {
+        return Err("Group chats require exactly 2 characters".to_string());
     }
 
     let conn = db.conn.lock().map_err(|e| e.to_string())?;

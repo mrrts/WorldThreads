@@ -5,7 +5,7 @@ import { Select } from "@/components/ui/select";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Switch } from "@/components/ui/switch";
 import { Field, FieldGroup } from "@/components/ui/field";
-import { Save, Eye, EyeOff, Check, RefreshCw, Loader2 } from "lucide-react";
+import { Save, Eye, EyeOff, Check, RefreshCw, Loader2, DatabaseBackup } from "lucide-react";
 import type { useAppStore } from "@/hooks/use-app-store";
 import type { ModelConfig, LocalModelInfo } from "@/lib/tauri";
 import { api } from "@/lib/tauri";
@@ -25,6 +25,8 @@ export function SettingsPanel({ store }: Props) {
   const [localModels, setLocalModels] = useState<LocalModelInfo[]>([]);
   const [loadingModels, setLoadingModels] = useState(false);
   const [modelError, setModelError] = useState<string | null>(null);
+  const [latestBackup, setLatestBackup] = useState<{ file_name: string; timestamp: string } | null>(null);
+  const [restoringBackup, setRestoringBackup] = useState(false);
 
   useEffect(() => {
     setApiKey(store.apiKey);
@@ -33,6 +35,7 @@ export function SettingsPanel({ store }: Props) {
 
   useEffect(() => {
     api.getGoogleApiKey().then(setGoogleApiKey);
+    api.getLatestBackup().then(setLatestBackup);
   }, []);
 
   const fetchLocalModels = useCallback(async (url: string) => {
@@ -280,6 +283,51 @@ export function SettingsPanel({ store }: Props) {
                 onCheckedChange={(checked) => store.setBudgetMode(checked)}
               />
             </div>
+          </FieldGroup>
+
+          <FieldGroup label="Restore Backup">
+            <p className="text-xs text-muted-foreground/60 -mt-2">
+              Backups are created automatically every 20 minutes and on each app launch.
+            </p>
+            {latestBackup ? (
+              <div className="flex items-center justify-between py-2 px-4 rounded-lg border border-border bg-card/50">
+                <div>
+                  <p className="text-sm font-medium">Latest backup</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    {latestBackup.timestamp} UTC
+                  </p>
+                </div>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  disabled={restoringBackup}
+                  onClick={async () => {
+                    const confirmed = window.confirm(
+                      "Restore this backup? The app will need to restart. Any changes since the backup will be lost."
+                    );
+                    if (!confirmed) return;
+                    setRestoringBackup(true);
+                    try {
+                      await api.restoreBackup(latestBackup.file_name);
+                      window.alert("Backup restored. Please restart the app.");
+                    } catch (e) {
+                      window.alert(`Failed to restore backup: ${e}`);
+                    } finally {
+                      setRestoringBackup(false);
+                    }
+                  }}
+                >
+                  {restoringBackup ? (
+                    <Loader2 size={14} className="animate-spin mr-1.5" />
+                  ) : (
+                    <DatabaseBackup size={14} className="mr-1.5" />
+                  )}
+                  Restore
+                </Button>
+              </div>
+            ) : (
+              <p className="text-xs text-muted-foreground">No backups available yet.</p>
+            )}
           </FieldGroup>
         </div>
       </ScrollArea>

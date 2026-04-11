@@ -40,7 +40,7 @@ pub fn run_migrations(conn: &Connection) -> Result<(), rusqlite::Error> {
 
         CREATE TABLE IF NOT EXISTS threads (
             thread_id TEXT PRIMARY KEY,
-            character_id TEXT NOT NULL REFERENCES characters(character_id) ON DELETE CASCADE,
+            character_id TEXT REFERENCES characters(character_id) ON DELETE CASCADE,
             world_id TEXT NOT NULL REFERENCES worlds(world_id) ON DELETE CASCADE,
             created_at TEXT NOT NULL DEFAULT (datetime('now'))
         );
@@ -417,6 +417,31 @@ pub fn run_migrations(conn: &Connection) -> Result<(), rusqlite::Error> {
         );
         CREATE INDEX IF NOT EXISTS idx_group_chats_world ON group_chats(world_id);
     ")?;
+
+    // Make threads.character_id nullable for group chat threads
+    // IMPORTANT: disable FK enforcement during table recreation to prevent cascade deletes
+    let threads_has_not_null: bool = conn
+        .query_row(
+            "SELECT sql LIKE '%character_id TEXT NOT NULL%' FROM sqlite_master WHERE type='table' AND name='threads'",
+            [],
+            |r| r.get(0),
+        )
+        .unwrap_or(false);
+    if threads_has_not_null {
+        conn.execute_batch("
+            PRAGMA foreign_keys = OFF;
+            CREATE TABLE threads_new (
+                thread_id TEXT PRIMARY KEY,
+                character_id TEXT REFERENCES characters(character_id) ON DELETE CASCADE,
+                world_id TEXT NOT NULL REFERENCES worlds(world_id) ON DELETE CASCADE,
+                created_at TEXT NOT NULL DEFAULT (datetime('now'))
+            );
+            INSERT INTO threads_new SELECT * FROM threads;
+            DROP TABLE threads;
+            ALTER TABLE threads_new RENAME TO threads;
+            PRAGMA foreign_keys = ON;
+        ")?;
+    }
 
     Ok(())
 }

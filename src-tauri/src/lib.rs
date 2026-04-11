@@ -2,6 +2,7 @@ mod ai;
 mod commands;
 mod db;
 
+use commands::backup_cmds::*;
 use commands::character_cmds::*;
 use commands::chat_cmds::*;
 use commands::group_chat_cmds::*;
@@ -31,6 +32,18 @@ pub fn run() {
             let database = db::Database::open(&db_path)
                 .expect("failed to open database");
             app.manage(database);
+            app.manage(DbPath(db_path.clone()));
+
+            // Periodic backup every 20 minutes
+            {
+                let path = db_path.clone();
+                std::thread::spawn(move || {
+                    loop {
+                        std::thread::sleep(std::time::Duration::from_secs(20 * 60));
+                        db::Database::backup_database(&path);
+                    }
+                });
+            }
 
             let portraits_dir = app_dir.join("portraits");
             std::fs::create_dir_all(&portraits_dir).ok();
@@ -131,6 +144,8 @@ pub fn run() {
             get_mood_settings_cmd,
             set_mood_settings_cmd,
             list_local_models_cmd,
+            get_latest_backup_cmd,
+            restore_backup_cmd,
             create_group_chat_cmd,
             list_group_chats_cmd,
             delete_group_chat_cmd,

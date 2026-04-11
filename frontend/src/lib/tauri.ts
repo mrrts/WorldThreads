@@ -439,6 +439,12 @@ export const api = {
   getReactions: (messageIds: string[]) =>
     invoke<Reaction[]>("get_reactions_cmd", { messageIds }),
 
+  // Backup
+  getLatestBackup: () =>
+    invoke<{ file_name: string; timestamp: string } | null>("get_latest_backup_cmd"),
+  restoreBackup: (backupFileName: string) =>
+    invoke<void>("restore_backup_cmd", { backupFileName }),
+
   // Group chats
   createGroupChat: (worldId: string, characterIds: string[]) =>
     invoke<GroupChat>("create_group_chat_cmd", { worldId, characterIds }),
