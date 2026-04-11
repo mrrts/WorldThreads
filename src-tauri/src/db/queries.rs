@@ -604,8 +604,8 @@ pub fn delete_group_chat(conn: &Connection, group_chat_id: &str) -> Result<(), r
         "SELECT thread_id FROM group_chats WHERE group_chat_id = ?1",
         params![group_chat_id], |r| r.get(0),
     )?;
-    conn.execute("DELETE FROM messages_fts WHERE thread_id = ?1", params![thread_id])?;
-    conn.execute("DELETE FROM messages WHERE thread_id = ?1", params![thread_id])?;
+    conn.execute("DELETE FROM group_messages_fts WHERE thread_id = ?1", params![thread_id])?;
+    conn.execute("DELETE FROM group_messages WHERE thread_id = ?1", params![thread_id])?;
     conn.execute("DELETE FROM memory_artifacts WHERE subject_id = ?1", params![thread_id])?;
     conn.execute("DELETE FROM message_count_tracker WHERE thread_id = ?1", params![thread_id])?;
     conn.execute("DELETE FROM group_chats WHERE group_chat_id = ?1", params![group_chat_id])?;
@@ -630,6 +630,95 @@ pub fn find_group_chat_by_members(conn: &Connection, world_id: &str, character_i
         }
     }
     None
+}
+
+// ─── Group Messages ─────────────────────────────────────────────────────────
+
+pub fn create_group_message(conn: &Connection, m: &Message) -> Result<(), rusqlite::Error> {
+    conn.execute(
+        "INSERT INTO group_messages (message_id, thread_id, role, content, tokens_estimate, sender_character_id, created_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
+        params![m.message_id, m.thread_id, m.role, m.content, m.tokens_estimate, m.sender_character_id, m.created_at],
+    )?;
+    if m.role != "illustration" {
+        conn.execute(
+            "INSERT INTO group_messages_fts (message_id, thread_id, content) VALUES (?1, ?2, ?3)",
+            params![m.message_id, m.thread_id, m.content],
+        ).ok();
+    }
+    Ok(())
+}
+
+pub fn list_group_messages(conn: &Connection, thread_id: &str, limit: i64) -> Result<Vec<Message>, rusqlite::Error> {
+    let mut stmt = conn.prepare(
+        "SELECT message_id, thread_id, role, content, tokens_estimate, sender_character_id, created_at
+         FROM group_messages WHERE thread_id = ?1 ORDER BY created_at DESC LIMIT ?2"
+    )?;
+    let rows = stmt.query_map(params![thread_id, limit], row_to_message)?;
+    let mut msgs: Vec<Message> = rows.collect::<Result<Vec<_>, _>>()?;
+    msgs.reverse();
+    Ok(msgs)
+}
+
+pub fn get_all_group_messages(conn: &Connection, thread_id: &str) -> Result<Vec<Message>, rusqlite::Error> {
+    let mut stmt = conn.prepare(
+        "SELECT message_id, thread_id, role, content, tokens_estimate, sender_character_id, created_at
+         FROM group_messages WHERE thread_id = ?1 ORDER BY created_at ASC"
+    )?;
+    let rows = stmt.query_map(params![thread_id], row_to_message)?;
+    rows.collect()
+}
+
+pub fn count_group_messages(conn: &Connection, thread_id: &str) -> Result<i64, rusqlite::Error> {
+    conn.query_row(
+        "SELECT count(*) FROM group_messages WHERE thread_id = ?1",
+        params![thread_id],
+        |r| r.get(0),
+    )
+}
+
+pub fn delete_group_messages_after(conn: &Connection, thread_id: &str, after_message_id: &str) -> Result<(Vec<(String, String)>, Vec<String>), rusqlite::Error> {
+    let anchor_rowid: i64 = conn.query_row(
+        "SELECT rowid FROM group_messages WHERE message_id = ?1",
+        params![after_message_id],
+        |r| r.get(0),
+    )?;
+
+    let mut stmt = conn.prepare(
+        "SELECT message_id, role FROM group_messages WHERE thread_id = ?1 AND rowid > ?2 ORDER BY rowid"
+    )?;
+    let deleted: Vec<(String, String)> = stmt.query_map(params![thread_id, anchor_rowid], |row| {
+        Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?))
+    })?.filter_map(|r| r.ok()).collect();
+
+    if deleted.is_empty() {
+        return Ok((deleted, vec![]));
+    }
+
+    let mut illustration_files: Vec<String> = Vec::new();
+
+    for (msg_id, role) in &deleted {
+        conn.execute("DELETE FROM group_messages_fts WHERE message_id = ?1", params![msg_id])?;
+        conn.execute("DELETE FROM group_messages WHERE message_id = ?1", params![msg_id])?;
+
+        if role == "illustration" {
+            let file_name: Option<String> = conn.query_row(
+                "SELECT file_name FROM world_images WHERE image_id = ?1",
+                params![msg_id], |r| r.get(0),
+            ).ok();
+            conn.execute("DELETE FROM world_images WHERE image_id = ?1", params![msg_id])?;
+            if let Some(f) = file_name {
+                illustration_files.push(f);
+            }
+        }
+    }
+
+    conn.execute("DELETE FROM message_count_tracker WHERE thread_id = ?1", params![thread_id])?;
+    conn.execute(
+        "DELETE FROM memory_artifacts WHERE subject_id = ?1 AND artifact_type = 'thread_summary'",
+        params![thread_id],
+    )?;
+
+    Ok((deleted, illustration_files))
 }
 
 // ─── Memory Artifacts ───────────────────────────────────────────────────────

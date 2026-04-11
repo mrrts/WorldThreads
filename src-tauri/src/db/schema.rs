@@ -443,5 +443,53 @@ pub fn run_migrations(conn: &Connection) -> Result<(), rusqlite::Error> {
         ")?;
     }
 
+    // Separate group_messages table for group chats
+    conn.execute_batch("
+        CREATE TABLE IF NOT EXISTS group_messages (
+            message_id TEXT PRIMARY KEY,
+            thread_id TEXT NOT NULL REFERENCES threads(thread_id) ON DELETE CASCADE,
+            role TEXT NOT NULL CHECK(role IN ('user', 'assistant', 'system', 'narrative', 'illustration')),
+            content TEXT NOT NULL,
+            tokens_estimate INTEGER NOT NULL DEFAULT 0,
+            sender_character_id TEXT DEFAULT NULL,
+            created_at TEXT NOT NULL DEFAULT (datetime('now'))
+        );
+        CREATE INDEX IF NOT EXISTS idx_group_messages_thread ON group_messages(thread_id, created_at);
+
+        CREATE VIRTUAL TABLE IF NOT EXISTS group_messages_fts USING fts5(
+            message_id UNINDEXED,
+            thread_id UNINDEXED,
+            content,
+            tokenize='porter'
+        );
+    ")?;
+
+    // Migrate any existing group messages from messages table to group_messages
+    let has_group_chats: bool = conn
+        .query_row("SELECT count(*) > 0 FROM sqlite_master WHERE type='table' AND name='group_chats'", [], |r| r.get(0))
+        .unwrap_or(false);
+    if has_group_chats {
+        let migrated: i64 = conn.query_row(
+            "SELECT count(*) FROM messages m JOIN group_chats gc ON gc.thread_id = m.thread_id",
+            [], |r| r.get(0),
+        ).unwrap_or(0);
+        if migrated > 0 {
+            conn.execute_batch("
+                INSERT OR IGNORE INTO group_messages (message_id, thread_id, role, content, tokens_estimate, sender_character_id, created_at)
+                    SELECT m.message_id, m.thread_id, m.role, m.content, m.tokens_estimate, m.sender_character_id, m.created_at
+                    FROM messages m
+                    JOIN group_chats gc ON gc.thread_id = m.thread_id;
+
+                INSERT OR IGNORE INTO group_messages_fts (message_id, thread_id, content)
+                    SELECT m.message_id, m.thread_id, m.content
+                    FROM messages m
+                    JOIN group_chats gc ON gc.thread_id = m.thread_id
+                    WHERE m.role NOT IN ('illustration');
+
+                DELETE FROM messages WHERE thread_id IN (SELECT thread_id FROM group_chats);
+            ")?;
+        }
+    }
+
     Ok(())
 }

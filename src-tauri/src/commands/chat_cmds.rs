@@ -1409,7 +1409,11 @@ pub async fn reset_to_message_cmd(
             (character, world, mc)
         };
 
-        let (deleted, illustration_files) = delete_messages_after(&conn, &thread_id, char_id_for_cleanup, &message_id)
+        let (deleted, illustration_files) = if is_group {
+            delete_group_messages_after(&conn, &thread_id, &message_id)
+        } else {
+            delete_messages_after(&conn, &thread_id, char_id_for_cleanup, &message_id)
+        }
             .map_err(|e| e.to_string())?;
 
         for f in &illustration_files {
@@ -1426,7 +1430,11 @@ pub async fn reset_to_message_cmd(
     {
         let recent_msgs = {
             let conn = db.conn.lock().map_err(|e| e.to_string())?;
-            list_messages(&conn, &thread_id, 30).map_err(|e| e.to_string())?
+            if is_group {
+                list_group_messages(&conn, &thread_id, 30).map_err(|e| e.to_string())?
+            } else {
+                list_messages(&conn, &thread_id, 30).map_err(|e| e.to_string())?
+            }
         };
         if recent_msgs.len() >= 4 {
             match orchestrator::run_memory_update_with_base(

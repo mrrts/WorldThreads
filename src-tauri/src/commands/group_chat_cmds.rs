@@ -84,8 +84,8 @@ pub fn get_group_messages_cmd(
 ) -> Result<chat_cmds::PaginatedMessages, String> {
     let conn = db.conn.lock().map_err(|e| e.to_string())?;
     let gc = get_group_chat(&conn, &group_chat_id).map_err(|e| e.to_string())?;
-    let total = count_messages(&conn, &gc.thread_id).map_err(|e| e.to_string())?;
-    let messages = get_all_messages(&conn, &gc.thread_id).map_err(|e| e.to_string())?;
+    let total = count_group_messages(&conn, &gc.thread_id).map_err(|e| e.to_string())?;
+    let messages = get_all_group_messages(&conn, &gc.thread_id).map_err(|e| e.to_string())?;
     Ok(chat_cmds::PaginatedMessages { messages, total })
 }
 
@@ -107,7 +107,7 @@ pub fn save_group_user_message_cmd(
         sender_character_id: None,
         created_at: Utc::now().to_rfc3339(),
     };
-    create_message(&conn, &msg).map_err(|e| e.to_string())?;
+    create_group_message(&conn, &msg).map_err(|e| e.to_string())?;
     Ok(msg)
 }
 
@@ -148,7 +148,7 @@ pub async fn send_group_message_cmd(
             sender_character_id: None,
             created_at: Utc::now().to_rfc3339(),
         };
-        create_message(&conn, &user_msg).map_err(|e| e.to_string())?;
+        create_group_message(&conn, &user_msg).map_err(|e| e.to_string())?;
 
         (gc, world, characters, model_config, user_profile, user_msg)
     };
@@ -183,7 +183,7 @@ pub async fn send_group_message_cmd(
         // Re-fetch recent messages (includes previous characters' responses)
         let recent_msgs = {
             let conn = db.conn.lock().map_err(|e| e.to_string())?;
-            list_messages(&conn, &gc.thread_id, 30).map_err(|e| e.to_string())?
+            list_group_messages(&conn, &gc.thread_id, 30).map_err(|e| e.to_string())?
         };
 
         // Get thread summary for retrieval context
@@ -225,7 +225,7 @@ pub async fn send_group_message_cmd(
         };
         {
             let conn = db.conn.lock().map_err(|e| e.to_string())?;
-            create_message(&conn, &response_msg).map_err(|e| e.to_string())?;
+            create_group_message(&conn, &response_msg).map_err(|e| e.to_string())?;
         }
 
         responses.push(response_msg);
@@ -279,7 +279,7 @@ pub async fn prompt_group_character_cmd(
 
     let recent_msgs = {
         let conn = db.conn.lock().map_err(|e| e.to_string())?;
-        list_messages(&conn, &gc.thread_id, 30).map_err(|e| e.to_string())?
+        list_group_messages(&conn, &gc.thread_id, 30).map_err(|e| e.to_string())?
     };
 
     let mut retrieved: Vec<String> = Vec::new();
@@ -338,7 +338,7 @@ pub async fn prompt_group_character_cmd(
     };
     {
         let conn = db.conn.lock().map_err(|e| e.to_string())?;
-        create_message(&conn, &msg).map_err(|e| e.to_string())?;
+        create_group_message(&conn, &msg).map_err(|e| e.to_string())?;
     }
 
     Ok(msg)
