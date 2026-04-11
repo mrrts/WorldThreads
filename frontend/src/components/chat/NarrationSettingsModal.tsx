@@ -1,6 +1,7 @@
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
-import { BookOpen, X } from "lucide-react";
+import { BookOpen, X, Trash2 } from "lucide-react";
 
 interface NarrationSettingsModalProps {
   open: boolean;
@@ -15,6 +16,7 @@ interface NarrationSettingsModalProps {
   narrationDirty: boolean;
   setNarrationDirty: (v: boolean) => void;
   onSave: () => void;
+  onClearHistory?: () => void;
 }
 
 export function NarrationSettingsModal({
@@ -29,8 +31,31 @@ export function NarrationSettingsModal({
   narrationDirty,
   setNarrationDirty,
   onSave,
+  onClearHistory,
 }: NarrationSettingsModalProps) {
-  return (
+  const [showClearConfirm, setShowClearConfirm] = useState(false);
+
+  return (<>
+    {showClearConfirm && (
+      <Dialog open onClose={() => setShowClearConfirm(false)} className="max-w-xs">
+        <div className="p-5 space-y-4">
+          <div className="flex items-center gap-2">
+            <Trash2 size={18} className="text-destructive" />
+            <h3 className="font-semibold">Clear Chat History</h3>
+          </div>
+          <p className="text-sm text-muted-foreground">
+            This will permanently delete all messages, narratives, and illustrations in this conversation. This cannot be undone.
+          </p>
+          <div className="flex justify-end gap-2">
+            <Button variant="ghost" size="sm" onClick={() => setShowClearConfirm(false)}>Cancel</Button>
+            <Button variant="destructive" size="sm" onClick={() => {
+              setShowClearConfirm(false);
+              onClearHistory?.();
+            }}>Clear</Button>
+          </div>
+        </div>
+      </Dialog>
+    )}
     <Dialog open={open} onClose={onClose} className="max-w-md">
       <div className="p-5 space-y-4">
         <div className="flex items-center justify-between">
@@ -98,23 +123,36 @@ export function NarrationSettingsModal({
           </div>
         </div>
 
-        <div className="flex justify-end gap-2 pt-1">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={onClose}
-          >
-            Cancel
-          </Button>
-          <Button
-            size="sm"
-            disabled={!narrationDirty}
-            onClick={onSave}
-          >
-            Save
-          </Button>
+        <div className="flex items-center justify-between pt-1">
+          {onClearHistory ? (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-destructive/70 hover:text-destructive hover:bg-destructive/10"
+              onClick={() => setShowClearConfirm(true)}
+            >
+              <Trash2 size={12} className="mr-1.5" />
+              Clear History
+            </Button>
+          ) : <div />}
+          <div className="flex gap-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onClose}
+            >
+              Cancel
+            </Button>
+            <Button
+              size="sm"
+              disabled={!narrationDirty}
+              onClick={onSave}
+            >
+              Save
+            </Button>
+          </div>
         </div>
       </div>
     </Dialog>
-  );
+  </>);
 }

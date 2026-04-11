@@ -856,6 +856,10 @@ export function ChatView({ store }: Props) {
           setNarrationDirty(false);
           setShowNarrationSettings(false);
         }}
+        onClearHistory={store.activeCharacter ? () => {
+          store.clearChatHistory(store.activeCharacter!.character_id);
+          setShowNarrationSettings(false);
+        } : undefined}
       />
 
       <IllustrationPickerModal

@@ -150,6 +150,7 @@ pub fn run() {
             create_group_chat_cmd,
             list_group_chats_cmd,
             delete_group_chat_cmd,
+            clear_group_chat_history_cmd,
             get_group_messages_cmd,
             save_group_user_message_cmd,
             send_group_message_cmd,

@@ -519,6 +519,22 @@ export function useAppStore() {
     }
   }, [state.activeWorld, setError]);
 
+  const clearGroupChatHistory = useCallback(async (groupChatId: string) => {
+    try {
+      await api.clearGroupChatHistory(groupChatId);
+      setState((s) => ({
+        ...s,
+        messages: [],
+        totalMessages: 0,
+        reactions: {},
+        chatError: null,
+        lastFailedContent: null,
+      }));
+    } catch (e) {
+      setError(String(e));
+    }
+  }, [setError]);
+
   const clearChatHistory = useCallback(async (characterId: string) => {
     try {
       await api.clearChatHistory(characterId);
@@ -1109,6 +1125,7 @@ export function useAppStore() {
     createCharacter,
     deleteCharacter,
     clearChatHistory,
+    clearGroupChatHistory,
     archiveCharacter,
     unarchiveCharacter,
     sendMessage,

@@ -1366,8 +1366,9 @@ pub async fn reset_to_message_cmd(
         let conn = db.conn.lock().map_err(|e| e.to_string())?;
 
         let anchor: Message = {
-            let mut stmt = conn.prepare("SELECT message_id, thread_id, role, content, tokens_estimate, sender_character_id, created_at FROM messages WHERE message_id = ?1")
-                .map_err(|e| e.to_string())?;
+            let table = if is_group { "group_messages" } else { "messages" };
+            let sql = format!("SELECT message_id, thread_id, role, content, tokens_estimate, sender_character_id, created_at FROM {} WHERE message_id = ?1", table);
+            let mut stmt = conn.prepare(&sql).map_err(|e| e.to_string())?;
             stmt.query_row(params![message_id], |row| {
                 Ok(Message {
                     message_id: row.get(0)?,

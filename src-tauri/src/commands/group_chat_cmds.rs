@@ -78,6 +78,21 @@ pub fn delete_group_chat_cmd(
 }
 
 #[tauri::command]
+pub fn clear_group_chat_history_cmd(
+    db: State<Database>,
+    group_chat_id: String,
+) -> Result<(), String> {
+    let conn = db.conn.lock().map_err(|e| e.to_string())?;
+    let gc = get_group_chat(&conn, &group_chat_id).map_err(|e| e.to_string())?;
+    conn.execute("DELETE FROM group_messages_fts WHERE thread_id = ?1", params![gc.thread_id]).ok();
+    conn.execute("DELETE FROM group_messages WHERE thread_id = ?1", params![gc.thread_id])
+        .map_err(|e| e.to_string())?;
+    conn.execute("DELETE FROM memory_artifacts WHERE subject_id = ?1", params![gc.thread_id]).ok();
+    conn.execute("DELETE FROM message_count_tracker WHERE thread_id = ?1", params![gc.thread_id]).ok();
+    Ok(())
+}
+
+#[tauri::command]
 pub fn get_group_messages_cmd(
     db: State<Database>,
     group_chat_id: String,

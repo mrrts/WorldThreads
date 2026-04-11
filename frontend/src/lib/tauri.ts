@@ -454,6 +454,8 @@ export const api = {
     invoke<GroupChat[]>("list_group_chats_cmd", { worldId }),
   deleteGroupChat: (groupChatId: string) =>
     invoke<void>("delete_group_chat_cmd", { groupChatId }),
+  clearGroupChatHistory: (groupChatId: string) =>
+    invoke<void>("clear_group_chat_history_cmd", { groupChatId }),
   getGroupMessages: (groupChatId: string) =>
     invoke<PaginatedMessages>("get_group_messages_cmd", { groupChatId }),
   saveGroupUserMessage: (groupChatId: string, content: string) =>

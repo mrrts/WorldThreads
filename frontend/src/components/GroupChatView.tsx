@@ -771,6 +771,10 @@ export function GroupChatView({ store }: Props) {
           setNarrationDirty(false);
           setShowNarrationSettings(false);
         }}
+        onClearHistory={store.activeGroupChat ? () => {
+          store.clearGroupChatHistory(store.activeGroupChat!.group_chat_id);
+          setShowNarrationSettings(false);
+        } : undefined}
       />
 
       <IllustrationPickerModal
