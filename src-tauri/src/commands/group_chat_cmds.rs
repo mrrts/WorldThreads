@@ -524,6 +524,77 @@ pub async fn generate_group_illustration_cmd(
     })
 }
 
+/// Generate a narrative beat for a group chat.
+#[tauri::command]
+pub async fn generate_group_narrative_cmd(
+    db: State<'_, Database>,
+    api_key: String,
+    group_chat_id: String,
+) -> Result<chat_cmds::NarrativeResult, String> {
+    let (world, characters, gc, recent_msgs, model_config, user_profile) = {
+        let conn = db.conn.lock().map_err(|e| e.to_string())?;
+        let gc = get_group_chat(&conn, &group_chat_id).map_err(|e| e.to_string())?;
+        let world = get_world(&conn, &gc.world_id).map_err(|e| e.to_string())?;
+        let model_config = orchestrator::load_model_config(&conn);
+        let recent_msgs = list_group_messages(&conn, &gc.thread_id, 30).map_err(|e| e.to_string())?;
+        let user_profile = get_user_profile(&conn, &gc.world_id).ok();
+
+        let char_ids: Vec<String> = gc.character_ids.as_array()
+            .map(|a| a.iter().filter_map(|v| v.as_str().map(|s| s.to_string())).collect())
+            .unwrap_or_default();
+        let characters: Vec<Character> = char_ids.iter()
+            .filter_map(|id| get_character(&conn, id).ok())
+            .collect();
+
+        (world, characters, gc, recent_msgs, model_config, user_profile)
+    };
+
+    let primary_character = characters.first()
+        .ok_or_else(|| "No characters in group chat".to_string())?;
+
+    // Load narration settings from first character
+    let (narration_tone, narration_instructions) = {
+        let conn = db.conn.lock().map_err(|e| e.to_string())?;
+        let tone = get_setting(&conn, &format!("narration_tone.{}", primary_character.character_id))
+            .ok().flatten();
+        let instructions = get_setting(&conn, &format!("narration_instructions.{}", primary_character.character_id))
+            .ok().flatten();
+        (tone, instructions)
+    };
+
+    let (narrative_text, usage) = orchestrator::run_narrative_with_base(
+        &model_config.chat_api_base(), &api_key, &model_config.dialogue_model,
+        &world, primary_character, &recent_msgs, &[],
+        user_profile.as_ref(),
+        None,
+        narration_tone.as_deref(),
+        narration_instructions.as_deref(),
+    ).await?;
+
+    if let Some(u) = &usage {
+        let conn = db.conn.lock().map_err(|e| e.to_string())?;
+        let _ = record_token_usage(&conn, "narrative", &model_config.dialogue_model, u.prompt_tokens, u.completion_tokens);
+    }
+
+    let narrative_msg = Message {
+        message_id: uuid::Uuid::new_v4().to_string(),
+        thread_id: gc.thread_id.clone(),
+        role: "narrative".to_string(),
+        content: narrative_text,
+        tokens_estimate: usage.as_ref().map(|u| u.total_tokens as i64).unwrap_or(0),
+        sender_character_id: None,
+        created_at: Utc::now().to_rfc3339(),
+    };
+    {
+        let conn = db.conn.lock().map_err(|e| e.to_string())?;
+        create_group_message(&conn, &narrative_msg).map_err(|e| e.to_string())?;
+    }
+
+    Ok(chat_cmds::NarrativeResult {
+        narrative_message: narrative_msg,
+    })
+}
+
 /// Strip any [CharacterName]: or CharacterName: prefix that the LLM may prepend to its response.
 fn strip_character_prefix(text: &str, character_name: &str) -> String {
     let trimmed = text.trim();

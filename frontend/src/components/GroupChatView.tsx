@@ -662,7 +662,7 @@ export function GroupChatView({ store }: Props) {
               variant="ghost"
               size="icon"
               className="text-amber-500/70 hover:text-amber-400 hover:bg-amber-500/10 h-10 w-10 rounded-xl"
-              onClick={() => store.generateNarrative()}
+              onClick={() => store.generateGroupNarrative()}
               disabled={isSending || !store.apiKey || store.messages.length === 0}
             >
               <BookOpen size={16} />

@@ -772,6 +772,30 @@ export function useAppStore() {
     }
   }, [state.activeCharacter, state.apiKey]);
 
+  const generateGroupNarrative = useCallback(async () => {
+    if (!state.activeGroupChat || !state.apiKey) return;
+
+    setState((s) => ({ ...s, sending: state.activeGroupChat!.group_chat_id, generatingNarrative: state.activeGroupChat!.group_chat_id, chatError: null }));
+
+    try {
+      const result = await api.generateGroupNarrative(state.apiKey, state.activeGroupChat.group_chat_id);
+      setState((s) => ({
+        ...s,
+        messages: [...s.messages, result.narrative_message],
+        totalMessages: s.totalMessages + 1,
+        sending: null,
+        generatingNarrative: null,
+      }));
+    } catch (e) {
+      setState((s) => ({
+        ...s,
+        sending: null,
+        generatingNarrative: null,
+        chatError: String(e),
+      }));
+    }
+  }, [state.activeGroupChat, state.apiKey]);
+
   const generateGroupIllustration = useCallback(async (qualityTier?: string, customInstructions?: string, previousIllustrationId?: string, includeSceneSummary?: boolean) => {
     if (!state.activeGroupChat || !state.apiKey) return;
 
@@ -1165,6 +1189,7 @@ export function useAppStore() {
     setAutoRespond,
     promptCharacter,
     generateNarrative,
+    generateGroupNarrative,
     generateIllustration,
     generateGroupIllustration,
     deleteIllustration,
