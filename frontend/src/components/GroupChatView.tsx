@@ -3,12 +3,10 @@ import Markdown from "react-markdown";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Dialog } from "@/components/ui/dialog";
-import { Send, Loader2, SmilePlus, X, Check, Copy, ExternalLink, BookOpen, RotateCcw, MessageSquare, Settings, Image, Trash2, RefreshCw, SlidersHorizontal, Video, Repeat, Square, Download, Crosshair, ChevronLeft, ChevronRight } from "lucide-react";
+import { Send, Loader2, X, Check, ExternalLink, BookOpen, MessageSquare, Settings, Image, Trash2, RefreshCw, SlidersHorizontal, Video, Repeat, Square, Download, Crosshair, ChevronLeft, ChevronRight } from "lucide-react";
 import { WebviewWindow } from "@tauri-apps/api/webviewWindow";
 import type { useAppStore } from "@/hooks/use-app-store";
-import { api, type Reaction } from "@/lib/tauri";
-import { EmojiPicker } from "@/components/chat/EmojiPicker";
-import { ReactionBubbles } from "@/components/chat/ReactionBubbles";
+import { api } from "@/lib/tauri";
 import { NarrativeMessage } from "@/components/chat/NarrativeMessage";
 import { ChatErrorBar } from "@/components/chat/ChatErrorBar";
 import { AnimationReadyToast } from "@/components/chat/AnimationReadyToast";
@@ -18,7 +16,7 @@ import { NarrationSettingsModal } from "@/components/chat/NarrationSettingsModal
 import { IllustrationPickerModal } from "@/components/chat/IllustrationPickerModal";
 import { AdjustIllustrationModal } from "@/components/chat/AdjustIllustrationModal";
 import { VideoGenerationModal } from "@/components/chat/VideoGenerationModal";
-
+import { GroupTalkPickerModal } from "@/components/chat/GroupTalkPickerModal";
 
 
 
@@ -27,18 +25,19 @@ interface Props {
 }
 
 
-export function ChatView({ store }: Props) {
+export function GroupChatView({ store }: Props) {
   const [input, setInput] = useState("");
-  const [pickerMessageId, setPickerMessageId] = useState<string | null>(null);
-  const [showPortraitModal, setShowPortraitModal] = useState(false);
   const [showUserAvatarModal, setShowUserAvatarModal] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
-  const charPortrait = store.activeCharacter ? store.activePortraits[store.activeCharacter?.character_id] : undefined;
+  const groupCharIds: string[] = store.activeGroupChat
+    ? (Array.isArray(store.activeGroupChat.character_ids) ? store.activeGroupChat.character_ids : [])
+    : [];
+  const groupCharacters = groupCharIds.map((id) => store.characters.find((c) => c.character_id === id)).filter(Boolean) as typeof store.characters;
+  const [showGroupTalkPicker, setShowGroupTalkPicker] = useState(false);
   const [userAvatarUrl, setUserAvatarUrl] = useState("");
   const [copiedError, setCopiedError] = useState(false);
   const [resetConfirmId, setResetConfirmId] = useState<string | null>(null);
-  const [showIdentityPopover, setShowIdentityPopover] = useState(false);
   const [showNarrationSettings, setShowNarrationSettings] = useState(false);
   const [adjustIllustrationId, setAdjustIllustrationId] = useState<string | null>(null);
   const [adjustInstructions, setAdjustInstructions] = useState("");
@@ -65,8 +64,8 @@ export function ChatView({ store }: Props) {
   const [responseLength, setResponseLength] = useState("Auto");
   const [narrationDirty, setNarrationDirty] = useState(false);
 
-  const charId = store.activeCharacter?.character_id;
-  const chatId = charId;
+  const charId = groupCharIds[0] ?? undefined;
+  const chatId = store.activeGroupChat?.group_chat_id;
 
   useEffect(() => {
     if (!store.activeWorld) { setUserAvatarUrl(""); return; }
@@ -87,7 +86,7 @@ export function ChatView({ store }: Props) {
     });
   }, [charId]);
 
-  // Derived: is this character's chat currently loading?
+  // Derived: is this group chat currently loading?
   const isSending = store.sending === chatId;
   const isGeneratingNarrative = store.generatingNarrative === charId;
   const isGeneratingIllustration = store.generatingIllustration === charId;
@@ -200,7 +199,7 @@ export function ChatView({ store }: Props) {
     store.clearChatError();
     setInput("");
     if (inputRef.current) inputRef.current.style.height = "auto";
-    await store.sendMessage(text);
+    await store.sendGroupMessage(text);
     inputRef.current?.focus();
   };
 
@@ -208,7 +207,7 @@ export function ChatView({ store }: Props) {
     if (!store.lastFailedContent || isSending) return;
     const content = store.lastFailedContent;
     store.clearChatError();
-    await store.sendMessage(content);
+    await store.sendGroupMessage(content);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -218,88 +217,39 @@ export function ChatView({ store }: Props) {
     }
   };
 
-  if (!store.activeCharacter) {
+  if (!store.activeGroupChat) {
     return (
       <div className="flex-1 flex items-center justify-center text-muted-foreground">
-        <p>Select or create a character to start chatting</p>
+        <p>Select or create a group chat to start chatting</p>
       </div>
     );
   }
 
   return (
     <div className="flex-1 flex flex-col min-h-0 relative">
-      {charPortrait?.data_url ? (
-        <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
-          <img
-            src={charPortrait.data_url}
-            alt=""
-            className="w-full h-full object-cover"
-          />
-          <div className="absolute inset-0 bg-background/60" />
-        </div>
-      ) : null}
+      <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden flex">
+        {groupCharacters.map((ch) => {
+          const p = store.activePortraits[ch.character_id];
+          return p?.data_url ? (
+            <div key={ch.character_id} className="flex-1 relative">
+              <img src={p.data_url} alt="" className="w-full h-full object-cover" />
+            </div>
+          ) : <div key={ch.character_id} className="flex-1" />;
+        })}
+        <div className="absolute inset-0 bg-background/65" />
+      </div>
       <div className="px-4 py-3 border-b border-border flex items-center gap-3 relative z-30 bg-background">
-        {charPortrait?.data_url ? (
-          <div className="relative group flex-shrink-0">
-            <button
-              onClick={async () => {
-                const label = `portrait-${store.activeCharacter!.character_id.slice(0, 8)}`;
-                try {
-                  const existing = await WebviewWindow.getByLabel(label);
-                  if (existing) { await existing.setFocus(); return; }
-                } catch { /* not found, create new */ }
-                new WebviewWindow(label, {
-                  url: `index.html?portrait=${store.activeCharacter!.character_id}`,
-                  title: store.activeCharacter!.display_name,
-                  width: 420,
-                  height: 480,
-                  resizable: true,
-                  decorations: true,
-                  titleBarStyle: "overlay",
-                  hiddenTitle: true,
-                  alwaysOnTop: true,
-                });
-              }}
-              className="cursor-pointer"
-              title="Open portrait in window"
-            >
-              <img src={charPortrait.data_url} alt="" className="w-9 h-9 rounded-full object-cover ring-2 ring-border hover:ring-primary/50 transition-all" />
-              <span className="absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full bg-card border border-border flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                <ExternalLink size={8} />
-              </span>
-            </button>
-          </div>
-        ) : store.activeCharacter ? (
-          <span
-            className="w-3 h-3 rounded-full"
-            style={{ backgroundColor: store.activeCharacter?.avatar_color }}
-          />
-        ) : null}
-        <h1 className="font-semibold">{store.activeCharacter?.display_name}</h1>
-        {store.activeCharacter?.identity && (
-          <div className="relative flex-1 min-w-0">
-            <span
-              className="text-xs text-muted-foreground truncate block cursor-default"
-              onMouseEnter={() => setShowIdentityPopover(true)}
-              onMouseLeave={() => setShowIdentityPopover(false)}
-            >
-              {store.activeCharacter?.identity.slice(0, 60)}...
-            </span>
-            {showIdentityPopover && (
-              <div
-                className="absolute left-0 top-full mt-2 z-50 w-80 bg-card border border-border rounded-xl shadow-xl p-4 animate-in fade-in zoom-in-95 duration-150"
-                onMouseEnter={() => setShowIdentityPopover(true)}
-                onMouseLeave={() => setShowIdentityPopover(false)}
-              >
-                {charPortrait?.data_url && (
-                  <img src={charPortrait.data_url} alt="" className="w-full rounded-lg object-cover aspect-square mb-3" />
-                )}
-                <p className="font-semibold text-sm mb-1">{store.activeCharacter?.display_name}</p>
-                <p className="text-xs text-muted-foreground leading-relaxed whitespace-pre-wrap">{store.activeCharacter?.identity}</p>
-              </div>
-            )}
-          </div>
-        )}
+        <div className="flex -space-x-2 flex-shrink-0">
+          {groupCharacters.map((ch, i) => {
+            const p = store.activePortraits[ch.character_id];
+            return p?.data_url ? (
+              <img key={ch.character_id} src={p.data_url} alt="" className="w-9 h-9 rounded-full object-cover ring-2 ring-background" style={{ zIndex: groupCharacters.length - i }} />
+            ) : (
+              <span key={ch.character_id} className="w-9 h-9 rounded-full ring-2 ring-background" style={{ backgroundColor: ch.avatar_color, zIndex: groupCharacters.length - i }} />
+            );
+          })}
+        </div>
+        <h1 className="font-semibold">{store.activeGroupChat?.display_name}</h1>
         <label className="ml-auto flex-shrink-0 flex items-center gap-1.5 cursor-pointer select-none" title="When on, the character responds automatically after each message">
           <span className={`text-[10px] font-medium ${store.autoRespond ? "text-foreground/70" : "text-muted-foreground/50"}`}>Auto‑Respond</span>
           <button
@@ -330,7 +280,7 @@ export function ChatView({ store }: Props) {
           <div className="text-center text-muted-foreground py-12">
             <p className="text-lg mb-1">Start a conversation</p>
             <p className="text-sm">
-              Send a message to {store.activeCharacter?.display_name}
+              Send a message to {store.activeGroupChat?.display_name}
             </p>
           </div>
         )}
@@ -339,8 +289,6 @@ export function ChatView({ store }: Props) {
             const isUser = msg.role === "user";
             const isNarrative = msg.role === "narrative";
             const isPending = msg.message_id.startsWith("pending-");
-            const reactions = store.reactions[msg.message_id] ?? [];
-            const showPicker = pickerMessageId === msg.message_id;
 
             if (isNarrative) {
               return (
@@ -374,9 +322,9 @@ export function ChatView({ store }: Props) {
                           setModalPlayingVideo(false);
                           setModalImageLoading(false);
                           // Load all illustrations for the carousel
-                          if (store.activeCharacter) {
+                          if (store.activeGroupChat) {
                             try {
-                              const page = await api.getMessages(store.activeCharacter?.character_id);
+                              const page = await api.getMessages(store.activeGroupChat.group_chat_id);
                               const illus = page.messages
                                 .filter((m) => m.role === "illustration")
                                 .map((m) => ({ id: m.message_id, content: m.content }));
@@ -477,7 +425,7 @@ export function ChatView({ store }: Props) {
                                   if (existing) { await existing.setFocus(); return; }
                                 } catch { /* not found */ }
                                 new WebviewWindow(label, {
-                                  url: `index.html?illustration=${msg.message_id}&character=${store.activeCharacter!.character_id}`,
+                                  url: `index.html?illustration=${msg.message_id}&group=${store.activeGroupChat!.group_chat_id}`,
                                   title: "Illustration",
                                   width: 1280,
                                   height: 760,
@@ -556,18 +504,25 @@ export function ChatView({ store }: Props) {
               );
             }
 
+            // Find the sending character's info for group messages
+            const senderChar = msg.sender_character_id
+              ? groupCharacters.find((c) => c.character_id === msg.sender_character_id)
+              : undefined;
+            const senderPortrait = senderChar ? store.activePortraits[senderChar.character_id] : undefined;
+            const groupColorPalette = ["bg-blue-500/15", "bg-emerald-500/15", "bg-purple-500/15"];
+            const senderColorIdx = senderChar ? groupCharIds.indexOf(senderChar.character_id) : 0;
+            const senderBubbleColor = !isUser ? groupColorPalette[senderColorIdx % groupColorPalette.length] : "";
+
             return (
               <div key={msg.message_id}>
                 <div className={`flex items-end gap-2 ${isUser ? "justify-end" : "justify-start"}`}>
                   {!isUser && (
-                    charPortrait?.data_url ? (
-                      <button onClick={() => setShowPortraitModal(true)} className="cursor-pointer flex-shrink-0 mb-1">
-                        <img src={charPortrait.data_url} alt="" className="w-[72px] h-[72px] rounded-full object-cover ring-2 ring-border hover:ring-primary/50 transition-all" />
-                      </button>
+                    senderPortrait?.data_url ? (
+                      <img src={senderPortrait.data_url} alt="" className="w-[72px] h-[72px] rounded-full object-cover ring-2 ring-border flex-shrink-0 mb-1" />
                     ) : (
                       <span
                         className="w-[72px] h-[72px] rounded-full flex-shrink-0 mb-1 ring-1 ring-white/10"
-                        style={{ backgroundColor: store.activeCharacter?.avatar_color ?? "#c4a882" }}
+                        style={{ backgroundColor: senderChar?.avatar_color ?? "#c4a882" }}
                       />
                     )
                   )}
@@ -575,29 +530,13 @@ export function ChatView({ store }: Props) {
                     className={`relative group rounded-2xl px-4 py-2.5 text-sm leading-relaxed ${
                       isUser
                         ? "bg-primary text-primary-foreground rounded-br-md max-w-[80%]"
-                        : "bg-secondary text-secondary-foreground rounded-bl-md max-w-[80%]"
+                        : senderBubbleColor
+                          ? `${senderBubbleColor} text-secondary-foreground rounded-bl-md max-w-[80%] border border-border/30`
+                          : "bg-secondary text-secondary-foreground rounded-bl-md max-w-[80%]"
                     }`}
                   >
-                    {/* Reaction button — overlaps the top corner of the bubble */}
-                    {!isPending && (
-                      <button
-                        onClick={() => setPickerMessageId(showPicker ? null : msg.message_id)}
-                        className={`absolute -top-2.5 z-10 w-7 h-7 flex items-center justify-center rounded-full bg-white shadow-md border border-border/50 text-muted-foreground hover:text-foreground hover:scale-110 opacity-0 group-hover:opacity-100 transition-all cursor-pointer ${
-                          isUser ? "-left-2.5" : "-right-2.5"
-                        }`}
-                      >
-                        <SmilePlus size={16} strokeWidth={2} />
-                      </button>
-                    )}
-
-                    {/* Emoji picker */}
-                    {showPicker && (
-                      <div className={`absolute top-0 z-50 ${isUser ? "right-full mr-2" : "left-full ml-2"}`}>
-                        <EmojiPicker
-                          onSelect={(emoji) => store.toggleReaction(msg.message_id, emoji)}
-                          onClose={() => setPickerMessageId(null)}
-                        />
-                      </div>
+                    {!isUser && senderChar && (
+                      <p className="text-[10px] font-semibold text-muted-foreground/70 mb-1">{senderChar.display_name}</p>
                     )}
 
                     <div className={`prose prose-sm max-w-none prose-p:my-1 prose-ul:my-1 prose-ol:my-1 prose-li:my-0.5 prose-headings:my-2 prose-pre:my-2 prose-blockquote:my-2 prose-hr:my-2 [&>*:first-child]:mt-0 [&>*:last-child]:mb-0 [&_em]:italic [&_em]:block [&_em]:border-l-2 [&_em]:border-current/20 [&_em]:pl-3 [&_em]:my-1.5 [&_em]:opacity-80 ${
@@ -629,25 +568,21 @@ export function ChatView({ store }: Props) {
                     </button>
                   )}
                 </div>
-
-                <div className={!isUser ? "pl-20" : userAvatarUrl ? "pr-20" : ""}>
-                  <ReactionBubbles reactions={reactions} isUser={isUser} />
-                </div>
               </div>
             );
           })}
           {isSending && !isGeneratingNarrative && !isGeneratingIllustration && !isGeneratingVideo && (
             <div className="flex items-end gap-2 justify-start">
-              {charPortrait?.data_url ? (
-                <button onClick={() => setShowPortraitModal(true)} className="cursor-pointer flex-shrink-0 mb-1">
-                  <img src={charPortrait.data_url} alt="" className="w-[72px] h-[72px] rounded-full object-cover ring-2 ring-border hover:ring-primary/50 transition-all" />
-                </button>
-              ) : (
-                <span
-                  className="w-[72px] h-[72px] rounded-full flex-shrink-0 mb-1 ring-1 ring-white/10"
-                  style={{ backgroundColor: store.activeCharacter?.avatar_color ?? "#c4a882" }}
-                />
-              )}
+              <div className="flex -space-x-4 flex-shrink-0 mb-1">
+                {groupCharacters.map((ch, i) => {
+                  const p = store.activePortraits[ch.character_id];
+                  return p?.data_url ? (
+                    <img key={ch.character_id} src={p.data_url} alt="" className="w-[72px] h-[72px] rounded-full object-cover ring-2 ring-background" style={{ zIndex: groupCharacters.length - i }} />
+                  ) : (
+                    <span key={ch.character_id} className="w-[72px] h-[72px] rounded-full ring-2 ring-background" style={{ backgroundColor: ch.avatar_color, zIndex: groupCharacters.length - i }} />
+                  );
+                })}
+              </div>
               <div className="bg-secondary rounded-2xl rounded-bl-md px-4 py-3 flex items-center gap-1">
                 <span className="w-1.5 h-1.5 rounded-full bg-muted-foreground/60 animate-bounce [animation-delay:0ms]" />
                 <span className="w-1.5 h-1.5 rounded-full bg-muted-foreground/60 animate-bounce [animation-delay:150ms]" />
@@ -712,7 +647,7 @@ export function ChatView({ store }: Props) {
               variant="ghost"
               size="icon"
               className="text-primary/70 hover:text-primary hover:bg-primary/10 h-10 w-10 rounded-xl"
-              onClick={() => store.promptCharacter()}
+              onClick={() => setShowGroupTalkPicker(true)}
               disabled={isSending || !store.apiKey || store.messages.length === 0}
             >
               <MessageSquare size={16} />
@@ -763,7 +698,7 @@ export function ChatView({ store }: Props) {
               });
             }}
             onKeyDown={handleKeyDown}
-            placeholder={`Talk to ${store.activeCharacter?.display_name ?? "character"}...`}
+            placeholder={`Talk to ${store.activeGroupChat?.display_name ?? "the group"}...`}
             className="flex-1 min-h-[40px] max-h-[200px] resize-none rounded-xl border border-input bg-transparent px-4 py-2.5 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring scrollbar-none [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none]"
             rows={1}
             disabled={isSending || (store.autoRespond && !store.apiKey)}
@@ -778,27 +713,6 @@ export function ChatView({ store }: Props) {
           </Button>
         </div>
       </div>
-
-      {charPortrait?.data_url && (
-        <Dialog open={showPortraitModal} onClose={() => setShowPortraitModal(false)} className="max-w-md">
-          <div className="relative">
-            <img
-              src={charPortrait.data_url}
-              alt={store.activeCharacter?.display_name}
-              className="w-full rounded-2xl shadow-2xl shadow-black/50"
-            />
-            <button
-              onClick={() => setShowPortraitModal(false)}
-              className="absolute top-3 right-3 w-8 h-8 flex items-center justify-center rounded-full bg-black/50 text-white hover:bg-black/70 transition-colors cursor-pointer backdrop-blur-sm"
-            >
-              <X size={16} />
-            </button>
-            <div className="absolute inset-x-0 bottom-0 rounded-b-2xl bg-gradient-to-t from-black/70 to-transparent px-5 pb-4 pt-10">
-              <p className="text-white font-semibold text-lg">{store.activeCharacter?.display_name}</p>
-            </div>
-          </div>
-        </Dialog>
-      )}
 
       {userAvatarUrl && (
         <Dialog open={showUserAvatarModal} onClose={() => setShowUserAvatarModal(false)} className="max-w-md">
@@ -830,8 +744,9 @@ export function ChatView({ store }: Props) {
             setResetConfirmId(null);
           }
         }}
-        characterName={store.activeCharacter?.display_name}
+        characterName={store.activeGroupChat?.display_name}
         isUserMessage={store.messages.find((m) => m.message_id === resetConfirmId)?.role === "user" || false}
+        isGroup={true}
       />
 
       <NarrationSettingsModal
@@ -1089,6 +1004,18 @@ export function ChatView({ store }: Props) {
           </Dialog>
         );
       })()}
+
+      {/* Group Talk to Me picker */}
+      <GroupTalkPickerModal
+        open={showGroupTalkPicker}
+        onClose={() => setShowGroupTalkPicker(false)}
+        characters={groupCharacters}
+        portraits={store.activePortraits}
+        onSelect={(characterId) => {
+          store.promptGroupCharacter(characterId);
+          setShowGroupTalkPicker(false);
+        }}
+      />
 
       <RemoveVideoConfirmModal
         open={!!removeVideoConfirmId}

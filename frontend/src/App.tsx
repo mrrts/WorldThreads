@@ -3,6 +3,7 @@ import { useAppStore } from "@/hooks/use-app-store";
 import { api, type DailyUsage } from "@/lib/tauri";
 import { Sidebar } from "@/components/Sidebar";
 import { ChatView } from "@/components/ChatView";
+import { GroupChatView } from "@/components/GroupChatView";
 import { WorldCanonEditor } from "@/components/WorldCanonEditor";
 import { CharacterEditor } from "@/components/CharacterEditor";
 import { CharacterGrid } from "@/components/CharacterGrid";
@@ -124,7 +125,9 @@ function MainApp() {
         )}
         {view === "chat" && (
           <DeferredMount key="chat">
-            <ChatView store={store} />
+            {store.activeGroupChat
+              ? <GroupChatView store={store} />
+              : <ChatView store={store} />}
           </DeferredMount>
         )}
         {view === "world" && (
