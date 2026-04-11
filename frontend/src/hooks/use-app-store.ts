@@ -27,6 +27,8 @@ export interface AppState {
   /** Character ID currently generating an illustration, or null */
   generatingIllustration: string | null;
   generatingVideo: string | null;
+  /** Which character is currently generating a response in a group chat */
+  sendingCharacterId: string | null;
   /** Map of illustration message_id → video filename */
   videoFiles: Record<string, string>;
   aspectRatios: Record<string, number>;
@@ -76,6 +78,7 @@ export function useAppStore() {
     generatingNarrative: null,
     generatingIllustration: null,
     generatingVideo: null,
+    sendingCharacterId: null,
     videoFiles: {},
     aspectRatios: {},
     chatError: null,
@@ -206,6 +209,7 @@ export function useAppStore() {
         generatingNarrative: null,
         generatingIllustration: null,
         generatingVideo: null,
+    sendingCharacterId: null,
         videoFiles: {},
     aspectRatios: {},
         error: null,
@@ -397,13 +401,14 @@ export function useAppStore() {
       // Then prompt each character sequentially
       const charIds: string[] = Array.isArray(state.activeGroupChat.character_ids) ? state.activeGroupChat.character_ids : [];
       for (const cid of charIds) {
-        setState((s) => ({ ...s, sending: state.activeGroupChat!.group_chat_id }));
+        setState((s) => ({ ...s, sending: state.activeGroupChat!.group_chat_id, sendingCharacterId: cid }));
         const msg = await api.promptGroupCharacter(state.apiKey, state.activeGroupChat!.group_chat_id, cid);
         setState((s) => ({
           ...s,
           messages: [...s.messages, msg],
           totalMessages: s.totalMessages + 1,
           sending: null,
+          sendingCharacterId: null,
         }));
       }
     } catch (e) {
@@ -432,11 +437,13 @@ export function useAppStore() {
 
     try {
       for (const cid of respondingIds) {
+        setState((s) => ({ ...s, sendingCharacterId: cid }));
         const msg = await api.promptGroupCharacter(state.apiKey, state.activeGroupChat!.group_chat_id, cid);
         setState((s) => ({
           ...s,
           messages: [...s.messages, msg],
           totalMessages: s.totalMessages + 1,
+          sendingCharacterId: null,
         }));
       }
       setState((s) => ({ ...s, sending: null }));
@@ -909,7 +916,8 @@ export function useAppStore() {
   }, []);
 
   const generateVideo = useCallback(async (illustrationMessageId: string, customPrompt?: string, durationSeconds?: number, style?: string) => {
-    if (!state.activeCharacter || !state.apiKey) return;
+    const characterId = state.activeCharacter?.character_id ?? "";
+    if (!state.apiKey || (!state.activeCharacter && !state.activeGroupChat)) return;
 
     const googleApiKey = await api.getGoogleApiKey();
     if (!googleApiKey) {
@@ -920,10 +928,11 @@ export function useAppStore() {
     setState((s) => ({ ...s, generatingVideo: illustrationMessageId, chatError: null }));
 
     try {
-      const videoFile = await api.generateVideo(state.apiKey, googleApiKey, state.activeCharacter.character_id, illustrationMessageId, customPrompt, durationSeconds, style);
+      const videoFile = await api.generateVideo(state.apiKey, googleApiKey, characterId, illustrationMessageId, customPrompt, durationSeconds, style);
       setState((s) => ({
         ...s,
         generatingVideo: null,
+    sendingCharacterId: null,
         videoFiles: { ...s.videoFiles, [illustrationMessageId]: videoFile },
       }));
     } catch (e) {
@@ -936,6 +945,7 @@ export function useAppStore() {
       setState((s) => ({
         ...s,
         generatingVideo: null,
+    sendingCharacterId: null,
         chatError: userMsg,
       }));
     }
@@ -992,11 +1002,13 @@ export function useAppStore() {
         setState((s) => ({ ...s, sending: state.activeGroupChat!.group_chat_id }));
         try {
           for (const cid of charIds) {
+            setState((s) => ({ ...s, sendingCharacterId: cid }));
             const msg = await api.promptGroupCharacter(state.apiKey, state.activeGroupChat.group_chat_id, cid);
             setState((s) => ({
               ...s,
               messages: [...s.messages, msg],
               totalMessages: s.totalMessages + 1,
+              sendingCharacterId: null,
             }));
           }
         } catch { /* non-fatal */ }

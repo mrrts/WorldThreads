@@ -19,6 +19,7 @@ import { NarrationSettingsModal } from "@/components/chat/NarrationSettingsModal
 import { IllustrationPickerModal } from "@/components/chat/IllustrationPickerModal";
 import { AdjustIllustrationModal } from "@/components/chat/AdjustIllustrationModal";
 import { VideoGenerationModal } from "@/components/chat/VideoGenerationModal";
+import { PortraitModal } from "@/components/chat/PortraitModal";
 
 
 
@@ -780,26 +781,11 @@ export function ChatView({ store }: Props) {
         </div>
       </div>
 
-      {charPortrait?.data_url && (
-        <Dialog open={showPortraitModal} onClose={() => setShowPortraitModal(false)} className="max-w-md">
-          <div className="relative">
-            <img
-              src={charPortrait.data_url}
-              alt={store.activeCharacter?.display_name}
-              className="w-full rounded-2xl shadow-2xl shadow-black/50"
-            />
-            <button
-              onClick={() => setShowPortraitModal(false)}
-              className="absolute top-3 right-3 w-8 h-8 flex items-center justify-center rounded-full bg-black/50 text-white hover:bg-black/70 transition-colors cursor-pointer backdrop-blur-sm"
-            >
-              <X size={16} />
-            </button>
-            <div className="absolute inset-x-0 bottom-0 rounded-b-2xl bg-gradient-to-t from-black/70 to-transparent px-5 pb-4 pt-10">
-              <p className="text-white font-semibold text-lg">{store.activeCharacter?.display_name}</p>
-            </div>
-          </div>
-        </Dialog>
-      )}
+      <PortraitModal
+        characterId={showPortraitModal ? store.activeCharacter?.character_id ?? null : null}
+        characterName={store.activeCharacter?.display_name}
+        onClose={() => setShowPortraitModal(false)}
+      />
 
       {userAvatarUrl && (
         <Dialog open={showUserAvatarModal} onClose={() => setShowUserAvatarModal(false)} className="max-w-md">

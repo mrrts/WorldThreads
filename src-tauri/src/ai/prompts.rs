@@ -133,7 +133,7 @@ pub fn build_dialogue_system_prompt(
 
     if let Some(t) = tone {
         if !t.is_empty() && t != "Auto" {
-            parts.push(format!("TONE:\nAdopt a {t} tone in your responses. Let this flavor influence your word choice, emotional register, and the way you engage with the conversation."));
+            parts.push(format!("TONE:\nAdopt a {t} tone in your responses. Let this flavor influence your word choice, emotional register, and the way you engage with the conversation. Maintain this tone regardless of the tone of previous messages in the chat history."));
         }
     }
 

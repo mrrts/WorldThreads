@@ -10,3 +10,4 @@ export { IllustrationPickerModal } from "./IllustrationPickerModal";
 export { AdjustIllustrationModal } from "./AdjustIllustrationModal";
 export { VideoGenerationModal } from "./VideoGenerationModal";
 export { GroupTalkPickerModal } from "./GroupTalkPickerModal";
+export { PortraitModal } from "./PortraitModal";

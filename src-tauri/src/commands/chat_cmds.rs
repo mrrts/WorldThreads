@@ -1046,27 +1046,54 @@ pub async fn generate_video_cmd(
     duration_seconds: Option<u32>,
     style: Option<String>,
 ) -> Result<String, String> {
+    let is_group = character_id.is_empty();
+
     // Load context
     let (character, recent_msgs, model_config, user_profile, illustration_file) = {
         let conn = db.conn.lock().map_err(|e| e.to_string())?;
-        let character = get_character(&conn, &character_id).map_err(|e| e.to_string())?;
-        let thread = get_thread_for_character(&conn, &character_id).map_err(|e| e.to_string())?;
         let model_config = orchestrator::load_model_config(&conn);
-        let user_profile = get_user_profile(&conn, &character.world_id).ok();
 
-        // Get the illustration's timestamp so we pull messages from that point in time
-        let (file_name, illus_created_at): (String, String) = conn.query_row(
-            "SELECT w.file_name, m.created_at FROM world_images w JOIN messages m ON m.message_id = w.image_id WHERE w.image_id = ?1",
-            params![illustration_message_id], |r| Ok((r.get(0)?, r.get(1)?)),
-        ).map_err(|_| "Illustration not found".to_string())?;
+        // Get the illustration file and timestamp — check both messages and group_messages
+        let (file_name, illus_created_at, thread_id): (String, String, String) = conn.query_row(
+            "SELECT w.file_name, m.created_at, m.thread_id FROM world_images w JOIN messages m ON m.message_id = w.image_id WHERE w.image_id = ?1",
+            params![illustration_message_id], |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?)),
+        ).or_else(|_| conn.query_row(
+            "SELECT w.file_name, m.created_at, m.thread_id FROM world_images w JOIN group_messages m ON m.message_id = w.image_id WHERE w.image_id = ?1",
+            params![illustration_message_id], |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?)),
+        )).map_err(|_| "Illustration not found".to_string())?;
 
-        // Get messages up to the illustration's creation time (not the latest messages)
-        let mut stmt = conn.prepare(
-            "SELECT message_id, thread_id, role, content, tokens_estimate, sender_character_id, created_at
-             FROM messages WHERE thread_id = ?1 AND created_at <= ?2
-             ORDER BY created_at DESC LIMIT 30"
+        // Get world from thread
+        let world_id: String = conn.query_row(
+            "SELECT world_id FROM threads WHERE thread_id = ?1",
+            params![thread_id], |r| r.get(0),
         ).map_err(|e| e.to_string())?;
-        let mut recent_msgs: Vec<Message> = stmt.query_map(params![thread.thread_id, illus_created_at], |row| {
+
+        let character = if is_group {
+            // Dummy character for animation prompt
+            let chars_in_world = list_characters(&conn, &world_id).unwrap_or_default();
+            chars_in_world.into_iter().next().unwrap_or_else(|| Character {
+                character_id: String::new(), world_id: world_id.clone(), display_name: String::new(),
+                identity: String::new(), voice_rules: serde_json::json!([]),
+                boundaries: serde_json::json!([]), backstory_facts: serde_json::json!([]),
+                relationships: serde_json::json!({}), state: serde_json::json!({}),
+                avatar_color: String::new(), is_archived: false,
+                created_at: String::new(), updated_at: String::new(),
+            })
+        } else {
+            get_character(&conn, &character_id).map_err(|e| e.to_string())?
+        };
+
+        let user_profile = get_user_profile(&conn, &world_id).ok();
+
+        // Get messages up to the illustration's creation time
+        let msg_table = if is_group { "group_messages" } else { "messages" };
+        let sql = format!(
+            "SELECT message_id, thread_id, role, content, tokens_estimate, sender_character_id, created_at
+             FROM {} WHERE thread_id = ?1 AND created_at <= ?2
+             ORDER BY created_at DESC LIMIT 30", msg_table
+        );
+        let mut stmt = conn.prepare(&sql).map_err(|e| e.to_string())?;
+        let mut recent_msgs: Vec<Message> = stmt.query_map(params![thread_id, illus_created_at], |row| {
             Ok(Message {
                 message_id: row.get(0)?,
                 thread_id: row.get(1)?,

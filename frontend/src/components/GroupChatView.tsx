@@ -17,7 +17,7 @@ import { NarrationSettingsModal } from "@/components/chat/NarrationSettingsModal
 import { IllustrationPickerModal } from "@/components/chat/IllustrationPickerModal";
 import { AdjustIllustrationModal } from "@/components/chat/AdjustIllustrationModal";
 import { VideoGenerationModal } from "@/components/chat/VideoGenerationModal";
-import { GroupTalkPickerModal } from "@/components/chat/GroupTalkPickerModal";
+import { PortraitModal } from "@/components/chat/PortraitModal";
 
 
 
@@ -29,6 +29,7 @@ interface Props {
 export function GroupChatView({ store }: Props) {
   const [input, setInput] = useState("");
   const [showUserAvatarModal, setShowUserAvatarModal] = useState(false);
+  const [portraitModalCharId, setPortraitModalCharId] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const groupCharIds: string[] = store.activeGroupChat
@@ -36,6 +37,7 @@ export function GroupChatView({ store }: Props) {
     : [];
   const groupCharacters = groupCharIds.map((id) => store.characters.find((c) => c.character_id === id)).filter(Boolean) as typeof store.characters;
   const [showGroupTalkPicker, setShowGroupTalkPicker] = useState(false);
+  const talkPickerRef = useRef<HTMLDivElement>(null);
   const [userAvatarUrl, setUserAvatarUrl] = useState("");
   const [copiedError, setCopiedError] = useState(false);
   const [resetConfirmId, setResetConfirmId] = useState<string | null>(null);
@@ -66,6 +68,17 @@ export function GroupChatView({ store }: Props) {
   const [narrationDirty, setNarrationDirty] = useState(false);
 
   const chatId = store.activeGroupChat?.group_chat_id;
+
+  useEffect(() => {
+    if (!showGroupTalkPicker) return;
+    const handler = (e: MouseEvent) => {
+      if (talkPickerRef.current && !talkPickerRef.current.contains(e.target as Node)) {
+        setShowGroupTalkPicker(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [showGroupTalkPicker]);
 
   useEffect(() => {
     if (!store.activeWorld) { setUserAvatarUrl(""); return; }
@@ -518,7 +531,9 @@ export function GroupChatView({ store }: Props) {
                 <div className={`flex items-end gap-2 ${isUser ? "justify-end" : "justify-start"}`}>
                   {!isUser && (
                     senderPortrait?.data_url ? (
-                      <img src={senderPortrait.data_url} alt="" className="w-[72px] h-[72px] rounded-full object-cover ring-2 ring-border flex-shrink-0 mb-1" />
+                      <button onClick={() => senderChar && setPortraitModalCharId(senderChar.character_id)} className="cursor-pointer flex-shrink-0 mb-1">
+                        <img src={senderPortrait.data_url} alt="" className="w-[72px] h-[72px] rounded-full object-cover ring-2 ring-border hover:ring-primary/50 transition-all" />
+                      </button>
                     ) : (
                       <span
                         className="w-[72px] h-[72px] rounded-full flex-shrink-0 mb-1 ring-1 ring-white/10"
@@ -571,25 +586,29 @@ export function GroupChatView({ store }: Props) {
               </div>
             );
           })}
-          {isSending && !isGeneratingNarrative && !isGeneratingIllustration && !isGeneratingVideo && (
+          {isSending && !isGeneratingNarrative && !isGeneratingIllustration && !isGeneratingVideo && (() => {
+            const sendingChar = store.sendingCharacterId
+              ? groupCharacters.find((c) => c.character_id === store.sendingCharacterId)
+              : groupCharacters[0];
+            const sendingPortrait = sendingChar ? store.activePortraits[sendingChar.character_id] : undefined;
+            return (
             <div className="flex items-end gap-2 justify-start">
-              <div className="flex -space-x-4 flex-shrink-0 mb-1">
-                {groupCharacters.map((ch, i) => {
-                  const p = store.activePortraits[ch.character_id];
-                  return p?.data_url ? (
-                    <img key={ch.character_id} src={p.data_url} alt="" className="w-[72px] h-[72px] rounded-full object-cover ring-2 ring-background" style={{ zIndex: groupCharacters.length - i }} />
-                  ) : (
-                    <span key={ch.character_id} className="w-[72px] h-[72px] rounded-full ring-2 ring-background" style={{ backgroundColor: ch.avatar_color, zIndex: groupCharacters.length - i }} />
-                  );
-                })}
-              </div>
+              {sendingPortrait?.data_url ? (
+                <img src={sendingPortrait.data_url} alt="" className="w-[72px] h-[72px] rounded-full object-cover ring-2 ring-border flex-shrink-0 mb-1" />
+              ) : (
+                <span
+                  className="w-[72px] h-[72px] rounded-full flex-shrink-0 mb-1 ring-1 ring-white/10"
+                  style={{ backgroundColor: sendingChar?.avatar_color ?? "#c4a882" }}
+                />
+              )}
               <div className="bg-secondary rounded-2xl rounded-bl-md px-4 py-3 flex items-center gap-1">
                 <span className="w-1.5 h-1.5 rounded-full bg-muted-foreground/60 animate-bounce [animation-delay:0ms]" />
                 <span className="w-1.5 h-1.5 rounded-full bg-muted-foreground/60 animate-bounce [animation-delay:150ms]" />
                 <span className="w-1.5 h-1.5 rounded-full bg-muted-foreground/60 animate-bounce [animation-delay:300ms]" />
               </div>
             </div>
-          )}
+            );
+          })()}
           {isGeneratingNarrative && (
             <div className="flex justify-center my-2">
               <div className="rounded-xl px-5 py-3 bg-gradient-to-br from-amber-950/40 to-amber-900/20 border border-amber-700/30 flex items-center gap-2 text-amber-500/70">
@@ -642,19 +661,46 @@ export function GroupChatView({ store }: Props) {
 
       <div className="px-4 py-3 border-t border-border relative z-10 bg-background">
         <div className="flex gap-2 max-w-2xl mx-auto items-end">
-          <div className="relative group/talk flex-shrink-0">
+          <div ref={talkPickerRef} className="relative group/talk flex-shrink-0">
             <Button
               variant="ghost"
               size="icon"
               className="text-primary/70 hover:text-primary hover:bg-primary/10 h-10 w-10 rounded-xl"
-              onClick={() => setShowGroupTalkPicker(true)}
+              onClick={() => setShowGroupTalkPicker(!showGroupTalkPicker)}
               disabled={isSending || !store.apiKey || store.messages.length === 0}
             >
               <MessageSquare size={16} />
             </Button>
-            <span className="absolute bottom-full left-1/2 -translate-x-1/2 -mb-0.5 px-2.5 py-1 text-[11px] font-medium text-white bg-black rounded-lg shadow-lg whitespace-nowrap opacity-0 group-hover/talk:opacity-100 pointer-events-none transition-opacity duration-150">
-              Talk to Me
-            </span>
+            {!showGroupTalkPicker && (
+              <span className="absolute bottom-full left-1/2 -translate-x-1/2 -mb-0.5 px-2.5 py-1 text-[11px] font-medium text-white bg-black rounded-lg shadow-lg whitespace-nowrap opacity-0 group-hover/talk:opacity-100 pointer-events-none transition-opacity duration-150">
+                Talk to Me
+              </span>
+            )}
+            {showGroupTalkPicker && (
+              <div className="absolute bottom-full left-0 mb-2 z-50 bg-card border border-border rounded-xl shadow-xl p-2 space-y-1 animate-in fade-in zoom-in-95 duration-150 min-w-[180px]">
+                <p className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider px-2 pb-1">Who speaks?</p>
+                {groupCharacters.map((ch) => {
+                  const p = store.activePortraits[ch.character_id];
+                  return (
+                    <button
+                      key={ch.character_id}
+                      onClick={() => {
+                        store.promptGroupCharacter(ch.character_id);
+                        setShowGroupTalkPicker(false);
+                      }}
+                      className="flex items-center gap-2.5 w-full px-2 py-1.5 rounded-lg hover:bg-accent transition-colors cursor-pointer"
+                    >
+                      {p?.data_url ? (
+                        <img src={p.data_url} alt="" className="w-7 h-7 rounded-full object-cover" />
+                      ) : (
+                        <div className="w-7 h-7 rounded-full" style={{ backgroundColor: ch.avatar_color }} />
+                      )}
+                      <span className="text-sm">{ch.display_name}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
           </div>
           <div className="relative group/narr flex-shrink-0">
             <Button
@@ -713,6 +759,12 @@ export function GroupChatView({ store }: Props) {
           </Button>
         </div>
       </div>
+
+      <PortraitModal
+        characterId={portraitModalCharId}
+        characterName={portraitModalCharId ? groupCharacters.find((c) => c.character_id === portraitModalCharId)?.display_name : undefined}
+        onClose={() => setPortraitModalCharId(null)}
+      />
 
       {userAvatarUrl && (
         <Dialog open={showUserAvatarModal} onClose={() => setShowUserAvatarModal(false)} className="max-w-md">
@@ -1008,18 +1060,6 @@ export function GroupChatView({ store }: Props) {
           </Dialog>
         );
       })()}
-
-      {/* Group Talk to Me picker */}
-      <GroupTalkPickerModal
-        open={showGroupTalkPicker}
-        onClose={() => setShowGroupTalkPicker(false)}
-        characters={groupCharacters}
-        portraits={store.activePortraits}
-        onSelect={(characterId) => {
-          store.promptGroupCharacter(characterId);
-          setShowGroupTalkPicker(false);
-        }}
-      />
 
       <RemoveVideoConfirmModal
         open={!!removeVideoConfirmId}
