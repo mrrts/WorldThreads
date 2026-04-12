@@ -94,7 +94,7 @@ export function ChatView({ store }: Props) {
       setCachedTones(map);
       setLastTones(last_tones);
     });
-  }, [store.messages.length]);
+  }, [store.messages.length, store.adjustingMessageId]);
 
   useEffect(() => {
     if (!charId) return;
@@ -424,6 +424,18 @@ export function ChatView({ store }: Props) {
                   message={msg}
                   isPending={isPending}
                   onResetToHere={(id) => setResetConfirmId(id)}
+                  cachedTones={cachedTones[msg.message_id]}
+                  lastTone={lastTones[msg.message_id]}
+                  speakingId={speakingId}
+                  loadingSpeech={loadingSpeech}
+                  toneMenuId={toneMenuId}
+                  setToneMenuId={setToneMenuId}
+                  onSpeak={(id, text, tone) => handleSpeak(id, text, tone)}
+                  onStopSpeaking={() => { audioRef.current?.pause(); setSpeakingId(null); }}
+                  onDeleteAudio={async (id) => { await api.deleteMessageAudio(id); setCachedTones((prev) => { const next = { ...prev }; delete next[id]; return next; }); setLastTones((prev) => { const next = { ...prev }; delete next[id]; return next; }); }}
+                  toneMenuRef={toneMenuRef}
+                  adjustingMessageId={store.adjustingMessageId}
+                  onAdjust={(id) => setAdjustMessageId(id)}
                 />
               );
             }
