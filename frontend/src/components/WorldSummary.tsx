@@ -27,6 +27,7 @@ export function WorldSummary({ store, onChat, onSettings }: Props) {
   const [regenerating, setRegenerating] = useState(false);
   const [userAvatarUrl, setUserAvatarUrl] = useState("");
   const [illustrations, setIllustrations] = useState<Array<{ id: string; data_url: string }>>([]);
+  const [loadingCarousel, setLoadingCarousel] = useState(true);
   const [videoFiles, setVideoFiles] = useState<Record<string, string>>({});
   const [videoDataUrls, setVideoDataUrls] = useState<Record<string, string>>({});
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -40,60 +41,75 @@ export function WorldSummary({ store, onChat, onSettings }: Props) {
   // Load world gallery images first, then all chat illustrations sorted by timestamp
   useEffect(() => {
     if (!world) return;
+    setLoadingCarousel(true);
+    setIllustrations([]);
+    setVideoFiles({});
+    setSelectedId(null);
+
+    // Show world image immediately
+    const initial: Array<{ id: string; data_url: string }> = [];
+    if (store.activeWorldImage?.data_url) {
+      initial.push({ id: store.activeWorldImage.image_id, data_url: store.activeWorldImage.data_url });
+      setIllustrations(initial);
+      setSelectedId(store.activeWorldImage.image_id);
+      setLoadingCarousel(false);
+    }
+
+    // Then progressively load chat illustrations
     (async () => {
-      const allIllus: Array<{ id: string; data_url: string; created_at: string }> = [];
+      const chatIllus: Array<{ id: string; data_url: string; created_at: string }> = [];
       const vf: Record<string, string> = {};
 
-      // Active world image first
-      if (store.activeWorldImage?.data_url) {
-        allIllus.push({ id: store.activeWorldImage.image_id, data_url: store.activeWorldImage.data_url, created_at: "" });
-      }
+      const sources: Array<() => Promise<Array<{ id: string; data_url: string; created_at: string }>>> = [];
 
-      const chatIllus: Array<{ id: string; data_url: string; created_at: string }> = [];
-
-      // Individual chat illustrations
       for (const ch of store.characters) {
-        try {
-          const page = await api.getMessages(ch.character_id);
-          for (const m of page.messages) {
-            if (m.role === "illustration") {
-              chatIllus.push({ id: m.message_id, data_url: m.content, created_at: m.created_at });
-              try {
-                const f = await api.getVideoFile(m.message_id);
-                if (f) vf[m.message_id] = f;
-              } catch { /* ignore */ }
+        sources.push(async () => {
+          const batch: typeof chatIllus = [];
+          try {
+            const page = await api.getMessages(ch.character_id);
+            for (const m of page.messages) {
+              if (m.role === "illustration") {
+                batch.push({ id: m.message_id, data_url: m.content, created_at: m.created_at });
+                try { const f = await api.getVideoFile(m.message_id); if (f) vf[m.message_id] = f; } catch {}
+              }
             }
-          }
-        } catch { /* ignore */ }
+          } catch {}
+          return batch;
+        });
       }
 
-      // Group chat illustrations
       for (const gc of store.groupChats) {
-        try {
-          const page = await api.getGroupMessages(gc.group_chat_id);
-          for (const m of page.messages) {
-            if (m.role === "illustration") {
-              chatIllus.push({ id: m.message_id, data_url: m.content, created_at: m.created_at });
-              try {
-                const f = await api.getVideoFile(m.message_id);
-                if (f) vf[m.message_id] = f;
-              } catch { /* ignore */ }
+        sources.push(async () => {
+          const batch: typeof chatIllus = [];
+          try {
+            const page = await api.getGroupMessages(gc.group_chat_id);
+            for (const m of page.messages) {
+              if (m.role === "illustration") {
+                batch.push({ id: m.message_id, data_url: m.content, created_at: m.created_at });
+                try { const f = await api.getVideoFile(m.message_id); if (f) vf[m.message_id] = f; } catch {}
+              }
             }
-          }
-        } catch { /* ignore */ }
+          } catch {}
+          return batch;
+        });
       }
 
-      // Sort chat illustrations by timestamp ascending
-      chatIllus.sort((a, b) => a.created_at.localeCompare(b.created_at));
-
-      // World gallery first, then chat illustrations in chronological order
-      const combined = [...allIllus, ...chatIllus];
-
-      setIllustrations(combined.map(({ id, data_url }) => ({ id, data_url })));
-      setVideoFiles(vf);
-      if (combined.length > 0 && !selectedId) {
-        setSelectedId(combined[0].id);
+      // Load each chat and append results progressively
+      for (const loadChat of sources) {
+        const batch = await loadChat();
+        if (batch.length > 0) {
+          chatIllus.push(...batch);
+          // Re-sort and update
+          chatIllus.sort((a, b) => a.created_at.localeCompare(b.created_at));
+          setIllustrations([...initial, ...chatIllus.map(({ id, data_url }) => ({ id, data_url }))]);
+          setVideoFiles((prev) => ({ ...prev, ...vf }));
+        }
       }
+
+      if (initial.length === 0 && chatIllus.length > 0) {
+        setSelectedId(chatIllus[0].id);
+      }
+      setLoadingCarousel(false);
     })();
   }, [world?.world_id, store.characters.length, store.groupChats.length]);
 
@@ -178,7 +194,14 @@ export function WorldSummary({ store, onChat, onSettings }: Props) {
     <div className="flex-1 flex flex-col min-h-0">
       <ScrollArea className="flex-1">
         {/* Illustration/Video Viewer */}
-        {illustrations.length > 0 ? (() => {
+        {loadingCarousel ? (
+          <div className="bg-black w-full min-h-[300px] max-h-[600px] aspect-[3/2] flex items-center justify-center">
+            <div className="flex flex-col items-center gap-3">
+              <Loader2 size={24} className="animate-spin text-white/30" />
+              <span className="text-xs text-white/20">Loading illustrations...</span>
+            </div>
+          </div>
+        ) : illustrations.length > 0 ? (() => {
           const selected = illustrations.find((i) => i.id === selectedId);
           return (
           <div className="bg-black">
@@ -216,15 +239,22 @@ export function WorldSummary({ store, onChat, onSettings }: Props) {
                   Slideshow
                 </button>
               )}
-              {/* Manual nav arrows (when slideshow is off) */}
-              {illustrations.length > 1 && !slideshow.active && (
+              {/* Nav arrows */}
+              {illustrations.length > 1 && (
                 <>
                   <button
                     onClick={() => {
-                      const idx = illustrations.findIndex((i) => i.id === selectedId);
-                      const prev = idx <= 0 ? illustrations.length - 1 : idx - 1;
-                      setSelectedId(illustrations[prev].id);
-                      setPlayingVideo(false);
+                      if (slideshow.active) {
+                        const idx = slideshow.slides.findIndex((s) => s.illustrationId === selectedId && s.type === (playingVideo ? "video" : "image"));
+                        const prev = idx <= 0 ? slideshow.slides.length - 1 : idx - 1;
+                        const target = slideshow.slides[prev];
+                        if (target) { slideshow.jumpTo(target.illustrationId); }
+                      } else {
+                        const idx = illustrations.findIndex((i) => i.id === selectedId);
+                        const prev = idx <= 0 ? illustrations.length - 1 : idx - 1;
+                        setSelectedId(illustrations[prev].id);
+                        setPlayingVideo(false);
+                      }
                     }}
                     className="absolute left-2 top-1/2 -translate-y-1/2 z-20 w-10 h-10 rounded-full bg-black/50 text-white flex items-center justify-center cursor-pointer hover:bg-black/70 transition-all backdrop-blur-sm opacity-0 group-hover/viewer:opacity-100"
                   >
@@ -232,10 +262,17 @@ export function WorldSummary({ store, onChat, onSettings }: Props) {
                   </button>
                   <button
                     onClick={() => {
-                      const idx = illustrations.findIndex((i) => i.id === selectedId);
-                      const next = idx >= illustrations.length - 1 ? 0 : idx + 1;
-                      setSelectedId(illustrations[next].id);
-                      setPlayingVideo(false);
+                      if (slideshow.active) {
+                        const idx = slideshow.slides.findIndex((s) => s.illustrationId === selectedId && s.type === (playingVideo ? "video" : "image"));
+                        const next = idx >= slideshow.slides.length - 1 ? 0 : idx + 1;
+                        const target = slideshow.slides[next];
+                        if (target) { slideshow.jumpTo(target.illustrationId); }
+                      } else {
+                        const idx = illustrations.findIndex((i) => i.id === selectedId);
+                        const next = idx >= illustrations.length - 1 ? 0 : idx + 1;
+                        setSelectedId(illustrations[next].id);
+                        setPlayingVideo(false);
+                      }
                     }}
                     className="absolute right-2 top-1/2 -translate-y-1/2 z-20 w-10 h-10 rounded-full bg-black/50 text-white flex items-center justify-center cursor-pointer hover:bg-black/70 transition-all backdrop-blur-sm opacity-0 group-hover/viewer:opacity-100"
                   >
@@ -283,6 +320,7 @@ export function WorldSummary({ store, onChat, onSettings }: Props) {
                   {illustrations.map((illus) => (
                     <button
                       key={illus.id}
+                      ref={illus.id === selectedId ? (el) => { el?.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "center" }); } : undefined}
                       onClick={() => {
                         if (slideshow.active) {
                           slideshow.jumpTo(illus.id);

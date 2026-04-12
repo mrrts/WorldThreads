@@ -1331,6 +1331,7 @@ export function GroupChatView({ store }: Props) {
                     {allIllustrations.map((illus) => (
                       <button
                         key={illus.id}
+                        ref={illus.id === selId ? (el) => { el?.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "center" }); } : undefined}
                         onClick={() => {
                           if (modalSlideshow.active) {
                             modalSlideshow.jumpTo(illus.id);
