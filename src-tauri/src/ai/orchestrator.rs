@@ -337,7 +337,7 @@ pub async fn run_narrative_with_base(
         model: model.to_string(),
         messages: msgs,
         temperature: Some(1.0),
-        max_completion_tokens: Some(512),
+        max_completion_tokens: Some(1024),
         response_format: None,
     };
 
