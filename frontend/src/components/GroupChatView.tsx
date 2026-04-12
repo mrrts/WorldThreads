@@ -20,6 +20,7 @@ import { AdjustIllustrationModal } from "@/components/chat/AdjustIllustrationMod
 import { VideoGenerationModal } from "@/components/chat/VideoGenerationModal";
 import { AdjustMessageModal } from "@/components/chat/AdjustMessageModal";
 import { NarrativePickerModal } from "@/components/chat/NarrativePickerModal";
+import { SummaryModal } from "@/components/chat/SummaryModal";
 import { PortraitModal } from "@/components/chat/PortraitModal";
 
 
@@ -69,6 +70,7 @@ export function GroupChatView({ store }: Props) {
   const [modalImageLoading, setModalImageLoading] = useState(false);
   const [modalIllustrations, setModalIllustrations] = useState<Array<{ id: string; content: string }>>([]);
   const [showNarrativePicker, setShowNarrativePicker] = useState(false);
+  const [showSummary, setShowSummary] = useState(false);
   const [adjustMessageId, setAdjustMessageId] = useState<string | null>(null);
   const [showIllustrationPicker, setShowIllustrationPicker] = useState(false);
   const [illustrationInstructions, setIllustrationInstructions] = useState("");
@@ -371,6 +373,14 @@ export function GroupChatView({ store }: Props) {
         >
           <Settings size={14} />
           <span>Narration</span>
+        </button>
+        <button
+          onClick={() => setShowSummary(true)}
+          className="flex-shrink-0 h-8 rounded-lg flex items-center gap-1.5 px-2.5 text-xs font-medium transition-colors cursor-pointer text-muted-foreground hover:text-foreground hover:bg-accent"
+          title="Generate a summary of this conversation"
+        >
+          <BookOpen size={14} />
+          <span>Summary</span>
         </button>
       </div>
 
@@ -877,6 +887,34 @@ export function GroupChatView({ store }: Props) {
               </button>
             </label>
             <div className="flex gap-0.5">
+              <div className="relative group/ilus">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="text-emerald-500/70 hover:text-emerald-400 hover:bg-emerald-500/10 h-9 w-9 rounded-lg"
+                  onClick={() => setShowIllustrationPicker(true)}
+                  disabled={isSending || !store.apiKey || store.messages.length === 0}
+                >
+                  <Image size={15} />
+                </Button>
+                <span className="absolute bottom-full left-1/2 -translate-x-1/2 -mb-0.5 px-2.5 py-1 text-[11px] font-medium text-white bg-black rounded-lg shadow-lg whitespace-nowrap opacity-0 group-hover/ilus:opacity-100 pointer-events-none transition-opacity duration-150">
+                  Illustration
+                </span>
+              </div>
+              <div className="relative group/narr">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="text-amber-500/70 hover:text-amber-400 hover:bg-amber-500/10 h-9 w-9 rounded-lg"
+                  onClick={() => setShowNarrativePicker(true)}
+                  disabled={isSending || !store.apiKey || store.messages.length === 0}
+                >
+                  <BookOpen size={15} />
+                </Button>
+                <span className="absolute bottom-full left-1/2 -translate-x-1/2 -mb-0.5 px-2.5 py-1 text-[11px] font-medium text-white bg-black rounded-lg shadow-lg whitespace-nowrap opacity-0 group-hover/narr:opacity-100 pointer-events-none transition-opacity duration-150">
+                  + Narrative
+                </span>
+              </div>
               <div ref={talkPickerRef} className="relative group/talk">
                 <Button
                   variant="ghost"
@@ -947,34 +985,6 @@ export function GroupChatView({ store }: Props) {
                   </div>
                   );
                 })()}
-              </div>
-              <div className="relative group/narr">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="text-amber-500/70 hover:text-amber-400 hover:bg-amber-500/10 h-9 w-9 rounded-lg"
-                  onClick={() => setShowNarrativePicker(true)}
-                  disabled={isSending || !store.apiKey || store.messages.length === 0}
-                >
-                  <BookOpen size={15} />
-                </Button>
-                <span className="absolute bottom-full left-1/2 -translate-x-1/2 -mb-0.5 px-2.5 py-1 text-[11px] font-medium text-white bg-black rounded-lg shadow-lg whitespace-nowrap opacity-0 group-hover/narr:opacity-100 pointer-events-none transition-opacity duration-150">
-                  + Narrative
-                </span>
-              </div>
-              <div className="relative group/ilus">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="text-emerald-500/70 hover:text-emerald-400 hover:bg-emerald-500/10 h-9 w-9 rounded-lg"
-                  onClick={() => setShowIllustrationPicker(true)}
-                  disabled={isSending || !store.apiKey || store.messages.length === 0}
-                >
-                  <Image size={15} />
-                </Button>
-                <span className="absolute bottom-full left-1/2 -translate-x-1/2 -mb-0.5 px-2.5 py-1 text-[11px] font-medium text-white bg-black rounded-lg shadow-lg whitespace-nowrap opacity-0 group-hover/ilus:opacity-100 pointer-events-none transition-opacity duration-150">
-                  Illustration
-                </span>
               </div>
             </div>
           </div>
@@ -1076,6 +1086,13 @@ export function GroupChatView({ store }: Props) {
           store.clearGroupChatHistory(store.activeGroupChat!.group_chat_id);
           setShowNarrationSettings(false);
         } : undefined}
+      />
+
+      <SummaryModal
+        open={showSummary}
+        onClose={() => setShowSummary(false)}
+        title={`Summary: ${groupCharacters.map((c) => c.display_name).join(" & ")}`}
+        generateSummary={() => api.generateGroupChatSummary(store.apiKey, store.activeGroupChat?.group_chat_id ?? "")}
       />
 
       <AdjustMessageModal
@@ -1331,7 +1348,11 @@ export function GroupChatView({ store }: Props) {
                     {allIllustrations.map((illus) => (
                       <button
                         key={illus.id}
-                        ref={illus.id === selId ? (el) => { el?.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "center" }); } : undefined}
+                        ref={illus.id === selId ? (el) => {
+                          if (!el) return;
+                          const c = el.parentElement;
+                          if (c) c.scrollTo({ left: el.offsetLeft - c.offsetWidth / 2 + el.offsetWidth / 2, behavior: "smooth" });
+                        } : undefined}
                         onClick={() => {
                           if (modalSlideshow.active) {
                             modalSlideshow.jumpTo(illus.id);

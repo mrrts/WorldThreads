@@ -21,6 +21,7 @@ import { IllustrationPickerModal } from "@/components/chat/IllustrationPickerMod
 import { AdjustIllustrationModal } from "@/components/chat/AdjustIllustrationModal";
 import { VideoGenerationModal } from "@/components/chat/VideoGenerationModal";
 import { AdjustMessageModal } from "@/components/chat/AdjustMessageModal";
+import { SummaryModal } from "@/components/chat/SummaryModal";
 import { NarrativePickerModal } from "@/components/chat/NarrativePickerModal";
 import { PortraitModal } from "@/components/chat/PortraitModal";
 
@@ -69,6 +70,7 @@ export function ChatView({ store }: Props) {
   const [modalImageLoading, setModalImageLoading] = useState(false);
   const [modalIllustrations, setModalIllustrations] = useState<Array<{ id: string; content: string }>>([]);
   const [showNarrativePicker, setShowNarrativePicker] = useState(false);
+  const [showSummary, setShowSummary] = useState(false);
   const [adjustMessageId, setAdjustMessageId] = useState<string | null>(null);
   const [showIllustrationPicker, setShowIllustrationPicker] = useState(false);
   const [illustrationInstructions, setIllustrationInstructions] = useState("");
@@ -415,6 +417,14 @@ export function ChatView({ store }: Props) {
         >
           <Settings size={14} />
           <span>Narration</span>
+        </button>
+        <button
+          onClick={() => setShowSummary(true)}
+          className="flex-shrink-0 h-8 rounded-lg flex items-center gap-1.5 px-2.5 text-xs font-medium transition-colors cursor-pointer text-muted-foreground hover:text-foreground hover:bg-accent"
+          title="Generate a summary of this conversation"
+        >
+          <BookOpen size={14} />
+          <span>Summary</span>
         </button>
       </div>
 
@@ -926,18 +936,18 @@ export function ChatView({ store }: Props) {
               </button>
             </label>
             <div className="flex gap-0.5">
-              <div className="relative group/talk">
+              <div className="relative group/ilus">
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="text-primary/70 hover:text-primary hover:bg-primary/10 h-9 w-9 rounded-lg"
-                  onClick={() => store.promptCharacter()}
+                  className="text-emerald-500/70 hover:text-emerald-400 hover:bg-emerald-500/10 h-9 w-9 rounded-lg"
+                  onClick={() => setShowIllustrationPicker(true)}
                   disabled={isSending || !store.apiKey || store.messages.length === 0}
                 >
-                  <MessageSquare size={15} />
+                  <Image size={15} />
                 </Button>
-                <span className="absolute bottom-full left-1/2 -translate-x-1/2 -mb-0.5 px-2.5 py-1 text-[11px] font-medium text-white bg-black rounded-lg shadow-lg whitespace-nowrap opacity-0 group-hover/talk:opacity-100 pointer-events-none transition-opacity duration-150">
-                  Talk to Me
+                <span className="absolute bottom-full left-1/2 -translate-x-1/2 -mb-0.5 px-2.5 py-1 text-[11px] font-medium text-white bg-black rounded-lg shadow-lg whitespace-nowrap opacity-0 group-hover/ilus:opacity-100 pointer-events-none transition-opacity duration-150">
+                  Illustration
                 </span>
               </div>
               <div className="relative group/narr">
@@ -954,18 +964,18 @@ export function ChatView({ store }: Props) {
                   + Narrative
                 </span>
               </div>
-              <div className="relative group/ilus">
+              <div className="relative group/talk">
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="text-emerald-500/70 hover:text-emerald-400 hover:bg-emerald-500/10 h-9 w-9 rounded-lg"
-                  onClick={() => setShowIllustrationPicker(true)}
+                  className="text-primary/70 hover:text-primary hover:bg-primary/10 h-9 w-9 rounded-lg"
+                  onClick={() => store.promptCharacter()}
                   disabled={isSending || !store.apiKey || store.messages.length === 0}
                 >
-                  <Image size={15} />
+                  <MessageSquare size={15} />
                 </Button>
-                <span className="absolute bottom-full left-1/2 -translate-x-1/2 -mb-0.5 px-2.5 py-1 text-[11px] font-medium text-white bg-black rounded-lg shadow-lg whitespace-nowrap opacity-0 group-hover/ilus:opacity-100 pointer-events-none transition-opacity duration-150">
-                  Illustration
+                <span className="absolute bottom-full left-1/2 -translate-x-1/2 -mb-0.5 px-2.5 py-1 text-[11px] font-medium text-white bg-black rounded-lg shadow-lg whitespace-nowrap opacity-0 group-hover/talk:opacity-100 pointer-events-none transition-opacity duration-150">
+                  Talk to Me
                 </span>
               </div>
             </div>
@@ -1068,6 +1078,13 @@ export function ChatView({ store }: Props) {
           store.clearChatHistory(store.activeCharacter!.character_id);
           setShowNarrationSettings(false);
         } : undefined}
+      />
+
+      <SummaryModal
+        open={showSummary}
+        onClose={() => setShowSummary(false)}
+        title={`Summary: ${store.activeCharacter?.display_name ?? "Chat"}`}
+        generateSummary={() => api.generateChatSummary(store.apiKey, store.activeCharacter?.character_id ?? "")}
       />
 
       <AdjustMessageModal
@@ -1321,7 +1338,11 @@ export function ChatView({ store }: Props) {
                     {allIllustrations.map((illus) => (
                       <button
                         key={illus.id}
-                        ref={illus.id === selId ? (el) => { el?.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "center" }); } : undefined}
+                        ref={illus.id === selId ? (el) => {
+                          if (!el) return;
+                          const c = el.parentElement;
+                          if (c) c.scrollTo({ left: el.offsetLeft - c.offsetWidth / 2 + el.offsetWidth / 2, behavior: "smooth" });
+                        } : undefined}
                         onClick={() => {
                           if (modalSlideshow.active) {
                             modalSlideshow.jumpTo(illus.id);
