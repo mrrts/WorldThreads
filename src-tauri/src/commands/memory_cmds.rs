@@ -54,8 +54,9 @@ pub async fn generate_chat_summary_cmd(
             content: format!(
                 "Summarize the recent conversation between you and {}. \
                  Write a concise narrative summary (3-6 sentences) covering the key events, \
-                 emotional beats, and where things currently stand. Write in second person — \
-                 refer to the human as \"you\", never as \"the user\". \
+                 emotional beats, and where things currently stand. Include a few key specific details — \
+                 names, places, actions, or things said that capture the texture of the conversation. \
+                 Write in second person — refer to the human as \"you\", never as \"the user\". \
                  Refer to {} by name.",
                 character.display_name, character.display_name,
             ),
@@ -130,8 +131,9 @@ pub async fn generate_group_chat_summary_cmd(
             content: format!(
                 "Summarize the recent group conversation involving you and {}. \
                  Write a concise narrative summary (3-6 sentences) covering the key events, \
-                 emotional beats, and where things currently stand. Write in second person — \
-                 refer to the human as \"you\", never as \"the user\". \
+                 emotional beats, and where things currently stand. Include a few key specific details — \
+                 names, places, actions, or things said that capture the texture of the conversation. \
+                 Write in second person — refer to the human as \"you\", never as \"the user\". \
                  Refer to each character by name.",
                 char_names.join(" and "),
             ),
