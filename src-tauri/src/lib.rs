@@ -97,6 +97,7 @@ pub fn run() {
             regenerate_illustration_cmd,
             adjust_illustration_cmd,
             generate_video_cmd,
+            get_illustration_data_cmd,
             get_illustration_aspect_ratio_cmd,
             get_video_file_cmd,
             remove_video_cmd,

@@ -13,10 +13,9 @@ import { WorldSummary } from "@/components/WorldSummary";
 import { Gallery } from "@/components/Gallery";
 import { MoodDebugPanel } from "@/components/MoodDebugPanel";
 import { PortraitPopout } from "@/components/PortraitPopout";
-import { MessageSquare, PenLine, Users, Settings, Coins, Image, BookOpen, Download, ChevronLeft, ChevronRight, Play, Pause, Plus, Minus } from "lucide-react";
+import { MessageSquare, PenLine, Users, Settings, Coins, Image, BookOpen, Download, Play, Square, Plus, Minus } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogBody, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { useSlideshow } from "@/hooks/use-slideshow";
 
 type View = "chat" | "world" | "character" | "settings" | "summary" | "gallery";
 type CharSubView = "grid" | "editor" | "profile";
@@ -29,9 +28,8 @@ export default function App() {
     return <PortraitPopout characterId={popoutCharacterId} />;
   }
   const illustrationMsgId = params.get("illustration");
-  const illustrationCharId = params.get("character");
-  if (illustrationMsgId && illustrationCharId) {
-    return <IllustrationPopout initialMessageId={illustrationMsgId} characterId={illustrationCharId} />;
+  if (illustrationMsgId) {
+    return <IllustrationPopout messageId={illustrationMsgId} />;
   }
 
   return <MainApp />;
@@ -340,62 +338,38 @@ function NavButton({ icon, active, onClick, title, description }: { icon: React.
   );
 }
 
-function IllustrationPopout({ initialMessageId, characterId }: { initialMessageId: string; characterId: string }) {
-  const [illustrations, setIllustrations] = useState<Array<{ id: string; data_url: string }>>([]);
-  const [videoFiles, setVideoFiles] = useState<Record<string, string>>({});
-  const [videoDataUrls, setVideoDataUrls] = useState<Record<string, string>>({});
-  const [selectedId, setSelectedId] = useState(initialMessageId);
+function IllustrationPopout({ messageId }: { messageId: string }) {
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const [videoFile, setVideoFile] = useState<string | null>(null);
+  const [videoBlobUrl, setVideoBlobUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [imageLoading, setImageLoading] = useState(true);
   const [playingVideo, setPlayingVideo] = useState(false);
 
   useEffect(() => {
     (async () => {
       try {
-        const page = await api.getMessages(characterId);
-        const illus = page.messages
-          .filter((m) => m.role === "illustration")
-          .map((m) => ({ id: m.message_id, data_url: m.content }));
-        setIllustrations(illus);
-
-        const vf: Record<string, string> = {};
-        for (const il of illus) {
-          try {
-            const f = await api.getVideoFile(il.id);
-            if (f) vf[il.id] = f;
-          } catch { /* ignore */ }
-        }
-        setVideoFiles(vf);
-      } catch {
-        // ignore
-      } finally {
-        setLoading(false);
-      }
+        const [dataUrl, vf] = await Promise.all([
+          api.getIllustrationData(messageId),
+          api.getVideoFile(messageId).catch(() => null),
+        ]);
+        setImageUrl(dataUrl);
+        setVideoFile(vf);
+      } catch { /* ignore */ }
+      setLoading(false);
     })();
-  }, [characterId]);
+  }, [messageId]);
 
-  const slideshow = useSlideshow({
-    illustrations,
-    videoDataUrls,
-    videoFiles,
-    loadVideoUrl: async (illustrationId: string, videoFile: string) => {
-      const bytes = await api.getVideoBytes(videoFile);
-      const url = URL.createObjectURL(new Blob([new Uint8Array(bytes)], { type: "video/mp4" }));
-      setVideoDataUrls((prev) => ({ ...prev, [illustrationId]: url }));
-    },
-  });
-
-  // Sync slideshow's current slide to the selected illustration
-  useEffect(() => {
-    if (slideshow.active && slideshow.currentSlide) {
-      setSelectedId(slideshow.currentSlide.illustrationId);
-      setPlayingVideo(slideshow.currentSlide.type === "video");
-      // Don't set imageLoading for slideshow — data URLs are already in memory
-      setImageLoading(false);
+  const handlePlayVideo = async () => {
+    if (!videoFile) return;
+    if (!videoBlobUrl) {
+      try {
+        const bytes = await api.getVideoBytes(videoFile);
+        const url = URL.createObjectURL(new Blob([new Uint8Array(bytes)], { type: "video/mp4" }));
+        setVideoBlobUrl(url);
+      } catch { return; }
     }
-  }, [slideshow.active, slideshow.slideIndex, slideshow.currentSlide]);
-
-  const selected = illustrations.find((i) => i.id === selectedId);
+    setPlayingVideo(true);
+  };
 
   if (loading) {
     return (
@@ -405,7 +379,7 @@ function IllustrationPopout({ initialMessageId, characterId }: { initialMessageI
     );
   }
 
-  if (!selected) {
+  if (!imageUrl) {
     return (
       <div className="h-screen bg-black flex items-center justify-center text-muted-foreground text-sm">
         Illustration not found
@@ -417,36 +391,15 @@ function IllustrationPopout({ initialMessageId, characterId }: { initialMessageI
     <div className="h-screen bg-black flex flex-col overflow-hidden">
       <div
         data-tauri-drag-region
-        className="h-8 flex-shrink-0 flex items-center justify-between pl-[72px] pr-3 bg-card border-b border-border select-none"
+        className="h-8 flex-shrink-0 flex items-center pl-[72px] pr-3 bg-card border-b border-border select-none"
       >
         <span className="text-xs text-muted-foreground">Illustration</span>
-        {illustrations.length > 1 && (
-          <button
-            onClick={() => {
-              if (!slideshow.active) slideshow.jumpTo(selectedId);
-              slideshow.toggle();
-            }}
-            className={`flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-medium transition-colors cursor-pointer ${
-              slideshow.active
-                ? "bg-primary/20 text-primary"
-                : "text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            {slideshow.active ? <Pause size={10} /> : <Play size={10} />}
-            Slideshow
-          </button>
-        )}
       </div>
       <div className="flex-1 min-h-0 relative flex items-center justify-center p-2 group/popout">
-        {imageLoading && (
-          <div className="absolute inset-0 flex items-center justify-center z-10">
-            <div className="animate-spin w-6 h-6 border-2 border-white/20 border-t-white rounded-full" />
-          </div>
-        )}
         <div className="absolute top-4 left-4 z-20 opacity-0 group-hover/popout:opacity-100 transition-opacity">
           <div className="relative group/pop-dl">
             <button
-              onClick={() => api.downloadIllustration(selectedId)}
+              onClick={() => api.downloadIllustration(messageId)}
               className="w-8 h-8 rounded-full bg-black/50 text-white flex items-center justify-center cursor-pointer hover:bg-black/70 transition-colors backdrop-blur-sm"
             >
               <Download size={14} />
@@ -454,106 +407,39 @@ function IllustrationPopout({ initialMessageId, characterId }: { initialMessageI
             <span className="absolute top-full left-1/2 -translate-x-1/2 mt-1.5 px-2 py-0.5 text-[10px] font-medium text-white bg-black rounded-md shadow-lg whitespace-nowrap opacity-0 group-hover/pop-dl:opacity-100 pointer-events-none transition-opacity">Download</span>
           </div>
         </div>
-        {playingVideo && videoDataUrls[selectedId] ? (
+        {playingVideo && videoBlobUrl ? (
           <video
-            key={`video-${selectedId}`}
-            src={videoDataUrls[selectedId]}
+            key={`video-${messageId}`}
+            src={videoBlobUrl}
             autoPlay
-            loop={!slideshow.active}
+            loop
             playsInline
             className="max-w-full max-h-full object-contain"
-            onLoadedData={() => setImageLoading(false)}
-            onTimeUpdate={slideshow.active ? (e) => {
-              const v = e.currentTarget;
-              slideshow.onVideoTimeUpdate(v.currentTime, v.duration);
-            } : undefined}
-            onEnded={slideshow.active ? slideshow.onVideoEnded : undefined}
           />
         ) : (
           <img
-            key={selectedId}
-            src={selected.data_url}
+            src={imageUrl}
             alt="Illustration"
-            className={`max-w-full max-h-full object-contain ${imageLoading ? "opacity-0" : "opacity-100"} transition-opacity`}
-            onLoad={() => setImageLoading(false)}
+            className="max-w-full max-h-full object-contain"
           />
         )}
-        {illustrations.length > 1 && !slideshow.active && (<>
+        {videoFile && !playingVideo && (
           <button
-            onClick={() => {
-              const idx = illustrations.findIndex((i) => i.id === selectedId);
-              const prev = idx <= 0 ? illustrations.length - 1 : idx - 1;
-              setSelectedId(illustrations[prev].id);
-              setImageLoading(true);
-              setPlayingVideo(false);
-            }}
-            className="absolute left-2 top-1/2 -translate-y-1/2 z-20 w-10 h-10 rounded-full bg-black/50 text-white flex items-center justify-center cursor-pointer hover:bg-black/70 transition-all backdrop-blur-sm opacity-0 group-hover/popout:opacity-100"
+            onClick={handlePlayVideo}
+            className="absolute bottom-4 right-4 z-20 w-12 h-12 rounded-full bg-black/70 text-white flex items-center justify-center cursor-pointer hover:bg-purple-600 transition-colors backdrop-blur-sm opacity-0 group-hover/popout:opacity-100"
           >
-            <ChevronLeft size={20} />
+            <span className="text-xl ml-0.5">&#9654;</span>
           </button>
+        )}
+        {playingVideo && (
           <button
-            onClick={() => {
-              const idx = illustrations.findIndex((i) => i.id === selectedId);
-              const next = idx >= illustrations.length - 1 ? 0 : idx + 1;
-              setSelectedId(illustrations[next].id);
-              setImageLoading(true);
-              setPlayingVideo(false);
-            }}
-            className="absolute right-2 top-1/2 -translate-y-1/2 z-20 w-10 h-10 rounded-full bg-black/50 text-white flex items-center justify-center cursor-pointer hover:bg-black/70 transition-all backdrop-blur-sm opacity-0 group-hover/popout:opacity-100"
+            onClick={() => setPlayingVideo(false)}
+            className="absolute bottom-4 right-4 z-20 w-12 h-12 rounded-full bg-black/70 text-white flex items-center justify-center cursor-pointer hover:bg-red-600 transition-colors backdrop-blur-sm opacity-0 group-hover/popout:opacity-100"
           >
-            <ChevronRight size={20} />
+            <Square size={16} fill="white" />
           </button>
-        </>)}
-        {/* Slideshow progress bar */}
-        {slideshow.active && (
-          <div className="absolute bottom-0 left-0 right-0 h-1 bg-white/10 z-30">
-            <div
-              className="h-full bg-primary transition-none"
-              style={{ width: `${slideshow.progress * 100}%` }}
-            />
-          </div>
         )}
       </div>
-      {illustrations.length > 1 && (
-        <div className="flex-shrink-0 border-t border-border bg-card/50 px-2 py-2">
-          <div className="flex gap-1.5 overflow-x-auto scrollbar-none [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none]">
-            {illustrations.map((illus) => (
-              <button
-                key={illus.id}
-                onClick={async () => {
-                  if (slideshow.active) {
-                    slideshow.jumpTo(illus.id);
-                  } else {
-                    setSelectedId(illus.id);
-                    setImageLoading(true);
-                    const hasVideo = !!videoFiles[illus.id];
-                    setPlayingVideo(hasVideo);
-                    if (hasVideo && !videoDataUrls[illus.id]) {
-                      try {
-                        const bytes = await api.getVideoBytes(videoFiles[illus.id]);
-                        const url = URL.createObjectURL(new Blob([new Uint8Array(bytes)], { type: "video/mp4" }));
-                        setVideoDataUrls((prev) => ({ ...prev, [illus.id]: url }));
-                      } catch { /* ignore */ }
-                    }
-                  }
-                }}
-                className={`relative flex-shrink-0 w-16 h-11 rounded-lg overflow-hidden transition-all cursor-pointer ${
-                  illus.id === selectedId
-                    ? "ring-2 ring-primary ring-offset-1 ring-offset-black"
-                    : "ring-1 ring-white/10 opacity-60 hover:opacity-100"
-                }`}
-              >
-                <img src={illus.data_url} alt="" className="w-full h-full object-cover" />
-                {videoFiles[illus.id] && (
-                  <div className="absolute bottom-0.5 right-0.5 w-3.5 h-3.5 rounded-full bg-purple-600 flex items-center justify-center">
-                    <span className="text-white text-[6px]">&#9654;</span>
-                  </div>
-                )}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
     </div>
   );
 }

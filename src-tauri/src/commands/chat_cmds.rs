@@ -1039,6 +1039,32 @@ pub async fn delete_illustration_cmd(
     delete_illustration_inner(&conn, &portraits_dir.0, &message_id)
 }
 
+/// Get a single illustration's data URL by message ID.
+#[tauri::command]
+pub fn get_illustration_data_cmd(
+    db: State<Database>,
+    portraits_dir: State<PortraitsDir>,
+    message_id: String,
+) -> Result<Option<String>, String> {
+    let conn = db.conn.lock().map_err(|e| e.to_string())?;
+    let file_name: Option<String> = conn.query_row(
+        "SELECT file_name FROM world_images WHERE image_id = ?1",
+        params![message_id], |r| r.get(0),
+    ).ok();
+    if let Some(f) = file_name {
+        let path = portraits_dir.0.join(&f);
+        if path.exists() {
+            let bytes = std::fs::read(&path).map_err(|e| e.to_string())?;
+            let b64 = base64_encode_bytes(&bytes);
+            Ok(Some(format!("data:image/png;base64,{b64}")))
+        } else {
+            Ok(None)
+        }
+    } else {
+        Ok(None)
+    }
+}
+
 #[tauri::command]
 pub async fn regenerate_illustration_cmd(
     db: State<'_, Database>,

@@ -253,20 +253,49 @@ export function useAppStore() {
         api.listGroupChats(world.world_id),
       ]);
       const activePortraits = await loadActivePortraits([...characters, ...archivedCharacters]);
+
+      // Restore last active chat for this world
       let activeCharacter: Character | null = null;
+      let activeGroupChat: GroupChat | null = null;
       let messages: Message[] = [];
       let totalMessages = 0;
       let reactions: Record<string, Reaction[]> = {};
-      if (characters.length > 0) {
+
+      const lastChat = await api.getSetting(`last_chat.${world.world_id}`).catch(() => null);
+      if (lastChat?.startsWith("group:")) {
+        const gcId = lastChat.slice(6);
+        const gc = groupChats.find((g) => g.group_chat_id === gcId);
+        if (gc) {
+          activeGroupChat = gc;
+          const page = await api.getGroupMessages(gc.group_chat_id);
+          messages = page.messages;
+          totalMessages = page.total;
+          reactions = await loadReactions(messages);
+        }
+      } else if (lastChat?.startsWith("char:")) {
+        const charId = lastChat.slice(5);
+        const ch = characters.find((c) => c.character_id === charId);
+        if (ch) {
+          activeCharacter = ch;
+          const page = await api.getMessages(ch.character_id);
+          messages = page.messages;
+          totalMessages = page.total;
+          reactions = await loadReactions(messages);
+        }
+      }
+
+      // Fallback to first character if no last chat found
+      if (!activeCharacter && !activeGroupChat && characters.length > 0) {
         activeCharacter = characters[0];
         const page = await api.getMessages(activeCharacter.character_id);
         messages = page.messages;
         totalMessages = page.total;
         reactions = await loadReactions(messages);
       }
+
       setState((s) => {
         if (s.activeWorld?.world_id !== world.world_id) return s;
-        return { ...s, characters, archivedCharacters, activeCharacter, groupChats, activeGroupChat: null, messages, totalMessages, reactions, activePortraits, activeWorldImage, userProfile };
+        return { ...s, characters, archivedCharacters, activeCharacter, groupChats, activeGroupChat, messages, totalMessages, reactions, activePortraits, activeWorldImage, userProfile };
       });
     } catch (e) {
       setError(String(e));
@@ -288,6 +317,10 @@ export function useAppStore() {
 
   const selectCharacter = useCallback(async (character: Character) => {
     setState((s) => ({ ...s, activeCharacter: character, activeGroupChat: null, messages: [], totalMessages: 0, reactions: {}, editingUserProfile: false, chatError: null, lastFailedContent: null }));
+    // Remember last active chat for this world
+    if (state.activeWorld) {
+      api.setSetting(`last_chat.${state.activeWorld.world_id}`, `char:${character.character_id}`).catch(() => {});
+    }
     try {
       const page = await api.getMessages(character.character_id);
       const [reactions, aspectRatios] = await Promise.all([
@@ -305,6 +338,10 @@ export function useAppStore() {
 
   const selectGroupChat = useCallback(async (groupChat: GroupChat) => {
     setState((s) => ({ ...s, activeGroupChat: groupChat, activeCharacter: null, messages: [], totalMessages: 0, reactions: {}, editingUserProfile: false, chatError: null, lastFailedContent: null }));
+    // Remember last active chat for this world
+    if (state.activeWorld) {
+      api.setSetting(`last_chat.${state.activeWorld.world_id}`, `group:${groupChat.group_chat_id}`).catch(() => {});
+    }
     try {
       const page = await api.getGroupMessages(groupChat.group_chat_id);
       const reactions = await loadReactions(page.messages);

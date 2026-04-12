@@ -269,6 +269,26 @@ export function GroupChatView({ store }: Props) {
     lastMessageIdRef.current = lastId;
   }, [store.messages]);
 
+  // Scroll to bottom on mount / when chat changes / when messages first load
+  const initialScrollDone = useRef(false);
+  useEffect(() => {
+    initialScrollDone.current = false;
+  }, [store.activeGroupChat?.group_chat_id]);
+
+  useEffect(() => {
+    if (initialScrollDone.current || store.messages.length === 0) return;
+    initialScrollDone.current = true;
+    lastMessageIdRef.current = store.messages[store.messages.length - 1]?.message_id ?? null;
+    const el = scrollRef.current;
+    if (!el) return;
+    const scroll = () => { el.scrollTop = el.scrollHeight; };
+    scroll();
+    const t1 = setTimeout(scroll, 200);
+    const t2 = setTimeout(scroll, 600);
+    const t3 = setTimeout(scroll, 1500);
+    return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); };
+  }, [store.activeGroupChat?.group_chat_id, store.messages.length]);
+
   // Scroll to bottom when narrative/illustration generation starts
   useEffect(() => {
     if (isGeneratingNarrative || isGeneratingIllustration) {
@@ -518,7 +538,7 @@ export function GroupChatView({ store }: Props) {
                                   if (existing) { await existing.setFocus(); return; }
                                 } catch { /* not found */ }
                                 new WebviewWindow(label, {
-                                  url: `index.html?illustration=${msg.message_id}&group=${store.activeGroupChat!.group_chat_id}`,
+                                  url: `index.html?illustration=${msg.message_id}`,
                                   title: "Illustration",
                                   width: 1280,
                                   height: 760,
