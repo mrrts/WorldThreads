@@ -10,14 +10,13 @@ import { CharacterGrid } from "@/components/CharacterGrid";
 import { UserProfileEditor } from "@/components/UserProfileEditor";
 import { SettingsPanel } from "@/components/SettingsPanel";
 import { WorldSummary } from "@/components/WorldSummary";
-import { Gallery } from "@/components/Gallery";
 import { MoodDebugPanel } from "@/components/MoodDebugPanel";
 import { PortraitPopout } from "@/components/PortraitPopout";
-import { MessageSquare, PenLine, Users, Settings, Coins, Image, BookOpen, Download, Play, Square, Plus, Minus } from "lucide-react";
+import { MessageSquare, PenLine, Users, Settings, Coins, BookOpen, Download, Play, Square, Plus, Minus } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogBody, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 
-type View = "chat" | "world" | "character" | "settings" | "summary" | "gallery";
+type View = "chat" | "world" | "character" | "settings" | "summary";
 type CharSubView = "grid" | "editor" | "profile";
 
 export default function App() {
@@ -152,7 +151,6 @@ function MainApp() {
         <NavButton icon={<MessageSquare size={20} />} active={view === "chat"} onClick={handleChatNav} title="Chat" description="Talk with your characters in real time." />
         <NavButton icon={<PenLine size={20} />} active={view === "world"} onClick={() => setViewTracked("world")} title="World Canon" description="Edit your world's name, description, tone, and rules." />
         <NavButton icon={<Users size={20} />} active={view === "character"} onClick={handleCharNav} title="Characters" description="Create, edit, and manage your cast of characters." />
-        <NavButton icon={<Image size={20} />} active={view === "gallery"} onClick={() => setViewTracked("gallery")} title="Gallery" description="Browse, generate, and upload images for this world." />
         <div className="flex-1" />
         <UsageBadge sending={!!store.sending} />
         <NavButton icon={<Settings size={20} />} active={view === "settings"} onClick={() => setViewTracked("settings")} title="Settings" description="API key, model config, and app preferences." />
@@ -207,11 +205,6 @@ function MainApp() {
                 }}
               />
             ) : <CharacterEditor store={store} />}
-          </DeferredMount>
-        )}
-        {view === "gallery" && (
-          <DeferredMount key="gallery">
-            <Gallery store={store} />
           </DeferredMount>
         )}
         {view === "settings" && (
