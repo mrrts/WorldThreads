@@ -327,7 +327,23 @@ pub struct TtsRequest {
 }
 
 /// Generate speech audio via OpenAI TTS API. Returns raw MP3 bytes.
+/// Routes to /audio/speech for dedicated TTS models, or /chat/completions
+/// with audio modality for chat-based audio models (e.g. gpt-audio-1.5).
 pub async fn text_to_speech(base_url: &str, api_key: &str, request: &TtsRequest) -> Result<Vec<u8>, String> {
+    if is_chat_audio_model(&request.model) {
+        text_to_speech_via_chat(base_url, api_key, request).await
+    } else {
+        text_to_speech_direct(base_url, api_key, request).await
+    }
+}
+
+/// Returns true for models that use the chat completions endpoint with audio modality.
+fn is_chat_audio_model(model: &str) -> bool {
+    model.starts_with("gpt-audio")
+}
+
+/// Direct TTS via /audio/speech (tts-1, tts-1-hd, gpt-4o-mini-tts).
+async fn text_to_speech_direct(base_url: &str, api_key: &str, request: &TtsRequest) -> Result<Vec<u8>, String> {
     let client = Client::new();
     let url = format!("{base_url}/audio/speech");
     let mut builder = client.post(&url).json(request);
@@ -344,6 +360,80 @@ pub async fn text_to_speech(base_url: &str, api_key: &str, request: &TtsRequest)
         return Err(format!("API error ({}): {}", status, body));
     }
     resp.bytes().await.map(|b| b.to_vec()).map_err(|e| format!("Read error: {e}"))
+}
+
+/// Chat-based TTS via /chat/completions with audio modality (gpt-audio-1.5 etc.).
+async fn text_to_speech_via_chat(base_url: &str, api_key: &str, request: &TtsRequest) -> Result<Vec<u8>, String> {
+    let client = Client::new();
+    let url = format!("{base_url}/chat/completions");
+
+    let body = serde_json::json!({
+        "model": request.model,
+        "modalities": ["text", "audio"],
+        "audio": {
+            "voice": request.voice,
+            "format": "mp3"
+        },
+        "messages": [
+            {
+                "role": "user",
+                "content": format!("Read the following text aloud exactly as written. Do not add, change, or omit any words. Do not include any commentary, confirmation, or preamble such as \"Sure\" or \"Here's the text\". Speak only the provided text.\n\n{}", request.input)
+            }
+        ]
+    });
+
+    let mut builder = client.post(&url).json(&body);
+    if !api_key.is_empty() {
+        builder = builder.header("Authorization", format!("Bearer {api_key}"));
+    }
+    let resp = builder.send().await.map_err(|e| format!("Network error: {e}"))?;
+    let status = resp.status();
+    let resp_body = resp.text().await.map_err(|e| format!("Read error: {e}"))?;
+
+    if !status.is_success() {
+        if let Ok(err) = serde_json::from_str::<ApiError>(&resp_body) {
+            return Err(format!("API error ({}): {}", status, err.error.message));
+        }
+        return Err(format!("API error ({}): {}", status, resp_body));
+    }
+
+    // Parse the audio data from the chat response
+    let parsed: serde_json::Value = serde_json::from_str(&resp_body)
+        .map_err(|e| format!("Parse error: {e}"))?;
+
+    let audio_b64 = parsed
+        .get("choices").and_then(|c| c.get(0))
+        .and_then(|c| c.get("message"))
+        .and_then(|m| m.get("audio"))
+        .and_then(|a| a.get("data"))
+        .and_then(|d| d.as_str())
+        .ok_or_else(|| format!("No audio data in response: {}", &resp_body[..resp_body.len().min(500)]))?;
+
+    b64_decode(audio_b64)
+}
+
+fn b64_decode(input: &str) -> Result<Vec<u8>, String> {
+    const DECODE: [u8; 128] = {
+        let mut table = [255u8; 128];
+        let chars = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+        let mut i = 0;
+        while i < 64 { table[chars[i] as usize] = i as u8; i += 1; }
+        table
+    };
+    let input = input.as_bytes();
+    let mut result = Vec::with_capacity(input.len() * 3 / 4);
+    let mut buf = 0u32;
+    let mut bits = 0;
+    for &b in input {
+        if b == b'=' || b == b'\n' || b == b'\r' { continue; }
+        if b >= 128 { return Err("Invalid base64 character".to_string()); }
+        let val = DECODE[b as usize];
+        if val == 255 { return Err(format!("Invalid base64 character: {}", b as char)); }
+        buf = (buf << 6) | val as u32;
+        bits += 6;
+        if bits >= 8 { bits -= 8; result.push((buf >> bits) as u8); buf &= (1 << bits) - 1; }
+    }
+    Ok(result)
 }
 
 // ─── List Models ───────────────────────────────────────────────────────────

@@ -687,14 +687,14 @@ export function ChatView({ store }: Props) {
                               setToneMenuId(toneMenuId === msg.message_id ? null : msg.message_id);
                             }
                           }}
-                          className={`w-7 h-7 flex items-center justify-center rounded-full shadow-md border border-border/50 hover:scale-110 transition-all cursor-pointer ${
+                          className={`w-7 h-7 flex items-center justify-center rounded-full shadow-md border hover:scale-110 transition-all cursor-pointer ${
                             isSpeaking
-                              ? "bg-primary text-white opacity-100"
+                              ? "bg-primary text-white border-primary/50 opacity-100"
                               : isLoading
-                                ? "bg-white text-primary opacity-100"
+                                ? "bg-white text-primary border-border/50 opacity-100"
                                 : hasCached
-                                  ? "bg-white text-primary opacity-100"
-                                  : "bg-white text-muted-foreground hover:text-foreground opacity-0 group-hover:opacity-100"
+                                  ? "bg-amber-500/15 text-amber-500 border-amber-500/30 opacity-100"
+                                  : "bg-white text-muted-foreground hover:text-foreground border-border/50 opacity-0 group-hover:opacity-100"
                           }`}
                         >
                           {isLoading ? <Loader2 size={14} className="animate-spin" /> : isSpeaking ? <Square size={10} fill="white" /> : <Volume2 size={14} />}

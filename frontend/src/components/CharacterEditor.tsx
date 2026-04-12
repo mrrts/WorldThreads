@@ -34,6 +34,7 @@ export function CharacterEditor({ store }: Props) {
   const [showClearChat, setShowClearChat] = useState(false);
   const [showDeleteChar, setShowDeleteChar] = useState(false);
   const [ttsVoice, setTtsVoice] = useState("ash");
+  const [ttsModel, setTtsModel] = useState("gpt-4o-mini-tts");
   const [showVoiceExplorer, setShowVoiceExplorer] = useState(false);
   const [samplePlaying, setSamplePlaying] = useState<string | null>(null);
   const [sampleLoading, setSampleLoading] = useState<string | null>(null);
@@ -64,6 +65,7 @@ export function CharacterEditor({ store }: Props) {
       setDirty(false);
       loadPortraits(ch.character_id);
       api.getSetting(`voice.${ch.character_id}`).then((v) => setTtsVoice(v || "ash"));
+      api.getSetting(`tts_model.${ch.character_id}`).then((v) => setTtsModel(v || "gpt-4o-mini-tts"));
     }
   }, [ch?.character_id, loadPortraits]);
 
@@ -356,6 +358,20 @@ export function CharacterEditor({ store }: Props) {
                 />
               </Field>
 
+              <Field label="TTS Model" hint="Model used for text-to-speech generation">
+                <select
+                  className="w-full h-9 rounded-lg border border-border bg-background px-3 text-sm"
+                  value={ttsModel}
+                  onChange={(e) => {
+                    setTtsModel(e.target.value);
+                    if (ch) api.setSetting(`tts_model.${ch.character_id}`, e.target.value);
+                  }}
+                >
+                  <option value="gpt-4o-mini-tts">gpt-4o-mini-tts (fast, expressive)</option>
+                  <option value="gpt-audio-1.5">gpt-audio-1.5 (high quality)</option>
+                </select>
+              </Field>
+
               <Field label="TTS Voice" hint="Voice used for text-to-speech playback">
                 <div className="flex gap-2">
                   <select
@@ -391,7 +407,7 @@ export function CharacterEditor({ store }: Props) {
                     onClick={() => setShowVoiceExplorer(true)}
                   >
                     <Volume2 size={14} className="mr-1.5" />
-                    Preview
+                    Explore
                   </Button>
                 </div>
               </Field>
@@ -827,17 +843,33 @@ export function CharacterEditor({ store }: Props) {
             <DialogDescription>Listen to each voice to find the right fit for {form.display_name || "this character"}.</DialogDescription>
           </DialogHeader>
           <DialogBody>
-            <div className="mb-3">
-              <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Tone</label>
-              <select
-                className="w-full h-8 mt-1 rounded-lg border border-border bg-background px-2.5 text-xs"
-                value={sampleTone}
-                onChange={(e) => setSampleTone(e.target.value)}
-              >
-                {["Auto", "Playful", "Happy", "Excited", "Reverent", "Serene", "Intimate", "Tender", "Sad", "Melancholy", "Angry", "Anxious"].map((t) => (
-                  <option key={t} value={t}>{t}</option>
-                ))}
-              </select>
+            <div className="flex gap-2 mb-3">
+              <div className="flex-1">
+                <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Model</label>
+                <select
+                  className="w-full h-8 mt-1 rounded-lg border border-border bg-background px-2.5 text-xs"
+                  value={ttsModel}
+                  onChange={(e) => {
+                    setTtsModel(e.target.value);
+                    if (ch) api.setSetting(`tts_model.${ch.character_id}`, e.target.value);
+                  }}
+                >
+                  <option value="gpt-4o-mini-tts">gpt-4o-mini-tts</option>
+                  <option value="gpt-audio-1.5">gpt-audio-1.5</option>
+                </select>
+              </div>
+              <div className="flex-1">
+                <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Tone</label>
+                <select
+                  className="w-full h-8 mt-1 rounded-lg border border-border bg-background px-2.5 text-xs"
+                  value={sampleTone}
+                  onChange={(e) => setSampleTone(e.target.value)}
+                >
+                  {["Auto", "Playful", "Happy", "Excited", "Reverent", "Serene", "Intimate", "Tender", "Sad", "Melancholy", "Angry", "Anxious"].map((t) => (
+                    <option key={t} value={t}>{t}</option>
+                  ))}
+                </select>
+              </div>
             </div>
             <div className="space-y-3">
               {[
@@ -849,7 +881,7 @@ export function CharacterEditor({ store }: Props) {
                   <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">{group.label}</p>
                   <div className="flex flex-wrap gap-1.5">
                     {group.voices.map((voice) => {
-                      const sampleKey = `${voice}:${sampleTone}`;
+                      const sampleKey = `${ttsModel}:${voice}:${sampleTone}`;
                       const isPlaying = samplePlaying === sampleKey;
                       const isLoading = sampleLoading === sampleKey;
                       return (
@@ -865,7 +897,7 @@ export function CharacterEditor({ store }: Props) {
                             setSamplePlaying(null);
                             setSampleLoading(sampleKey);
                             try {
-                              const bytes = await api.generateVoiceSample(store.apiKey, voice, sampleTone === "Auto" ? undefined : sampleTone);
+                              const bytes = await api.generateVoiceSample(store.apiKey, voice, sampleTone === "Auto" ? undefined : sampleTone, ttsModel);
                               const blob = new Blob([new Uint8Array(bytes)], { type: "audio/mpeg" });
                               const url = URL.createObjectURL(blob);
                               const audio = new Audio(url);
@@ -903,9 +935,22 @@ export function CharacterEditor({ store }: Props) {
               ))}
             </div>
             <div className="mt-4 pt-3 border-t border-border flex justify-between items-center">
-              <p className="text-xs text-muted-foreground">
-                Current: <span className="font-medium text-foreground">{ttsVoice.charAt(0).toUpperCase() + ttsVoice.slice(1)}</span>
-              </p>
+              <div className="flex items-center gap-3">
+                <p className="text-xs text-muted-foreground">
+                  Current: <span className="font-medium text-foreground">{ttsVoice.charAt(0).toUpperCase() + ttsVoice.slice(1)}</span>
+                </p>
+                <button
+                  onClick={async () => {
+                    sampleAudioRef.current?.pause();
+                    setSamplePlaying(null);
+                    await api.clearVoiceSamples();
+                  }}
+                  className="text-[10px] text-muted-foreground/60 hover:text-red-400 transition-colors cursor-pointer flex items-center gap-1"
+                >
+                  <Trash2 size={10} />
+                  Clear cached previews
+                </button>
+              </div>
               <Button variant="ghost" size="sm" onClick={() => { setShowVoiceExplorer(false); sampleAudioRef.current?.pause(); setSamplePlaying(null); }}>
                 Done
               </Button>

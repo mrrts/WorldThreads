@@ -167,6 +167,7 @@ pub fn run() {
             get_speech_cmd,
             list_cached_audio_cmd,
             delete_message_audio_cmd,
+            clear_voice_samples_cmd,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

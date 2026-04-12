@@ -57,13 +57,14 @@ pub async fn generate_speech_cmd(
         }
     }
 
-    // Look up voice setting for this character
-    let voice = {
+    // Look up voice and model settings for this character
+    let (voice, tts_model) = {
         let conn = db.conn.lock().map_err(|e| e.to_string())?;
-        get_setting(&conn, &format!("voice.{character_id}"))
-            .ok()
-            .flatten()
-            .unwrap_or_else(|| "ash".to_string())
+        let v = get_setting(&conn, &format!("voice.{character_id}"))
+            .ok().flatten().unwrap_or_else(|| "ash".to_string());
+        let m = get_setting(&conn, &format!("tts_model.{character_id}"))
+            .ok().flatten().unwrap_or_else(|| "gpt-4o-mini-tts".to_string());
+        (v, m)
     };
 
     let model_config = {
@@ -71,14 +72,13 @@ pub async fn generate_speech_cmd(
         orchestrator::load_model_config(&conn)
     };
 
-    // Prepend tone bracket if not auto
     let input = match tone.as_deref() {
-        Some(t) if t != "Auto" && t != "auto" => format!("Narration style:\n{t}\n\nText:\n{text}"),
+        Some(t) if t != "Auto" && t != "auto" => format!("```\nNarration style: {t}\nSpeak only the provided text. Do not include any commentary, confirmation, or preamble.\n```\n\n{text}"),
         _ => text,
     };
 
     let request = openai::TtsRequest {
-        model: "gpt-4o-mini-tts".to_string(),
+        model: tts_model,
         input,
         voice,
     };
@@ -97,16 +97,22 @@ pub async fn generate_speech_cmd(
     Ok(bytes)
 }
 
-/// Generate a voice sample. Cached as `sample_{voice}_{tone}.mp3`.
+/// Generate a voice sample. Cached as `sample_{model}_{voice}_{tone}.mp3`.
 #[tauri::command]
 pub async fn generate_voice_sample_cmd(
     audio_dir: State<'_, AudioDir>,
     api_key: String,
     voice: String,
     tone: Option<String>,
+    model: Option<String>,
 ) -> Result<Vec<u8>, String> {
     let tone_key = tone.as_deref().unwrap_or("auto");
-    let file_path = audio_dir.0.join(format!("sample_{voice}_{}.mp3", tone_key.to_lowercase()));
+    let model_id = model.as_deref().unwrap_or("gpt-4o-mini-tts");
+    // Shorten model name for filename: "gpt-4o-mini-tts" → "mini", "gpt-audio-1.5" → "audio15"
+    let model_key = if model_id.contains("audio-1.5") { "audio15" }
+        else if model_id.contains("mini") { "mini" }
+        else { model_id };
+    let file_path = audio_dir.0.join(format!("sample_{model_key}_{voice}_{}.mp3", tone_key.to_lowercase()));
     if file_path.exists() {
         return std::fs::read(&file_path).map_err(|e| format!("Failed to read sample: {e}"));
     }
@@ -114,12 +120,12 @@ pub async fn generate_voice_sample_cmd(
     let voice_label = format!("{}{}", &voice[..1].to_uppercase(), &voice[1..]);
     let base_text = format!("Hi, I'm {voice_label}! How are you doing today?");
     let input = match tone.as_deref() {
-        Some(t) if t != "Auto" => format!("Narration style:\n{t}\n\nText:\n{base_text}"),
+        Some(t) if t != "Auto" => format!("```\nNarration style: {t}\nSpeak only the provided text. Do not include any commentary, confirmation, or preamble.\n```\n\n{base_text}"),
         _ => base_text,
     };
 
     let request = openai::TtsRequest {
-        model: "gpt-4o-mini-tts".to_string(),
+        model: model_id.to_string(),
         input,
         voice: voice.clone(),
     };
@@ -192,6 +198,22 @@ pub async fn delete_message_audio_cmd(
     let conn = db.conn.lock().map_err(|e| e.to_string())?;
     conn.execute("DELETE FROM settings WHERE key = ?1", rusqlite::params![format!("last_tone.{message_id}")])
         .map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+/// Delete all cached voice preview samples.
+#[tauri::command]
+pub async fn clear_voice_samples_cmd(
+    audio_dir: State<'_, AudioDir>,
+) -> Result<(), String> {
+    if let Ok(entries) = std::fs::read_dir(&audio_dir.0) {
+        for entry in entries.flatten() {
+            let name = entry.file_name().to_string_lossy().to_string();
+            if name.starts_with("sample_") && name.ends_with(".mp3") {
+                let _ = std::fs::remove_file(entry.path());
+            }
+        }
+    }
     Ok(())
 }
 
