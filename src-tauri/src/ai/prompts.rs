@@ -377,7 +377,8 @@ pub fn build_narrative_system_prompt(
 - Stay consistent with the world, the conversation, and both characters' established personalities.
 - Do NOT write dialogue or spoken words. No quotation marks.
 - Do NOT break the fourth wall. Do NOT reference the chat, the app, or the AI.
-- Be creative. Take risks. Make it feel alive."#
+- Be creative. Take risks. Make it feel alive.
+- The user may provide specific direction for this narrative beat. If they do, follow it above all else — it takes absolute priority over tone, mood, and other guidance."#
             .to_string(),
     );
 

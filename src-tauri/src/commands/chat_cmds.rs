@@ -544,6 +544,7 @@ pub async fn generate_narrative_cmd(
     db: State<'_, Database>,
     api_key: String,
     character_id: String,
+    custom_instructions: Option<String>,
 ) -> Result<NarrativeResult, String> {
     // Read everything from DB
     let (world, character, thread, recent_msgs, model_config, retrieved,
@@ -587,6 +588,14 @@ pub async fn generate_narrative_cmd(
         None
     };
 
+    // Merge saved narration instructions with ad-hoc custom instructions
+    let merged_instructions = match (&narration_instructions, &custom_instructions) {
+        (Some(saved), Some(custom)) if !saved.is_empty() && !custom.is_empty() => Some(format!("{saved}\n{custom}")),
+        (Some(saved), _) if !saved.is_empty() => Some(saved.clone()),
+        (_, Some(custom)) if !custom.is_empty() => Some(custom.clone()),
+        _ => None,
+    };
+
     // Generate narrative
     let (narrative_text, usage) = orchestrator::run_narrative_with_base(
         &model_config.chat_api_base(), &api_key, &model_config.dialogue_model,
@@ -594,7 +603,7 @@ pub async fn generate_narrative_cmd(
         user_profile.as_ref(),
         mood_directive.as_deref(),
         narration_tone.as_deref(),
-        narration_instructions.as_deref(),
+        merged_instructions.as_deref(),
     ).await?;
 
     if let Some(u) = &usage {

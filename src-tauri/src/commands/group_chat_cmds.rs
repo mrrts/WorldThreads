@@ -565,6 +565,7 @@ pub async fn generate_group_narrative_cmd(
     db: State<'_, Database>,
     api_key: String,
     group_chat_id: String,
+    custom_instructions: Option<String>,
 ) -> Result<chat_cmds::NarrativeResult, String> {
     let (world, characters, gc, recent_msgs, model_config, user_profile) = {
         let conn = db.conn.lock().map_err(|e| e.to_string())?;
@@ -597,13 +598,20 @@ pub async fn generate_group_narrative_cmd(
         (tone, instructions)
     };
 
+    let merged_instructions = match (&narration_instructions, &custom_instructions) {
+        (Some(saved), Some(custom)) if !saved.is_empty() && !custom.is_empty() => Some(format!("{saved}\n{custom}")),
+        (Some(saved), _) if !saved.is_empty() => Some(saved.clone()),
+        (_, Some(custom)) if !custom.is_empty() => Some(custom.clone()),
+        _ => None,
+    };
+
     let (narrative_text, usage) = orchestrator::run_narrative_with_base(
         &model_config.chat_api_base(), &api_key, &model_config.dialogue_model,
         &world, primary_character, &recent_msgs, &[],
         user_profile.as_ref(),
         None,
         narration_tone.as_deref(),
-        narration_instructions.as_deref(),
+        merged_instructions.as_deref(),
     ).await?;
 
     if let Some(u) = &usage {

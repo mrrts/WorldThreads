@@ -317,9 +317,20 @@ pub async fn run_narrative_with_base(
         });
     }
 
+    // Put custom instructions in the user message where the model prioritizes them
+    let user_prompt = if let Some(instructions) = narration_instructions {
+        if !instructions.is_empty() {
+            format!("Write a narrative beat for this moment.\n\nIMPORTANT DIRECTION — you MUST follow this:\n{instructions}")
+        } else {
+            "Write a narrative beat for this moment.".to_string()
+        }
+    } else {
+        "Write a narrative beat for this moment.".to_string()
+    };
+
     msgs.push(openai::ChatMessage {
         role: "user".to_string(),
-        content: "Write a narrative beat for this moment.".to_string(),
+        content: user_prompt,
     });
 
     let request = ChatRequest {

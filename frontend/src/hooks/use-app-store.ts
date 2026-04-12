@@ -731,13 +731,13 @@ export function useAppStore() {
     }
   }, [state.activeCharacter, state.apiKey]);
 
-  const generateNarrative = useCallback(async () => {
+  const generateNarrative = useCallback(async (customInstructions?: string) => {
     if (!state.activeCharacter || !state.apiKey) return;
 
     setState((s) => ({ ...s, sending: state.activeCharacter!.character_id, generatingNarrative: state.activeCharacter!.character_id, chatError: null }));
 
     try {
-      const result = await api.generateNarrative(state.apiKey, state.activeCharacter.character_id);
+      const result = await api.generateNarrative(state.apiKey, state.activeCharacter.character_id, customInstructions);
       setState((s) => ({
         ...s,
         messages: [...s.messages, result.narrative_message],
@@ -779,13 +779,13 @@ export function useAppStore() {
     }
   }, [state.activeCharacter, state.apiKey]);
 
-  const generateGroupNarrative = useCallback(async () => {
+  const generateGroupNarrative = useCallback(async (customInstructions?: string) => {
     if (!state.activeGroupChat || !state.apiKey) return;
 
     setState((s) => ({ ...s, sending: state.activeGroupChat!.group_chat_id, generatingNarrative: state.activeGroupChat!.group_chat_id, chatError: null }));
 
     try {
-      const result = await api.generateGroupNarrative(state.apiKey, state.activeGroupChat.group_chat_id);
+      const result = await api.generateGroupNarrative(state.apiKey, state.activeGroupChat.group_chat_id, customInstructions);
       setState((s) => ({
         ...s,
         messages: [...s.messages, result.narrative_message],

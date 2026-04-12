@@ -20,6 +20,7 @@ import { NarrationSettingsModal } from "@/components/chat/NarrationSettingsModal
 import { IllustrationPickerModal } from "@/components/chat/IllustrationPickerModal";
 import { AdjustIllustrationModal } from "@/components/chat/AdjustIllustrationModal";
 import { VideoGenerationModal } from "@/components/chat/VideoGenerationModal";
+import { NarrativePickerModal } from "@/components/chat/NarrativePickerModal";
 import { PortraitModal } from "@/components/chat/PortraitModal";
 
 
@@ -66,6 +67,7 @@ export function ChatView({ store }: Props) {
   const [modalPlayingVideo, setModalPlayingVideo] = useState(false);
   const [modalImageLoading, setModalImageLoading] = useState(false);
   const [modalIllustrations, setModalIllustrations] = useState<Array<{ id: string; content: string }>>([]);
+  const [showNarrativePicker, setShowNarrativePicker] = useState(false);
   const [showIllustrationPicker, setShowIllustrationPicker] = useState(false);
   const [illustrationInstructions, setIllustrationInstructions] = useState("");
   const [usePreviousScene, setUsePreviousScene] = useState(false);
@@ -890,7 +892,7 @@ export function ChatView({ store }: Props) {
                   variant="ghost"
                   size="icon"
                   className="text-amber-500/70 hover:text-amber-400 hover:bg-amber-500/10 h-9 w-9 rounded-lg"
-                  onClick={() => store.generateNarrative()}
+                  onClick={() => setShowNarrativePicker(true)}
                   disabled={isSending || !store.apiKey || store.messages.length === 0}
                 >
                   <BookOpen size={15} />
@@ -1013,6 +1015,12 @@ export function ChatView({ store }: Props) {
           store.clearChatHistory(store.activeCharacter!.character_id);
           setShowNarrationSettings(false);
         } : undefined}
+      />
+
+      <NarrativePickerModal
+        open={showNarrativePicker}
+        onClose={() => setShowNarrativePicker(false)}
+        onGenerate={(instructions) => store.generateNarrative(instructions)}
       />
 
       <IllustrationPickerModal

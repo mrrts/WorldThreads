@@ -10,4 +10,5 @@ export { IllustrationPickerModal } from "./IllustrationPickerModal";
 export { AdjustIllustrationModal } from "./AdjustIllustrationModal";
 export { VideoGenerationModal } from "./VideoGenerationModal";
 export { GroupTalkPickerModal } from "./GroupTalkPickerModal";
+export { NarrativePickerModal } from "./NarrativePickerModal";
 export { PortraitModal } from "./PortraitModal";

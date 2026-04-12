@@ -333,8 +333,8 @@ export const api = {
     invoke<SendMessageResult>("send_message_cmd", { apiKey, characterId, content }),
   promptCharacter: (apiKey: string, characterId: string) =>
     invoke<PromptCharacterResult>("prompt_character_cmd", { apiKey, characterId }),
-  generateNarrative: (apiKey: string, characterId: string) =>
-    invoke<NarrativeResult>("generate_narrative_cmd", { apiKey, characterId }),
+  generateNarrative: (apiKey: string, characterId: string, customInstructions?: string) =>
+    invoke<NarrativeResult>("generate_narrative_cmd", { apiKey, characterId, customInstructions: customInstructions ?? null }),
   generateIllustration: (apiKey: string, characterId: string, qualityTier?: string, customInstructions?: string, previousIllustrationId?: string, includeSceneSummary?: boolean) =>
     invoke<IllustrationResult>("generate_illustration_cmd", { apiKey, characterId, qualityTier: qualityTier ?? null, customInstructions: customInstructions ?? null, previousIllustrationId: previousIllustrationId ?? null, includeSceneSummary: includeSceneSummary ?? true }),
   deleteIllustration: (messageId: string) =>
@@ -478,8 +478,8 @@ export const api = {
     invoke<SendGroupMessageResult>("send_group_message_cmd", { apiKey, groupChatId, content }),
   promptGroupCharacter: (apiKey: string, groupChatId: string, characterId: string, addressTo?: string) =>
     invoke<Message>("prompt_group_character_cmd", { apiKey, groupChatId, characterId, addressTo: addressTo ?? null }),
-  generateGroupNarrative: (apiKey: string, groupChatId: string) =>
-    invoke<NarrativeResult>("generate_group_narrative_cmd", { apiKey, groupChatId }),
+  generateGroupNarrative: (apiKey: string, groupChatId: string, customInstructions?: string) =>
+    invoke<NarrativeResult>("generate_group_narrative_cmd", { apiKey, groupChatId, customInstructions: customInstructions ?? null }),
   generateGroupIllustration: (apiKey: string, groupChatId: string, qualityTier?: string, customInstructions?: string, previousIllustrationId?: string, includeSceneSummary?: boolean) =>
     invoke<IllustrationResult>("generate_group_illustration_cmd", { apiKey, groupChatId, qualityTier: qualityTier ?? null, customInstructions: customInstructions ?? null, previousIllustrationId: previousIllustrationId ?? null, includeSceneSummary: includeSceneSummary ?? true }),
 };
