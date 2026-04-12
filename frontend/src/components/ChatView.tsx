@@ -52,6 +52,7 @@ export function ChatView({ store }: Props) {
   const [videoPrompt, setVideoPrompt] = useState("");
   const [videoDuration, setVideoDuration] = useState(8);
   const [videoStyle, setVideoStyle] = useState("action-no-dialogue");
+  const [videoIncludeContext, setVideoIncludeContext] = useState(false);
   const [videoTab, setVideoTab] = useState<"generate" | "upload">("generate");
   const [uploadingVideo, setUploadingVideo] = useState(false);
   const [downloadedId, setDownloadedId] = useState<string | null>(null);
@@ -1143,7 +1144,7 @@ export function ChatView({ store }: Props) {
         onClose={() => setVideoModalId(null)}
         onGenerate={() => {
           if (videoModalId) {
-            store.generateVideo(videoModalId, videoPrompt.trim() || undefined, videoDuration, videoStyle);
+            store.generateVideo(videoModalId, videoPrompt.trim() || undefined, videoDuration, videoStyle, videoIncludeContext);
             setVideoModalId(null);
           }
         }}
@@ -1174,6 +1175,8 @@ export function ChatView({ store }: Props) {
         setVideoPrompt={setVideoPrompt}
         videoDuration={videoDuration}
         setVideoDuration={setVideoDuration}
+        includeContext={videoIncludeContext}
+        setIncludeContext={setVideoIncludeContext}
         uploadingVideo={uploadingVideo}
       />
 

@@ -944,9 +944,19 @@ pub async fn adjust_message_cmd(
                 ).ok().as_deref().map(|_| "") // placeholder
             } else { None });
 
-        // Get character - for individual chats, look up from thread
+        // Get character for the adjustment prompt context
         let character = if let Some(cid) = &msg.sender_character_id {
             get_character(&conn, cid).map_err(|e| e.to_string())?
+        } else if is_group {
+            // Group chat — get first character from the group
+            let gc_char_ids: String = conn.query_row(
+                "SELECT gc.character_ids FROM group_chats gc WHERE gc.thread_id = ?1",
+                params![msg.thread_id], |r| r.get(0),
+            ).map_err(|e| format!("Could not find group chat for thread: {e}"))?;
+            let first_id = serde_json::from_str::<Vec<String>>(&gc_char_ids)
+                .unwrap_or_default().into_iter().next()
+                .ok_or_else(|| "No characters in group chat".to_string())?;
+            get_character(&conn, &first_id).map_err(|e| e.to_string())?
         } else {
             // Individual chat — get character from thread
             let cid: String = conn.query_row(
@@ -962,16 +972,24 @@ pub async fn adjust_message_cmd(
     };
 
     // Build adjustment prompt
+    let system_content = if original_msg.role == "narrative" {
+        "You are a narrative voice in a conversation. You wrote the following narrative passage. \
+         The user wants you to adjust it according to their instructions. \
+         Rewrite the passage with the requested changes while keeping the narrative tone and style intact. \
+         Output ONLY the adjusted narrative text — no preamble, no explanation, no quotes.".to_string()
+    } else {
+        format!(
+            "You are {}. You wrote the following message in a conversation. \
+             The user wants you to adjust it according to their instructions. \
+             Rewrite the message with the requested changes while keeping your voice, personality, and the general meaning intact. \
+             Output ONLY the adjusted message text — no preamble, no explanation, no quotes.",
+            character.display_name,
+        )
+    };
     let messages = vec![
         openai::ChatMessage {
             role: "system".to_string(),
-            content: format!(
-                "You are {}. You wrote the following message in a conversation. \
-                 The user wants you to adjust it according to their instructions. \
-                 Rewrite the message with the requested changes while keeping your voice, personality, and the general meaning intact. \
-                 Output ONLY the adjusted message text — no preamble, no explanation, no quotes.",
-                character.display_name,
-            ),
+            content: system_content,
         },
         openai::ChatMessage {
             role: "user".to_string(),
@@ -1262,6 +1280,7 @@ pub async fn generate_video_cmd(
     custom_prompt: Option<String>,
     duration_seconds: Option<u32>,
     style: Option<String>,
+    include_context: Option<bool>,
 ) -> Result<String, String> {
     let is_group = character_id.is_empty();
 
@@ -1336,8 +1355,12 @@ pub async fn generate_video_cmd(
         .map_err(|e| format!("Failed to read illustration: {e}"))?;
     let image_b64 = base64_encode_bytes(&image_bytes);
 
-    // Generate animation prompt, appending custom instructions if provided
-    let mut animation_prompt = generate_animation_prompt(&api_key, &model_config, &world, &character, user_profile.as_ref(), &recent_msgs).await?;
+    // Generate animation prompt — optionally include conversation context
+    let mut animation_prompt = if include_context.unwrap_or(false) {
+        generate_animation_prompt(&api_key, &model_config, &world, &character, user_profile.as_ref(), &recent_msgs).await?
+    } else {
+        "Bring this illustration to life with natural, subtle motion.".to_string()
+    };
     if let Some(ref custom) = custom_prompt {
         if !custom.is_empty() {
             animation_prompt.push_str(&format!(" Additionally: {custom}"));

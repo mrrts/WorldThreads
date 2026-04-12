@@ -347,8 +347,8 @@ export const api = {
     invoke<IllustrationResult>("regenerate_illustration_cmd", { apiKey, characterId, messageId }),
   adjustIllustration: (apiKey: string, characterId: string, messageId: string, instructions: string) =>
     invoke<IllustrationResult>("adjust_illustration_cmd", { apiKey, characterId, messageId, instructions }),
-  generateVideo: (apiKey: string, googleApiKey: string, characterId: string, illustrationMessageId: string, customPrompt?: string, durationSeconds?: number, style?: string) =>
-    invoke<string>("generate_video_cmd", { apiKey, googleApiKey, characterId, illustrationMessageId, customPrompt: customPrompt ?? null, durationSeconds: durationSeconds ?? null, style: style ?? null }),
+  generateVideo: (apiKey: string, googleApiKey: string, characterId: string, illustrationMessageId: string, customPrompt?: string, durationSeconds?: number, style?: string, includeContext?: boolean) =>
+    invoke<string>("generate_video_cmd", { apiKey, googleApiKey, characterId, illustrationMessageId, customPrompt: customPrompt ?? null, durationSeconds: durationSeconds ?? null, style: style ?? null, includeContext: includeContext ?? null }),
   getIllustrationAspectRatio: (illustrationMessageId: string) =>
     invoke<number>("get_illustration_aspect_ratio_cmd", { illustrationMessageId }),
   getVideoFile: (illustrationMessageId: string) =>

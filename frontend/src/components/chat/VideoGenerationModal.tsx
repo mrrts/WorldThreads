@@ -15,6 +15,8 @@ interface VideoGenerationModalProps {
   setVideoPrompt: (v: string) => void;
   videoDuration: number;
   setVideoDuration: (v: number) => void;
+  includeContext: boolean;
+  setIncludeContext: (v: boolean) => void;
   uploadingVideo: boolean;
 }
 
@@ -31,6 +33,8 @@ export function VideoGenerationModal({
   setVideoPrompt,
   videoDuration,
   setVideoDuration,
+  includeContext,
+  setIncludeContext,
   uploadingVideo,
 }: VideoGenerationModalProps) {
   return (
@@ -103,8 +107,18 @@ export function VideoGenerationModal({
                 className="w-full min-h-[60px] max-h-[120px] resize-y rounded-lg border border-input bg-transparent px-3 py-2 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring"
                 rows={2}
               />
-              <p className="text-[10px] text-muted-foreground mt-1">Leave blank to auto-generate from conversation context.</p>
+              <p className="text-[10px] text-muted-foreground mt-1">Leave blank for a purely visual animation of the illustration.</p>
             </div>
+
+            <label className="flex items-center gap-2 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={includeContext}
+                onChange={(e) => setIncludeContext(e.target.checked)}
+                className="accent-purple-500 w-3.5 h-3.5"
+              />
+              <span className="text-xs text-muted-foreground">Include recent conversation context</span>
+            </label>
 
             <div>
               <label className="text-xs font-medium text-muted-foreground block mb-1.5">Duration: {videoDuration}s</label>

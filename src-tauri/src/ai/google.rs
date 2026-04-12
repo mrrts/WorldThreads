@@ -238,6 +238,7 @@ pub async fn poll_veo_until_done(api_key: &str, operation_name: &str) -> Result<
         }
 
         if op.done.unwrap_or(false) {
+            log_debug(&format!("VEO DONE RESPONSE BODY: {}", &body[..body.len().min(2000)]));
             let video_uri = op
                 .response
                 .and_then(|r| r.generate_video_response)
@@ -245,7 +246,7 @@ pub async fn poll_veo_until_done(api_key: &str, operation_name: &str) -> Result<
                 .and_then(|mut s| s.pop())
                 .and_then(|s| s.video)
                 .and_then(|v| v.uri)
-                .ok_or_else(|| "Veo completed but no video URI found".to_string())?;
+                .ok_or_else(|| format!("Veo completed but no video URI found. Response: {}", &body[..body.len().min(500)]))?;
 
             log_debug(&format!("VEO DONE uri_len={}", video_uri.len()));
             return Ok(video_uri);

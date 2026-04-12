@@ -1075,7 +1075,7 @@ export function useAppStore() {
     return result;
   }, []);
 
-  const generateVideo = useCallback(async (illustrationMessageId: string, customPrompt?: string, durationSeconds?: number, style?: string) => {
+  const generateVideo = useCallback(async (illustrationMessageId: string, customPrompt?: string, durationSeconds?: number, style?: string, includeContext?: boolean) => {
     const characterId = state.activeCharacter?.character_id ?? "";
     if (!state.apiKey || (!state.activeCharacter && !state.activeGroupChat)) return;
 
@@ -1088,7 +1088,7 @@ export function useAppStore() {
     setState((s) => ({ ...s, generatingVideo: illustrationMessageId, chatError: null }));
 
     try {
-      const videoFile = await api.generateVideo(state.apiKey, googleApiKey, characterId, illustrationMessageId, customPrompt, durationSeconds, style);
+      const videoFile = await api.generateVideo(state.apiKey, googleApiKey, characterId, illustrationMessageId, customPrompt, durationSeconds, style, includeContext);
       setState((s) => ({
         ...s,
         generatingVideo: null,
