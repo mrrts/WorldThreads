@@ -13,7 +13,9 @@ import { WorldSummary } from "@/components/WorldSummary";
 import { Gallery } from "@/components/Gallery";
 import { MoodDebugPanel } from "@/components/MoodDebugPanel";
 import { PortraitPopout } from "@/components/PortraitPopout";
-import { MessageSquare, PenLine, Users, Settings, Coins, Image, BookOpen, Download, ChevronLeft, ChevronRight, Play, Pause } from "lucide-react";
+import { MessageSquare, PenLine, Users, Settings, Coins, Image, BookOpen, Download, ChevronLeft, ChevronRight, Play, Pause, Plus, Minus } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogBody, DialogFooter } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
 import { useSlideshow } from "@/hooks/use-slideshow";
 
 type View = "chat" | "world" | "character" | "settings" | "summary" | "gallery";
@@ -41,6 +43,49 @@ function MainApp() {
   const [charSubView, setCharSubView] = useState<CharSubView>("grid");
   const lastChatCharRef = useRef<string | null>(null);
   const viewRef = useRef<View>("chat");
+
+  // Time-of-day check modal
+  const [showTimeModal, setShowTimeModal] = useState(false);
+  const [timeDay, setTimeDay] = useState(1);
+  const [timeOfDay, setTimeOfDay] = useState("MORNING");
+  const [baseDayIndex, setBaseDayIndex] = useState(1);
+  const timeCheckRef = useRef<string | null>(null); // tracks which world we last checked
+
+  // Check if last message was from a prior real-life day
+  useEffect(() => {
+    const worldId = store.activeWorld?.world_id;
+    if (!worldId || !store.activeWorld?.state?.time) return;
+    // Only check once per world selection
+    if (timeCheckRef.current === worldId) return;
+    timeCheckRef.current = worldId;
+
+    api.getLastMessageTime(worldId).then((ts) => {
+      if (!ts) return;
+      const lastDate = new Date(ts);
+      const today = new Date();
+      // Compare dates (ignore time)
+      const lastDay = new Date(lastDate.getFullYear(), lastDate.getMonth(), lastDate.getDate());
+      const todayDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+      if (lastDay < todayDay) {
+        const currentDay = store.activeWorld?.state?.time?.day_index ?? 1;
+        const currentTime = store.activeWorld?.state?.time?.time_of_day ?? "MORNING";
+        setBaseDayIndex(currentDay);
+        setTimeDay(currentDay + 1);
+        setTimeOfDay(currentTime);
+        setShowTimeModal(true);
+      }
+    });
+  }, [store.activeWorld?.world_id]);
+
+  // Also check on window focus
+  useEffect(() => {
+    const handler = () => {
+      // Reset the check ref so next focus re-checks
+      timeCheckRef.current = null;
+    };
+    window.addEventListener("focus", handler);
+    return () => window.removeEventListener("focus", handler);
+  }, []);
 
   // Cmd+R toggles auto-respond
   useEffect(() => {
@@ -194,6 +239,61 @@ function MainApp() {
       </main>
 
       <MoodDebugPanel characterId={store.activeCharacter?.character_id} />
+
+      <Dialog open={showTimeModal} onClose={() => setShowTimeModal(false)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Set a New Time?</DialogTitle>
+            <DialogDescription>It's been a while since you were last here. Want to advance the world clock?</DialogDescription>
+          </DialogHeader>
+          <DialogBody>
+            <div className="flex items-center gap-4">
+              <div className="flex-1">
+                <label className="text-xs font-medium text-muted-foreground block mb-1.5">Day</label>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setTimeDay((d) => Math.max(baseDayIndex, d - 1))}
+                    disabled={timeDay <= baseDayIndex}
+                    className="w-8 h-8 rounded-lg border border-border flex items-center justify-center hover:bg-accent transition-colors cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
+                  >
+                    <Minus size={14} />
+                  </button>
+                  <span className="text-lg font-semibold w-10 text-center">{timeDay}</span>
+                  <button
+                    onClick={() => setTimeDay((d) => d + 1)}
+                    className="w-8 h-8 rounded-lg border border-border flex items-center justify-center hover:bg-accent transition-colors cursor-pointer"
+                  >
+                    <Plus size={14} />
+                  </button>
+                </div>
+              </div>
+              <div className="flex-1">
+                <label className="text-xs font-medium text-muted-foreground block mb-1.5">Time of Day</label>
+                <select
+                  value={timeOfDay}
+                  onChange={(e) => setTimeOfDay(e.target.value)}
+                  className="w-full h-9 rounded-lg border border-border bg-background px-3 text-sm"
+                >
+                  {["DAWN", "MORNING", "MIDDAY", "AFTERNOON", "EVENING", "NIGHT", "LATE NIGHT"].map((t) => (
+                    <option key={t} value={t}>{t}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          </DialogBody>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setShowTimeModal(false)}>No Thanks</Button>
+            <Button onClick={() => {
+              if (store.activeWorld) {
+                const newState = structuredClone(store.activeWorld.state);
+                newState.time = { ...newState.time, day_index: timeDay, time_of_day: timeOfDay };
+                store.updateWorldState(newState);
+              }
+              setShowTimeModal(false);
+            }}>Ok</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

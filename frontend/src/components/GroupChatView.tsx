@@ -863,13 +863,13 @@ export function GroupChatView({ store }: Props) {
                 {showGroupTalkPicker && (() => {
                   const userName = store.userProfile?.display_name ?? "me";
                   const userAvatar = userAvatarUrl
-                    ? <img src={userAvatarUrl} alt="" className="w-5 h-5 rounded-full object-cover flex-shrink-0" />
-                    : <div className="w-5 h-5 rounded-full flex-shrink-0 bg-primary/30" />;
+                    ? <img src={userAvatarUrl} alt="" className="w-9 h-9 rounded-full object-cover flex-shrink-0" />
+                    : <div className="w-9 h-9 rounded-full flex-shrink-0 bg-primary/30" />;
                   const charAvatar = (ch: typeof groupCharacters[0]) => {
                     const p = store.activePortraits[ch.character_id];
                     return p?.data_url
-                      ? <img src={p.data_url} alt="" className="w-5 h-5 rounded-full object-cover flex-shrink-0" />
-                      : <div className="w-5 h-5 rounded-full flex-shrink-0" style={{ backgroundColor: ch.avatar_color }} />;
+                      ? <img src={p.data_url} alt="" className="w-9 h-9 rounded-full object-cover flex-shrink-0" />
+                      : <div className="w-9 h-9 rounded-full flex-shrink-0" style={{ backgroundColor: ch.avatar_color }} />;
                   };
                   return (
                   <div className="absolute bottom-full left-0 mb-2 z-50 bg-card border border-border rounded-xl shadow-xl p-2 space-y-0.5 animate-in fade-in zoom-in-95 duration-150 w-max">

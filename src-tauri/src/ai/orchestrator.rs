@@ -402,10 +402,26 @@ pub async fn generate_illustration_with_base(
         .map(|p| p.display_name.as_str())
         .unwrap_or("the human");
 
+    // Determine lighting from world time of day
+    let time_lighting = world.state.get("time")
+        .and_then(|t| t.get("time_of_day"))
+        .and_then(|v| v.as_str())
+        .map(|tod| match tod.to_uppercase().as_str() {
+            "DAWN" => "Early dawn light, sky shifting from deep blue to warm gold at the horizon.",
+            "MORNING" => "Bright warm morning light, clear and inviting.",
+            "MIDDAY" => "High midday sun, strong overhead light with short crisp shadows.",
+            "AFTERNOON" => "Warm golden afternoon light with long gentle rays.",
+            "EVENING" | "DUSK" => "Dusky evening light, warm oranges and purples painting the sky, long dramatic shadows.",
+            "NIGHT" => "Nighttime scene, moonlight and ambient glow, deep blues and soft shadows.",
+            "LATE NIGHT" => "Deep night, very dark atmosphere, only dim moonlight or artificial light sources.",
+            _ => "Gentle diffused natural lighting, nostalgic and contemplative mood.",
+        })
+        .unwrap_or("Gentle diffused natural lighting, nostalgic and contemplative mood.");
+
     let mut prompt_parts = vec![
         "Hand-painted watercolor illustration in a lush, realistic style.".to_string(),
         "Soft edges dissolving into wet-on-wet washes, visible paper texture, warm earth tones with pops of verdant green and sky blue.".to_string(),
-        "Gentle diffused natural lighting, nostalgic and contemplative mood.".to_string(),
+        time_lighting.to_string(),
         "Wide cinematic composition showing two characters in a scene together.".to_string(),
     ];
 

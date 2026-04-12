@@ -362,6 +362,8 @@ export const api = {
   getMediaDir: () => invoke<string>("get_media_dir_cmd"),
   resetToMessage: (apiKey: string, characterId: string, messageId: string) =>
     invoke<ResetToMessageResult>("reset_to_message_cmd", { apiKey, characterId, messageId }),
+  getLastMessageTime: (worldId: string) =>
+    invoke<string | null>("get_last_message_time_cmd", { worldId }),
   getMessages: (characterId: string, limit?: number, offset?: number) =>
     invoke<PaginatedMessages>("get_messages_cmd", { characterId, limit, offset }),
 

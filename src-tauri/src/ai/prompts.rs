@@ -345,6 +345,10 @@ pub fn build_narrative_system_prompt(
         }
     }
 
+    if let Some(time_desc) = world_time_description(world) {
+        parts.push(time_desc);
+    }
+
     if let Some(directive) = mood_directive {
         if !directive.is_empty() {
             parts.push(format!("CHARACTER MOOD:\n{directive}"));
@@ -436,11 +440,15 @@ pub fn build_scene_description_prompt(
         system_parts.push(format!("WORLD SETTING:\n{desc}"));
     }
 
+    if let Some(time_desc) = world_time_description(world) {
+        system_parts.push(time_desc);
+    }
+
     system_parts.push(r#"OUTPUT INSTRUCTIONS:
 - First, write a detailed scene description as a single paragraph (4-8 sentences): environment, lighting, weather, spatial arrangement of the two characters, their poses, expressions, body language, clothing, and any notable objects or details.
 - Write in third person, present tense, as if describing a painting.
 - Be specific about spatial relationships: who is where, facing which direction, what they're doing with their hands, eyes, body.
-- Include atmosphere: time of day, colors, mood, textures.
+- Include atmosphere: time of day, colors, mood, textures. The lighting MUST match the current time of day.
 - Do NOT include dialogue, speech bubbles, or text.
 - Do NOT include meta-instructions like "paint this" or "in watercolor style" — just describe the scene itself.
 - Both characters must appear in the scene.
@@ -482,6 +490,7 @@ pub fn build_scene_description_prompt(
 }
 
 pub fn build_animation_prompt(
+    world: &World,
     character: &Character,
     user_profile: Option<&UserProfile>,
     recent_messages: &[Message],
@@ -501,6 +510,10 @@ Write ONLY the animation direction, nothing else."#,
         user = user_name,
         char = character.display_name,
     )];
+
+    if let Some(time_desc) = world_time_description(world) {
+        system_parts.push(time_desc);
+    }
 
     // Include character descriptions so the prompt can reference them
     if !character.identity.is_empty() {
@@ -544,6 +557,28 @@ Write ONLY the animation direction, nothing else."#,
             ),
         },
     ]
+}
+
+fn world_time_description(world: &World) -> Option<String> {
+    let time = world.state.get("time")?;
+    let time_of_day = time.get("time_of_day").and_then(|v| v.as_str()).unwrap_or("");
+    let day_index = time.get("day_index").and_then(|v| v.as_i64());
+    if time_of_day.is_empty() { return None; }
+    let lighting = match time_of_day.to_uppercase().as_str() {
+        "DAWN" => "early dawn light, sky shifting from deep blue to warm gold at the horizon",
+        "MORNING" => "bright morning light, warm and clear",
+        "MIDDAY" => "high midday sun, strong overhead light with short shadows",
+        "AFTERNOON" => "warm afternoon light, long golden rays",
+        "EVENING" | "DUSK" => "dusky evening light, warm oranges and purples in the sky, shadows growing long",
+        "NIGHT" => "nighttime, lit by moonlight and/or artificial light sources, deep blues and shadows",
+        "LATE NIGHT" => "deep night, very dark, only dim ambient light or artificial glow",
+        _ => "",
+    };
+    let mut desc = format!("TIME OF DAY: {time_of_day}.");
+    if !lighting.is_empty() {
+        desc.push_str(&format!(" The lighting and atmosphere should reflect this: {lighting}."));
+    }
+    Some(desc)
 }
 
 fn json_array_to_strings(val: &Value) -> Vec<String> {

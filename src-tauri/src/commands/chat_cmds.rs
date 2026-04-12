@@ -353,6 +353,38 @@ pub async fn send_message_cmd(
     })
 }
 
+/// Get the most recent message timestamp across all threads in a world.
+#[tauri::command]
+pub fn get_last_message_time_cmd(
+    db: State<Database>,
+    world_id: String,
+) -> Result<Option<String>, String> {
+    let conn = db.conn.lock().map_err(|e| e.to_string())?;
+    // Check both individual and group message tables
+    let indiv: Option<String> = conn.query_row(
+        "SELECT m.created_at FROM messages m
+         JOIN threads t ON t.thread_id = m.thread_id
+         JOIN characters c ON c.character_id = t.character_id
+         WHERE c.world_id = ?1
+         ORDER BY m.created_at DESC LIMIT 1",
+        params![world_id], |r| r.get(0),
+    ).ok();
+    let group: Option<String> = conn.query_row(
+        "SELECT gm.created_at FROM group_messages gm
+         JOIN group_chats gc ON gc.thread_id = gm.thread_id
+         WHERE gc.world_id = ?1
+         ORDER BY gm.created_at DESC LIMIT 1",
+        params![world_id], |r| r.get(0),
+    ).ok();
+    // Return the more recent of the two
+    Ok(match (indiv, group) {
+        (Some(a), Some(b)) => Some(if a > b { a } else { b }),
+        (Some(a), None) => Some(a),
+        (None, Some(b)) => Some(b),
+        (None, None) => None,
+    })
+}
+
 #[derive(serde::Serialize)]
 pub struct PaginatedMessages {
     pub messages: Vec<Message>,
@@ -1192,7 +1224,7 @@ pub async fn generate_video_cmd(
     let is_group = character_id.is_empty();
 
     // Load context
-    let (character, recent_msgs, model_config, user_profile, illustration_file) = {
+    let (world, character, recent_msgs, model_config, user_profile, illustration_file) = {
         let conn = db.conn.lock().map_err(|e| e.to_string())?;
         let model_config = orchestrator::load_model_config(&conn);
 
@@ -1210,6 +1242,7 @@ pub async fn generate_video_cmd(
             "SELECT world_id FROM threads WHERE thread_id = ?1",
             params![thread_id], |r| r.get(0),
         ).map_err(|e| e.to_string())?;
+        let world = get_world(&conn, &world_id).map_err(|e| e.to_string())?;
 
         let character = if is_group {
             // Dummy character for animation prompt
@@ -1251,7 +1284,7 @@ pub async fn generate_video_cmd(
         .collect();
         recent_msgs.reverse();
 
-        (character, recent_msgs, model_config, user_profile, file_name)
+        (world, character, recent_msgs, model_config, user_profile, file_name)
     };
 
     let dir = &portraits_dir.0;
@@ -1262,7 +1295,7 @@ pub async fn generate_video_cmd(
     let image_b64 = base64_encode_bytes(&image_bytes);
 
     // Generate animation prompt, appending custom instructions if provided
-    let mut animation_prompt = generate_animation_prompt(&api_key, &model_config, &character, user_profile.as_ref(), &recent_msgs).await?;
+    let mut animation_prompt = generate_animation_prompt(&api_key, &model_config, &world, &character, user_profile.as_ref(), &recent_msgs).await?;
     if let Some(ref custom) = custom_prompt {
         if !custom.is_empty() {
             animation_prompt.push_str(&format!(" Additionally: {custom}"));
@@ -1494,13 +1527,14 @@ pub fn get_video_file_cmd(
 async fn generate_animation_prompt(
     api_key: &str,
     model_config: &orchestrator::ModelConfig,
+    world: &World,
     character: &Character,
     user_profile: Option<&UserProfile>,
     recent_msgs: &[Message],
 ) -> Result<String, String> {
     use crate::ai::prompts;
 
-    let messages = prompts::build_animation_prompt(character, user_profile, recent_msgs);
+    let messages = prompts::build_animation_prompt(world, character, user_profile, recent_msgs);
     let request = ChatRequest {
         model: model_config.dialogue_model.clone(),
         messages,
