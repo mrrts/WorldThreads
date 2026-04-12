@@ -455,6 +455,33 @@ pub struct Message {
     pub created_at: String,
 }
 
+pub fn update_message_content(conn: &Connection, message_id: &str, content: &str, tokens_estimate: i64) -> Result<(), rusqlite::Error> {
+    conn.execute(
+        "UPDATE messages SET content = ?2, tokens_estimate = ?3 WHERE message_id = ?1",
+        params![message_id, content, tokens_estimate],
+    )?;
+    // Update FTS
+    conn.execute("DELETE FROM messages_fts WHERE message_id = ?1", params![message_id]).ok();
+    conn.execute(
+        "INSERT INTO messages_fts (message_id, thread_id, content) SELECT message_id, thread_id, ?2 FROM messages WHERE message_id = ?1",
+        params![message_id, content],
+    ).ok();
+    Ok(())
+}
+
+pub fn update_group_message_content(conn: &Connection, message_id: &str, content: &str, tokens_estimate: i64) -> Result<(), rusqlite::Error> {
+    conn.execute(
+        "UPDATE group_messages SET content = ?2, tokens_estimate = ?3 WHERE message_id = ?1",
+        params![message_id, content, tokens_estimate],
+    )?;
+    conn.execute("DELETE FROM group_messages_fts WHERE message_id = ?1", params![message_id]).ok();
+    conn.execute(
+        "INSERT INTO group_messages_fts (message_id, thread_id, content) SELECT message_id, thread_id, ?2 FROM group_messages WHERE message_id = ?1",
+        params![message_id, content],
+    ).ok();
+    Ok(())
+}
+
 pub fn create_message(conn: &Connection, m: &Message) -> Result<(), rusqlite::Error> {
     conn.execute(
         "INSERT INTO messages (message_id, thread_id, role, content, tokens_estimate, sender_character_id, created_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",

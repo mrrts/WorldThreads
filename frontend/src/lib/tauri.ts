@@ -333,6 +333,8 @@ export const api = {
     invoke<SendMessageResult>("send_message_cmd", { apiKey, characterId, content }),
   promptCharacter: (apiKey: string, characterId: string) =>
     invoke<PromptCharacterResult>("prompt_character_cmd", { apiKey, characterId }),
+  adjustMessage: (apiKey: string, messageId: string, instructions: string, isGroup: boolean) =>
+    invoke<Message>("adjust_message_cmd", { apiKey, messageId, instructions, isGroup }),
   generateNarrative: (apiKey: string, characterId: string, customInstructions?: string) =>
     invoke<NarrativeResult>("generate_narrative_cmd", { apiKey, characterId, customInstructions: customInstructions ?? null }),
   generateIllustration: (apiKey: string, characterId: string, qualityTier?: string, customInstructions?: string, previousIllustrationId?: string, includeSceneSummary?: boolean) =>

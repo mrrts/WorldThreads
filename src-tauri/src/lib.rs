@@ -104,6 +104,7 @@ pub fn run() {
             download_illustration_cmd,
             get_video_bytes_cmd,
             get_media_dir_cmd,
+            adjust_message_cmd,
             reset_to_message_cmd,
             get_messages_cmd,
             get_model_config_cmd,

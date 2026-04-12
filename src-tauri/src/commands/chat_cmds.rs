@@ -867,6 +867,136 @@ fn delete_illustration_inner(conn: &rusqlite::Connection, portraits_dir: &std::p
     Ok(())
 }
 
+/// Adjust a character message in-place using LLM with user instructions.
+#[tauri::command]
+pub async fn adjust_message_cmd(
+    db: State<'_, Database>,
+    audio_dir: State<'_, crate::commands::audio_cmds::AudioDir>,
+    api_key: String,
+    message_id: String,
+    instructions: String,
+    is_group: bool,
+) -> Result<Message, String> {
+    // Load the original message and context
+    let (original_msg, character, model_config) = {
+        let conn = db.conn.lock().map_err(|e| e.to_string())?;
+
+        let (msg, table) = if is_group {
+            let m: Message = conn.query_row(
+                "SELECT message_id, thread_id, role, content, tokens_estimate, sender_character_id, created_at FROM group_messages WHERE message_id = ?1",
+                params![message_id], |r| Ok(Message {
+                    message_id: r.get(0)?, thread_id: r.get(1)?, role: r.get(2)?,
+                    content: r.get(3)?, tokens_estimate: r.get(4)?,
+                    sender_character_id: r.get(5)?, created_at: r.get(6)?,
+                }),
+            ).map_err(|e| format!("Message not found: {e}"))?;
+            (m, "group")
+        } else {
+            let m: Message = conn.query_row(
+                "SELECT message_id, thread_id, role, content, tokens_estimate, sender_character_id, created_at FROM messages WHERE message_id = ?1",
+                params![message_id], |r| Ok(Message {
+                    message_id: r.get(0)?, thread_id: r.get(1)?, role: r.get(2)?,
+                    content: r.get(3)?, tokens_estimate: r.get(4)?,
+                    sender_character_id: r.get(5)?, created_at: r.get(6)?,
+                }),
+            ).map_err(|e| format!("Message not found: {e}"))?;
+            (m, "indiv")
+        };
+
+        let char_id = msg.sender_character_id.as_deref()
+            .or_else(|| if table == "indiv" {
+                // For individual chats, get character from thread
+                conn.query_row(
+                    "SELECT character_id FROM threads WHERE thread_id = ?1",
+                    params![msg.thread_id], |r| r.get::<_, String>(0),
+                ).ok().as_deref().map(|_| "") // placeholder
+            } else { None });
+
+        // Get character - for individual chats, look up from thread
+        let character = if let Some(cid) = &msg.sender_character_id {
+            get_character(&conn, cid).map_err(|e| e.to_string())?
+        } else {
+            // Individual chat — get character from thread
+            let cid: String = conn.query_row(
+                "SELECT character_id FROM threads WHERE thread_id = ?1",
+                params![msg.thread_id], |r| r.get(0),
+            ).map_err(|e| format!("Could not find character for thread: {e}"))?;
+            get_character(&conn, &cid).map_err(|e| e.to_string())?
+        };
+
+        let model_config = orchestrator::load_model_config(&conn);
+        let _ = char_id; // suppress unused warning
+        (msg, character, model_config)
+    };
+
+    // Build adjustment prompt
+    let messages = vec![
+        openai::ChatMessage {
+            role: "system".to_string(),
+            content: format!(
+                "You are {}. You wrote the following message in a conversation. \
+                 The user wants you to adjust it according to their instructions. \
+                 Rewrite the message with the requested changes while keeping your voice, personality, and the general meaning intact. \
+                 Output ONLY the adjusted message text — no preamble, no explanation, no quotes.",
+                character.display_name,
+            ),
+        },
+        openai::ChatMessage {
+            role: "user".to_string(),
+            content: format!(
+                "Original message:\n{}\n\nAdjust it according to these instructions:\n{}",
+                original_msg.content, instructions,
+            ),
+        },
+    ];
+
+    let request = openai::ChatRequest {
+        model: model_config.dialogue_model.clone(),
+        messages,
+        temperature: Some(0.9),
+        max_completion_tokens: Some(1024),
+        response_format: None,
+    };
+
+    let response = openai::chat_completion_with_base(
+        &model_config.chat_api_base(), &api_key, &request,
+    ).await?;
+
+    let new_content = response.choices.first()
+        .map(|c| c.message.content.clone())
+        .ok_or_else(|| "No response from model".to_string())?;
+
+    let tokens = response.usage.as_ref().map(|u| u.total_tokens).unwrap_or(0);
+
+    // Update in place
+    {
+        let conn = db.conn.lock().map_err(|e| e.to_string())?;
+        if is_group {
+            update_group_message_content(&conn, &message_id, &new_content, tokens as i64)
+                .map_err(|e| e.to_string())?;
+        } else {
+            update_message_content(&conn, &message_id, &new_content, tokens as i64)
+                .map_err(|e| e.to_string())?;
+        }
+        if let Some(u) = &response.usage {
+            let _ = record_token_usage(&conn, "adjust_message", &model_config.dialogue_model, u.prompt_tokens, u.completion_tokens);
+        }
+    }
+
+    // Delete any cached audio for this message (content changed)
+    crate::commands::audio_cmds::delete_audio_for_message(&audio_dir.0, &message_id);
+
+    Ok(Message {
+        message_id: original_msg.message_id,
+        thread_id: original_msg.thread_id,
+        role: original_msg.role,
+        content: new_content,
+        tokens_estimate: tokens as i64,
+        sender_character_id: original_msg.sender_character_id,
+        created_at: original_msg.created_at,
+    })
+}
+
 #[tauri::command]
 pub async fn delete_illustration_cmd(
     db: State<'_, Database>,

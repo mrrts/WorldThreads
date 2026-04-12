@@ -27,6 +27,8 @@ export interface AppState {
   /** Character ID currently generating an illustration, or null */
   generatingIllustration: string | null;
   generatingVideo: string | null;
+  /** Message ID currently being adjusted, or null */
+  adjustingMessageId: string | null;
   /** Which character is currently generating a response in a group chat */
   sendingCharacterId: string | null;
   /** Map of illustration message_id → video filename */
@@ -78,6 +80,7 @@ export function useAppStore() {
     generatingNarrative: null,
     generatingIllustration: null,
     generatingVideo: null,
+    adjustingMessageId: null,
     sendingCharacterId: null,
     videoFiles: {},
     aspectRatios: {},
@@ -827,6 +830,28 @@ export function useAppStore() {
     }
   }, [state.activeGroupChat, state.apiKey]);
 
+  const adjustMessage = useCallback(async (messageId: string, instructions: string) => {
+    if (!state.apiKey) return;
+    const isGroup = !!state.activeGroupChat && !state.activeCharacter;
+
+    setState((s) => ({ ...s, adjustingMessageId: messageId, chatError: null }));
+
+    try {
+      const updated = await api.adjustMessage(state.apiKey, messageId, instructions, isGroup);
+      setState((s) => ({
+        ...s,
+        adjustingMessageId: null,
+        messages: s.messages.map((m) => m.message_id === messageId ? updated : m),
+      }));
+    } catch (e) {
+      setState((s) => ({
+        ...s,
+        adjustingMessageId: null,
+        chatError: String(e),
+      }));
+    }
+  }, [state.apiKey, state.activeGroupChat, state.activeCharacter]);
+
   const deleteIllustration = useCallback(async (messageId: string) => {
     try {
       await api.deleteIllustration(messageId);
@@ -1271,6 +1296,7 @@ export function useAppStore() {
     generateGroupNarrative,
     generateIllustration,
     generateGroupIllustration,
+    adjustMessage,
     deleteIllustration,
     regenerateIllustration,
     adjustIllustration,

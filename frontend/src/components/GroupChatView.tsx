@@ -18,6 +18,7 @@ import { NarrationSettingsModal } from "@/components/chat/NarrationSettingsModal
 import { IllustrationPickerModal } from "@/components/chat/IllustrationPickerModal";
 import { AdjustIllustrationModal } from "@/components/chat/AdjustIllustrationModal";
 import { VideoGenerationModal } from "@/components/chat/VideoGenerationModal";
+import { AdjustMessageModal } from "@/components/chat/AdjustMessageModal";
 import { NarrativePickerModal } from "@/components/chat/NarrativePickerModal";
 import { PortraitModal } from "@/components/chat/PortraitModal";
 
@@ -68,6 +69,7 @@ export function GroupChatView({ store }: Props) {
   const [modalImageLoading, setModalImageLoading] = useState(false);
   const [modalIllustrations, setModalIllustrations] = useState<Array<{ id: string; content: string }>>([]);
   const [showNarrativePicker, setShowNarrativePicker] = useState(false);
+  const [adjustMessageId, setAdjustMessageId] = useState<string | null>(null);
   const [showIllustrationPicker, setShowIllustrationPicker] = useState(false);
   const [illustrationInstructions, setIllustrationInstructions] = useState("");
   const [usePreviousScene, setUsePreviousScene] = useState(false);
@@ -726,6 +728,25 @@ export function GroupChatView({ store }: Props) {
                         </button>
                       )}
                     </p>
+                    {!isUser && !isPending && (
+                      <div className="absolute top-2 right-8 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <div className="relative group/madj">
+                          <button
+                            onClick={() => setAdjustMessageId(msg.message_id)}
+                            className="w-7 h-7 rounded-full bg-black/50 text-white flex items-center justify-center cursor-pointer hover:bg-black/70 transition-colors backdrop-blur-sm"
+                          >
+                            <SlidersHorizontal size={12} />
+                          </button>
+                          <span className="absolute top-full left-1/2 -translate-x-1/2 mt-1.5 px-2 py-0.5 text-[10px] font-medium text-white bg-black rounded-md shadow-lg whitespace-nowrap opacity-0 group-hover/madj:opacity-100 pointer-events-none transition-opacity">Adjust</span>
+                        </div>
+                      </div>
+                    )}
+                    {store.adjustingMessageId === msg.message_id && (
+                      <div className="absolute inset-0 rounded-2xl bg-secondary/80 backdrop-blur-sm flex items-center justify-center gap-2">
+                        <Loader2 size={14} className="animate-spin text-muted-foreground" />
+                        <span className="text-xs text-muted-foreground">Adjusting...</span>
+                      </div>
+                    )}
                   </div>
                   {isUser && userAvatarUrl && (
                     <button onClick={() => setShowUserAvatarModal(true)} className="cursor-pointer flex-shrink-0 mb-1">
@@ -1023,6 +1044,19 @@ export function GroupChatView({ store }: Props) {
           store.clearGroupChatHistory(store.activeGroupChat!.group_chat_id);
           setShowNarrationSettings(false);
         } : undefined}
+      />
+
+      <AdjustMessageModal
+        open={!!adjustMessageId}
+        onClose={() => setAdjustMessageId(null)}
+        onAdjust={(instructions) => {
+          if (adjustMessageId) store.adjustMessage(adjustMessageId, instructions);
+        }}
+        characterName={adjustMessageId ? (() => {
+          const msg = store.messages.find((m) => m.message_id === adjustMessageId);
+          const ch = msg?.sender_character_id ? groupCharacters.find((c) => c.character_id === msg.sender_character_id) : undefined;
+          return ch?.display_name;
+        })() : undefined}
       />
 
       <NarrativePickerModal
