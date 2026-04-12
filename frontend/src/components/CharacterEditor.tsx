@@ -33,7 +33,7 @@ export function CharacterEditor({ store }: Props) {
   const [generatingPose, setGeneratingPose] = useState(false);
   const [showClearChat, setShowClearChat] = useState(false);
   const [showDeleteChar, setShowDeleteChar] = useState(false);
-  const [ttsVoice, setTtsVoice] = useState("nova");
+  const [ttsVoice, setTtsVoice] = useState("ash");
   const [showVoiceExplorer, setShowVoiceExplorer] = useState(false);
   const [samplePlaying, setSamplePlaying] = useState<string | null>(null);
   const [sampleLoading, setSampleLoading] = useState<string | null>(null);
@@ -63,7 +63,7 @@ export function CharacterEditor({ store }: Props) {
       });
       setDirty(false);
       loadPortraits(ch.character_id);
-      api.getSetting(`voice.${ch.character_id}`).then((v) => setTtsVoice(v || "nova"));
+      api.getSetting(`voice.${ch.character_id}`).then((v) => setTtsVoice(v || "ash"));
     }
   }, [ch?.character_id, loadPortraits]);
 

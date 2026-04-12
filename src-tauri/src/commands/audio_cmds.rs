@@ -63,7 +63,7 @@ pub async fn generate_speech_cmd(
         get_setting(&conn, &format!("voice.{character_id}"))
             .ok()
             .flatten()
-            .unwrap_or_else(|| "nova".to_string())
+            .unwrap_or_else(|| "ash".to_string())
     };
 
     let model_config = {
