@@ -944,24 +944,8 @@ export function GroupChatView({ store }: Props) {
                   };
                   return (
                   <div className="absolute bottom-full left-0 mb-2 z-50 bg-card border border-border rounded-xl shadow-xl p-2 space-y-0.5 animate-in fade-in zoom-in-95 duration-150 w-max">
-                    {groupCharacters.map((ch) => (
-                      <button
-                        key={`${ch.character_id}-user`}
-                        onClick={() => {
-                          store.promptGroupCharacter(ch.character_id);
-                          setShowGroupTalkPicker(false);
-                        }}
-                        className="flex items-center gap-2 w-full px-2 py-1.5 rounded-lg hover:bg-accent transition-colors cursor-pointer"
-                      >
-                        {charAvatar(ch)}
-                        <ArrowRight size={10} className="text-muted-foreground flex-shrink-0" />
-                        {userAvatar}
-                        <span className="text-xs whitespace-nowrap"><span className="font-medium">{ch.display_name}</span> <span className="text-muted-foreground">to Me</span></span>
-                      </button>
-                    ))}
                     {groupCharacters.length > 1 && (
                       <>
-                        <div className="border-t border-border my-1" />
                         {groupCharacters.flatMap((speaker) =>
                           groupCharacters
                             .filter((target) => target.character_id !== speaker.character_id)
@@ -981,8 +965,24 @@ export function GroupChatView({ store }: Props) {
                               </button>
                             ))
                         )}
+                        <div className="border-t border-border my-1" />
                       </>
                     )}
+                    {groupCharacters.map((ch) => (
+                      <button
+                        key={`${ch.character_id}-user`}
+                        onClick={() => {
+                          store.promptGroupCharacter(ch.character_id);
+                          setShowGroupTalkPicker(false);
+                        }}
+                        className="flex items-center gap-2 w-full px-2 py-1.5 rounded-lg hover:bg-accent transition-colors cursor-pointer"
+                      >
+                        {charAvatar(ch)}
+                        <ArrowRight size={10} className="text-muted-foreground flex-shrink-0" />
+                        {userAvatar}
+                        <span className="text-xs whitespace-nowrap"><span className="font-medium">{ch.display_name}</span> <span className="text-muted-foreground">to Me</span></span>
+                      </button>
+                    ))}
                   </div>
                   );
                 })()}
