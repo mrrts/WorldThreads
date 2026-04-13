@@ -1,7 +1,7 @@
 import { useRef, useEffect, useState, useCallback } from "react";
 import { useSlideshow } from "@/hooks/use-slideshow";
 import type { useAppStore } from "@/hooks/use-app-store";
-import { api } from "@/lib/tauri";
+import { api, type Message } from "@/lib/tauri";
 
 interface UseChatStateOptions {
   store: ReturnType<typeof useAppStore>;
@@ -58,6 +58,7 @@ export function useChatState({ store, chatId, chatType }: UseChatStateOptions) {
   const [videoFiles, setVideoFiles] = useState<Record<string, string>>({});
   const [videoDataUrls, setVideoDataUrls] = useState<Record<string, string>>({});
   const [showUserAvatarModal, setShowUserAvatarModal] = useState(false);
+  const [carouselAllMessages, setCarouselAllMessages] = useState<Message[]>([]);
 
   // ── Derived state ─────────────────────────────────────────────────────
   const isSending = store.sending === chatId;
@@ -361,6 +362,7 @@ export function useChatState({ store, chatId, chatType }: UseChatStateOptions) {
     videoFiles, setVideoFiles,
     videoDataUrls, setVideoDataUrls,
     showUserAvatarModal, setShowUserAvatarModal,
+    carouselAllMessages, setCarouselAllMessages,
 
     // Derived
     isSending,

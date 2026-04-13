@@ -94,6 +94,7 @@ export function ChatView({ store }: Props) {
     videoFiles, setVideoFiles,
     videoDataUrls, setVideoDataUrls,
     showUserAvatarModal, setShowUserAvatarModal,
+    carouselAllMessages, setCarouselAllMessages,
 
     isSending,
     isGeneratingNarrative,
@@ -294,6 +295,7 @@ export function ChatView({ store }: Props) {
                       const page = await api.getMessages(store.activeCharacter.character_id);
                       const illus = page.messages.filter((m) => m.role === "illustration").map((m) => ({ id: m.message_id, content: m.content }));
                       setModalIllustrations(illus);
+                      setCarouselAllMessages(page.messages);
                       for (const il of illus) {
                         if (!videoFiles[il.id]) api.getVideoFile(il.id).then((vf) => { if (vf) setVideoFiles((prev) => ({ ...prev, [il.id]: vf })); }).catch(() => {});
                       }
@@ -834,6 +836,24 @@ export function ChatView({ store }: Props) {
         setDownloadedId={setDownloadedId}
         modalSlideshow={modalSlideshow}
         fallbackIllustrations={store.messages.filter((m) => m.role === "illustration").map((m) => ({ id: m.message_id, content: m.content }))}
+        allMessages={carouselAllMessages}
+        portraits={Object.fromEntries(
+          Object.entries(store.activePortraits)
+            .filter(([, p]) => p?.data_url)
+            .map(([id, p]) => [id, p!.data_url!])
+        )}
+        characterColors={Object.fromEntries(
+          store.characters.map((c) => [c.character_id, c.avatar_color])
+        )}
+        characterNames={Object.fromEntries(
+          store.characters.map((c) => [c.character_id, c.display_name])
+        )}
+        userAvatarUrl={userAvatarUrl}
+        playVideo={playVideo}
+        playingVideo={playingVideo}
+        setPlayingVideo={setPlayingVideo}
+        loopVideo={loopVideo}
+        setLoopVideo={setLoopVideo}
       />
 
       <RemoveVideoConfirmModal
