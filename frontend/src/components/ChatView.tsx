@@ -19,6 +19,7 @@ import { NarrationSettingsModal } from "@/components/chat/NarrationSettingsModal
 import { IllustrationPickerModal } from "@/components/chat/IllustrationPickerModal";
 import { AdjustIllustrationModal } from "@/components/chat/AdjustIllustrationModal";
 import { VideoGenerationModal } from "@/components/chat/VideoGenerationModal";
+import { IllustrationMessage } from "@/components/chat/IllustrationMessage";
 import { IllustrationCarouselModal } from "@/components/chat/IllustrationCarouselModal";
 import { AdjustMessageModal } from "@/components/chat/AdjustMessageModal";
 import { SummaryModal } from "@/components/chat/SummaryModal";
