@@ -129,19 +129,20 @@ pub async fn run_dialogue_with_base(
     let system = prompts::build_dialogue_system_prompt(world, character, user_profile, mood_directive, response_length, group_context, tone);
     let messages = prompts::build_dialogue_messages(&system, recent_messages, retrieved_snippets, character_names);
 
-    let max_tokens = match response_length {
+    let token_limit = match response_length {
         Some("Short") => 80,
         Some("Medium") => 250,
         Some("Long") => 1024,
         _ => 200, // Auto
     };
+    let is_local = base_url.contains("localhost") || base_url.contains("127.0.0.1");
 
     let request = ChatRequest {
         model: model.to_string(),
         messages,
         temperature: Some(1.0),
-        max_completion_tokens: Some(max_tokens),
-        max_tokens: Some(max_tokens),
+        max_completion_tokens: if is_local { None } else { Some(token_limit) },
+        max_output_tokens: if is_local { Some(token_limit) } else { None },
         response_format: None,
     };
 
@@ -204,7 +205,7 @@ pub async fn run_memory_update_with_base(
         } else {
             None
         },
-        max_tokens: None,
+        max_output_tokens: None,
     };
 
     let response = openai::chat_completion_with_base(base_url, api_key, &request).await?;
@@ -261,7 +262,7 @@ RULES:
         messages,
         temperature: Some(0.9),
         max_completion_tokens: Some(8),
-        response_format: None, max_tokens: None,
+        response_format: None, max_output_tokens: None,
     };
 
     let response = openai::chat_completion_with_base(base_url, api_key, &request).await?;
@@ -349,7 +350,7 @@ pub async fn run_narrative_with_base(
         messages: msgs,
         temperature: Some(1.0),
         max_completion_tokens: Some(1024),
-        response_format: None, max_tokens: None,
+        response_format: None, max_output_tokens: None,
     };
 
     let response = openai::chat_completion_with_base(base_url, api_key, &request).await?;
@@ -391,7 +392,7 @@ pub async fn generate_illustration_with_base(
             messages: scene_messages,
             temperature: Some(0.9),
             max_completion_tokens: Some(500),
-            response_format: None, max_tokens: None,
+            response_format: None, max_output_tokens: None,
         };
 
         let scene_response = openai::chat_completion_with_base(base_url, api_key, &scene_request).await?;

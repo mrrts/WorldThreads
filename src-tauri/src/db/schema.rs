@@ -503,19 +503,39 @@ pub fn run_migrations(conn: &Connection) -> Result<(), rusqlite::Error> {
         );
     ").ok();
 
-    // Add 'context' role to messages CHECK constraint
-    let needs_context_role: bool = conn.query_row(
-        "SELECT sql NOT LIKE '%context%' FROM sqlite_master WHERE type='table' AND name='messages'",
+    // Recover any messages stuck in messages_old from a failed migration
+    let has_messages_old: bool = conn.prepare("SELECT 1 FROM messages_old LIMIT 0").is_ok();
+    if has_messages_old {
+        conn.execute_batch("
+            INSERT OR IGNORE INTO messages (message_id, thread_id, role, content, tokens_estimate, sender_character_id, created_at)
+                SELECT message_id, thread_id, role, content, tokens_estimate, sender_character_id, created_at FROM messages_old;
+            DROP TABLE IF EXISTS messages_old;
+        ").ok();
+    }
+    let has_group_messages_old: bool = conn.prepare("SELECT 1 FROM group_messages_old LIMIT 0").is_ok();
+    if has_group_messages_old {
+        conn.execute_batch("
+            INSERT OR IGNORE INTO group_messages (message_id, thread_id, role, content, tokens_estimate, sender_character_id, created_at)
+                SELECT message_id, thread_id, role, content, tokens_estimate, sender_character_id, created_at FROM group_messages_old;
+            DROP TABLE IF EXISTS group_messages_old;
+        ").ok();
+    }
+
+    // Safely remove CHECK constraint on role column to allow 'context' role.
+    // Only proceed if current table still has the CHECK constraint and messages_old doesn't exist.
+    let needs_check_removal: bool = conn.query_row(
+        "SELECT sql LIKE '%CHECK%' FROM sqlite_master WHERE type='table' AND name='messages'",
         [], |r| r.get(0),
     ).unwrap_or(false);
-    if needs_context_role {
-        // Drop and recreate without CHECK constraint (SQLite limitation)
-        // We'll rely on application-level validation instead
-        conn.execute_batch("
-            ALTER TABLE messages RENAME TO messages_old;
+    if needs_check_removal {
+        let msg_count: i64 = conn.query_row("SELECT count(*) FROM messages", [], |r| r.get(0)).unwrap_or(0);
+        // Disable foreign keys for safe table recreation
+        conn.execute_batch("PRAGMA foreign_keys=OFF;").ok();
+        let result = conn.execute_batch("
+            ALTER TABLE messages RENAME TO messages_migrating;
             CREATE TABLE messages (
                 message_id TEXT PRIMARY KEY,
-                thread_id TEXT NOT NULL REFERENCES threads(thread_id) ON DELETE CASCADE,
+                thread_id TEXT NOT NULL,
                 role TEXT NOT NULL,
                 content TEXT NOT NULL,
                 tokens_estimate INTEGER NOT NULL DEFAULT 0,
@@ -524,12 +544,27 @@ pub fn run_migrations(conn: &Connection) -> Result<(), rusqlite::Error> {
                 world_day INTEGER DEFAULT NULL,
                 world_time TEXT DEFAULT NULL
             );
-            INSERT INTO messages SELECT message_id, thread_id, role, content, tokens_estimate, sender_character_id, created_at, world_day, world_time FROM messages_old;
-            DROP TABLE messages_old;
-            CREATE INDEX IF NOT EXISTS idx_messages_thread ON messages(thread_id, created_at);
-        ").ok();
-        conn.execute_batch("
-            ALTER TABLE group_messages RENAME TO group_messages_old;
+            INSERT INTO messages (message_id, thread_id, role, content, tokens_estimate, sender_character_id, created_at, world_day, world_time)
+                SELECT message_id, thread_id, role, content, tokens_estimate, sender_character_id, created_at, world_day, world_time FROM messages_migrating;
+        ");
+        if result.is_ok() {
+            let new_count: i64 = conn.query_row("SELECT count(*) FROM messages", [], |r| r.get(0)).unwrap_or(0);
+            if new_count >= msg_count {
+                conn.execute_batch("DROP TABLE messages_migrating; CREATE INDEX IF NOT EXISTS idx_messages_thread ON messages(thread_id, created_at);").ok();
+            } else {
+                // Rollback: data loss detected
+                conn.execute_batch("DROP TABLE messages; ALTER TABLE messages_migrating RENAME TO messages;").ok();
+                log::warn!("Messages migration rolled back: count mismatch ({} vs {})", new_count, msg_count);
+            }
+        } else {
+            // Rename back if migration failed
+            conn.execute_batch("ALTER TABLE messages_migrating RENAME TO messages;").ok();
+        }
+
+        // Same for group_messages
+        let gm_count: i64 = conn.query_row("SELECT count(*) FROM group_messages", [], |r| r.get(0)).unwrap_or(0);
+        let gresult = conn.execute_batch("
+            ALTER TABLE group_messages RENAME TO group_messages_migrating;
             CREATE TABLE group_messages (
                 message_id TEXT PRIMARY KEY,
                 thread_id TEXT NOT NULL,
@@ -541,10 +576,20 @@ pub fn run_migrations(conn: &Connection) -> Result<(), rusqlite::Error> {
                 world_day INTEGER DEFAULT NULL,
                 world_time TEXT DEFAULT NULL
             );
-            INSERT INTO group_messages SELECT message_id, thread_id, role, content, tokens_estimate, sender_character_id, created_at, world_day, world_time FROM group_messages_old;
-            DROP TABLE group_messages_old;
-            CREATE INDEX IF NOT EXISTS idx_group_messages_thread ON group_messages(thread_id, created_at);
-        ").ok();
+            INSERT INTO group_messages (message_id, thread_id, role, content, tokens_estimate, sender_character_id, created_at, world_day, world_time)
+                SELECT message_id, thread_id, role, content, tokens_estimate, sender_character_id, created_at, world_day, world_time FROM group_messages_migrating;
+        ");
+        if gresult.is_ok() {
+            let new_gm_count: i64 = conn.query_row("SELECT count(*) FROM group_messages", [], |r| r.get(0)).unwrap_or(0);
+            if new_gm_count >= gm_count {
+                conn.execute_batch("DROP TABLE group_messages_migrating; CREATE INDEX IF NOT EXISTS idx_group_messages_thread ON group_messages(thread_id, created_at);").ok();
+            } else {
+                conn.execute_batch("DROP TABLE group_messages; ALTER TABLE group_messages_migrating RENAME TO group_messages;").ok();
+            }
+        } else {
+            conn.execute_batch("ALTER TABLE group_messages_migrating RENAME TO group_messages;").ok();
+        }
+        conn.execute_batch("PRAGMA foreign_keys=ON;").ok();
     }
 
     // Add world_day and world_time columns to messages tables
