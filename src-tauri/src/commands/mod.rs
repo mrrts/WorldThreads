@@ -4,6 +4,8 @@ pub mod world_cmds;
 pub mod world_image_cmds;
 pub mod character_cmds;
 pub mod chat_cmds;
+pub mod illustration_cmds;
+pub mod video_cmds;
 pub mod group_chat_cmds;
 pub mod event_cmds;
 pub mod memory_cmds;

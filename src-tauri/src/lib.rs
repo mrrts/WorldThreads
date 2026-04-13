@@ -6,6 +6,8 @@ use commands::audio_cmds::*;
 use commands::backup_cmds::*;
 use commands::character_cmds::*;
 use commands::chat_cmds::*;
+use commands::illustration_cmds::*;
+use commands::video_cmds::*;
 use commands::group_chat_cmds::*;
 use commands::memory_cmds::*;
 use commands::mood_cmds::*;
