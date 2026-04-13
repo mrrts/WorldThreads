@@ -1,11 +1,10 @@
-import React, { useRef, useEffect, useState, useCallback } from "react";
+import React, { useRef, useEffect, useState } from "react";
 import Markdown from "react-markdown";
 import { formatMessage, markdownComponents } from "@/components/chat/formatMessage";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Dialog } from "@/components/ui/dialog";
 import { Send, Loader2, X, Check, ExternalLink, BookOpen, MessageSquare, Settings, Image, Trash2, RefreshCw, SlidersHorizontal, Video, Repeat, Square, Download, Crosshair, ChevronLeft, ChevronRight, Play, Pause, Volume2, ArrowRight } from "lucide-react";
-import { useSlideshow } from "@/hooks/use-slideshow";
 import { WebviewWindow } from "@tauri-apps/api/webviewWindow";
 import type { useAppStore } from "@/hooks/use-app-store";
 import { api } from "@/lib/tauri";
@@ -24,6 +23,7 @@ import { SummaryModal } from "@/components/chat/SummaryModal";
 import { TimeDivider } from "@/components/chat/TimeDivider";
 import { ContextMessage } from "@/components/chat/ContextMessage";
 import { PortraitModal } from "@/components/chat/PortraitModal";
+import { useChatState } from "@/hooks/use-chat-state";
 
 
 
@@ -33,59 +33,84 @@ interface Props {
 
 
 export function GroupChatView({ store }: Props) {
-  const [input, setInput] = useState("");
-  const [showUserAvatarModal, setShowUserAvatarModal] = useState(false);
+  // ── Group-specific state ─────────────────────────────────────────────
+  const [showGroupTalkPicker, setShowGroupTalkPicker] = useState(false);
+  const talkPickerRef = useRef<HTMLDivElement>(null);
   const [portraitModalCharId, setPortraitModalCharId] = useState<string | null>(null);
-  const scrollRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLTextAreaElement>(null);
+
   const groupCharIds: string[] = store.activeGroupChat
     ? (Array.isArray(store.activeGroupChat.character_ids) ? store.activeGroupChat.character_ids : [])
     : [];
   const groupCharacters = groupCharIds.map((id) => store.characters.find((c) => c.character_id === id)).filter(Boolean) as typeof store.characters;
-  const [showGroupTalkPicker, setShowGroupTalkPicker] = useState(false);
-  const talkPickerRef = useRef<HTMLDivElement>(null);
-  const [userAvatarUrl, setUserAvatarUrl] = useState("");
-  const [copiedError, setCopiedError] = useState(false);
-  const [resetConfirmId, setResetConfirmId] = useState<string | null>(null);
-  const [showNarrationSettings, setShowNarrationSettings] = useState(false);
-  const [adjustIllustrationId, setAdjustIllustrationId] = useState<string | null>(null);
-  const [adjustInstructions, setAdjustInstructions] = useState("");
-  const [videoModalId, setVideoModalId] = useState<string | null>(null);
-  const [videoPrompt, setVideoPrompt] = useState("");
-  const [videoDuration, setVideoDuration] = useState(8);
-  const [videoStyle, setVideoStyle] = useState("action-no-dialogue");
-  const [videoIncludeContext, setVideoIncludeContext] = useState(false);
-  const [videoTab, setVideoTab] = useState<"generate" | "upload">("generate");
-  const [uploadingVideo, setUploadingVideo] = useState(false);
-  const [downloadedId, setDownloadedId] = useState<string | null>(null);
-  const [removeVideoConfirmId, setRemoveVideoConfirmId] = useState<string | null>(null);
-  const [animationReadyId, setAnimationReadyId] = useState<string | null>(null);
-  const [speakingId, setSpeakingId] = useState<string | null>(null);
-  const [loadingSpeech, setLoadingSpeech] = useState<string | null>(null);
-  const [toneMenuId, setToneMenuId] = useState<string | null>(null);
-  const [cachedTones, setCachedTones] = useState<Record<string, Set<string>>>({});
-  const [lastTones, setLastTones] = useState<Record<string, string>>({});
-  const audioRef = useRef<HTMLAudioElement | null>(null);
-  const toneMenuRef = useRef<HTMLDivElement>(null);
-  const [illustrationModalId, setIllustrationModalId] = useState<string | null>(null);
-  const [modalSelectedId, setModalSelectedId] = useState<string | null>(null);
-  const [modalPlayingVideo, setModalPlayingVideo] = useState(false);
-  const [modalImageLoading, setModalImageLoading] = useState(false);
-  const [modalIllustrations, setModalIllustrations] = useState<Array<{ id: string; content: string }>>([]);
-  const [showNarrativePicker, setShowNarrativePicker] = useState(false);
-  const [showSummary, setShowSummary] = useState(false);
-  const [adjustMessageId, setAdjustMessageId] = useState<string | null>(null);
-  const [showIllustrationPicker, setShowIllustrationPicker] = useState(false);
-  const [illustrationInstructions, setIllustrationInstructions] = useState("");
-  const [usePreviousScene, setUsePreviousScene] = useState(false);
-  const [includeSceneSummary, setIncludeSceneSummary] = useState(false);
-  const [narrationTone, setNarrationTone] = useState("Cinematic");
-  const [narrationInstructions, setNarrationInstructions] = useState("");
-  const [responseLength, setResponseLength] = useState("Short");
-  const [narrationDirty, setNarrationDirty] = useState(false);
 
+  // ── Shared chat state from hook ──────────────────────────────────────
   const chatId = store.activeGroupChat?.group_chat_id;
 
+  const {
+    input, setInput,
+    scrollRef,
+    inputRef,
+    userAvatarUrl,
+    copiedError, setCopiedError,
+    resetConfirmId, setResetConfirmId,
+    showNarrationSettings, setShowNarrationSettings,
+    adjustIllustrationId, setAdjustIllustrationId,
+    adjustInstructions, setAdjustInstructions,
+    videoModalId, setVideoModalId,
+    videoPrompt, setVideoPrompt,
+    videoDuration, setVideoDuration,
+    videoStyle, setVideoStyle,
+    videoIncludeContext, setVideoIncludeContext,
+    videoTab, setVideoTab,
+    uploadingVideo, setUploadingVideo,
+    downloadedId, setDownloadedId,
+    removeVideoConfirmId, setRemoveVideoConfirmId,
+    animationReadyId, setAnimationReadyId,
+    speakingId, setSpeakingId,
+    loadingSpeech,
+    toneMenuId, setToneMenuId,
+    cachedTones, setCachedTones,
+    lastTones, setLastTones,
+    audioRef,
+    toneMenuRef,
+    illustrationModalId, setIllustrationModalId,
+    modalSelectedId, setModalSelectedId,
+    modalPlayingVideo, setModalPlayingVideo,
+    modalImageLoading, setModalImageLoading,
+    modalIllustrations, setModalIllustrations,
+    showNarrativePicker, setShowNarrativePicker,
+    showSummary, setShowSummary,
+    adjustMessageId, setAdjustMessageId,
+    showIllustrationPicker, setShowIllustrationPicker,
+    illustrationInstructions, setIllustrationInstructions,
+    usePreviousScene, setUsePreviousScene,
+    includeSceneSummary, setIncludeSceneSummary,
+    narrationTone, setNarrationTone,
+    narrationInstructions, setNarrationInstructions,
+    responseLength, setResponseLength,
+    narrationDirty, setNarrationDirty,
+    playingVideo, setPlayingVideo,
+    loopVideo, setLoopVideo,
+    videoFiles, setVideoFiles,
+    videoDataUrls, setVideoDataUrls,
+    showUserAvatarModal, setShowUserAvatarModal,
+
+    isSending,
+    isGeneratingNarrative,
+    isGeneratingIllustration,
+    isGeneratingVideo,
+
+    modalSlideshow,
+
+    loadVideoBlobUrl,
+    handleSpeak,
+    handleKeyDown,
+    handleSend,
+    handleRetry,
+    playVideo,
+  } = useChatState({ store, chatId, chatType: "group" });
+
+  // ── Group talk picker outside-click ──────────────────────────────────
   useEffect(() => {
     if (!showGroupTalkPicker) return;
     const handler = (e: MouseEvent) => {
@@ -96,243 +121,6 @@ export function GroupChatView({ store }: Props) {
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
   }, [showGroupTalkPicker]);
-
-  useEffect(() => {
-    if (!store.activeWorld) { setUserAvatarUrl(""); return; }
-    api.getUserAvatar(store.activeWorld.world_id).then((url) => setUserAvatarUrl(url || ""));
-  }, [store.activeWorld?.world_id, store.userProfile?.avatar_file]);
-
-  useEffect(() => {
-    api.listCachedAudio().then(({ cached, last_tones }) => {
-      const map: Record<string, Set<string>> = {};
-      for (const [id, tones] of Object.entries(cached)) map[id] = new Set(tones);
-      setCachedTones(map);
-      setLastTones(last_tones);
-    });
-  }, [store.messages.length, store.adjustingMessageId]);
-
-  useEffect(() => {
-    if (!chatId) return;
-    Promise.all([
-      api.getSetting(`narration_tone.${chatId}`),
-      api.getSetting(`narration_instructions.${chatId}`),
-      api.getSetting(`response_length.${chatId}`),
-    ]).then(([tone, instructions, length]) => {
-      setNarrationTone(tone || "Cinematic");
-      setNarrationInstructions(instructions || "");
-      setResponseLength(length || "Short");
-      setNarrationDirty(false);
-    });
-  }, [chatId]);
-
-  // Derived: is this group chat currently loading?
-  const isSending = store.sending === chatId;
-  const isGeneratingNarrative = store.generatingNarrative === chatId;
-  const isGeneratingIllustration = store.generatingIllustration === chatId;
-  const isGeneratingVideo = !!store.generatingVideo;
-  const [playingVideo, setPlayingVideo] = useState<string | null>(null);
-  const [loopVideo, setLoopVideo] = useState<Record<string, boolean>>({});
-  const [videoFiles, setVideoFiles] = useState<Record<string, string>>({});
-  const [videoDataUrls, setVideoDataUrls] = useState<Record<string, string>>({});
-
-  const loadVideoBlobUrl = useCallback(async (videoFile: string): Promise<string> => {
-    const bytes = await api.getVideoBytes(videoFile);
-    const blob = new Blob([new Uint8Array(bytes)], { type: "video/mp4" });
-    return URL.createObjectURL(blob);
-  }, []);
-
-  const slideshowIllustrations = modalIllustrations.map((i) => ({ id: i.id, data_url: i.content }));
-  const modalSlideshow = useSlideshow({
-    illustrations: slideshowIllustrations,
-    videoDataUrls,
-    videoFiles,
-    loadVideoUrl: async (illustrationId: string, videoFile: string) => {
-      const url = await loadVideoBlobUrl(videoFile);
-      setVideoDataUrls((prev) => ({ ...prev, [illustrationId]: url }));
-    },
-  });
-
-  useEffect(() => {
-    if (modalSlideshow.active && modalSlideshow.currentSlide) {
-      setModalSelectedId(modalSlideshow.currentSlide.illustrationId);
-      setModalPlayingVideo(modalSlideshow.currentSlide.type === "video");
-      setModalImageLoading(false);
-    }
-  }, [modalSlideshow.active, modalSlideshow.slideIndex, modalSlideshow.currentSlide]);
-
-  const handleSpeak = useCallback(async (messageId: string, text: string, characterId: string, tone?: string) => {
-    if (speakingId === messageId) {
-      audioRef.current?.pause();
-      setSpeakingId(null);
-      return;
-    }
-    audioRef.current?.pause();
-    setSpeakingId(null);
-    setLoadingSpeech(messageId);
-    try {
-      const bytes = await api.generateSpeech(store.apiKey, messageId, text, characterId, tone);
-      const blob = new Blob([new Uint8Array(bytes)], { type: "audio/mpeg" });
-      const url = URL.createObjectURL(blob);
-      const audio = new Audio(url);
-      audioRef.current = audio;
-      audio.onended = () => setSpeakingId(null);
-      audio.play();
-      setSpeakingId(messageId);
-      const toneKey = (tone ?? "auto").toLowerCase();
-      setCachedTones((prev) => ({ ...prev, [messageId]: new Set([...(prev[messageId] ?? []), toneKey]) }));
-      setLastTones((prev) => ({ ...prev, [messageId]: toneKey }));
-    } catch (e) {
-      store.setError?.(String(e));
-    } finally {
-      setLoadingSpeech(null);
-    }
-  }, [speakingId, store.apiKey]);
-
-  useEffect(() => {
-    if (!toneMenuId) return;
-    const handler = (e: MouseEvent) => {
-      if (toneMenuRef.current && !toneMenuRef.current.contains(e.target as Node)) {
-        setToneMenuId(null);
-      }
-    };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
-  }, [toneMenuId]);
-
-  const playVideo = useCallback(async (messageId: string) => {
-    setPlayingVideo(messageId);
-    if (!videoDataUrls[messageId] && videoFiles[messageId]) {
-      try {
-        const blobUrl = await loadVideoBlobUrl(videoFiles[messageId]);
-        setVideoDataUrls((prev) => ({ ...prev, [messageId]: blobUrl }));
-      } catch {
-        setPlayingVideo(null);
-      }
-    }
-  }, [videoDataUrls, videoFiles, loadVideoBlobUrl]);
-
-  // Stop video when scrolled out of view
-  useEffect(() => {
-    if (!playingVideo) return;
-    const el = document.querySelector(`[data-message-id="${playingVideo}"]`);
-    if (!el) return;
-    const observer = new IntersectionObserver(
-      ([entry]) => { if (!entry.isIntersecting) setPlayingVideo(null); },
-      { threshold: 0 }
-    );
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, [playingVideo]);
-
-  // Load video files for illustration messages
-  useEffect(() => {
-    const illustrationMsgs = store.messages.filter((m) => m.role === "illustration");
-    if (illustrationMsgs.length === 0) return;
-    (async () => {
-      const videoUpdates: Record<string, string> = {};
-      for (const msg of illustrationMsgs) {
-        try {
-          const vf = await api.getVideoFile(msg.message_id);
-          if (vf && vf.length > 0) videoUpdates[msg.message_id] = vf;
-        } catch { /* ignore */ }
-      }
-      if (Object.keys(videoUpdates).length > 0) {
-        setVideoFiles((prev) => ({ ...prev, ...videoUpdates }));
-      }
-    })();
-  }, [store.messages]);
-
-  // Also update videoFiles from store (after generateVideo completes)
-  const prevGeneratingVideoRef = useRef<string | null>(null);
-  useEffect(() => {
-    if (Object.keys(store.videoFiles).length > 0) {
-      setVideoFiles((prev) => ({ ...prev, ...store.videoFiles }));
-    }
-    // Detect when video generation completes: was generating, now not, and we have a new file
-    const prev = prevGeneratingVideoRef.current;
-    if (prev && !store.generatingVideo && store.videoFiles[prev]) {
-      setAnimationReadyId(prev);
-    }
-    prevGeneratingVideoRef.current = store.generatingVideo;
-  }, [store.videoFiles, store.generatingVideo]);
-
-  const lastMessageIdRef = useRef<string | null>(null);
-
-  // Scroll to bottom when new messages are appended at the end
-  useEffect(() => {
-    const el = scrollRef.current;
-    if (!el) return;
-
-    const lastMsg = store.messages[store.messages.length - 1];
-    const lastId = lastMsg?.message_id ?? null;
-    const prevLastId = lastMessageIdRef.current;
-
-    if (lastId !== prevLastId && lastId !== null) {
-      el.scrollTop = el.scrollHeight;
-    }
-
-    lastMessageIdRef.current = lastId;
-  }, [store.messages]);
-
-  // Scroll to bottom on mount / when chat changes / when messages first load
-  const initialScrollDone = useRef(false);
-  useEffect(() => {
-    initialScrollDone.current = false;
-  }, [store.activeGroupChat?.group_chat_id]);
-
-  useEffect(() => {
-    if (initialScrollDone.current || store.messages.length === 0) return;
-    initialScrollDone.current = true;
-    lastMessageIdRef.current = store.messages[store.messages.length - 1]?.message_id ?? null;
-    const el = scrollRef.current;
-    if (!el) return;
-    const scroll = () => { el.scrollTop = el.scrollHeight; };
-    scroll();
-    const t1 = setTimeout(scroll, 200);
-    const t2 = setTimeout(scroll, 600);
-    const t3 = setTimeout(scroll, 1500);
-    return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); };
-  }, [store.activeGroupChat?.group_chat_id, store.messages.length]);
-
-  // Scroll to bottom when sending/generating starts
-  useEffect(() => {
-    if (isSending || isGeneratingNarrative || isGeneratingIllustration) {
-      const el = scrollRef.current;
-      if (el) el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
-    }
-  }, [isSending, isGeneratingNarrative, isGeneratingIllustration]);
-
-  // Auto-focus input after AI response arrives
-  useEffect(() => {
-    if (!isSending) {
-      inputRef.current?.focus();
-    }
-  }, [isSending]);
-
-
-  const handleSend = async () => {
-    const text = input.trim();
-    if (!text || isSending) return;
-    store.clearChatError();
-    setInput("");
-    if (inputRef.current) inputRef.current.style.height = "auto";
-    await store.sendGroupMessage(text);
-    inputRef.current?.focus();
-  };
-
-  const handleRetry = async () => {
-    if (!store.lastFailedContent || isSending) return;
-    const content = store.lastFailedContent;
-    store.clearChatError();
-    await store.sendGroupMessage(content);
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      handleSend();
-    }
-  };
 
   if (!store.activeGroupChat) {
     return (
