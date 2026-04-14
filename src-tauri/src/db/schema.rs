@@ -598,6 +598,23 @@ pub fn run_migrations(conn: &Connection) -> Result<(), rusqlite::Error> {
     ")?;
 
     // ── Consultant chat tables ──────────────────────────────────────────
+
+    // Migration: if old consultant_messages table exists without chat_id, recreate it
+    let old_table_exists: bool = conn.query_row(
+        "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='consultant_messages'",
+        [], |r| r.get::<_, i64>(0),
+    ).unwrap_or(0) > 0;
+    if old_table_exists {
+        let has_chat_id: bool = conn.query_row(
+            "SELECT COUNT(*) FROM pragma_table_info('consultant_messages') WHERE name = 'chat_id'",
+            [], |r| r.get::<_, i64>(0),
+        ).unwrap_or(0) > 0;
+        if !has_chat_id {
+            // Old schema — rename to preserve data, create new table
+            conn.execute("ALTER TABLE consultant_messages RENAME TO consultant_messages_old", []).ok();
+        }
+    }
+
     conn.execute_batch("
         CREATE TABLE IF NOT EXISTS consultant_chats (
             chat_id TEXT PRIMARY KEY,
@@ -616,26 +633,6 @@ pub fn run_migrations(conn: &Connection) -> Result<(), rusqlite::Error> {
         );
         CREATE INDEX IF NOT EXISTS idx_consultant_messages_chat ON consultant_messages(chat_id);
     ")?;
-
-    // Migration: add chat_id column if missing (old schema had thread_id)
-    let has_chat_id: bool = conn.query_row(
-        "SELECT COUNT(*) FROM pragma_table_info('consultant_messages') WHERE name = 'chat_id'",
-        [], |r| r.get::<_, i64>(0),
-    ).unwrap_or(0) > 0;
-    if !has_chat_id {
-        // Old table — just drop and recreate since consultant chats are ephemeral
-        conn.execute_batch("
-            DROP TABLE IF EXISTS consultant_messages;
-            CREATE TABLE consultant_messages (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                chat_id TEXT NOT NULL,
-                role TEXT NOT NULL,
-                content TEXT NOT NULL,
-                created_at TEXT NOT NULL DEFAULT (datetime('now'))
-            );
-            CREATE INDEX IF NOT EXISTS idx_consultant_messages_chat ON consultant_messages(chat_id);
-        ").ok();
-    }
 
     Ok(())
 }
