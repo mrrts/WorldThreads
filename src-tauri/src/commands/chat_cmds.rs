@@ -655,13 +655,21 @@ pub async fn generate_narrative_cmd(
         None
     };
 
-    // Merge saved narration instructions with ad-hoc custom instructions
-    let merged_instructions = match (&narration_instructions, &custom_instructions) {
-        (Some(saved), Some(custom)) if !saved.is_empty() && !custom.is_empty() => Some(format!("{saved}\n{custom}")),
-        (Some(saved), _) if !saved.is_empty() => Some(saved.clone()),
-        (_, Some(custom)) if !custom.is_empty() => Some(custom.clone()),
-        _ => None,
+    // Check if the previous message is also a narrative — if so, add continuation guidance
+    let prev_is_narrative = recent_msgs.last().map(|m| m.role == "narrative").unwrap_or(false);
+    let continuation_prefix = if prev_is_narrative {
+        Some("IMPORTANT: The previous message in the conversation is also a narrative beat. Do NOT revise or repeat it. Write a CONTINUATION that advances to the NEXT story beat — new action, new moment, new tension. Pick up where the previous narrative left off and move the story forward.".to_string())
+    } else {
+        None
     };
+
+    // Merge saved narration instructions with ad-hoc custom instructions and continuation guidance
+    let all_instructions: Vec<&str> = [
+        continuation_prefix.as_deref(),
+        narration_instructions.as_deref().filter(|s| !s.is_empty()),
+        custom_instructions.as_deref().filter(|s| !s.is_empty()),
+    ].into_iter().flatten().collect();
+    let merged_instructions = if all_instructions.is_empty() { None } else { Some(all_instructions.join("\n")) };
 
     // Generate narrative
     let (narrative_text, usage) = orchestrator::run_narrative_with_base(

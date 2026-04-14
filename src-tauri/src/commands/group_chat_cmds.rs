@@ -611,12 +611,19 @@ pub async fn generate_group_narrative_cmd(
         (tone, instructions)
     };
 
-    let merged_instructions = match (&narration_instructions, &custom_instructions) {
-        (Some(saved), Some(custom)) if !saved.is_empty() && !custom.is_empty() => Some(format!("{saved}\n{custom}")),
-        (Some(saved), _) if !saved.is_empty() => Some(saved.clone()),
-        (_, Some(custom)) if !custom.is_empty() => Some(custom.clone()),
-        _ => None,
+    let prev_is_narrative = recent_msgs.last().map(|m| m.role == "narrative").unwrap_or(false);
+    let continuation_prefix = if prev_is_narrative {
+        Some("IMPORTANT: The previous message in the conversation is also a narrative beat. Do NOT revise or repeat it. Write a CONTINUATION that advances to the NEXT story beat — new action, new moment, new tension. Pick up where the previous narrative left off and move the story forward.".to_string())
+    } else {
+        None
     };
+
+    let all_instructions: Vec<&str> = [
+        continuation_prefix.as_deref(),
+        narration_instructions.as_deref().filter(|s| !s.is_empty()),
+        custom_instructions.as_deref().filter(|s| !s.is_empty()),
+    ].into_iter().flatten().collect();
+    let merged_instructions = if all_instructions.is_empty() { None } else { Some(all_instructions.join("\n")) };
 
     let (narrative_text, usage) = orchestrator::run_narrative_with_base(
         &model_config.chat_api_base(), &api_key, &model_config.dialogue_model,

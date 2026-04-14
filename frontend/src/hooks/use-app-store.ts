@@ -415,6 +415,12 @@ export function useAppStore() {
     }
   }, [state.activeWorld, setError]);
 
+  // Helper: extract world time fields for optimistic messages
+  const worldTimeFields = () => ({
+    world_day: state.activeWorld?.state?.time?.day_index ?? null,
+    world_time: state.activeWorld?.state?.time?.time_of_day ?? null,
+  });
+
   const sendGroupMessage = useCallback(async (content: string) => {
     if (!state.activeGroupChat || !state.apiKey) return;
     if (state.activeWorld) api.setSetting(`last_chat.${state.activeWorld.world_id}`, `group:${state.activeGroupChat.group_chat_id}`).catch(() => {});
@@ -429,6 +435,7 @@ export function useAppStore() {
         tokens_estimate: 0,
         sender_character_id: null,
         created_at: new Date().toISOString(),
+        ...worldTimeFields(),
       };
       setState((s) => ({ ...s, chatError: null, messages: [...s.messages, optimisticMsg] }));
       try {
@@ -452,6 +459,7 @@ export function useAppStore() {
       tokens_estimate: 0,
       sender_character_id: null,
       created_at: new Date().toISOString(),
+      ...worldTimeFields(),
     };
 
     // Save user message first
@@ -691,6 +699,7 @@ export function useAppStore() {
         content,
         tokens_estimate: 0,
         created_at: new Date().toISOString(),
+        ...worldTimeFields(),
       };
 
       setState((s) => ({
@@ -730,6 +739,7 @@ export function useAppStore() {
       content,
       tokens_estimate: 0,
       created_at: new Date().toISOString(),
+      ...worldTimeFields(),
     };
 
     setState((s) => ({
