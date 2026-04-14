@@ -871,6 +871,9 @@ export function ChatView({ store }: Props) {
         setPlayingVideo={setPlayingVideo}
         loopVideo={loopVideo}
         setLoopVideo={setLoopVideo}
+        threadId={store.messages[0]?.thread_id ?? ""}
+        apiKey={store.apiKey}
+        isGroup={false}
       />
 
       <RemoveVideoConfirmModal

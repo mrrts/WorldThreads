@@ -1,0 +1,200 @@
+use crate::ai::openai::{self, ChatRequest};
+use crate::ai::orchestrator;
+use crate::db::queries::*;
+use crate::db::Database;
+use chrono::Utc;
+use tauri::State;
+
+/// Generate a novel chapter from a day's messages via LLM.
+#[tauri::command]
+pub async fn generate_novel_entry_cmd(
+    db: State<'_, Database>,
+    api_key: String,
+    thread_id: String,
+    world_day: i64,
+    is_group: bool,
+) -> Result<String, String> {
+    let (messages, world, character_names, user_name, model_config) = {
+        let conn = db.conn.lock().map_err(|e| e.to_string())?;
+        let model_config = orchestrator::load_model_config(&conn);
+
+        // Get all messages for this thread and day
+        let all_msgs = if is_group {
+            get_all_group_messages(&conn, &thread_id).map_err(|e| e.to_string())?
+        } else {
+            get_all_messages(&conn, &thread_id).map_err(|e| e.to_string())?
+        };
+
+        let day_msgs: Vec<Message> = all_msgs.into_iter()
+            .filter(|m| m.world_day == Some(world_day) && m.role != "illustration" && m.role != "video")
+            .collect();
+
+        if day_msgs.is_empty() {
+            return Err("No messages found for this day.".to_string());
+        }
+
+        // Get world from thread
+        let world_id: String = conn.query_row(
+            "SELECT world_id FROM threads WHERE thread_id = ?1",
+            rusqlite::params![thread_id], |r| r.get(0),
+        ).map_err(|e| e.to_string())?;
+        let world = get_world(&conn, &world_id).map_err(|e| e.to_string())?;
+
+        let user_name = get_user_profile(&conn, &world_id)
+            .ok().map(|p| p.display_name).unwrap_or_else(|| "the protagonist".to_string());
+
+        // Build character name map
+        let characters = list_characters(&conn, &world_id).unwrap_or_default();
+        let char_names: std::collections::HashMap<String, String> = characters.iter()
+            .map(|c| (c.character_id.clone(), c.display_name.clone()))
+            .collect();
+
+        (day_msgs, world, char_names, user_name, model_config)
+    };
+
+    // Build conversation text
+    let conversation: Vec<String> = messages.iter()
+        .map(|m| {
+            let speaker = match m.role.as_str() {
+                "user" => user_name.clone(),
+                "narrative" => "[Narrative]".to_string(),
+                "context" => "[Context]".to_string(),
+                "assistant" => {
+                    m.sender_character_id.as_ref()
+                        .and_then(|id| character_names.get(id))
+                        .cloned()
+                        .unwrap_or_else(|| "Character".to_string())
+                }
+                _ => m.role.clone(),
+            };
+            format!("{}: {}", speaker, m.content)
+        })
+        .collect();
+
+    let all_char_names: Vec<&str> = character_names.values().map(|s| s.as_str()).collect();
+
+    let system_prompt = format!(
+        r#"You are a gifted literary novelist. Your task is to transform a day's conversation and narrative beats into a vivid, immersive chapter of a novel.
+
+SETTING: {world_desc}
+
+CHARACTERS:
+- {user} (the protagonist, written in second person — "you")
+{char_list}
+
+INSTRUCTIONS:
+- Transform the conversation into rich, flowing prose — a full chapter of a novel.
+- Write in SECOND PERSON present tense. {user} is always "you."
+- Other characters are referred to by name in third person.
+- Weave dialogue, action, internal thought, and sensory detail together seamlessly.
+- INVENT details: what the environment looks like, sounds, smells, textures, micro-expressions, body language, pauses, unspoken thoughts.
+- Expand brief exchanges into full scenes with atmosphere and pacing.
+- Include all the key beats from the conversation but enhance them with novelistic craft.
+- Narrative messages in the source should be expanded and enriched, not just copied.
+- Make it feel like one vivid, cohesive chapter — not a transcript.
+- Use literary techniques: varied sentence length, metaphor, subtext, tension, rhythm.
+- The chapter should be substantial — aim for 1500-3000 words.
+- Do NOT include chapter titles, headers, or meta-commentary. Just the prose.
+- Keep content tasteful and PG-13."#,
+        world_desc = if world.description.is_empty() { "A richly detailed world." } else { &world.description },
+        user = user_name,
+        char_list = all_char_names.iter().map(|n| format!("- {n}")).collect::<Vec<_>>().join("\n"),
+    );
+
+    let api_messages = vec![
+        openai::ChatMessage {
+            role: "system".to_string(),
+            content: system_prompt,
+        },
+        openai::ChatMessage {
+            role: "user".to_string(),
+            content: format!(
+                "Here is the full conversation for Day {}:\n\n{}\n\nTransform this into a vivid novel chapter.",
+                world_day,
+                conversation.join("\n"),
+            ),
+        },
+    ];
+
+    let request = ChatRequest {
+        model: model_config.dialogue_model.clone(),
+        messages: api_messages,
+        temperature: Some(0.95),
+        max_completion_tokens: Some(4096),
+        response_format: None,
+    };
+
+    let response = openai::chat_completion_with_base(
+        &model_config.chat_api_base(), &api_key, &request,
+    ).await?;
+
+    if let Some(u) = &response.usage {
+        let conn = db.conn.lock().map_err(|e| e.to_string())?;
+        let _ = record_token_usage(&conn, "novel", &model_config.dialogue_model, u.prompt_tokens, u.completion_tokens);
+    }
+
+    response.choices.first()
+        .map(|c| c.message.content.clone())
+        .ok_or_else(|| "No response from model".to_string())
+}
+
+/// Save (or update) a novel entry.
+#[tauri::command]
+pub fn save_novel_entry_cmd(
+    db: State<'_, Database>,
+    thread_id: String,
+    world_day: i64,
+    content: String,
+) -> Result<NovelEntry, String> {
+    let conn = db.conn.lock().map_err(|e| e.to_string())?;
+    let now = Utc::now().to_rfc3339();
+
+    // Check if one exists already
+    let existing = get_novel_entry(&conn, &thread_id, world_day);
+    let novel_id = existing.map(|e| e.novel_id)
+        .unwrap_or_else(|| uuid::Uuid::new_v4().to_string());
+
+    let entry = NovelEntry {
+        novel_id: novel_id.clone(),
+        thread_id: thread_id.clone(),
+        world_day,
+        content,
+        created_at: now.clone(),
+        updated_at: now,
+    };
+    upsert_novel_entry(&conn, &entry).map_err(|e| e.to_string())?;
+
+    Ok(entry)
+}
+
+/// Get a novel entry for a specific thread and day.
+#[tauri::command]
+pub fn get_novel_entry_cmd(
+    db: State<'_, Database>,
+    thread_id: String,
+    world_day: i64,
+) -> Result<Option<NovelEntry>, String> {
+    let conn = db.conn.lock().map_err(|e| e.to_string())?;
+    Ok(get_novel_entry(&conn, &thread_id, world_day))
+}
+
+/// List all novel entries for a thread.
+#[tauri::command]
+pub fn list_novel_entries_cmd(
+    db: State<'_, Database>,
+    thread_id: String,
+) -> Result<Vec<NovelEntry>, String> {
+    let conn = db.conn.lock().map_err(|e| e.to_string())?;
+    list_novel_entries(&conn, &thread_id).map_err(|e| e.to_string())
+}
+
+/// Delete a novel entry.
+#[tauri::command]
+pub fn delete_novel_entry_cmd(
+    db: State<'_, Database>,
+    thread_id: String,
+    world_day: i64,
+) -> Result<(), String> {
+    let conn = db.conn.lock().map_err(|e| e.to_string())?;
+    delete_novel_entry(&conn, &thread_id, world_day).map_err(|e| e.to_string())
+}

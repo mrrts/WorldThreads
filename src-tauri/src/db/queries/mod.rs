@@ -7,6 +7,7 @@ mod memory;
 mod portrait;
 mod world_image;
 mod misc;
+mod novel;
 
 pub use world::*;
 pub use user_profile::*;
@@ -17,3 +18,4 @@ pub use memory::*;
 pub use portrait::*;
 pub use world_image::*;
 pub use misc::*;
+pub use novel::*;

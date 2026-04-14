@@ -891,6 +891,9 @@ export function GroupChatView({ store }: Props) {
         setPlayingVideo={setPlayingVideo}
         loopVideo={loopVideo}
         setLoopVideo={setLoopVideo}
+        threadId={store.messages[0]?.thread_id ?? ""}
+        apiKey={store.apiKey}
+        isGroup={true}
       />
 
       <RemoveVideoConfirmModal

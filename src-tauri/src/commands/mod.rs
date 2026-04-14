@@ -10,6 +10,7 @@ pub mod group_chat_cmds;
 pub mod event_cmds;
 pub mod memory_cmds;
 pub mod mood_cmds;
+pub mod novel_cmds;
 pub mod portrait_cmds;
 pub mod reaction_cmds;
 pub mod settings_cmds;

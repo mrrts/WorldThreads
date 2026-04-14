@@ -1,7 +1,7 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect, useCallback } from "react";
 import { Dialog } from "@/components/ui/dialog";
 import { X, Check, Download, Crosshair, ChevronLeft, ChevronRight, Play, Pause, Square, BookOpen, Image } from "lucide-react";
-import { api, type Message } from "@/lib/tauri";
+import { api, type Message, type NovelEntry } from "@/lib/tauri";
 import type { useSlideshow } from "@/hooks/use-slideshow";
 import { DayPageSlide } from "./DayPageSlide";
 
@@ -49,6 +49,12 @@ export interface IllustrationCarouselModalProps {
   setPlayingVideo: (v: string | null) => void;
   loopVideo: Record<string, boolean>;
   setLoopVideo: React.Dispatch<React.SetStateAction<Record<string, boolean>>>;
+  /** Thread ID for novel entries */
+  threadId: string;
+  /** API key for LLM calls */
+  apiKey: string;
+  /** Whether this is a group chat */
+  isGroup: boolean;
 }
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
@@ -135,8 +141,27 @@ export function IllustrationCarouselModal({
   setPlayingVideo,
   loopVideo,
   setLoopVideo,
+  threadId,
+  apiKey,
+  isGroup,
 }: IllustrationCarouselModalProps) {
   const [showDayPages, setShowDayPages] = useState(true);
+  const [novelEntries, setNovelEntries] = useState<Record<number, NovelEntry>>({});
+
+  // Load novel entries when modal opens
+  const loadNovelEntries = useCallback(async () => {
+    if (!threadId) return;
+    try {
+      const entries = await api.listNovelEntries(threadId);
+      const map: Record<number, NovelEntry> = {};
+      for (const e of entries) map[e.world_day] = e;
+      setNovelEntries(map);
+    } catch {}
+  }, [threadId]);
+
+  useEffect(() => {
+    if (illustrationModalId && threadId) loadNovelEntries();
+  }, [illustrationModalId, threadId, loadNovelEntries]);
 
   const allIllustrations = modalIllustrations.length > 0
     ? modalIllustrations
@@ -237,6 +262,11 @@ export function IllustrationCarouselModal({
                 setPlayingVideo={setPlayingVideo}
                 loopVideo={loopVideo}
                 setLoopVideo={setLoopVideo}
+                threadId={threadId}
+                apiKey={apiKey}
+                isGroup={isGroup}
+                novelEntry={novelEntries[activeSlide.day] ?? null}
+                onNovelChange={loadNovelEntries}
               />
             </div>
           ) : (
@@ -442,7 +472,10 @@ export function IllustrationCarouselModal({
                           : "ring-1 ring-border opacity-60 hover:opacity-100 bg-card/60"
                       }`}
                     >
-                      <span className="text-[9px] font-bold text-muted-foreground">Day {slide.day}</span>
+                      <span className={`text-[9px] font-bold ${novelEntries[slide.day] ? "text-amber-400" : "text-muted-foreground"}`}>Day {slide.day}</span>
+                      {novelEntries[slide.day] && (
+                        <div className="absolute top-0.5 right-0.5 w-2 h-2 rounded-full bg-amber-500" />
+                      )}
                     </button>
                   );
                 }

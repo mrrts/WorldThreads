@@ -11,6 +11,7 @@ use commands::video_cmds::*;
 use commands::group_chat_cmds::*;
 use commands::memory_cmds::*;
 use commands::mood_cmds::*;
+use commands::novel_cmds::*;
 use commands::portrait_cmds::*;
 use commands::reaction_cmds::*;
 use commands::settings_cmds::*;
@@ -124,6 +125,11 @@ pub fn run() {
             get_media_dir_cmd,
             adjust_message_cmd,
             edit_message_content_cmd,
+            generate_novel_entry_cmd,
+            save_novel_entry_cmd,
+            get_novel_entry_cmd,
+            list_novel_entries_cmd,
+            delete_novel_entry_cmd,
             reset_to_message_cmd,
             get_last_message_time_cmd,
             get_messages_cmd,

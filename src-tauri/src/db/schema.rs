@@ -584,5 +584,18 @@ pub fn run_migrations(conn: &Connection) -> Result<(), rusqlite::Error> {
         ").ok();
     }
 
+    // ── Novel entries table ──────────────────────────────────────────────
+    conn.execute_batch("
+        CREATE TABLE IF NOT EXISTS novel_entries (
+            novel_id TEXT PRIMARY KEY,
+            thread_id TEXT NOT NULL,
+            world_day INTEGER NOT NULL,
+            content TEXT NOT NULL DEFAULT '',
+            created_at TEXT NOT NULL DEFAULT (datetime('now')),
+            updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+            UNIQUE(thread_id, world_day)
+        );
+    ")?;
+
     Ok(())
 }

@@ -111,6 +111,15 @@ export interface IllustrationResult {
   illustration_message: Message;
 }
 
+export interface NovelEntry {
+  novel_id: string;
+  thread_id: string;
+  world_day: number;
+  content: string;
+  created_at: string;
+  updated_at: string;
+}
+
 
 export interface ResetToMessageResult {
   deleted_count: number;
@@ -343,6 +352,18 @@ export const api = {
     invoke<Message>("adjust_message_cmd", { apiKey, messageId, instructions, isGroup }),
   editMessageContent: (messageId: string, content: string, isGroup: boolean) =>
     invoke<void>("edit_message_content_cmd", { messageId, content, isGroup }),
+
+  // Novel entries
+  generateNovelEntry: (apiKey: string, threadId: string, worldDay: number, isGroup: boolean) =>
+    invoke<string>("generate_novel_entry_cmd", { apiKey, threadId, worldDay, isGroup }),
+  saveNovelEntry: (threadId: string, worldDay: number, content: string) =>
+    invoke<NovelEntry>("save_novel_entry_cmd", { threadId, worldDay, content }),
+  getNovelEntry: (threadId: string, worldDay: number) =>
+    invoke<NovelEntry | null>("get_novel_entry_cmd", { threadId, worldDay }),
+  listNovelEntries: (threadId: string) =>
+    invoke<NovelEntry[]>("list_novel_entries_cmd", { threadId }),
+  deleteNovelEntry: (threadId: string, worldDay: number) =>
+    invoke<void>("delete_novel_entry_cmd", { threadId, worldDay }),
   generateNarrative: (apiKey: string, characterId: string, customInstructions?: string) =>
     invoke<NarrativeResult>("generate_narrative_cmd", { apiKey, characterId, customInstructions: customInstructions ?? null }),
   generateIllustration: (apiKey: string, characterId: string, qualityTier?: string, customInstructions?: string, previousIllustrationId?: string, includeSceneSummary?: boolean) =>
