@@ -4,7 +4,7 @@ import { formatMessage, markdownComponents } from "@/components/chat/formatMessa
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Dialog } from "@/components/ui/dialog";
-import { Send, Loader2, SmilePlus, X, Copy, ExternalLink, BookOpen, RotateCcw, MessageSquare, Settings, Image, Trash2, SlidersHorizontal, Pencil, Square, Play, Volume2 } from "lucide-react";
+import { Send, Loader2, SmilePlus, X, Copy, ExternalLink, BookOpen, RotateCcw, MessageSquare, MessageSquareDashed, Settings, Image, Trash2, SlidersHorizontal, Pencil, Square, Play, Volume2 } from "lucide-react";
 import { WebviewWindow } from "@tauri-apps/api/webviewWindow";
 import type { useAppStore } from "@/hooks/use-app-store";
 import { api, type Reaction } from "@/lib/tauri";
@@ -27,6 +27,7 @@ import { TimeDivider } from "@/components/chat/TimeDivider";
 import { ContextMessage } from "@/components/chat/ContextMessage";
 import { NarrativePickerModal } from "@/components/chat/NarrativePickerModal";
 import { PortraitModal } from "@/components/chat/PortraitModal";
+import { StoryConsultantModal } from "@/components/chat/StoryConsultantModal";
 import { useChatState } from "@/hooks/use-chat-state";
 
 
@@ -42,6 +43,7 @@ export function ChatView({ store, onNavigateToCharacter }: Props) {
   const [pickerMessageId, setPickerMessageId] = useState<string | null>(null);
   const [showPortraitModal, setShowPortraitModal] = useState(false);
   const [showIdentityPopover, setShowIdentityPopover] = useState(false);
+  const [showConsultant, setShowConsultant] = useState(false);
 
   const charId = store.activeCharacter?.character_id;
   const charPortrait = store.activeCharacter ? store.activePortraits[store.activeCharacter?.character_id] : undefined;
@@ -231,6 +233,15 @@ export function ChatView({ store, onNavigateToCharacter }: Props) {
             <BookOpen size={15} />
           </button>
           <span className="absolute top-full left-1/2 -translate-x-1/2 mt-1.5 px-2 py-0.5 text-[10px] font-medium text-white bg-black rounded-md shadow-lg whitespace-nowrap opacity-0 group-hover/summary:opacity-100 pointer-events-none transition-opacity">Summary</span>
+        </div>
+        <div className="relative group/consultant">
+          <button
+            onClick={() => setShowConsultant(true)}
+            className="flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center transition-colors cursor-pointer text-muted-foreground hover:text-foreground hover:bg-accent"
+          >
+            <MessageSquareDashed size={15} />
+          </button>
+          <span className="absolute top-full left-1/2 -translate-x-1/2 mt-1.5 px-2 py-0.5 text-[10px] font-medium text-white bg-black rounded-md shadow-lg whitespace-nowrap opacity-0 group-hover/consultant:opacity-100 pointer-events-none transition-opacity">Story Consultant</span>
         </div>
         <div className="relative group/settings">
           <button
@@ -676,6 +687,16 @@ export function ChatView({ store, onNavigateToCharacter }: Props) {
         characterId={showPortraitModal ? store.activeCharacter?.character_id ?? null : null}
         characterName={store.activeCharacter?.display_name}
         onClose={() => setShowPortraitModal(false)}
+      />
+
+      <StoryConsultantModal
+        open={showConsultant}
+        onClose={() => setShowConsultant(false)}
+        apiKey={store.apiKey}
+        characterId={store.activeCharacter?.character_id ?? null}
+        groupChatId={null}
+        threadId={store.messages[0]?.thread_id ?? ""}
+        characterNames={store.activeCharacter ? [store.activeCharacter.display_name] : []}
       />
 
       {userAvatarUrl && (

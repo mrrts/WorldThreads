@@ -6,6 +6,7 @@ use commands::audio_cmds::*;
 use commands::backup_cmds::*;
 use commands::character_cmds::*;
 use commands::chat_cmds::*;
+use commands::consultant_cmds::*;
 use commands::illustration_cmds::*;
 use commands::video_cmds::*;
 use commands::group_chat_cmds::*;
@@ -131,6 +132,9 @@ pub fn run() {
             get_novel_entry_cmd,
             list_novel_entries_cmd,
             delete_novel_entry_cmd,
+            story_consultant_cmd,
+            load_consultant_chat_cmd,
+            clear_consultant_chat_cmd,
             reset_to_message_cmd,
             get_last_message_time_cmd,
             get_messages_cmd,

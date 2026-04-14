@@ -597,5 +597,17 @@ pub fn run_migrations(conn: &Connection) -> Result<(), rusqlite::Error> {
         );
     ")?;
 
+    // ── Consultant chat table ───────────────────────────────────────────
+    conn.execute_batch("
+        CREATE TABLE IF NOT EXISTS consultant_messages (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            thread_id TEXT NOT NULL,
+            role TEXT NOT NULL,
+            content TEXT NOT NULL,
+            created_at TEXT NOT NULL DEFAULT (datetime('now'))
+        );
+        CREATE INDEX IF NOT EXISTS idx_consultant_thread ON consultant_messages(thread_id);
+    ")?;
+
     Ok(())
 }

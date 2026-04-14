@@ -391,7 +391,7 @@ pub fn build_narrative_system_prompt(
         r#"CRAFT:
 - Write 2–5 sentences of rich, sensory prose. Be vivid, be bold.
 - You may introduce new environmental details, body language, subtle actions, atmosphere, weather, sounds, smells, textures, internal feelings.
-- You may advance the moment — shift the scene, introduce a small surprise, or reveal something about the character through action or expression.
+- You may advance the moment — shift the scene, introduce a small surprise (or just let a moment linger — up to you), or reveal something about the character through action or expression.
 - Stay consistent with the world, the conversation, and both characters' established personalities.
 - Do NOT write dialogue or spoken words. No quotation marks.
 - Do NOT break the fourth wall. Do NOT reference the chat, the app, or the AI.

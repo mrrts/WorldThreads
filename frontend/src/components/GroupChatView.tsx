@@ -4,7 +4,7 @@ import { formatMessage, markdownComponents } from "@/components/chat/formatMessa
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Dialog } from "@/components/ui/dialog";
-import { Send, Loader2, X, BookOpen, MessageSquare, Settings, Image, Trash2, SlidersHorizontal, Pencil, Square, Crosshair, ChevronLeft, ChevronRight, Play, Pause, Volume2, ArrowRight } from "lucide-react";
+import { Send, Loader2, X, BookOpen, MessageSquare, MessageSquareDashed, Settings, Image, Trash2, SlidersHorizontal, Pencil, Square, Crosshair, ChevronLeft, ChevronRight, Play, Pause, Volume2, ArrowRight } from "lucide-react";
 import type { useAppStore } from "@/hooks/use-app-store";
 import { api } from "@/lib/tauri";
 import { NarrativeMessage } from "@/components/chat/NarrativeMessage";
@@ -23,6 +23,7 @@ import { SummaryModal } from "@/components/chat/SummaryModal";
 import { TimeDivider } from "@/components/chat/TimeDivider";
 import { ContextMessage } from "@/components/chat/ContextMessage";
 import { PortraitModal } from "@/components/chat/PortraitModal";
+import { StoryConsultantModal } from "@/components/chat/StoryConsultantModal";
 import { IllustrationMessage } from "@/components/chat/IllustrationMessage";
 import { useChatState } from "@/hooks/use-chat-state";
 
@@ -39,6 +40,7 @@ export function GroupChatView({ store, onNavigateToCharacter }: Props) {
   const [showGroupTalkPicker, setShowGroupTalkPicker] = useState(false);
   const talkPickerRef = useRef<HTMLDivElement>(null);
   const [portraitModalCharId, setPortraitModalCharId] = useState<string | null>(null);
+  const [showConsultant, setShowConsultant] = useState(false);
 
   const groupCharIds: string[] = store.activeGroupChat
     ? (Array.isArray(store.activeGroupChat.character_ids) ? store.activeGroupChat.character_ids : [])
@@ -194,6 +196,15 @@ export function GroupChatView({ store, onNavigateToCharacter }: Props) {
             <BookOpen size={15} />
           </button>
           <span className="absolute top-full left-1/2 -translate-x-1/2 mt-1.5 px-2 py-0.5 text-[10px] font-medium text-white bg-black rounded-md shadow-lg whitespace-nowrap opacity-0 group-hover/summary:opacity-100 pointer-events-none transition-opacity">Summary</span>
+        </div>
+        <div className="relative group/consultant">
+          <button
+            onClick={() => setShowConsultant(true)}
+            className="flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center transition-colors cursor-pointer text-muted-foreground hover:text-foreground hover:bg-accent"
+          >
+            <MessageSquareDashed size={15} />
+          </button>
+          <span className="absolute top-full left-1/2 -translate-x-1/2 mt-1.5 px-2 py-0.5 text-[10px] font-medium text-white bg-black rounded-md shadow-lg whitespace-nowrap opacity-0 group-hover/consultant:opacity-100 pointer-events-none transition-opacity">Story Consultant</span>
         </div>
         <div className="relative group/settings">
           <button
@@ -709,6 +720,16 @@ export function GroupChatView({ store, onNavigateToCharacter }: Props) {
         characterId={portraitModalCharId}
         characterName={portraitModalCharId ? groupCharacters.find((c) => c.character_id === portraitModalCharId)?.display_name : undefined}
         onClose={() => setPortraitModalCharId(null)}
+      />
+
+      <StoryConsultantModal
+        open={showConsultant}
+        onClose={() => setShowConsultant(false)}
+        apiKey={store.apiKey}
+        characterId={null}
+        groupChatId={store.activeGroupChat?.group_chat_id ?? null}
+        threadId={store.messages[0]?.thread_id ?? ""}
+        characterNames={groupCharacters.map((c) => c.display_name)}
       />
 
       {userAvatarUrl && (

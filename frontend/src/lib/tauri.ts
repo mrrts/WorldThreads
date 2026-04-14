@@ -366,6 +366,14 @@ export const api = {
     invoke<NovelEntry[]>("list_novel_entries_cmd", { threadId }),
   deleteNovelEntry: (threadId: string, worldDay: number) =>
     invoke<void>("delete_novel_entry_cmd", { threadId, worldDay }),
+
+  // Story consultant
+  storyConsultant: (apiKey: string, characterId: string | null, groupChatId: string | null, userMessage: string) =>
+    invoke<string>("story_consultant_cmd", { apiKey, characterId, groupChatId, userMessage }),
+  loadConsultantChat: (threadId: string) =>
+    invoke<Array<{ role: string; content: string }>>("load_consultant_chat_cmd", { threadId }),
+  clearConsultantChat: (threadId: string) =>
+    invoke<void>("clear_consultant_chat_cmd", { threadId }),
   generateNarrative: (apiKey: string, characterId: string, customInstructions?: string) =>
     invoke<NarrativeResult>("generate_narrative_cmd", { apiKey, characterId, customInstructions: customInstructions ?? null }),
   generateIllustration: (apiKey: string, characterId: string, qualityTier?: string, customInstructions?: string, previousIllustrationId?: string, includeSceneSummary?: boolean) =>
