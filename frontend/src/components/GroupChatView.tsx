@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useState } from "react";
+import React, { useRef, useEffect, useState, useCallback } from "react";
 import Markdown from "react-markdown";
 import { formatMessage, markdownComponents } from "@/components/chat/formatMessage";
 import { Button } from "@/components/ui/button";
@@ -115,6 +115,41 @@ export function GroupChatView({ store, onNavigateToCharacter }: Props) {
     playVideo,
   } = useChatState({ store, chatId, chatType: "group" });
 
+  const openGallery = useCallback(async () => {
+    const lastIllus = store.messages.filter((m) => m.role === "illustration").at(-1);
+    if (!lastIllus || !store.activeGroupChat) return;
+    setIllustrationModalId(lastIllus.message_id);
+    setModalSelectedId(lastIllus.message_id);
+    setModalPlayingVideo(false);
+    setModalImageLoading(false);
+    try {
+      const page = await api.getGroupMessages(store.activeGroupChat.group_chat_id);
+      const illus = page.messages.filter((m) => m.role === "illustration").map((m) => ({ id: m.message_id, content: m.content }));
+      setModalIllustrations(illus);
+      setCarouselAllMessages(page.messages);
+      for (const il of illus) {
+        if (!videoFiles[il.id]) api.getVideoFile(il.id).then((vf) => { if (vf) setVideoFiles((prev) => ({ ...prev, [il.id]: vf })); }).catch(() => {});
+      }
+    } catch {}
+  }, [store.messages, store.activeGroupChat]);
+
+  useEffect(() => {
+    const onGallery = () => openGallery();
+    const onConsultant = () => setShowConsultant(true);
+    const onSummary = () => setShowSummary(true);
+    const onSettings = () => setShowNarrationSettings(true);
+    window.addEventListener("wt:open-gallery", onGallery);
+    window.addEventListener("wt:open-consultant", onConsultant);
+    window.addEventListener("wt:open-summary", onSummary);
+    window.addEventListener("wt:open-settings", onSettings);
+    return () => {
+      window.removeEventListener("wt:open-gallery", onGallery);
+      window.removeEventListener("wt:open-consultant", onConsultant);
+      window.removeEventListener("wt:open-summary", onSummary);
+      window.removeEventListener("wt:open-settings", onSettings);
+    };
+  }, [openGallery]);
+
   // ── Group talk picker outside-click ──────────────────────────────────
   useEffect(() => {
     if (!showGroupTalkPicker) return;
@@ -162,25 +197,7 @@ export function GroupChatView({ store, onNavigateToCharacter }: Props) {
         <h1 className="font-semibold">{store.activeGroupChat?.display_name}</h1>
         <div className="ml-auto relative group/gallery">
           <button
-            onClick={async () => {
-              const lastIllus = store.messages.filter((m) => m.role === "illustration").at(-1);
-              if (!lastIllus) return;
-              setIllustrationModalId(lastIllus.message_id);
-              setModalSelectedId(lastIllus.message_id);
-              setModalPlayingVideo(false);
-              setModalImageLoading(false);
-              if (store.activeGroupChat) {
-                try {
-                  const page = await api.getGroupMessages(store.activeGroupChat.group_chat_id);
-                  const illus = page.messages.filter((m) => m.role === "illustration").map((m) => ({ id: m.message_id, content: m.content }));
-                  setModalIllustrations(illus);
-                  setCarouselAllMessages(page.messages);
-                  for (const il of illus) {
-                    if (!videoFiles[il.id]) api.getVideoFile(il.id).then((vf) => { if (vf) setVideoFiles((prev) => ({ ...prev, [il.id]: vf })); }).catch(() => {});
-                  }
-                } catch {}
-              }
-            }}
+            onClick={openGallery}
             className="flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center transition-colors cursor-pointer text-muted-foreground hover:text-foreground hover:bg-accent disabled:opacity-40 disabled:cursor-not-allowed"
             disabled={!store.messages.some((m) => m.role === "illustration")}
           >
@@ -730,6 +747,7 @@ export function GroupChatView({ store, onNavigateToCharacter }: Props) {
         groupChatId={store.activeGroupChat?.group_chat_id ?? null}
         threadId={store.messages[0]?.thread_id ?? ""}
         characterNames={groupCharacters.map((c) => c.display_name)}
+        worldImageUrl={store.activeWorldImage?.data_url}
       />
 
       {userAvatarUrl && (

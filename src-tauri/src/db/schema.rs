@@ -597,17 +597,45 @@ pub fn run_migrations(conn: &Connection) -> Result<(), rusqlite::Error> {
         );
     ")?;
 
-    // ── Consultant chat table ───────────────────────────────────────────
+    // ── Consultant chat tables ──────────────────────────────────────────
     conn.execute_batch("
+        CREATE TABLE IF NOT EXISTS consultant_chats (
+            chat_id TEXT PRIMARY KEY,
+            thread_id TEXT NOT NULL,
+            title TEXT NOT NULL DEFAULT 'New Chat',
+            created_at TEXT NOT NULL DEFAULT (datetime('now'))
+        );
+        CREATE INDEX IF NOT EXISTS idx_consultant_chats_thread ON consultant_chats(thread_id);
+
         CREATE TABLE IF NOT EXISTS consultant_messages (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            thread_id TEXT NOT NULL,
+            chat_id TEXT NOT NULL,
             role TEXT NOT NULL,
             content TEXT NOT NULL,
             created_at TEXT NOT NULL DEFAULT (datetime('now'))
         );
-        CREATE INDEX IF NOT EXISTS idx_consultant_thread ON consultant_messages(thread_id);
+        CREATE INDEX IF NOT EXISTS idx_consultant_messages_chat ON consultant_messages(chat_id);
     ")?;
+
+    // Migration: add chat_id column if missing (old schema had thread_id)
+    let has_chat_id: bool = conn.query_row(
+        "SELECT COUNT(*) FROM pragma_table_info('consultant_messages') WHERE name = 'chat_id'",
+        [], |r| r.get::<_, i64>(0),
+    ).unwrap_or(0) > 0;
+    if !has_chat_id {
+        // Old table — just drop and recreate since consultant chats are ephemeral
+        conn.execute_batch("
+            DROP TABLE IF EXISTS consultant_messages;
+            CREATE TABLE consultant_messages (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                chat_id TEXT NOT NULL,
+                role TEXT NOT NULL,
+                content TEXT NOT NULL,
+                created_at TEXT NOT NULL DEFAULT (datetime('now'))
+            );
+            CREATE INDEX IF NOT EXISTS idx_consultant_messages_chat ON consultant_messages(chat_id);
+        ").ok();
+    }
 
     Ok(())
 }

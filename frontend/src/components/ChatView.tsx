@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import Markdown from "react-markdown";
 import { formatMessage, markdownComponents } from "@/components/chat/formatMessage";
 import { Button } from "@/components/ui/button";
@@ -115,6 +115,41 @@ export function ChatView({ store, onNavigateToCharacter }: Props) {
     playVideo,
   } = chatState;
 
+  const openGallery = useCallback(async () => {
+    const lastIllus = store.messages.filter((m) => m.role === "illustration").at(-1);
+    if (!lastIllus || !store.activeCharacter) return;
+    setIllustrationModalId(lastIllus.message_id);
+    setModalSelectedId(lastIllus.message_id);
+    setModalPlayingVideo(false);
+    setModalImageLoading(false);
+    try {
+      const page = await api.getMessages(store.activeCharacter.character_id);
+      const illus = page.messages.filter((m) => m.role === "illustration").map((m) => ({ id: m.message_id, content: m.content }));
+      setModalIllustrations(illus);
+      setCarouselAllMessages(page.messages);
+      for (const il of illus) {
+        if (!videoFiles[il.id]) api.getVideoFile(il.id).then((vf) => { if (vf) setVideoFiles((prev) => ({ ...prev, [il.id]: vf })); }).catch(() => {});
+      }
+    } catch {}
+  }, [store.messages, store.activeCharacter]);
+
+  useEffect(() => {
+    const onGallery = () => openGallery();
+    const onConsultant = () => setShowConsultant(true);
+    const onSummary = () => setShowSummary(true);
+    const onSettings = () => setShowNarrationSettings(true);
+    window.addEventListener("wt:open-gallery", onGallery);
+    window.addEventListener("wt:open-consultant", onConsultant);
+    window.addEventListener("wt:open-summary", onSummary);
+    window.addEventListener("wt:open-settings", onSettings);
+    return () => {
+      window.removeEventListener("wt:open-gallery", onGallery);
+      window.removeEventListener("wt:open-consultant", onConsultant);
+      window.removeEventListener("wt:open-summary", onSummary);
+      window.removeEventListener("wt:open-settings", onSettings);
+    };
+  }, [openGallery]);
+
   if (!store.activeCharacter) {
     return (
       <div className="flex-1 flex items-center justify-center text-muted-foreground">
@@ -199,25 +234,7 @@ export function ChatView({ store, onNavigateToCharacter }: Props) {
         )}
         <div className="ml-auto relative group/gallery">
           <button
-            onClick={async () => {
-              const lastIllus = store.messages.filter((m) => m.role === "illustration").at(-1);
-              if (!lastIllus) return;
-              setIllustrationModalId(lastIllus.message_id);
-              setModalSelectedId(lastIllus.message_id);
-              setModalPlayingVideo(false);
-              setModalImageLoading(false);
-              if (store.activeCharacter) {
-                try {
-                  const page = await api.getMessages(store.activeCharacter.character_id);
-                  const illus = page.messages.filter((m) => m.role === "illustration").map((m) => ({ id: m.message_id, content: m.content }));
-                  setModalIllustrations(illus);
-                  setCarouselAllMessages(page.messages);
-                  for (const il of illus) {
-                    if (!videoFiles[il.id]) api.getVideoFile(il.id).then((vf) => { if (vf) setVideoFiles((prev) => ({ ...prev, [il.id]: vf })); }).catch(() => {});
-                  }
-                } catch {}
-              }
-            }}
+            onClick={openGallery}
             className="flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center transition-colors cursor-pointer text-muted-foreground hover:text-foreground hover:bg-accent disabled:opacity-40 disabled:cursor-not-allowed"
             disabled={!store.messages.some((m) => m.role === "illustration")}
           >
@@ -697,6 +714,7 @@ export function ChatView({ store, onNavigateToCharacter }: Props) {
         groupChatId={null}
         threadId={store.messages[0]?.thread_id ?? ""}
         characterNames={store.activeCharacter ? [store.activeCharacter.display_name] : []}
+        worldImageUrl={store.activeWorldImage?.data_url}
       />
 
       {userAvatarUrl && (

@@ -111,6 +111,13 @@ export interface IllustrationResult {
   illustration_message: Message;
 }
 
+export interface ConsultantChat {
+  chat_id: string;
+  thread_id: string;
+  title: string;
+  created_at: string;
+}
+
 export interface NovelEntry {
   novel_id: string;
   thread_id: string;
@@ -368,12 +375,26 @@ export const api = {
     invoke<void>("delete_novel_entry_cmd", { threadId, worldDay }),
 
   // Story consultant
-  storyConsultant: (apiKey: string, characterId: string | null, groupChatId: string | null, userMessage: string) =>
-    invoke<string>("story_consultant_cmd", { apiKey, characterId, groupChatId, userMessage }),
-  loadConsultantChat: (threadId: string) =>
-    invoke<Array<{ role: string; content: string }>>("load_consultant_chat_cmd", { threadId }),
-  clearConsultantChat: (threadId: string) =>
-    invoke<void>("clear_consultant_chat_cmd", { threadId }),
+  createConsultantChat: (threadId: string, title?: string) =>
+    invoke<ConsultantChat>("create_consultant_chat_cmd", { threadId, title: title ?? null }),
+  listConsultantChats: (threadId: string) =>
+    invoke<ConsultantChat[]>("list_consultant_chats_cmd", { threadId }),
+  updateConsultantChatTitle: (chatId: string, title: string) =>
+    invoke<void>("update_consultant_chat_title_cmd", { chatId, title }),
+  deleteConsultantChat: (chatId: string) =>
+    invoke<void>("delete_consultant_chat_cmd", { chatId }),
+  generateConsultantTitle: (apiKey: string, userMessage: string) =>
+    invoke<string>("generate_consultant_title_cmd", { apiKey, userMessage }),
+  storyConsultant: (apiKey: string, chatId: string, characterId: string | null, groupChatId: string | null, userMessage: string) =>
+    invoke<string>("story_consultant_cmd", { apiKey, chatId, characterId, groupChatId, userMessage }),
+  loadConsultantChat: (chatId: string) =>
+    invoke<Array<{ role: string; content: string }>>("load_consultant_chat_cmd", { chatId }),
+  clearConsultantChat: (chatId: string) =>
+    invoke<void>("clear_consultant_chat_cmd", { chatId }),
+  truncateConsultantChat: (chatId: string, keepCount: number) =>
+    invoke<void>("truncate_consultant_chat_cmd", { chatId, keepCount }),
+  saveConsultantMessages: (chatId: string, messages: Array<{ role: string; content: string }>) =>
+    invoke<void>("save_consultant_messages_cmd", { chatId, messages }),
   generateNarrative: (apiKey: string, characterId: string, customInstructions?: string) =>
     invoke<NarrativeResult>("generate_narrative_cmd", { apiKey, characterId, customInstructions: customInstructions ?? null }),
   generateIllustration: (apiKey: string, characterId: string, qualityTier?: string, customInstructions?: string, previousIllustrationId?: string, includeSceneSummary?: boolean) =>

@@ -88,12 +88,31 @@ function MainApp() {
     return () => window.removeEventListener("focus", handler);
   }, [checkWorldTime]);
 
-  // Cmd+R toggles auto-respond
+  // Keyboard shortcuts (Cmd+Shift+key)
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      if (e.metaKey && e.key === "r") {
-        e.preventDefault();
-        store.setAutoRespond(!store.autoRespond);
+      if (!e.metaKey || !e.shiftKey) return;
+      switch (e.code) {
+        case "KeyR":
+          e.preventDefault();
+          store.setAutoRespond(!store.autoRespond);
+          break;
+        case "KeyG":
+          e.preventDefault();
+          window.dispatchEvent(new CustomEvent("wt:open-gallery"));
+          break;
+        case "KeyC":
+          e.preventDefault();
+          window.dispatchEvent(new CustomEvent("wt:open-consultant"));
+          break;
+        case "KeyS":
+          e.preventDefault();
+          window.dispatchEvent(new CustomEvent("wt:open-summary"));
+          break;
+        case "Comma":
+          e.preventDefault();
+          window.dispatchEvent(new CustomEvent("wt:open-settings"));
+          break;
       }
     };
     window.addEventListener("keydown", handler);

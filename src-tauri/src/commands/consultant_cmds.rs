@@ -2,9 +2,18 @@ use crate::ai::openai::{self, ChatRequest, ChatMessage};
 use crate::ai::orchestrator;
 use crate::db::queries::*;
 use crate::db::Database;
+use chrono::Utc;
 use rusqlite::params;
 use serde::{Deserialize, Serialize};
 use tauri::State;
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct ConsultantChat {
+    pub chat_id: String,
+    pub thread_id: String,
+    pub title: String,
+    pub created_at: String,
+}
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct ConsultantMessage {
@@ -12,50 +21,191 @@ pub struct ConsultantMessage {
     pub content: String,
 }
 
-/// Load persisted consultant chat messages for a thread.
+// ─── Chat CRUD ─────────────────────────────────────────────────────────────
+
+/// Create a new consultant chat session for a thread.
 #[tauri::command]
-pub fn load_consultant_chat_cmd(
+pub fn create_consultant_chat_cmd(
     db: State<'_, Database>,
     thread_id: String,
-) -> Result<Vec<ConsultantMessage>, String> {
+    title: Option<String>,
+) -> Result<ConsultantChat, String> {
+    let conn = db.conn.lock().map_err(|e| e.to_string())?;
+    let chat = ConsultantChat {
+        chat_id: uuid::Uuid::new_v4().to_string(),
+        thread_id,
+        title: title.unwrap_or_else(|| "New Chat".to_string()),
+        created_at: Utc::now().to_rfc3339(),
+    };
+    conn.execute(
+        "INSERT INTO consultant_chats (chat_id, thread_id, title, created_at) VALUES (?1, ?2, ?3, ?4)",
+        params![chat.chat_id, chat.thread_id, chat.title, chat.created_at],
+    ).map_err(|e| e.to_string())?;
+    Ok(chat)
+}
+
+/// List all consultant chats for a thread, most recent first.
+#[tauri::command]
+pub fn list_consultant_chats_cmd(
+    db: State<'_, Database>,
+    thread_id: String,
+) -> Result<Vec<ConsultantChat>, String> {
     let conn = db.conn.lock().map_err(|e| e.to_string())?;
     let mut stmt = conn.prepare(
-        "SELECT role, content FROM consultant_messages WHERE thread_id = ?1 ORDER BY id ASC"
+        "SELECT chat_id, thread_id, title, created_at FROM consultant_chats WHERE thread_id = ?1 ORDER BY created_at DESC"
     ).map_err(|e| e.to_string())?;
     let rows = stmt.query_map(params![thread_id], |row| {
-        Ok(ConsultantMessage {
-            role: row.get(0)?,
-            content: row.get(1)?,
+        Ok(ConsultantChat {
+            chat_id: row.get(0)?,
+            thread_id: row.get(1)?,
+            title: row.get(2)?,
+            created_at: row.get(3)?,
         })
     }).map_err(|e| e.to_string())?;
     rows.collect::<Result<Vec<_>, _>>().map_err(|e| e.to_string())
 }
 
-/// Clear all consultant messages for a thread.
+/// Update the title of a consultant chat.
 #[tauri::command]
-pub fn clear_consultant_chat_cmd(
+pub fn update_consultant_chat_title_cmd(
     db: State<'_, Database>,
-    thread_id: String,
+    chat_id: String,
+    title: String,
 ) -> Result<(), String> {
     let conn = db.conn.lock().map_err(|e| e.to_string())?;
-    conn.execute("DELETE FROM consultant_messages WHERE thread_id = ?1", params![thread_id])
+    conn.execute(
+        "UPDATE consultant_chats SET title = ?2 WHERE chat_id = ?1",
+        params![chat_id, title],
+    ).map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+/// Delete a consultant chat and all its messages.
+#[tauri::command]
+pub fn delete_consultant_chat_cmd(
+    db: State<'_, Database>,
+    chat_id: String,
+) -> Result<(), String> {
+    let conn = db.conn.lock().map_err(|e| e.to_string())?;
+    conn.execute("DELETE FROM consultant_messages WHERE chat_id = ?1", params![chat_id]).ok();
+    conn.execute("DELETE FROM consultant_chats WHERE chat_id = ?1", params![chat_id])
         .map_err(|e| e.to_string())?;
     Ok(())
 }
 
+// ─── Message CRUD ──────────────────────────────────────────────────────────
+
+/// Load messages for a specific consultant chat.
+#[tauri::command]
+pub fn load_consultant_chat_cmd(
+    db: State<'_, Database>,
+    chat_id: String,
+) -> Result<Vec<ConsultantMessage>, String> {
+    let conn = db.conn.lock().map_err(|e| e.to_string())?;
+    let mut stmt = conn.prepare(
+        "SELECT role, content FROM consultant_messages WHERE chat_id = ?1 ORDER BY id ASC"
+    ).map_err(|e| e.to_string())?;
+    let rows = stmt.query_map(params![chat_id], |row| {
+        Ok(ConsultantMessage { role: row.get(0)?, content: row.get(1)? })
+    }).map_err(|e| e.to_string())?;
+    rows.collect::<Result<Vec<_>, _>>().map_err(|e| e.to_string())
+}
+
+/// Clear all messages in a consultant chat.
+#[tauri::command]
+pub fn clear_consultant_chat_cmd(
+    db: State<'_, Database>,
+    chat_id: String,
+) -> Result<(), String> {
+    let conn = db.conn.lock().map_err(|e| e.to_string())?;
+    conn.execute("DELETE FROM consultant_messages WHERE chat_id = ?1", params![chat_id])
+        .map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+/// Keep only the first N messages in a consultant chat.
+#[tauri::command]
+pub fn truncate_consultant_chat_cmd(
+    db: State<'_, Database>,
+    chat_id: String,
+    keep_count: i64,
+) -> Result<(), String> {
+    let conn = db.conn.lock().map_err(|e| e.to_string())?;
+    conn.execute(
+        "DELETE FROM consultant_messages WHERE chat_id = ?1 AND id NOT IN (SELECT id FROM consultant_messages WHERE chat_id = ?1 ORDER BY id ASC LIMIT ?2)",
+        params![chat_id, keep_count],
+    ).map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+/// Replace all messages in a consultant chat.
+#[tauri::command]
+pub fn save_consultant_messages_cmd(
+    db: State<'_, Database>,
+    chat_id: String,
+    messages: Vec<ConsultantMessage>,
+) -> Result<(), String> {
+    let conn = db.conn.lock().map_err(|e| e.to_string())?;
+    conn.execute("DELETE FROM consultant_messages WHERE chat_id = ?1", params![chat_id])
+        .map_err(|e| e.to_string())?;
+    for msg in &messages {
+        conn.execute(
+            "INSERT INTO consultant_messages (chat_id, role, content) VALUES (?1, ?2, ?3)",
+            params![chat_id, msg.role, msg.content],
+        ).map_err(|e| e.to_string())?;
+    }
+    Ok(())
+}
+
+// ─── Story consultant LLM call ─────────────────────────────────────────────
+
+/// Generate a short title for a consultant chat based on the first message.
+#[tauri::command]
+pub async fn generate_consultant_title_cmd(
+    db: State<'_, Database>,
+    api_key: String,
+    user_message: String,
+) -> Result<String, String> {
+    let model_config = {
+        let conn = db.conn.lock().map_err(|e| e.to_string())?;
+        orchestrator::load_model_config(&conn)
+    };
+
+    let messages = vec![
+        ChatMessage { role: "system".to_string(), content: "Generate a very short title (3-6 words) for a story consultation chat that starts with this question. Reply with ONLY the title, no quotes or punctuation.".to_string() },
+        ChatMessage { role: "user".to_string(), content: user_message },
+    ];
+
+    let request = ChatRequest {
+        model: model_config.dialogue_model.clone(),
+        messages,
+        temperature: Some(0.7),
+        max_completion_tokens: Some(20),
+        response_format: None,
+    };
+
+    let response = openai::chat_completion_with_base(
+        &model_config.chat_api_base(), &api_key, &request,
+    ).await?;
+
+    Ok(response.choices.first()
+        .map(|c| c.message.content.trim().to_string())
+        .unwrap_or_else(|| "Story Chat".to_string()))
+}
+
 /// Send a message to the story consultant and get a response.
-/// Persists both the user message and the assistant response.
 #[tauri::command]
 pub async fn story_consultant_cmd(
     db: State<'_, Database>,
     api_key: String,
+    chat_id: String,
     character_id: Option<String>,
     group_chat_id: Option<String>,
     user_message: String,
 ) -> Result<String, String> {
     let is_group = group_chat_id.is_some();
 
-    let (world, characters, recent_msgs, user_name, model_config, thread_id) = {
+    let (world, characters, recent_msgs, user_name, model_config) = {
         let conn = db.conn.lock().map_err(|e| e.to_string())?;
         let model_config = orchestrator::load_model_config(&conn);
 
@@ -65,15 +215,13 @@ pub async fn story_consultant_cmd(
             let recent_msgs = list_group_messages(&conn, &gc.thread_id, 30).map_err(|e| e.to_string())?;
             let user_name = get_user_profile(&conn, &gc.world_id)
                 .ok().map(|p| p.display_name).unwrap_or_else(|| "the user".to_string());
-
             let char_ids: Vec<String> = gc.character_ids.as_array()
                 .map(|a| a.iter().filter_map(|v| v.as_str().map(|s| s.to_string())).collect())
                 .unwrap_or_default();
             let characters: Vec<Character> = char_ids.iter()
                 .filter_map(|id| get_character(&conn, id).ok())
                 .collect();
-
-            (world, characters, recent_msgs, user_name, model_config, gc.thread_id)
+            (world, characters, recent_msgs, user_name, model_config)
         } else {
             let char_id = character_id.as_deref().ok_or("No character specified")?;
             let character = get_character(&conn, char_id).map_err(|e| e.to_string())?;
@@ -82,24 +230,22 @@ pub async fn story_consultant_cmd(
             let recent_msgs = list_messages(&conn, &thread.thread_id, 30).map_err(|e| e.to_string())?;
             let user_name = get_user_profile(&conn, &character.world_id)
                 .ok().map(|p| p.display_name).unwrap_or_else(|| "the user".to_string());
-
-            (world, vec![character], recent_msgs, user_name, model_config, thread.thread_id)
+            (world, vec![character], recent_msgs, user_name, model_config)
         }
     };
 
-    // Load persisted consultant history
+    // Load persisted consultant history for this chat
     let consultant_history = {
         let conn = db.conn.lock().map_err(|e| e.to_string())?;
         let mut stmt = conn.prepare(
-            "SELECT role, content FROM consultant_messages WHERE thread_id = ?1 ORDER BY id ASC"
+            "SELECT role, content FROM consultant_messages WHERE chat_id = ?1 ORDER BY id ASC"
         ).map_err(|e| e.to_string())?;
-        let rows = stmt.query_map(params![thread_id], |row| {
+        let rows = stmt.query_map(params![chat_id], |row| {
             Ok(ChatMessage { role: row.get(0)?, content: row.get(1)? })
         }).map_err(|e| e.to_string())?;
         rows.collect::<Result<Vec<_>, _>>().map_err(|e| e.to_string())?
     };
 
-    // Build character descriptions
     let char_descriptions: Vec<String> = characters.iter().map(|c| {
         let mut desc = format!("- {}", c.display_name);
         if !c.identity.is_empty() {
@@ -108,7 +254,6 @@ pub async fn story_consultant_cmd(
         desc
     }).collect();
 
-    // Build recent conversation summary
     let conversation: Vec<String> = recent_msgs.iter()
         .filter(|m| m.role != "illustration" && m.role != "video")
         .map(|m| {
@@ -160,15 +305,8 @@ YOUR ROLE:
     let mut messages: Vec<ChatMessage> = vec![
         ChatMessage { role: "system".to_string(), content: system_prompt },
     ];
-
-    // Add persisted consultant chat history
     messages.extend(consultant_history);
-
-    // Add the new user message
-    messages.push(ChatMessage {
-        role: "user".to_string(),
-        content: user_message.clone(),
-    });
+    messages.push(ChatMessage { role: "user".to_string(), content: user_message.clone() });
 
     let request = ChatRequest {
         model: model_config.dialogue_model.clone(),
@@ -195,12 +333,12 @@ YOUR ROLE:
     {
         let conn = db.conn.lock().map_err(|e| e.to_string())?;
         conn.execute(
-            "INSERT INTO consultant_messages (thread_id, role, content) VALUES (?1, 'user', ?2)",
-            params![thread_id, user_message],
+            "INSERT INTO consultant_messages (chat_id, role, content) VALUES (?1, 'user', ?2)",
+            params![chat_id, user_message],
         ).map_err(|e| e.to_string())?;
         conn.execute(
-            "INSERT INTO consultant_messages (thread_id, role, content) VALUES (?1, 'assistant', ?2)",
-            params![thread_id, reply],
+            "INSERT INTO consultant_messages (chat_id, role, content) VALUES (?1, 'assistant', ?2)",
+            params![chat_id, reply],
         ).map_err(|e| e.to_string())?;
     }
 
