@@ -1,6 +1,8 @@
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import Markdown from "react-markdown";
 import { BookOpen, Volume2, Loader2, Square, Play, SlidersHorizontal, Trash2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Dialog } from "@/components/ui/dialog";
 import { formatMessage, markdownComponents } from "./formatMessage";
 import type { Message } from "@/lib/tauri";
 
@@ -22,20 +24,22 @@ interface NarrativeMessageProps {
   // Adjust
   adjustingMessageId: string | null;
   onAdjust: (messageId: string) => void;
+  onDelete: (messageId: string) => void;
 }
 
 export function NarrativeMessage({
   message, isPending, onResetToHere,
   cachedTones, lastTone, speakingId, loadingSpeech, toneMenuId, setToneMenuId,
   onSpeak, onStopSpeaking, onDeleteAudio, toneMenuRef,
-  adjustingMessageId, onAdjust,
+  adjustingMessageId, onAdjust, onDelete,
 }: NarrativeMessageProps) {
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const hasCached = cachedTones && cachedTones.size > 0;
   const isSpeaking = speakingId === message.message_id;
   const isLoading = loadingSpeech === message.message_id;
   const allTones = ["Auto", "Playful", "Happy", "Excited", "Reverent", "Serene", "Intimate", "Tender", "Sad", "Melancholy", "Angry", "Anxious"];
 
-  return (
+  return (<>
     <div key={message.message_id} className="flex justify-center my-2">
       <div className="relative group max-w-[90%] rounded-xl px-5 py-3.5 text-sm leading-relaxed bg-gradient-to-br from-amber-950/40 to-amber-900/20 border border-amber-700/30 text-amber-100/90 italic backdrop-blur-sm">
         <div className="flex items-center gap-1.5 mb-1.5 text-[10px] uppercase tracking-wider text-amber-500/70 font-semibold not-italic">
@@ -116,9 +120,9 @@ export function NarrativeMessage({
           </div>
         )}
 
-        {/* Adjust button — top right, offset left of speak button */}
+        {/* Adjust + Delete buttons — top right, offset left of speak button */}
         {!isPending && (
-          <div className="absolute top-2 right-8 opacity-0 group-hover:opacity-100 transition-opacity">
+          <div className="absolute top-2 right-8 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
             <div className="relative group/madj">
               <button
                 onClick={() => onAdjust(message.message_id)}
@@ -127,6 +131,15 @@ export function NarrativeMessage({
                 <SlidersHorizontal size={12} />
               </button>
               <span className="absolute top-full left-1/2 -translate-x-1/2 mt-1.5 px-2 py-0.5 text-[10px] font-medium text-white bg-black rounded-md shadow-lg whitespace-nowrap opacity-0 group-hover/madj:opacity-100 pointer-events-none transition-opacity not-italic">Adjust</span>
+            </div>
+            <div className="relative group/mdel">
+              <button
+                onClick={() => setShowDeleteConfirm(true)}
+                className="w-7 h-7 rounded-full bg-black/50 text-white flex items-center justify-center cursor-pointer hover:bg-destructive transition-colors backdrop-blur-sm"
+              >
+                <Trash2 size={12} />
+              </button>
+              <span className="absolute top-full left-1/2 -translate-x-1/2 mt-1.5 px-2 py-0.5 text-[10px] font-medium text-white bg-black rounded-md shadow-lg whitespace-nowrap opacity-0 group-hover/mdel:opacity-100 pointer-events-none transition-opacity not-italic">Delete</span>
             </div>
           </div>
         )}
@@ -155,5 +168,32 @@ export function NarrativeMessage({
         </p>
       </div>
     </div>
-  );
+
+    <Dialog open={showDeleteConfirm} onClose={() => setShowDeleteConfirm(false)} className="max-w-xs">
+      <div className="p-5 space-y-4 bg-card/95 backdrop-blur-md border border-border rounded-xl shadow-2xl shadow-black/50">
+        <div className="flex items-center gap-2">
+          <Trash2 size={18} className="text-destructive" />
+          <h3 className="font-semibold">Delete Narrative</h3>
+        </div>
+        <p className="text-sm text-muted-foreground">
+          This will permanently delete this narrative message.
+        </p>
+        <div className="flex justify-end gap-2">
+          <Button variant="ghost" size="sm" onClick={() => setShowDeleteConfirm(false)}>
+            Cancel
+          </Button>
+          <Button
+            variant="destructive"
+            size="sm"
+            onClick={() => {
+              setShowDeleteConfirm(false);
+              onDelete(message.message_id);
+            }}
+          >
+            Delete
+          </Button>
+        </div>
+      </div>
+    </Dialog>
+  </>);
 }

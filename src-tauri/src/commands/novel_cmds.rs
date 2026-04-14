@@ -14,7 +14,7 @@ pub async fn generate_novel_entry_cmd(
     world_day: i64,
     is_group: bool,
 ) -> Result<String, String> {
-    let (messages, world, character_names, user_name, model_config) = {
+    let (messages, world, characters, character_names, user_name, user_profile, model_config) = {
         let conn = db.conn.lock().map_err(|e| e.to_string())?;
         let model_config = orchestrator::load_model_config(&conn);
 
@@ -43,13 +43,14 @@ pub async fn generate_novel_entry_cmd(
         let user_name = get_user_profile(&conn, &world_id)
             .ok().map(|p| p.display_name).unwrap_or_else(|| "the protagonist".to_string());
 
-        // Build character name map
         let characters = list_characters(&conn, &world_id).unwrap_or_default();
         let char_names: std::collections::HashMap<String, String> = characters.iter()
             .map(|c| (c.character_id.clone(), c.display_name.clone()))
             .collect();
 
-        (day_msgs, world, char_names, user_name, model_config)
+        let user_profile = get_user_profile(&conn, &world_id).ok();
+
+        (day_msgs, world, characters, char_names, user_name, user_profile, model_config)
     };
 
     // Build conversation text
@@ -71,7 +72,26 @@ pub async fn generate_novel_entry_cmd(
         })
         .collect();
 
-    let all_char_names: Vec<&str> = character_names.values().map(|s| s.as_str()).collect();
+    // Build rich character descriptions
+    let char_descriptions: Vec<String> = characters.iter().map(|c| {
+        let mut desc = format!("- {}", c.display_name);
+        if !c.identity.is_empty() {
+            desc.push_str(&format!(": {}", c.identity));
+        }
+        let voice_rules = crate::ai::prompts::json_array_to_strings(&c.voice_rules);
+        if !voice_rules.is_empty() {
+            desc.push_str(&format!("\n  Voice: {}", voice_rules.join("; ")));
+        }
+        desc
+    }).collect();
+
+    let user_desc = user_profile.as_ref().map(|p| {
+        let mut d = format!("- {} (the protagonist, written in second person — \"you\")", p.display_name);
+        if !p.description.is_empty() {
+            d.push_str(&format!(": {}", p.description));
+        }
+        d
+    }).unwrap_or_else(|| format!("- {} (the protagonist, written in second person — \"you\")", user_name));
 
     let system_prompt = format!(
         r#"You are a gifted literary novelist. Your task is to transform a day's conversation and narrative beats into a vivid, immersive chapter of a novel.
@@ -79,26 +99,27 @@ pub async fn generate_novel_entry_cmd(
 SETTING: {world_desc}
 
 CHARACTERS:
-- {user} (the protagonist, written in second person — "you")
+{user_desc}
 {char_list}
 
 INSTRUCTIONS:
+- A chapter has shape: it opens on a specific image, builds through its middle, and lands on a moment of resonance — an image, a line, a small revelation. Find that shape in the day's events.
 - Transform the conversation into rich, flowing prose — a full chapter of a novel.
-- Write in SECOND PERSON present tense. {user} is always "you."
+- Write in SECOND PERSON present tense. {user_name} is always "you."
 - Other characters are referred to by name in third person.
 - Weave dialogue, action, internal thought, and sensory detail together seamlessly.
-- INVENT details: what the environment looks like, sounds, smells, textures, micro-expressions, body language, pauses, unspoken thoughts.
+- Invent freely, but with restraint. The best literary prose chooses one or two precise sensory details per beat rather than cataloguing everything. A single specific image — the way light catches a glass, the particular way someone holds their hands — does more work than a paragraph of atmosphere. Trust the reader to fill in the rest.
 - Expand brief exchanges into full scenes with atmosphere and pacing.
 - Include all the key beats from the conversation but enhance them with novelistic craft.
-- Narrative messages in the source should be expanded and enriched, not just copied.
+- Lines tagged [Narrative] are existing narration from the source — expand and enrich them, don't just copy. Lines tagged [Context] are background information the characters share — weave them in as known truths, not as exposition.
 - Make it feel like one vivid, cohesive chapter — not a transcript.
-- Use literary techniques: varied sentence length, metaphor, subtext, tension, rhythm.
+- Use literary techniques: metaphor, subtext, tension, rhythm.
+- Vary sentence length aggressively to keep the second-person present from feeling monotonous. Use sentence fragments. Let some paragraphs breathe.
 - The chapter should be substantial — aim for 1500-3000 words.
-- Do NOT include chapter titles, headers, or meta-commentary. Just the prose.
-- Keep content tasteful and PG-13."#,
+- Do NOT include chapter titles, headers, or meta-commentary. Just the prose."#,
         world_desc = if world.description.is_empty() { "A richly detailed world." } else { &world.description },
-        user = user_name,
-        char_list = all_char_names.iter().map(|n| format!("- {n}")).collect::<Vec<_>>().join("\n"),
+        user_desc = user_desc,
+        char_list = char_descriptions.join("\n"),
     );
 
     let api_messages = vec![

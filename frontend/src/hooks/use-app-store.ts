@@ -873,6 +873,20 @@ export function useAppStore() {
     }
   }, [state.activeGroupChat, state.activeCharacter]);
 
+  const deleteMessage = useCallback(async (messageId: string) => {
+    const isGroup = !!state.activeGroupChat && !state.activeCharacter;
+    try {
+      await api.deleteMessage(messageId, isGroup);
+      setState((s) => ({
+        ...s,
+        messages: s.messages.filter((m) => m.message_id !== messageId),
+        totalMessages: s.totalMessages - 1,
+      }));
+    } catch (e) {
+      setState((s) => ({ ...s, chatError: String(e) }));
+    }
+  }, [state.activeGroupChat, state.activeCharacter]);
+
   const deleteIllustration = useCallback(async (messageId: string) => {
     try {
       await api.deleteIllustration(messageId);
@@ -1228,6 +1242,7 @@ export function useAppStore() {
     generateIllustration,
     adjustMessage,
     editMessageContent,
+    deleteMessage,
     deleteIllustration,
     regenerateIllustration,
     adjustIllustration,

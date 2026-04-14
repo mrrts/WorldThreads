@@ -40,7 +40,7 @@ export function DayPageSlide({
   playingVideo, setPlayingVideo, loopVideo, setLoopVideo,
   threadId, apiKey, isGroup, novelEntry, onNovelChange,
 }: Props) {
-  const [showNovelView, setShowNovelView] = useState(false);
+  const [showNovelView, setShowNovelView] = useState(!!novelEntry);
   const [novelModalOpen, setNovelModalOpen] = useState(false);
   const [novelGenerating, setNovelGenerating] = useState(false);
   const [novelDraft, setNovelDraft] = useState("");

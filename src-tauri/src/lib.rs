@@ -125,6 +125,7 @@ pub fn run() {
             get_media_dir_cmd,
             adjust_message_cmd,
             edit_message_content_cmd,
+            delete_message_cmd,
             generate_novel_entry_cmd,
             save_novel_entry_cmd,
             get_novel_entry_cmd,

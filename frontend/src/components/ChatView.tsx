@@ -259,6 +259,7 @@ export function ChatView({ store }: Props) {
                   toneMenuRef={toneMenuRef}
                   adjustingMessageId={store.adjustingMessageId}
                   onAdjust={(id) => setAdjustMessageId(id)}
+                  onDelete={(id) => store.deleteMessage(id)}
                 />
               </React.Fragment>);
             }

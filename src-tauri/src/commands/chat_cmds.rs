@@ -486,6 +486,22 @@ pub fn edit_message_content_cmd(
     }
 }
 
+/// Delete a single message by ID.
+#[tauri::command]
+pub fn delete_message_cmd(
+    db: State<'_, Database>,
+    message_id: String,
+    is_group: bool,
+) -> Result<(), String> {
+    let conn = db.conn.lock().map_err(|e| e.to_string())?;
+    let table = if is_group { "group_messages" } else { "messages" };
+    let fts_table = if is_group { "group_messages_fts" } else { "messages_fts" };
+    conn.execute(&format!("DELETE FROM {} WHERE message_id = ?1", fts_table), rusqlite::params![message_id]).ok();
+    conn.execute(&format!("DELETE FROM {} WHERE message_id = ?1", table), rusqlite::params![message_id])
+        .map_err(|e| e.to_string())?;
+    Ok(())
+}
+
 #[tauri::command]
 pub async fn prompt_character_cmd(
     db: State<'_, Database>,

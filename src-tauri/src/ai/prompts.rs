@@ -594,7 +594,7 @@ fn world_time_description(world: &World) -> Option<String> {
     Some(desc)
 }
 
-fn json_array_to_strings(val: &Value) -> Vec<String> {
+pub fn json_array_to_strings(val: &Value) -> Vec<String> {
     match val.as_array() {
         Some(arr) => arr.iter().filter_map(|v| v.as_str().map(|s| s.to_string())).collect(),
         None => Vec::new(),

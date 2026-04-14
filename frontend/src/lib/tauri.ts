@@ -352,6 +352,8 @@ export const api = {
     invoke<Message>("adjust_message_cmd", { apiKey, messageId, instructions, isGroup }),
   editMessageContent: (messageId: string, content: string, isGroup: boolean) =>
     invoke<void>("edit_message_content_cmd", { messageId, content, isGroup }),
+  deleteMessage: (messageId: string, isGroup: boolean) =>
+    invoke<void>("delete_message_cmd", { messageId, isGroup }),
 
   // Novel entries
   generateNovelEntry: (apiKey: string, threadId: string, worldDay: number, isGroup: boolean) =>
