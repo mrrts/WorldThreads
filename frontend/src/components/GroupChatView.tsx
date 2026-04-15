@@ -396,7 +396,7 @@ export function GroupChatView({ store, onNavigateToCharacter }: Props) {
                   <div
                     className={`relative group rounded-2xl px-4 py-2.5 text-base leading-relaxed ${
                       isUser
-                        ? "bg-primary/60 backdrop-blur-sm text-primary-foreground rounded-br-md max-w-[80%]"
+                        ? "bg-primary text-primary-foreground rounded-br-md max-w-[80%]"
                         : senderBubbleColor
                           ? `${senderBubbleColor} text-secondary-foreground rounded-bl-md max-w-[80%] border border-border/30`
                           : "bg-secondary text-secondary-foreground rounded-bl-md max-w-[80%]"
