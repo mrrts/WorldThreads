@@ -3,7 +3,7 @@ import Markdown from "react-markdown";
 import { BookOpen, Volume2, Loader2, Square, Play, SlidersHorizontal, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
-import { formatMessage, markdownComponents } from "./formatMessage";
+import { formatMessage, markdownComponents, remarkPlugins, rehypePlugins } from "./formatMessage";
 import type { Message } from "@/lib/tauri";
 
 interface NarrativeMessageProps {
@@ -153,7 +153,7 @@ export function NarrativeMessage({
         )}
 
         <div className="prose prose-sm max-w-none prose-p:my-1 [&>*:first-child]:mt-0 [&>*:last-child]:mb-0 [--tw-prose-body:var(--color-amber-100)] [--tw-prose-bold:rgb(252,211,77)]">
-          <Markdown components={markdownComponents}>{formatMessage(message.content)}</Markdown>
+          <Markdown components={markdownComponents} remarkPlugins={remarkPlugins} rehypePlugins={rehypePlugins}>{formatMessage(message.content)}</Markdown>
         </div>
         <p className="text-[10px] mt-1.5 text-amber-500/50 not-italic flex items-center gap-2">
           {new Date(message.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}

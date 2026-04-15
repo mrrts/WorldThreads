@@ -1,6 +1,6 @@
 import Markdown from "react-markdown";
 import { Link2, SlidersHorizontal, Loader2 } from "lucide-react";
-import { formatMessage, markdownComponents } from "./formatMessage";
+import { formatMessage, markdownComponents, remarkPlugins, rehypePlugins } from "./formatMessage";
 import type { Message } from "@/lib/tauri";
 
 interface Props {
@@ -44,7 +44,7 @@ export function ContextMessage({ message, isPending, onResetToHere, adjustingMes
         )}
 
         <div className="prose prose-sm max-w-none prose-p:my-1 [&>*:first-child]:mt-0 [&>*:last-child]:mb-0 [--tw-prose-body:var(--color-sky-100)] [--tw-prose-bold:rgb(125,211,252)]">
-          <Markdown components={markdownComponents}>{formatMessage(message.content)}</Markdown>
+          <Markdown components={markdownComponents} remarkPlugins={remarkPlugins} rehypePlugins={rehypePlugins}>{formatMessage(message.content)}</Markdown>
         </div>
         <p className="text-[10px] mt-1.5 text-sky-500/50 flex items-center gap-2">
           {new Date(message.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}

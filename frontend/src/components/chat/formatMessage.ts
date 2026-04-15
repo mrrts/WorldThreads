@@ -1,4 +1,7 @@
 import React from "react";
+import remarkMath from "remark-math";
+import rehypeKatex from "rehype-katex";
+import "katex/dist/katex.min.css";
 
 /** Convert parenthesized text to asterisked text for italic/em rendering in Markdown. */
 export function formatMessage(content: string): string {
@@ -34,3 +37,9 @@ export const markdownComponents = {
     return React.createElement("em", null, children);
   },
 };
+
+/** Remark plugins for Markdown rendering (includes math support) */
+export const remarkPlugins = [remarkMath];
+
+/** Rehype plugins for Markdown rendering (includes KaTeX rendering) */
+export const rehypePlugins = [rehypeKatex];

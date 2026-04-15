@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import Markdown from "react-markdown";
 import { BookOpen, Link2, Image, Loader2, Trash2, BookText, Sparkles } from "lucide-react";
-import { formatMessage, markdownComponents } from "./formatMessage";
+import { formatMessage, markdownComponents, remarkPlugins, rehypePlugins } from "./formatMessage";
 import { TimeDivider } from "./TimeDivider";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogBody } from "@/components/ui/dialog";
@@ -140,7 +140,7 @@ export function DayPageSlide({
           <div className={`overflow-y-auto px-8 py-8 ${dayIllustrations.length > 0 ? "flex-1" : "w-full"}`}>
             <div className="max-w-prose mx-auto">
               <article className="prose prose-lg prose-invert max-w-none leading-[1.9] [--tw-prose-body:var(--color-foreground)] [--tw-prose-headings:var(--color-foreground)] [--tw-prose-bold:var(--color-foreground)] [--tw-prose-links:var(--color-primary)] first-letter:text-5xl first-letter:font-serif first-letter:font-bold first-letter:float-left first-letter:mr-2 first-letter:mt-1 first-letter:leading-none first-letter:text-amber-400">
-                <Markdown components={markdownComponents}>{novelEntry.content}</Markdown>
+                <Markdown components={markdownComponents} remarkPlugins={remarkPlugins} rehypePlugins={rehypePlugins}>{novelEntry.content}</Markdown>
               </article>
               <div className="mt-8 flex justify-center">
                 <button
@@ -188,7 +188,7 @@ export function DayPageSlide({
                           <span>Narrative</span>
                         </div>
                         <div className="prose prose-sm max-w-none prose-p:my-1 [&>*:first-child]:mt-0 [&>*:last-child]:mb-0 [--tw-prose-body:rgb(252,211,77,0.9)] [--tw-prose-bold:rgb(252,211,77)] [&_em]:italic [&_em]:block [&_em]:border-l-2 [&_em]:border-current/20 [&_em]:pl-3 [&_em]:my-1.5 [&_em]:opacity-80">
-                          <Markdown components={markdownComponents}>{formatMessage(msg.content)}</Markdown>
+                          <Markdown components={markdownComponents} remarkPlugins={remarkPlugins} rehypePlugins={rehypePlugins}>{formatMessage(msg.content)}</Markdown>
                         </div>
                         <p className="text-[10px] mt-1.5 text-amber-500/50">
                           {new Date(msg.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
@@ -210,7 +210,7 @@ export function DayPageSlide({
                           <span>Cross-Chat Context</span>
                         </div>
                         <div className="prose prose-sm max-w-none prose-p:my-1 [&>*:first-child]:mt-0 [&>*:last-child]:mb-0 [--tw-prose-body:var(--color-sky-100)] [--tw-prose-bold:rgb(125,211,252)]">
-                          <Markdown components={markdownComponents}>{formatMessage(msg.content)}</Markdown>
+                          <Markdown components={markdownComponents} remarkPlugins={remarkPlugins} rehypePlugins={rehypePlugins}>{formatMessage(msg.content)}</Markdown>
                         </div>
                         <p className="text-[10px] mt-1.5 text-sky-500/50">
                           {new Date(msg.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
@@ -313,7 +313,7 @@ export function DayPageSlide({
                             ? "[--tw-prose-body:var(--color-primary-foreground)] [--tw-prose-headings:var(--color-primary-foreground)] [--tw-prose-bold:var(--color-primary-foreground)] [--tw-prose-bullets:var(--color-primary-foreground)] [--tw-prose-counters:var(--color-primary-foreground)] [--tw-prose-code:var(--color-primary-foreground)] [--tw-prose-links:var(--color-primary-foreground)] [--tw-prose-quotes:var(--color-primary-foreground)] [--tw-prose-quote-borders:rgba(255,255,255,0.3)]"
                             : "[--tw-prose-body:var(--color-secondary-foreground)] [--tw-prose-headings:var(--color-secondary-foreground)] [--tw-prose-bold:var(--color-secondary-foreground)] [--tw-prose-bullets:var(--color-secondary-foreground)] [--tw-prose-counters:var(--color-secondary-foreground)] [--tw-prose-code:var(--color-secondary-foreground)] [--tw-prose-links:var(--color-primary)] [--tw-prose-quotes:var(--color-secondary-foreground)] [--tw-prose-quote-borders:var(--color-border)]"
                         }`}>
-                          <Markdown components={markdownComponents}>{formatMessage(msg.content)}</Markdown>
+                          <Markdown components={markdownComponents} remarkPlugins={remarkPlugins} rehypePlugins={rehypePlugins}>{formatMessage(msg.content)}</Markdown>
                         </div>
                         <p className={`text-[10px] mt-1 ${isUser ? "text-primary-foreground/50" : "text-muted-foreground"}`}>
                           {new Date(msg.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
@@ -366,7 +366,7 @@ export function DayPageSlide({
             ) : novelTab === "read" || novelGenerating ? (
               <div className="max-h-[60vh] overflow-y-auto px-6 py-5">
                 <article className="prose prose-sm prose-invert max-w-none leading-relaxed [--tw-prose-body:var(--color-foreground)] [--tw-prose-bold:var(--color-foreground)] first-letter:text-4xl first-letter:font-serif first-letter:font-bold first-letter:float-left first-letter:mr-2 first-letter:mt-1 first-letter:leading-none first-letter:text-amber-400">
-                  <Markdown components={markdownComponents}>{novelDraft}</Markdown>
+                  <Markdown components={markdownComponents} remarkPlugins={remarkPlugins} rehypePlugins={rehypePlugins}>{novelDraft}</Markdown>
                   {novelGenerating && <span className="inline-block w-1.5 h-4 bg-primary/60 animate-pulse ml-0.5 align-text-bottom" />}
                 </article>
               </div>
