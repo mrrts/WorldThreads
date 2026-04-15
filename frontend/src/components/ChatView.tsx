@@ -293,7 +293,7 @@ export function ChatView({ store, onNavigateToCharacter }: Props) {
           )
         )}
         <div className="space-y-3 max-w-2xl mx-auto">
-          {store.messages.map((msg, msgIdx) => {
+          {store.messages.filter((m) => m.content || m.role === "illustration").map((msg, msgIdx) => {
             const isUser = msg.role === "user";
             const isNarrative = msg.role === "narrative";
             const isPending = msg.message_id.startsWith("pending-");
