@@ -21,6 +21,10 @@ interface Props {
   threadId: string;
   characterNames: string[];
   worldImageUrl?: string;
+  /** Portrait URLs keyed by character_id */
+  portraits: Record<string, string>;
+  /** User avatar URL */
+  userAvatarUrl: string;
 }
 
 interface PromptCategory {
@@ -72,7 +76,7 @@ function buildCategories(names: string[]): PromptCategory[] {
   ];
 }
 
-export function StoryConsultantModal({ open, onClose, apiKey, characterId, groupChatId, threadId, characterNames, worldImageUrl }: Props) {
+export function StoryConsultantModal({ open, onClose, apiKey, characterId, groupChatId, threadId, characterNames, worldImageUrl, portraits, userAvatarUrl }: Props) {
   const [chats, setChats] = useState<ConsultantChat[]>([]);
   const [activeChatId, setActiveChatId] = useState<string | null>(null);
   const [messages, setMessages] = useState<ConsultantMessage[]>([]);
@@ -86,7 +90,7 @@ export function StoryConsultantModal({ open, onClose, apiKey, characterId, group
   const [deleteIdx, setDeleteIdx] = useState<number | null>(null);
   const [deleteChatId, setDeleteChatId] = useState<string | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(true);
-  const [importPreview, setImportPreview] = useState<{ role: string; content: string; speaker_name: string; avatar_color: string | null } | null>(null);
+  const [importPreview, setImportPreview] = useState<{ role: string; content: string; speaker_name: string; character_id: string | null; avatar_color: string | null } | null>(null);
   const [showImportPreview, setShowImportPreview] = useState(false);
   const importHoverTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -556,34 +560,46 @@ export function StoryConsultantModal({ open, onClose, apiKey, characterId, group
                   <span>Import Latest</span>
                 </button>
                 {showImportPreview && (
-                  <div className="absolute bottom-full right-0 mb-2 w-80 bg-card border border-border rounded-xl shadow-2xl shadow-black/40 overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+                  <div className="absolute bottom-full right-0 mb-2 w-96 bg-card border border-border rounded-xl shadow-2xl shadow-black/40 overflow-hidden animate-in fade-in zoom-in-95 duration-150">
                     <div className="px-3 py-2 border-b border-border/50">
                       <p className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground/60">Import Latest Messages</p>
                       <p className="text-[10px] text-muted-foreground/40 mt-0.5">Last seen:</p>
                     </div>
                     {importPreview ? (
-                      <div className="p-3">
+                      <div className="p-3 max-h-64 overflow-y-auto">
                         {importPreview.role === "narrative" ? (
-                          <div className="rounded-lg px-3 py-2 bg-amber-950/30 border border-amber-700/20 text-amber-100/80 text-xs italic leading-relaxed">
-                            <div className="flex items-center gap-1 mb-1 text-[9px] uppercase tracking-wider text-amber-500/60 font-semibold not-italic">
-                              <BookOpen size={9} />
+                          <div className="rounded-lg px-4 py-3 bg-gradient-to-br from-amber-950/40 to-amber-900/20 border border-amber-700/30 text-amber-100/90 italic text-sm leading-relaxed">
+                            <div className="flex items-center gap-1.5 mb-1.5 text-[10px] uppercase tracking-wider text-amber-500/70 font-semibold not-italic">
+                              <BookOpen size={12} />
                               <span>Narrative</span>
                             </div>
-                            <p className="line-clamp-3">{importPreview.content}</p>
+                            <div className="prose prose-sm max-w-none prose-p:my-1 [&>*:first-child]:mt-0 [&>*:last-child]:mb-0 [--tw-prose-body:rgb(252,211,77,0.9)] [--tw-prose-bold:rgb(252,211,77)]">
+                              <Markdown components={markdownComponents} remarkPlugins={remarkPlugins} rehypePlugins={rehypePlugins}>{formatMessage(importPreview.content)}</Markdown>
+                            </div>
                           </div>
                         ) : (
-                          <div className={`rounded-lg px-3 py-2 text-xs leading-relaxed ${
+                          <div className={`rounded-lg px-4 py-3 text-sm leading-relaxed ${
                             importPreview.role === "user"
-                              ? "bg-primary/20 text-primary-foreground/80"
-                              : "bg-secondary/40 text-secondary-foreground/80 border border-border/20"
+                              ? "bg-primary text-primary-foreground"
+                              : "bg-secondary/40 text-secondary-foreground border border-border/30"
                           }`}>
-                            <div className="flex items-center gap-1.5 mb-1">
-                              {importPreview.avatar_color && (
-                                <span className="w-4 h-4 rounded-full flex-shrink-0 ring-1 ring-white/10" style={{ backgroundColor: importPreview.avatar_color }} />
-                              )}
-                              <p className="text-[9px] font-semibold text-muted-foreground/60">{importPreview.speaker_name}</p>
+                            <div className="flex items-center gap-2 mb-1.5">
+                              {importPreview.role === "user" && userAvatarUrl ? (
+                                <img src={userAvatarUrl} alt="" className="w-10 h-10 rounded-full object-cover ring-1 ring-border flex-shrink-0" />
+                              ) : importPreview.character_id && portraits[importPreview.character_id] ? (
+                                <img src={portraits[importPreview.character_id]} alt="" className="w-10 h-10 rounded-full object-cover ring-1 ring-border flex-shrink-0" />
+                              ) : importPreview.avatar_color ? (
+                                <span className="w-10 h-10 rounded-full flex-shrink-0 ring-1 ring-white/10" style={{ backgroundColor: importPreview.avatar_color }} />
+                              ) : null}
+                              <p className="text-[10px] font-semibold text-muted-foreground/70">{importPreview.speaker_name}</p>
                             </div>
-                            <p className="line-clamp-3">{importPreview.content}</p>
+                            <div className={`prose prose-sm max-w-none prose-p:my-1 [&>*:first-child]:mt-0 [&>*:last-child]:mb-0 [&_em]:italic [&_em]:block [&_em]:border-l-2 [&_em]:border-current/20 [&_em]:pl-3 [&_em]:my-1.5 [&_em]:opacity-80 ${
+                              importPreview.role === "user"
+                                ? "[--tw-prose-body:var(--color-primary-foreground)] [--tw-prose-bold:var(--color-primary-foreground)]"
+                                : "[--tw-prose-body:var(--color-secondary-foreground)] [--tw-prose-bold:var(--color-secondary-foreground)]"
+                            }`}>
+                              <Markdown components={markdownComponents} remarkPlugins={remarkPlugins} rehypePlugins={rehypePlugins}>{formatMessage(importPreview.content)}</Markdown>
+                            </div>
                           </div>
                         )}
                       </div>

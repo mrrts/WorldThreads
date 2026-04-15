@@ -726,6 +726,10 @@ export function ChatView({ store, onNavigateToCharacter }: Props) {
         threadId={store.messages[0]?.thread_id ?? ""}
         characterNames={store.activeCharacter ? [store.activeCharacter.display_name] : []}
         worldImageUrl={store.activeWorldImage?.data_url}
+        portraits={Object.fromEntries(
+          Object.entries(store.activePortraits).filter(([, p]) => p?.data_url).map(([id, p]) => [id, p!.data_url!])
+        )}
+        userAvatarUrl={userAvatarUrl}
       />
 
       {userAvatarUrl && (

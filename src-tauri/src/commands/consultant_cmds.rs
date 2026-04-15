@@ -287,6 +287,7 @@ pub struct LastSeenPreview {
     pub role: String,
     pub content: String,
     pub speaker_name: String,
+    pub character_id: Option<String>,
     pub avatar_color: Option<String>,
     pub created_at: String,
 }
@@ -353,6 +354,7 @@ pub fn get_last_seen_message_cmd(
         role: m.role,
         content: m.content,
         speaker_name,
+        character_id: character.as_ref().map(|c| c.character_id.clone()),
         avatar_color,
         created_at: m.created_at,
     }))
