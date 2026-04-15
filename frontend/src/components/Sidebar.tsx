@@ -88,7 +88,7 @@ export function Sidebar({ store, onNavigate }: Props) {
 
   return (
     <>
-      <div className="w-56 flex-shrink-0 bg-card/50 border-r border-border flex flex-col">
+      <div data-sidebar className="w-56 flex-shrink-0 bg-card/50 border-r border-border flex flex-col">
         <div className="p-3 border-b border-border">
           <div className="flex items-center justify-between mb-2">
             <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Worlds</h2>
@@ -231,7 +231,7 @@ export function Sidebar({ store, onNavigate }: Props) {
                       </button>
                     </div>
                     {hoverChar === ch.character_id && (
-                      <div className="absolute left-full top-0 ml-2 z-50 w-80 bg-card border border-border rounded-xl shadow-2xl shadow-black/40 overflow-hidden animate-in fade-in zoom-in-95 duration-150" onMouseEnter={keepTooltip} onMouseLeave={hideCharTooltip}>
+                      <div className="fixed z-50 w-80 bg-card border border-border rounded-xl shadow-2xl shadow-black/40 overflow-hidden animate-in fade-in zoom-in-95 duration-150" ref={(el) => { if (el) { const parent = el.closest("[data-sidebar]"); const sidebarRight = parent ? parent.getBoundingClientRect().right + 8 : 232; const itemRect = el.parentElement?.getBoundingClientRect(); el.style.left = `${sidebarRight}px`; if (itemRect) el.style.top = `${Math.min(itemRect.top, window.innerHeight - el.offsetHeight - 8)}px`; }}} onMouseEnter={keepTooltip} onMouseLeave={hideCharTooltip}>
                         <div className="flex items-center gap-3 p-3">
                           {portrait?.data_url ? (
                             <img src={portrait.data_url} alt="" className="w-14 h-14 rounded-full object-cover ring-2 ring-border flex-shrink-0" />
@@ -299,7 +299,7 @@ export function Sidebar({ store, onNavigate }: Props) {
                         </div>
                       </button>
                       {hoverGroup === gc.group_chat_id && (
-                        <div className="absolute left-full top-0 ml-2 z-50 w-[540px] bg-card border border-border rounded-xl shadow-2xl shadow-black/40 overflow-hidden animate-in fade-in zoom-in-95 duration-150" onMouseEnter={keepTooltip} onMouseLeave={hideGroupTooltip}>
+                        <div className="fixed z-50 w-[540px] bg-card border border-border rounded-xl shadow-2xl shadow-black/40 overflow-hidden animate-in fade-in zoom-in-95 duration-150" ref={(el) => { if (el) { const parent = el.closest("[data-sidebar]"); const sidebarRight = parent ? parent.getBoundingClientRect().right + 8 : 232; const itemRect = el.parentElement?.getBoundingClientRect(); el.style.left = `${sidebarRight}px`; if (itemRect) el.style.top = `${Math.min(itemRect.top, window.innerHeight - el.offsetHeight - 8)}px`; }}} onMouseEnter={keepTooltip} onMouseLeave={hideGroupTooltip}>
                           <div className="grid grid-cols-2 divide-x divide-border">
                             {groupChars.map((ch) => {
                               const portrait = store.activePortraits[ch.character_id];
@@ -373,7 +373,7 @@ export function Sidebar({ store, onNavigate }: Props) {
               )}
             </div>
 
-            <div className="flex-shrink-0 p-3">
+            <div className="flex-shrink-0 px-3 border-t border-border" style={{ paddingTop: "18px", paddingBottom: "18px" }}>
               <div className="space-y-3">
                 <div className="flex items-center gap-2 text-muted-foreground">
                   <Globe size={12} />
