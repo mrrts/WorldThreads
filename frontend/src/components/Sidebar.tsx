@@ -55,7 +55,11 @@ export function Sidebar({ store, onNavigate }: Props) {
 
   const hideCharTooltip = useCallback(() => {
     clearTimeout(hoverTimerRef.current);
-    setHoverChar(null);
+    hoverTimerRef.current = setTimeout(() => setHoverChar(null), 300);
+  }, []);
+
+  const keepTooltip = useCallback(() => {
+    clearTimeout(hoverTimerRef.current);
   }, []);
 
   const showGroupTooltip = useCallback((groupId: string) => {
@@ -65,7 +69,7 @@ export function Sidebar({ store, onNavigate }: Props) {
 
   const hideGroupTooltip = useCallback(() => {
     clearTimeout(hoverTimerRef.current);
-    setHoverGroup(null);
+    hoverTimerRef.current = setTimeout(() => setHoverGroup(null), 300);
   }, []);
 
   const submitWorld = async () => {
@@ -158,8 +162,8 @@ export function Sidebar({ store, onNavigate }: Props) {
         </div>
 
         {store.activeWorld && (
-          <div className="flex-1 flex flex-col min-h-0">
-            <div className="p-3 border-b border-border">
+          <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+            <div className="flex-1 overflow-y-auto p-3 border-b border-border">
               <div className="flex items-center justify-between mb-2">
                 <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Characters</h2>
                 <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => { setCharName(""); setShowNewChar(true); }}>
@@ -227,7 +231,7 @@ export function Sidebar({ store, onNavigate }: Props) {
                       </button>
                     </div>
                     {hoverChar === ch.character_id && (
-                      <div className="absolute left-full top-0 ml-2 z-50 w-56 bg-card border border-border rounded-xl shadow-2xl shadow-black/40 overflow-hidden animate-in fade-in zoom-in-95 duration-150 pointer-events-none">
+                      <div className="absolute left-full top-0 ml-2 z-50 w-80 bg-card border border-border rounded-xl shadow-2xl shadow-black/40 overflow-hidden animate-in fade-in zoom-in-95 duration-150" onMouseEnter={keepTooltip} onMouseLeave={hideCharTooltip}>
                         <div className="flex items-center gap-3 p-3">
                           {portrait?.data_url ? (
                             <img src={portrait.data_url} alt="" className="w-14 h-14 rounded-full object-cover ring-2 ring-border flex-shrink-0" />
@@ -239,7 +243,7 @@ export function Sidebar({ store, onNavigate }: Props) {
                           </div>
                         </div>
                         {ch.identity && (
-                          <div className="px-3 pb-3 -mt-1">
+                          <div className="px-3 pb-3 -mt-1 max-h-52 overflow-y-auto">
                             <p className="text-xs text-muted-foreground leading-relaxed whitespace-pre-wrap">
                               {ch.identity}
                             </p>
@@ -295,7 +299,7 @@ export function Sidebar({ store, onNavigate }: Props) {
                         </div>
                       </button>
                       {hoverGroup === gc.group_chat_id && (
-                        <div className="absolute left-full top-0 ml-2 z-50 w-[420px] bg-card border border-border rounded-xl shadow-2xl shadow-black/40 overflow-hidden animate-in fade-in zoom-in-95 duration-150 pointer-events-none">
+                        <div className="absolute left-full top-0 ml-2 z-50 w-[540px] bg-card border border-border rounded-xl shadow-2xl shadow-black/40 overflow-hidden animate-in fade-in zoom-in-95 duration-150" onMouseEnter={keepTooltip} onMouseLeave={hideGroupTooltip}>
                           <div className="grid grid-cols-2 divide-x divide-border">
                             {groupChars.map((ch) => {
                               const portrait = store.activePortraits[ch.character_id];
@@ -310,9 +314,11 @@ export function Sidebar({ store, onNavigate }: Props) {
                                     <p className="font-semibold text-sm mt-2">{ch.display_name}</p>
                                   </div>
                                   {ch.identity && (
-                                    <p className="text-xs text-muted-foreground leading-relaxed whitespace-pre-wrap">
-                                      {ch.identity}
-                                    </p>
+                                    <div className="max-h-32 overflow-y-auto">
+                                      <p className="text-xs text-muted-foreground leading-relaxed whitespace-pre-wrap">
+                                        {ch.identity}
+                                      </p>
+                                    </div>
                                   )}
                                 </div>
                               );
@@ -367,7 +373,7 @@ export function Sidebar({ store, onNavigate }: Props) {
               )}
             </div>
 
-            <ScrollArea className="flex-1 p-3">
+            <div className="flex-shrink-0 p-3">
               <div className="space-y-3">
                 <div className="flex items-center gap-2 text-muted-foreground">
                   <Globe size={12} />
@@ -407,7 +413,7 @@ export function Sidebar({ store, onNavigate }: Props) {
                   </div>
                 )}
               </div>
-            </ScrollArea>
+            </div>
           </div>
         )}
       </div>

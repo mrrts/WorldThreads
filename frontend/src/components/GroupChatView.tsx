@@ -41,6 +41,8 @@ export function GroupChatView({ store, onNavigateToCharacter }: Props) {
   const talkPickerRef = useRef<HTMLDivElement>(null);
   const [portraitModalCharId, setPortraitModalCharId] = useState<string | null>(null);
   const [showConsultant, setShowConsultant] = useState(false);
+  const [showGroupPopover, setShowGroupPopover] = useState(false);
+  const groupPopoverTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const groupCharIds: string[] = store.activeGroupChat
     ? (Array.isArray(store.activeGroupChat.character_ids) ? store.activeGroupChat.character_ids : [])
@@ -184,17 +186,55 @@ export function GroupChatView({ store, onNavigateToCharacter }: Props) {
         <div className="absolute inset-0 bg-background/65" />
       </div>
       <div className="px-4 py-3 border-b border-border flex items-center gap-3 relative z-30 bg-background">
-        <div className="flex -space-x-2 flex-shrink-0">
-          {groupCharacters.map((ch, i) => {
-            const p = store.activePortraits[ch.character_id];
-            return p?.data_url ? (
-              <img key={ch.character_id} src={p.data_url} alt="" className="w-9 h-9 rounded-full object-cover ring-2 ring-background" style={{ zIndex: groupCharacters.length - i }} />
-            ) : (
-              <span key={ch.character_id} className="w-9 h-9 rounded-full ring-2 ring-background" style={{ backgroundColor: ch.avatar_color, zIndex: groupCharacters.length - i }} />
-            );
-          })}
+        <div
+          className="relative flex items-center gap-3 cursor-pointer"
+          onMouseEnter={() => { if (groupPopoverTimeout.current) clearTimeout(groupPopoverTimeout.current); setShowGroupPopover(true); }}
+          onMouseLeave={() => { groupPopoverTimeout.current = setTimeout(() => setShowGroupPopover(false), 300); }}
+        >
+          <div className="flex -space-x-2 flex-shrink-0">
+            {groupCharacters.map((ch, i) => {
+              const p = store.activePortraits[ch.character_id];
+              return p?.data_url ? (
+                <img key={ch.character_id} src={p.data_url} alt="" className="w-9 h-9 rounded-full object-cover ring-2 ring-background" style={{ zIndex: groupCharacters.length - i }} />
+              ) : (
+                <span key={ch.character_id} className="w-9 h-9 rounded-full ring-2 ring-background" style={{ backgroundColor: ch.avatar_color, zIndex: groupCharacters.length - i }} />
+              );
+            })}
+          </div>
+          <h1 className="font-semibold">{store.activeGroupChat?.display_name}</h1>
+          {showGroupPopover && (
+            <div
+              className="absolute left-0 top-full mt-2 z-50 w-[540px] bg-card border border-border rounded-xl shadow-2xl shadow-black/40 overflow-hidden animate-in fade-in zoom-in-95 duration-150"
+              onMouseEnter={() => { if (groupPopoverTimeout.current) clearTimeout(groupPopoverTimeout.current); }}
+              onMouseLeave={() => { groupPopoverTimeout.current = setTimeout(() => setShowGroupPopover(false), 300); }}
+            >
+              <div className="grid grid-cols-2 divide-x divide-border">
+                {groupCharacters.map((ch) => {
+                  const portrait = store.activePortraits[ch.character_id];
+                  return (
+                    <div key={ch.character_id} className="p-3">
+                      <div className="flex flex-col items-center mb-2">
+                        {portrait?.data_url ? (
+                          <img src={portrait.data_url} alt="" className="w-16 h-16 rounded-full object-cover ring-2 ring-border" />
+                        ) : (
+                          <div className="w-16 h-16 rounded-full ring-2 ring-white/10" style={{ backgroundColor: ch.avatar_color }} />
+                        )}
+                        <p className="font-semibold text-sm mt-2">{ch.display_name}</p>
+                      </div>
+                      {ch.identity && (
+                        <div className="max-h-32 overflow-y-auto">
+                          <p className="text-xs text-muted-foreground leading-relaxed whitespace-pre-wrap">
+                            {ch.identity}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </div>
-        <h1 className="font-semibold">{store.activeGroupChat?.display_name}</h1>
         <div className="ml-auto relative group/gallery">
           <button
             onClick={openGallery}

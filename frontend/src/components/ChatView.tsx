@@ -219,7 +219,7 @@ export function ChatView({ store, onNavigateToCharacter }: Props) {
             </span>
             {showIdentityPopover && (
               <div
-                className="absolute left-0 top-full mt-2 z-50 w-80 bg-card border border-border rounded-xl shadow-xl p-4 animate-in fade-in zoom-in-95 duration-150"
+                className="absolute left-0 top-full mt-2 z-50 w-96 bg-card border border-border rounded-xl shadow-xl p-4 animate-in fade-in zoom-in-95 duration-150"
                 onMouseEnter={() => setShowIdentityPopover(true)}
                 onMouseLeave={() => setShowIdentityPopover(false)}
               >
@@ -227,7 +227,9 @@ export function ChatView({ store, onNavigateToCharacter }: Props) {
                   <img src={charPortrait.data_url} alt="" className="w-full rounded-lg object-cover aspect-square mb-3" />
                 )}
                 <p className="font-semibold text-sm mb-1">{store.activeCharacter?.display_name}</p>
-                <p className="text-xs text-muted-foreground leading-relaxed whitespace-pre-wrap">{store.activeCharacter?.identity}</p>
+                <div className="max-h-48 overflow-y-auto">
+                  <p className="text-xs text-muted-foreground leading-relaxed whitespace-pre-wrap">{store.activeCharacter?.identity}</p>
+                </div>
               </div>
             )}
           </div>

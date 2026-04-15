@@ -5,7 +5,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Field, FieldGroup } from "@/components/ui/field";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogBody } from "@/components/ui/dialog";
-import { Save, Plus, X, BookTemplate, ImagePlus, Loader2, Check, Images, Shuffle, Trash2, AlertTriangle, MessageSquareX, RotateCcw, PenLine, Volume2, Square } from "lucide-react";
+import { Plus, X, BookTemplate, ImagePlus, Loader2, Check, Images, Shuffle, Trash2, AlertTriangle, MessageSquareX, RotateCcw, PenLine, Volume2, Square } from "lucide-react";
 import { CHARACTER_TEMPLATES, type CharacterTemplate } from "@/lib/character-templates";
 import { api, type Character, type PortraitInfo, type GalleryItem } from "@/lib/tauri";
 import type { useAppStore } from "@/hooks/use-app-store";
@@ -187,10 +187,15 @@ export function CharacterEditor({ store }: Props) {
     setDirty(true);
   };
 
-  const handleSave = async () => {
-    await store.updateCharacter({ ...ch, ...form } as Character);
-    setDirty(false);
-  };
+  // Auto-save with debounce
+  useEffect(() => {
+    if (!dirty || !ch) return;
+    const timer = setTimeout(async () => {
+      await store.updateCharacter({ ...ch, ...form } as Character);
+      setDirty(false);
+    }, 800);
+    return () => clearTimeout(timer);
+  }, [form, dirty]);
 
   const applyTemplate = (template: CharacterTemplate) => {
     setForm((f) => ({
@@ -245,16 +250,8 @@ export function CharacterEditor({ store }: Props) {
             </div>
           </div>
           <div className="flex items-center gap-2">
-            {dirty && (
-              <span className="text-xs text-primary bg-primary/10 px-2 py-0.5 rounded-full">
-                Unsaved changes
-              </span>
-            )}
             <Button size="sm" variant="outline" onClick={() => { setTemplateSearch(""); setShowTemplates(true); }}>
               <BookTemplate size={14} className="mr-1.5" /> Starter Templates
-            </Button>
-            <Button size="sm" onClick={handleSave} disabled={!dirty}>
-              <Save size={14} className="mr-1.5" /> Save
             </Button>
           </div>
         </div>
