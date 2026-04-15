@@ -550,9 +550,10 @@ export function StoryConsultantModal({ open, onClose, apiKey, characterId, group
                 <button
                   onClick={handleImport}
                   disabled={loading}
-                  className="flex-shrink-0 w-9 h-9 rounded-lg flex items-center justify-center transition-colors cursor-pointer text-muted-foreground hover:text-sky-400 hover:bg-sky-500/10 disabled:opacity-40 disabled:cursor-not-allowed"
+                  className="flex-shrink-0 h-9 rounded-lg flex items-center gap-1.5 px-3 text-sm font-medium transition-colors cursor-pointer text-muted-foreground hover:text-sky-400 hover:bg-sky-500/10 disabled:opacity-40 disabled:cursor-not-allowed"
                 >
-                  <Download size={16} />
+                  <Download size={14} />
+                  <span>Import Latest</span>
                 </button>
                 {showImportPreview && (
                   <div className="absolute bottom-full right-0 mb-2 w-80 bg-card border border-border rounded-xl shadow-2xl shadow-black/40 overflow-hidden animate-in fade-in zoom-in-95 duration-150">
