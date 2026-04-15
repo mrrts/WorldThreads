@@ -131,6 +131,12 @@ export function StoryConsultantModal({ open, onClose, apiKey, characterId, group
     return () => el.removeEventListener("scroll", checkBottom);
   }, [open, activeChatId]);
 
+  // Re-check scroll position when messages change
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (el) setIsAtBottom(el.scrollHeight - el.scrollTop - el.clientHeight < 40);
+  }, [messages]);
+
   // Scroll to bottom on new messages
   useEffect(() => {
     const el = scrollRef.current;
@@ -206,6 +212,7 @@ export function StoryConsultantModal({ open, onClose, apiKey, characterId, group
     } finally {
       unlisten();
       setLoading(false);
+      setTimeout(() => inputRef.current?.focus(), 50);
     }
   }, [apiKey, characterId, groupChatId, loading, activeChatId, threadId, chats]);
 
