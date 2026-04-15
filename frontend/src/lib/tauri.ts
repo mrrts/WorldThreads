@@ -116,6 +116,7 @@ export interface ConsultantChat {
   thread_id: string;
   title: string;
   created_at: string;
+  last_seen_message_id: string | null;
 }
 
 export interface NovelEntry {

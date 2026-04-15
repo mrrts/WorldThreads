@@ -226,9 +226,17 @@ export function StoryConsultantModal({ open, onClose, apiKey, characterId, group
       chatId = chat.chat_id;
       setActiveChatId(chatId);
     }
-    const msg = await api.importChatMessages(chatId, characterId, groupChatId);
-    setMessages((prev) => [...prev, msg as ConsultantMessage]);
-    setTimeout(() => { const el = scrollRef.current; if (el) el.scrollTo({ top: el.scrollHeight, behavior: "smooth" }); }, 50);
+    try {
+      const msg = await api.importChatMessages(chatId, characterId, groupChatId);
+      setMessages((prev) => [...prev, msg as ConsultantMessage]);
+      setTimeout(() => { const el = scrollRef.current; if (el) el.scrollTo({ top: el.scrollHeight, behavior: "smooth" }); }, 50);
+    } catch (e) {
+      // Show "no new messages" inline rather than as an error
+      const errMsg = String(e);
+      if (errMsg.includes("No new messages")) {
+        setMessages((prev) => [...prev, { role: "assistant" as const, content: "No new messages to import — you're already caught up." }]);
+      }
+    }
   }, [activeChatId, threadId, characterId, groupChatId]);
 
   const handleEditSave = async () => {

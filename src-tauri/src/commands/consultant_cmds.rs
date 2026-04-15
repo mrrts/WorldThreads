@@ -13,6 +13,7 @@ pub struct ConsultantChat {
     pub thread_id: String,
     pub title: String,
     pub created_at: String,
+    pub last_seen_message_id: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -31,15 +32,24 @@ pub fn create_consultant_chat_cmd(
     title: Option<String>,
 ) -> Result<ConsultantChat, String> {
     let conn = db.conn.lock().map_err(|e| e.to_string())?;
+    // Capture the latest message ID from the thread
+    let last_msg_id: Option<String> = conn.query_row(
+        "SELECT message_id FROM messages WHERE thread_id = ?1 ORDER BY created_at DESC LIMIT 1",
+        params![thread_id], |r| r.get(0),
+    ).ok().or_else(|| conn.query_row(
+        "SELECT message_id FROM group_messages WHERE thread_id = ?1 ORDER BY created_at DESC LIMIT 1",
+        params![thread_id], |r| r.get(0),
+    ).ok());
     let chat = ConsultantChat {
         chat_id: uuid::Uuid::new_v4().to_string(),
         thread_id,
         title: title.unwrap_or_else(|| "New Chat".to_string()),
         created_at: Utc::now().to_rfc3339(),
+        last_seen_message_id: last_msg_id.clone(),
     };
     conn.execute(
-        "INSERT INTO consultant_chats (chat_id, thread_id, title, created_at) VALUES (?1, ?2, ?3, ?4)",
-        params![chat.chat_id, chat.thread_id, chat.title, chat.created_at],
+        "INSERT INTO consultant_chats (chat_id, thread_id, title, created_at, last_seen_message_id) VALUES (?1, ?2, ?3, ?4, ?5)",
+        params![chat.chat_id, chat.thread_id, chat.title, chat.created_at, last_msg_id],
     ).map_err(|e| e.to_string())?;
     Ok(chat)
 }
@@ -52,7 +62,7 @@ pub fn list_consultant_chats_cmd(
 ) -> Result<Vec<ConsultantChat>, String> {
     let conn = db.conn.lock().map_err(|e| e.to_string())?;
     let mut stmt = conn.prepare(
-        "SELECT chat_id, thread_id, title, created_at FROM consultant_chats WHERE thread_id = ?1 ORDER BY created_at DESC"
+        "SELECT chat_id, thread_id, title, created_at, last_seen_message_id FROM consultant_chats WHERE thread_id = ?1 ORDER BY created_at DESC"
     ).map_err(|e| e.to_string())?;
     let rows = stmt.query_map(params![thread_id], |row| {
         Ok(ConsultantChat {
@@ -60,6 +70,7 @@ pub fn list_consultant_chats_cmd(
             thread_id: row.get(1)?,
             title: row.get(2)?,
             created_at: row.get(3)?,
+            last_seen_message_id: row.get(4).ok(),
         })
     }).map_err(|e| e.to_string())?;
     rows.collect::<Result<Vec<_>, _>>().map_err(|e| e.to_string())
@@ -159,7 +170,7 @@ pub fn save_consultant_messages_cmd(
 
 // ─── Story consultant LLM call ─────────────────────────────────────────────
 
-/// Import latest chat messages into a consultant chat as context.
+/// Import chat messages since the last import (or since the consultant chat began).
 /// Returns the formatted import summary line for UI display.
 #[tauri::command]
 pub fn import_chat_messages_cmd(
@@ -171,9 +182,15 @@ pub fn import_chat_messages_cmd(
     let conn = db.conn.lock().map_err(|e| e.to_string())?;
     let is_group = group_chat_id.is_some();
 
-    let (recent_msgs, characters, user_name) = if is_group {
+    // Get the last seen message ID for this consultant chat
+    let last_seen: Option<String> = conn.query_row(
+        "SELECT last_seen_message_id FROM consultant_chats WHERE chat_id = ?1",
+        params![chat_id], |r| r.get(0),
+    ).ok().flatten();
+
+    let (new_msgs, characters, user_name, thread_id) = if is_group {
         let gc = get_group_chat(&conn, group_chat_id.as_deref().unwrap()).map_err(|e| e.to_string())?;
-        let msgs = list_group_messages(&conn, &gc.thread_id, 30).map_err(|e| e.to_string())?;
+        let all_msgs = get_all_group_messages(&conn, &gc.thread_id).map_err(|e| e.to_string())?;
         let user_name = get_user_profile(&conn, &gc.world_id)
             .ok().map(|p| p.display_name).unwrap_or_else(|| "the user".to_string());
         let char_ids: Vec<String> = gc.character_ids.as_array()
@@ -182,19 +199,42 @@ pub fn import_chat_messages_cmd(
         let characters: Vec<Character> = char_ids.iter()
             .filter_map(|id| get_character(&conn, id).ok())
             .collect();
-        (msgs, characters, user_name)
+        // Filter to messages after last_seen
+        let msgs = if let Some(ref seen_id) = last_seen {
+            let idx = all_msgs.iter().position(|m| m.message_id == *seen_id);
+            match idx {
+                Some(i) => all_msgs[i + 1..].to_vec(),
+                None => all_msgs,
+            }
+        } else {
+            all_msgs
+        };
+        (msgs, characters, user_name, gc.thread_id)
     } else {
         let char_id = character_id.as_deref().ok_or("No character specified")?;
         let character = get_character(&conn, char_id).map_err(|e| e.to_string())?;
         let thread = get_thread_for_character(&conn, char_id).map_err(|e| e.to_string())?;
-        let msgs = list_messages(&conn, &thread.thread_id, 30).map_err(|e| e.to_string())?;
+        let all_msgs = get_all_messages(&conn, &thread.thread_id).map_err(|e| e.to_string())?;
         let user_name = get_user_profile(&conn, &character.world_id)
             .ok().map(|p| p.display_name).unwrap_or_else(|| "the user".to_string());
-        (msgs, vec![character], user_name)
+        let msgs = if let Some(ref seen_id) = last_seen {
+            let idx = all_msgs.iter().position(|m| m.message_id == *seen_id);
+            match idx {
+                Some(i) => all_msgs[i + 1..].to_vec(),
+                None => all_msgs,
+            }
+        } else {
+            all_msgs
+        };
+        (msgs, vec![character], user_name, thread.thread_id)
     };
 
+    if new_msgs.is_empty() {
+        return Err("No new messages since last import.".to_string());
+    }
+
     // Format messages
-    let conversation: Vec<String> = recent_msgs.iter()
+    let conversation: Vec<String> = new_msgs.iter()
         .filter(|m| m.role != "illustration" && m.role != "video")
         .map(|m| {
             let speaker = match m.role.as_str() {
@@ -214,8 +254,18 @@ pub fn import_chat_messages_cmd(
         .collect();
 
     let char_names: Vec<String> = characters.iter().map(|c| c.display_name.clone()).collect();
-    let label = format!("Imported latest messages with {}", char_names.join(" & "));
+    let msg_count = new_msgs.len();
+    let label = format!("Imported {} new messages with {}", msg_count, char_names.join(" & "));
     let content = format!("{}\n---\n{}", label, conversation.join("\n"));
+
+    // Update last_seen_message_id to the latest message
+    let new_last_seen = new_msgs.last().map(|m| m.message_id.clone());
+    if let Some(ref id) = new_last_seen {
+        conn.execute(
+            "UPDATE consultant_chats SET last_seen_message_id = ?2 WHERE chat_id = ?1",
+            params![chat_id, id],
+        ).map_err(|e| e.to_string())?;
+    }
 
     // Persist as import message
     conn.execute(
