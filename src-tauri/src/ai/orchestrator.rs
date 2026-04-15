@@ -204,10 +204,11 @@ pub async fn run_narrative_streaming(
     mood_directive: Option<&str>,
     narration_tone: Option<&str>,
     narration_instructions: Option<&str>,
+    all_character_names: Option<&[String]>,
     app_handle: &tauri::AppHandle,
     event_name: &str,
 ) -> Result<String, String> {
-    let system = prompts::build_narrative_system_prompt(world, character, user_profile, mood_directive, narration_tone, narration_instructions);
+    let system = prompts::build_narrative_system_prompt(world, character, user_profile, mood_directive, narration_tone, narration_instructions, all_character_names);
 
     let mut msgs = Vec::new();
     let mut system_content = system.clone();
@@ -410,8 +411,9 @@ pub async fn run_narrative_with_base(
     mood_directive: Option<&str>,
     narration_tone: Option<&str>,
     narration_instructions: Option<&str>,
+    all_character_names: Option<&[String]>,
 ) -> Result<(String, Option<openai::Usage>), String> {
-    let system = prompts::build_narrative_system_prompt(world, character, user_profile, mood_directive, narration_tone, narration_instructions);
+    let system = prompts::build_narrative_system_prompt(world, character, user_profile, mood_directive, narration_tone, narration_instructions, all_character_names);
 
     let mut msgs = Vec::new();
 

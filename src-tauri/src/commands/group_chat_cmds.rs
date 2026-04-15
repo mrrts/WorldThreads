@@ -625,6 +625,7 @@ pub async fn generate_group_narrative_cmd(
     ].into_iter().flatten().collect();
     let merged_instructions = if all_instructions.is_empty() { None } else { Some(all_instructions.join("\n")) };
 
+    let all_char_names: Vec<String> = characters.iter().map(|c| c.display_name.clone()).collect();
     let (narrative_text, usage) = orchestrator::run_narrative_with_base(
         &model_config.chat_api_base(), &api_key, &model_config.dialogue_model,
         &world, primary_character, &recent_msgs, &[],
@@ -632,6 +633,7 @@ pub async fn generate_group_narrative_cmd(
         None,
         narration_tone.as_deref(),
         merged_instructions.as_deref(),
+        Some(&all_char_names),
     ).await?;
 
     if let Some(u) = &usage {

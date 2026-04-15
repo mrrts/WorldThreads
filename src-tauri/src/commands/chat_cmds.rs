@@ -670,6 +670,7 @@ pub async fn generate_narrative_cmd(
         mood_directive.as_deref(),
         narration_tone.as_deref(),
         merged_instructions.as_deref(),
+        None,
     ).await?;
 
     // Store as a "narrative" role message

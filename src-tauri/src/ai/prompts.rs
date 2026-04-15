@@ -290,6 +290,7 @@ pub fn build_narrative_system_prompt(
     mood_directive: Option<&str>,
     narration_tone: Option<&str>,
     narration_instructions: Option<&str>,
+    all_character_names: Option<&[String]>,
 ) -> String {
     let mut parts = Vec::new();
 
@@ -297,24 +298,40 @@ pub fn build_narrative_system_prompt(
         .map(|p| p.display_name.as_str())
         .unwrap_or("the human");
 
+    let char_names = all_character_names
+        .map(|names| names.join(" and "))
+        .unwrap_or_else(|| character.display_name.clone());
+
     parts.push(format!(
-        "You are a vivid narrative voice woven into a living conversation between {user} and {char}. \
+        "You are a vivid narrative voice woven into a living conversation between {user} and {chars}. \
          Your job is to write a single, immersive narrative beat — no dialogue — \
          that deepens, expands, or advances the current moment.",
         user = user_name,
-        char = character.display_name,
+        chars = char_names,
     ));
 
-    parts.push(format!(
+    let mut pov = format!(
         "POINT OF VIEW — THIS IS CRITICAL:\n\
          - Write in SECOND PERSON.\n\
-         - {user} is \"you\". Always refer to {user} as \"you\" — never by name, never in third person.\n\
-         - {char} is a third-person character. Refer to {char} by name or as \"he\"/\"she\"/\"they\" — NEVER as \"you\".\n\
-         - Example: \"You notice {char} glancing away...\" — NOT \"{user} notices...\" and NOT \"You glance away\" (when meaning {char}).\n\
-         - Never write dialogue. No quotation marks. No spoken words.",
+         - {user} is \"you\". Always refer to {user} as \"you\" — never by name, never in third person.",
         user = user_name,
-        char = character.display_name,
-    ));
+    );
+    if let Some(names) = all_character_names {
+        for name in names {
+            pov.push_str(&format!("\n- {name} is a third-person character. Refer to {name} by name or as \"he\"/\"she\" — NEVER as \"you\", \"I\", or \"me\"."));
+        }
+    } else {
+        pov.push_str(&format!(
+            "\n- {char} is a third-person character. Refer to {char} by name or as \"he\"/\"she\" — NEVER as \"you\", \"I\", or \"me\".\n\
+             - Example: \"You notice {char} glancing away...\" — NOT \"{user} notices...\" and NOT \"You glance away\" (when meaning {char}).\n\
+             - NEVER write from {char}'s first-person perspective. No \"I felt\" or \"I noticed\" from {char}.",
+            char = character.display_name,
+            user = user_name,
+        ));
+    }
+    pov.push_str("\n- Never write dialogue. No quotation marks. No spoken words.");
+    pov.push_str("\n- This is SECOND PERSON from the human's perspective only. All other characters are third person.");
+    parts.push(pov);
 
     parts.push(format!(
         "CHARACTER — {}:\n{}",
