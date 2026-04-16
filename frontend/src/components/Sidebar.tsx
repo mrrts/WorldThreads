@@ -19,6 +19,7 @@ export function Sidebar({ store, onNavigate }: Props) {
   const [charName, setCharName] = useState("");
   const [showArchived, setShowArchived] = useState(false);
   const [archiveConfirm, setArchiveConfirm] = useState<{ id: string; name: string } | null>(null);
+  const [timeConfirm, setTimeConfirm] = useState<{ day: number; time: string } | null>(null);
   const [showGroupPicker, setShowGroupPicker] = useState(false);
   const [selectedGroupMembers, setSelectedGroupMembers] = useState<string[]>([]);
   const [userAvatarUrl, setUserAvatarUrl] = useState("");
@@ -379,39 +380,68 @@ export function Sidebar({ store, onNavigate }: Props) {
                   <Globe size={12} />
                   <span className="text-[10px] font-semibold uppercase tracking-wider">World State</span>
                 </div>
-                {store.activeWorld.state.time && (
-                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                    <Sparkles size={10} className="text-primary/50" />
-                    <span>Day {store.activeWorld.state.time.day_index}</span>
-                    <button
-                      onClick={() => {
-                        if (!store.activeWorld) return;
-                        const newState = structuredClone(store.activeWorld.state);
-                        newState.time.day_index += 1;
-                        store.updateWorldState(newState);
-                      }}
-                      className="w-4 h-4 rounded flex items-center justify-center text-muted-foreground/50 hover:text-foreground hover:bg-accent transition-colors cursor-pointer"
-                      title="Advance day"
-                    >
-                      <Plus size={10} />
-                    </button>
-                    <span className="text-border">·</span>
-                    <select
-                      value={store.activeWorld.state.time.time_of_day}
-                      onChange={(e) => {
-                        if (!store.activeWorld) return;
-                        const newState = structuredClone(store.activeWorld.state);
-                        newState.time.time_of_day = e.target.value;
-                        store.updateWorldState(newState);
-                      }}
-                      className="bg-transparent border-none text-xs text-muted-foreground cursor-pointer focus:outline-none hover:text-foreground transition-colors p-0"
-                    >
-                      {["DAWN", "MORNING", "MIDDAY", "AFTERNOON", "EVENING", "NIGHT", "LATE NIGHT"].map((t) => (
-                        <option key={t} value={t}>{t}</option>
-                      ))}
-                    </select>
-                  </div>
-                )}
+                {store.activeWorld.state.time && (() => {
+                  const TIMES = ["DAWN", "MORNING", "MIDDAY", "AFTERNOON", "EVENING", "NIGHT", "LATE NIGHT"];
+                  const currentDay = store.activeWorld!.state.time.day_index;
+                  const currentTime = store.activeWorld!.state.time.time_of_day;
+                  const currentIdx = TIMES.indexOf(currentTime);
+                  const isLastTime = currentIdx >= TIMES.length - 1;
+                  const formatTime = (t: string) => t.split(" ").map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(" ");
+
+                  const nextDay = isLastTime ? currentDay + 1 : currentDay;
+                  const nextTime = isLastTime ? TIMES[0] : TIMES[currentIdx + 1];
+
+                  const advanceDay = () => setTimeConfirm({ day: currentDay + 1, time: currentTime });
+                  const advanceTime = () => setTimeConfirm({ day: nextDay, time: nextTime });
+
+                  return (
+                    <div className="relative">
+                      <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                        <Sparkles size={10} className="text-primary/50" />
+                        <span>Day {currentDay}</span>
+                        <button
+                          onClick={advanceDay}
+                          className="w-4 h-4 rounded flex items-center justify-center text-muted-foreground/50 hover:text-foreground hover:bg-accent transition-colors cursor-pointer"
+                          title="Advance day"
+                        >
+                          <Plus size={10} />
+                        </button>
+                        <span className="text-border">·</span>
+                        <span>{formatTime(currentTime)}</span>
+                        <button
+                          onClick={advanceTime}
+                          className="w-4 h-4 rounded flex items-center justify-center text-muted-foreground/50 hover:text-foreground hover:bg-accent transition-colors cursor-pointer"
+                          title="Advance time of day"
+                        >
+                          <Plus size={10} />
+                        </button>
+                      </div>
+                      {timeConfirm && (
+                        <div className="absolute bottom-full left-0 mb-2 w-56 bg-card border border-border rounded-lg shadow-xl shadow-black/30 p-3 z-50 animate-in fade-in zoom-in-95 duration-150">
+                          <p className="text-xs text-foreground mb-2">
+                            Change to Day {timeConfirm.day} — {formatTime(timeConfirm.time)}?
+                          </p>
+                          <div className="flex justify-end gap-1.5">
+                            <button onClick={() => setTimeConfirm(null)} className="px-2 py-1 text-[10px] rounded-md text-muted-foreground hover:bg-accent transition-colors cursor-pointer">Cancel</button>
+                            <button
+                              onClick={() => {
+                                if (!store.activeWorld) return;
+                                const newState = structuredClone(store.activeWorld.state);
+                                newState.time.day_index = timeConfirm.day;
+                                newState.time.time_of_day = timeConfirm.time;
+                                store.updateWorldState(newState);
+                                setTimeConfirm(null);
+                              }}
+                              className="px-2 py-1 text-[10px] rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors cursor-pointer"
+                            >
+                              Ok
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
               </div>
             </div>
           </div>
