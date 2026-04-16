@@ -11,9 +11,9 @@ export function playChime() {
     const ctx = getContext();
     const now = ctx.currentTime;
 
-    // Two soft sine tones: C5 then E5
-    const frequencies = [523.25, 659.25];
-    const durations = [0.12, 0.18];
+    // Eb4 → Bb4 → G5
+    const frequencies = [311.13, 466.16, 783.99];
+    const durations = [0.12, 0.12, 0.2];
     let offset = 0;
 
     for (let i = 0; i < frequencies.length; i++) {

@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogBody } from "@/components/ui/dialog";
 import { listen } from "@tauri-apps/api/event";
 import { api, type Message, type NovelEntry } from "@/lib/tauri";
+import { playChime } from "@/lib/chime";
 
 interface Props {
   day: number;
@@ -33,13 +34,14 @@ interface Props {
   novelEntry: NovelEntry | null;
   /** Callback when novel entry is saved or deleted */
   onNovelChange: () => void;
+  notifyOnMessage?: boolean;
 }
 
 export function DayPageSlide({
   day, messages, portraits, characterColors, characterNames,
   userAvatarUrl, backgroundPortraits, videoFiles, videoDataUrls, playVideo,
   playingVideo, setPlayingVideo, loopVideo, setLoopVideo,
-  threadId, apiKey, isGroup, novelEntry, onNovelChange,
+  threadId, apiKey, isGroup, novelEntry, onNovelChange, notifyOnMessage,
 }: Props) {
   const [showNovelView, setShowNovelView] = useState(!!novelEntry);
   const [novelModalOpen, setNovelModalOpen] = useState(false);
@@ -60,7 +62,9 @@ export function DayPageSlide({
     setNovelDraft("");
     setNovelTab("read");
 
+    let chimePlayed = false;
     const unlisten = await listen<string>("novel-token", (event) => {
+      if (!chimePlayed && notifyOnMessage) { playChime(); chimePlayed = true; }
       setNovelDraft((prev) => prev + event.payload);
     });
 

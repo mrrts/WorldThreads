@@ -879,6 +879,7 @@ export function GroupChatView({ store, onNavigateToCharacter }: Props) {
         onClose={() => setShowSummary(false)}
         title={`Summary: ${groupCharacters.map((c) => c.display_name).join(" & ")}`}
         generateSummary={() => api.generateGroupChatSummary(store.apiKey, store.activeGroupChat?.group_chat_id ?? "")}
+        notifyOnMessage={store.notifyOnMessage}
         characters={store.characters}
         groupChats={store.groupChats}
         activePortraits={store.activePortraits}
@@ -1026,6 +1027,7 @@ export function GroupChatView({ store, onNavigateToCharacter }: Props) {
         threadId={store.messages[0]?.thread_id ?? ""}
         apiKey={store.apiKey}
         isGroup={true}
+        notifyOnMessage={store.notifyOnMessage}
       />
 
       <RemoveVideoConfirmModal

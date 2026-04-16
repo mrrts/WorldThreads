@@ -55,6 +55,7 @@ export interface IllustrationCarouselModalProps {
   apiKey: string;
   /** Whether this is a group chat */
   isGroup: boolean;
+  notifyOnMessage?: boolean;
 }
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
@@ -144,6 +145,7 @@ export function IllustrationCarouselModal({
   threadId,
   apiKey,
   isGroup,
+  notifyOnMessage,
 }: IllustrationCarouselModalProps) {
   const [showDayPages, setShowDayPages] = useState(true);
   const [novelEntries, setNovelEntries] = useState<Record<number, NovelEntry>>({});
@@ -296,6 +298,7 @@ export function IllustrationCarouselModal({
                 isGroup={isGroup}
                 novelEntry={novelEntries[activeSlide.day] ?? null}
                 onNovelChange={loadNovelEntries}
+                notifyOnMessage={notifyOnMessage}
               />
             </div>
           ) : (

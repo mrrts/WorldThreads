@@ -807,6 +807,7 @@ export function ChatView({ store, onNavigateToCharacter }: Props) {
         onClose={() => setShowSummary(false)}
         title={`Summary: ${store.activeCharacter?.display_name ?? "Chat"}`}
         generateSummary={() => api.generateChatSummary(store.apiKey, store.activeCharacter?.character_id ?? "")}
+        notifyOnMessage={store.notifyOnMessage}
         characters={store.characters}
         groupChats={store.groupChats}
         activePortraits={store.activePortraits}
@@ -950,6 +951,7 @@ export function ChatView({ store, onNavigateToCharacter }: Props) {
         threadId={store.messages[0]?.thread_id ?? ""}
         apiKey={store.apiKey}
         isGroup={false}
+        notifyOnMessage={store.notifyOnMessage}
       />
 
       <RemoveVideoConfirmModal

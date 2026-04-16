@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Loader2, Send, Check } from "lucide-react";
 import { listen } from "@tauri-apps/api/event";
 import { api, type Character, type GroupChat, type PortraitInfo } from "@/lib/tauri";
+import { playChime } from "@/lib/chime";
 
 interface ChatTarget {
   type: "char" | "group";
@@ -17,6 +18,7 @@ interface Props {
   onClose: () => void;
   title: string;
   generateSummary: () => Promise<string>;
+  notifyOnMessage?: boolean;
   /** All characters in the world (for the send-to picker) */
   characters?: Character[];
   groupChats?: GroupChat[];
@@ -29,7 +31,7 @@ interface Props {
 }
 
 export function SummaryModal({
-  open, onClose, title, generateSummary,
+  open, onClose, title, generateSummary, notifyOnMessage,
   characters = [], groupChats = [], activePortraits = {},
   currentCharacterId, currentGroupChatId, onContextSent,
 }: Props) {
@@ -51,7 +53,9 @@ export function SummaryModal({
     let unlisten: (() => void) | null = null;
 
     (async () => {
+      let chimePlayed = false;
       unlisten = await listen<string>("summary-token", (event) => {
+        if (!chimePlayed && notifyOnMessage) { playChime(); chimePlayed = true; }
         setSummary((prev) => (prev ?? "") + event.payload);
       });
       try {
