@@ -197,10 +197,13 @@ export function StoryConsultantModal({ open, onClose, apiKey, characterId, group
         // Auto-scroll while streaming — but only until ~300px of the assistant
         // message has entered view, so the reader can keep their eyes on the
         // first paragraph while the rest streams in below the fold.
+        // Skip if ref is null: a RAF can fire after loading flips false (the
+        // last token races with setLoading), and we don't want that stray
+        // scroll-to-bottom at end of stream.
         const el = scrollRef.current;
         if (el) requestAnimationFrame(() => {
-          const msgHeight = lastAssistantRef.current?.offsetHeight ?? 0;
-          if (msgHeight < 300) el.scrollTop = el.scrollHeight;
+          const msgEl = lastAssistantRef.current;
+          if (msgEl && msgEl.offsetHeight < 300) el.scrollTop = el.scrollHeight;
         });
         return updated;
       });
