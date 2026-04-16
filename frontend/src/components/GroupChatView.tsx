@@ -887,7 +887,7 @@ export function GroupChatView({ store, onNavigateToCharacter }: Props) {
             )}
           </div>
             </div>
-            <span className="text-muted-foreground/50 text-right" style={{ fontSize: "12px" }}>Responses: {responseLength}</span>
+            <span className="text-muted-foreground/50 text-right" style={{ fontSize: "12px" }}>Response Length: {responseLength}</span>
           </div>
         </div>
       </div>

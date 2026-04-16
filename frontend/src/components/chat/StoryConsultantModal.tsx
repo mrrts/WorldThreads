@@ -98,6 +98,7 @@ export function StoryConsultantModal({ open, onClose, apiKey, characterId, group
   const importHoverTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const lastAssistantRef = useRef<HTMLDivElement>(null);
 
   const categories = buildCategories(characterNames);
 
@@ -193,9 +194,14 @@ export function StoryConsultantModal({ open, onClose, apiKey, characterId, group
         if (last?.role === "assistant") {
           updated[updated.length - 1] = { ...last, content: last.content + event.payload };
         }
-        // Auto-scroll while streaming
+        // Auto-scroll while streaming — but only until ~200px of the assistant
+        // message has entered view, so the reader can keep their eyes on the
+        // first paragraph while the rest streams in below the fold.
         const el = scrollRef.current;
-        if (el) requestAnimationFrame(() => { el.scrollTop = el.scrollHeight; });
+        if (el) requestAnimationFrame(() => {
+          const msgHeight = lastAssistantRef.current?.offsetHeight ?? 0;
+          if (msgHeight < 200) el.scrollTop = el.scrollHeight;
+        });
         return updated;
       });
     });
@@ -424,9 +430,12 @@ export function StoryConsultantModal({ open, onClose, apiKey, characterId, group
                       </div>
                     );
                   }
+                  const isStreamingAssistant = loading && msg.role === "assistant" && i === messages.length - 1;
                   return (
                   <div key={i} className={`group flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
-                    <div className={`relative max-w-[85%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed ${
+                    <div
+                      ref={isStreamingAssistant ? lastAssistantRef : undefined}
+                      className={`relative max-w-[85%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed ${
                       msg.role === "user"
                         ? "bg-primary text-primary-foreground rounded-br-md"
                         : "bg-secondary/60 text-secondary-foreground rounded-bl-md border border-border/30 backdrop-blur-sm"
