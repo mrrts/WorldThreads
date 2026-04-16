@@ -10,7 +10,7 @@ import { UserProfileEditor } from "@/components/UserProfileEditor";
 import { SettingsPanel } from "@/components/SettingsPanel";
 import { WorldSummary } from "@/components/WorldSummary";
 import { PortraitPopout } from "@/components/PortraitPopout";
-import { PenLine, Settings, Coins, BookOpen, Download, Play, Square, Plus, Minus } from "lucide-react";
+import { Scroll, Settings, Coins, BookOpen, Download, Play, Square, Plus, Minus } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogBody, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 
@@ -156,7 +156,7 @@ function MainApp() {
 
       <div className="w-16 flex-shrink-0 bg-card border-r border-border flex flex-col items-center py-4 gap-2">
         <NavButton icon={<BookOpen size={20} />} active={view === "summary"} onClick={() => setViewTracked("summary")} title="Summary" description="World overview and conversation recaps for each character." />
-        <NavButton icon={<PenLine size={20} />} active={view === "world"} onClick={() => setViewTracked("world")} title="World Canon" description="Edit your world's name, description, tone, and rules." />
+        <NavButton icon={<Scroll size={20} />} active={view === "world"} onClick={() => setViewTracked("world")} title="World Canon" description="Edit your world's name, description, tone, and rules." />
         <div className="flex-1" />
         <UsageBadge sending={!!store.sending} />
         <NavButton icon={<Settings size={20} />} active={view === "settings"} onClick={() => setViewTracked("settings")} title="Settings" description="API key, model config, and app preferences." />
