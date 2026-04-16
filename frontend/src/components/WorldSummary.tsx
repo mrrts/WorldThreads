@@ -45,79 +45,54 @@ export function WorldSummary({ store, onChat, onSettings }: Props) {
   }, [world?.world_id, store.userProfile?.avatar_file]);
 
   // Load world gallery images first, then all chat illustrations sorted by timestamp
+  // Set initial world image for banner (no heavy loading)
   useEffect(() => {
+    if (store.activeWorldImage?.data_url) {
+      setIllustrations([{ id: store.activeWorldImage.image_id, data_url: store.activeWorldImage.data_url }]);
+      setSelectedId(store.activeWorldImage.image_id);
+    } else {
+      setIllustrations([]);
+      setSelectedId(null);
+    }
+  }, [world?.world_id, store.activeWorldImage]);
+
+  // Gallery images are loaded on-demand when the carousel is opened (not on mount)
+  const loadGalleryImages = useCallback(async () => {
     if (!world) return;
     setLoadingCarousel(true);
-    setIllustrations([]);
-    setVideoFiles({});
-    setSelectedId(null);
 
-    // Show world image immediately
     const initial: Array<{ id: string; data_url: string }> = [];
     if (store.activeWorldImage?.data_url) {
       initial.push({ id: store.activeWorldImage.image_id, data_url: store.activeWorldImage.data_url });
-      setIllustrations(initial);
-      setSelectedId(store.activeWorldImage.image_id);
-      setLoadingCarousel(false);
     }
 
-    // Then progressively load chat illustrations
-    (async () => {
-      const chatIllus: Array<{ id: string; data_url: string; created_at: string }> = [];
-      const vf: Record<string, string> = {};
+    // Load all chats in parallel
+    const charPromises = store.characters.map(async (ch) => {
+      try {
+        const page = await api.getMessages(ch.character_id);
+        return page.messages.filter((m) => m.role === "illustration").map((m) => ({ id: m.message_id, data_url: m.content, created_at: m.created_at }));
+      } catch { return []; }
+    });
+    const gcPromises = store.groupChats.map(async (gc) => {
+      try {
+        const page = await api.getGroupMessages(gc.group_chat_id);
+        return page.messages.filter((m) => m.role === "illustration").map((m) => ({ id: m.message_id, data_url: m.content, created_at: m.created_at }));
+      } catch { return []; }
+    });
 
-      const sources: Array<() => Promise<Array<{ id: string; data_url: string; created_at: string }>>> = [];
+    const allBatches = await Promise.all([...charPromises, ...gcPromises]);
+    const chatIllus = allBatches.flat().sort((a, b) => a.created_at.localeCompare(b.created_at));
 
-      for (const ch of store.characters) {
-        sources.push(async () => {
-          const batch: typeof chatIllus = [];
-          try {
-            const page = await api.getMessages(ch.character_id);
-            for (const m of page.messages) {
-              if (m.role === "illustration") {
-                batch.push({ id: m.message_id, data_url: m.content, created_at: m.created_at });
-                try { const f = await api.getVideoFile(m.message_id); if (f) vf[m.message_id] = f; } catch {}
-              }
-            }
-          } catch {}
-          return batch;
-        });
-      }
+    setIllustrations([...initial, ...chatIllus.map(({ id, data_url }) => ({ id, data_url }))]);
+    setSelectedId(initial[0]?.id ?? chatIllus[0]?.id ?? null);
 
-      for (const gc of store.groupChats) {
-        sources.push(async () => {
-          const batch: typeof chatIllus = [];
-          try {
-            const page = await api.getGroupMessages(gc.group_chat_id);
-            for (const m of page.messages) {
-              if (m.role === "illustration") {
-                batch.push({ id: m.message_id, data_url: m.content, created_at: m.created_at });
-                try { const f = await api.getVideoFile(m.message_id); if (f) vf[m.message_id] = f; } catch {}
-              }
-            }
-          } catch {}
-          return batch;
-        });
-      }
+    // Load video files in background (don't block)
+    for (const illus of chatIllus) {
+      api.getVideoFile(illus.id).then((f) => { if (f) setVideoFiles((prev) => ({ ...prev, [illus.id]: f })); }).catch(() => {});
+    }
 
-      // Load each chat and append results progressively
-      for (const loadChat of sources) {
-        const batch = await loadChat();
-        if (batch.length > 0) {
-          chatIllus.push(...batch);
-          // Re-sort and update
-          chatIllus.sort((a, b) => a.created_at.localeCompare(b.created_at));
-          setIllustrations([...initial, ...chatIllus.map(({ id, data_url }) => ({ id, data_url }))]);
-          setVideoFiles((prev) => ({ ...prev, ...vf }));
-        }
-      }
-
-      if (initial.length === 0 && chatIllus.length > 0) {
-        setSelectedId(chatIllus[0].id);
-      }
-      setLoadingCarousel(false);
-    })();
-  }, [world?.world_id, store.characters.length, store.groupChats.length]);
+    setLoadingCarousel(false);
+  }, [world?.world_id, store.characters, store.groupChats, store.activeWorldImage]);
 
   const slideshow = useSlideshow({
     illustrations,
@@ -159,24 +134,31 @@ export function WorldSummary({ store, onChat, onSettings }: Props) {
     if (!world) return;
     setLoading(true);
     try {
-      const results: CharInfo[] = [];
-      for (const ch of store.characters) {
-        const portrait = store.activePortraits[ch.character_id] ?? null;
-        const paginated = await api.getMessages(ch.character_id);
-        const dialogueCount = paginated.messages.filter((m) => m.role !== "illustration" && m.role !== "video").length;
-        results.push({ character: ch, portrait, messageCount: paginated.total, dialogueCount });
-      }
-      setCharInfos(results);
+      // Load all character info in parallel
+      const charResults = await Promise.all(
+        store.characters.map(async (ch) => {
+          const portrait = store.activePortraits[ch.character_id] ?? null;
+          try {
+            const paginated = await api.getMessages(ch.character_id);
+            const dialogueCount = paginated.messages.filter((m) => m.role !== "illustration" && m.role !== "video").length;
+            return { character: ch, portrait, messageCount: paginated.total, dialogueCount };
+          } catch {
+            return { character: ch, portrait, messageCount: 0, dialogueCount: 0 };
+          }
+        })
+      );
+      setCharInfos(charResults);
 
-      // Load group chat dialogue counts
-      const gcCounts: Record<string, number> = {};
-      for (const gc of store.groupChats) {
-        try {
-          const page = await api.getGroupMessages(gc.group_chat_id);
-          gcCounts[gc.group_chat_id] = page.messages.filter((m) => m.role !== "illustration" && m.role !== "video").length;
-        } catch { gcCounts[gc.group_chat_id] = 0; }
-      }
-      setGroupDialogueCounts(gcCounts);
+      // Load group chat dialogue counts in parallel
+      const gcEntries = await Promise.all(
+        store.groupChats.map(async (gc) => {
+          try {
+            const page = await api.getGroupMessages(gc.group_chat_id);
+            return [gc.group_chat_id, page.messages.filter((m) => m.role !== "illustration" && m.role !== "video").length] as const;
+          } catch { return [gc.group_chat_id, 0] as const; }
+        })
+      );
+      setGroupDialogueCounts(Object.fromEntries(gcEntries));
     } catch {
     } finally {
       setLoading(false);
@@ -204,7 +186,7 @@ export function WorldSummary({ store, onChat, onSettings }: Props) {
         {/* Hero Banner */}
         {store.activeWorldImage?.data_url ? (
           <button
-            onClick={() => setShowCarouselModal(true)}
+            onClick={() => { setShowCarouselModal(true); if (illustrations.length <= 1) loadGalleryImages(); }}
             className="relative w-full h-[700px] overflow-hidden cursor-pointer group/banner"
           >
             <img
@@ -251,25 +233,23 @@ export function WorldSummary({ store, onChat, onSettings }: Props) {
               <p>No characters yet. Create one to get started.</p>
             </div>
           ) : (
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-2 gap-4">
               {store.userProfile && (
-                <div className="rounded-xl border border-border bg-card/60 p-5 flex gap-5">
-                  <div className="flex-shrink-0">
-                    {userAvatarUrl ? (
-                      <img src={userAvatarUrl} alt="" className="w-48 h-48 rounded-xl object-cover" />
-                    ) : (
-                      <div className="w-48 h-48 rounded-xl bg-primary/20 flex items-center justify-center">
-                        <User size={48} className="text-primary" />
-                      </div>
-                    )}
-                  </div>
-                  <div className="flex-1 min-w-0">
+                <div className="rounded-xl border border-border bg-card/60 p-5">
+                  {userAvatarUrl ? (
+                    <img src={userAvatarUrl} alt="" className="w-32 h-32 rounded-xl object-cover float-left mr-4 mb-2" />
+                  ) : (
+                    <div className="w-32 h-32 rounded-xl bg-primary/20 flex items-center justify-center float-left mr-4 mb-2">
+                      <User size={48} className="text-primary" />
+                    </div>
+                  )}
+                  <div>
                     <div className="flex items-center gap-2 mb-1">
                       <h3 className="font-semibold text-foreground">{store.userProfile.display_name || "Me"}</h3>
                       <span className="text-[10px] font-medium bg-primary/15 text-primary px-1.5 py-0.5 rounded-full leading-none">Me</span>
                     </div>
                     {store.userProfile.description ? (
-                      <p className="text-sm text-muted-foreground leading-relaxed line-clamp-2">{store.userProfile.description}</p>
+                      <p className="text-sm text-muted-foreground leading-relaxed">{store.userProfile.description}</p>
                     ) : (
                       <p className="text-sm text-muted-foreground/50 italic">No description yet.</p>
                     )}
@@ -279,23 +259,21 @@ export function WorldSummary({ store, onChat, onSettings }: Props) {
               {charInfos.map(({ character, portrait, messageCount, dialogueCount }) => (
                 <div
                   key={character.character_id}
-                  className="rounded-xl border border-border bg-card/60 p-5 flex gap-5"
+                  className="rounded-xl border border-border bg-card/60 p-5"
                 >
-                  <div className="flex-shrink-0">
-                    {portrait?.data_url ? (
-                      <button onClick={() => setPortraitCharId(character.character_id)} className="cursor-pointer">
-                        <img src={portrait.data_url} alt="" className="w-48 h-48 rounded-xl object-cover hover:ring-2 hover:ring-primary/50 transition-all" />
-                      </button>
-                    ) : (
-                      <div
-                        className="w-48 h-48 rounded-xl flex items-center justify-center text-4xl font-bold text-white"
-                        style={{ backgroundColor: character.avatar_color || "#6366f1" }}
-                      >
-                        {character.display_name?.charAt(0) || "?"}
-                      </div>
-                    )}
-                  </div>
-                  <div className="flex-1 min-w-0">
+                  {portrait?.data_url ? (
+                    <button onClick={() => setPortraitCharId(character.character_id)} className="cursor-pointer float-left mr-4 mb-2">
+                      <img src={portrait.data_url} alt="" className="w-32 h-32 rounded-xl object-cover hover:ring-2 hover:ring-primary/50 transition-all" />
+                    </button>
+                  ) : (
+                    <div
+                      className="w-32 h-32 rounded-xl flex items-center justify-center text-4xl font-bold text-white float-left mr-4 mb-2"
+                      style={{ backgroundColor: character.avatar_color || "#6366f1" }}
+                    >
+                      {character.display_name?.charAt(0) || "?"}
+                    </div>
+                  )}
+                  <div>
                     <div className="flex items-center gap-3 mb-1">
                       <h3 className="font-semibold text-foreground">{character.display_name}</h3>
                       <span className="text-xs text-muted-foreground/50">
@@ -332,7 +310,7 @@ export function WorldSummary({ store, onChat, onSettings }: Props) {
           {store.groupChats.length > 0 && (
             <>
               <h2 className="text-lg font-semibold mt-8">Group Chats</h2>
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-2 gap-4">
                 {store.groupChats.map((gc) => {
                   const charIds: string[] = Array.isArray(gc.character_ids) ? gc.character_ids : [];
                   const chars = charIds.map((id) => store.characters.find((c) => c.character_id === id)).filter(Boolean) as Character[];
