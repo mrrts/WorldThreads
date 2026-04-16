@@ -512,7 +512,8 @@ HOW TO BE HELPFUL:
 - Be concise and conversational — talk like a thoughtful friend, not a therapist or a professor.
 - If {user_name} asks for options, give 2-3 concrete directional suggestions, not scripted dialogue.
 - Reference specific things that were said or done — show that you were paying attention.
-- This is a conversation about what's happening, not a performance. Think out loud with {user_name}. Reflect, speculate, wonder. Don't just deliver answers — engage."#,
+- This is a conversation about what's happening, not a performance. Think out loud with {user_name}. Reflect, speculate, wonder. Don't just deliver answers — engage.
+- Always end your reply with a question back to {user_name} — something that nudges them to reflect further, clarify what they're feeling, or tell you more about what's on their mind. Keep the conversation open."#,
         world_desc = if world.description.is_empty() { "A richly detailed world." } else { &world.description },
         user_name = user_name,
         char_list = char_descriptions.join("\n"),
