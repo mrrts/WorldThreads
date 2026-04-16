@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { playChime } from "@/lib/chime";
 import { api, type World, type Character, type Message, type ModelConfig, type Reaction, type PortraitInfo, type UserProfile, type WorldImageInfo, type GroupChat } from "@/lib/tauri";
 
 export interface AppState {
@@ -20,6 +21,7 @@ export interface AppState {
   editingUserProfile: boolean;
   loading: boolean;
   autoRespond: boolean;
+  notifyOnMessage: boolean;
   /** Character ID currently awaiting a response, or null */
   sending: string | null;
   /** Character ID currently generating a narrative, or null */
@@ -77,6 +79,7 @@ export function useAppStore() {
     loadingOlder: false,
     loadingChat: false,
     autoRespond: true,
+    notifyOnMessage: true,
     loading: true,
     sending: null,
     generatingNarrative: null,
@@ -140,12 +143,13 @@ export function useAppStore() {
   const loadInitial = useCallback(async () => {
     setState((s) => ({ ...s, loading: true }));
     try {
-      const [worlds, modelConfig, apiKey, budgetMode, autoRespondSetting] = await Promise.all([
+      const [worlds, modelConfig, apiKey, budgetMode, autoRespondSetting, notifySetting] = await Promise.all([
         api.listWorlds(),
         api.getModelConfig(),
         api.migrateApiKey(),
         api.getBudgetMode(),
         api.getSetting("auto_respond").catch(() => null),
+        api.getSetting("notify_on_message").catch(() => null),
       ]);
 
       let activeWorld: World | null = null;
@@ -238,6 +242,7 @@ export function useAppStore() {
         apiKey: apiKey ?? "",
         budgetMode,
         autoRespond: autoRespondSetting !== "false",
+        notifyOnMessage: notifySetting !== "false",
         loadingOlder: false,
     loadingChat: false,
         loading: false,
@@ -686,6 +691,11 @@ export function useAppStore() {
     api.setSetting("auto_respond", enabled ? "true" : "false").catch(() => {});
   }, []);
 
+  const setNotifyOnMessage = useCallback((enabled: boolean) => {
+    setState((s) => ({ ...s, notifyOnMessage: enabled }));
+    api.setSetting("notify_on_message", enabled ? "true" : "false").catch(() => {});
+  }, []);
+
   const sendMessage = useCallback(async (content: string) => {
     if (!state.activeCharacter) return;
     if (state.activeWorld) api.setSetting(`last_chat.${state.activeWorld.world_id}`, `char:${state.activeCharacter.character_id}`).catch(() => {});
@@ -775,6 +785,7 @@ export function useAppStore() {
           sending: null,
         };
       });
+      if (state.notifyOnMessage) playChime();
     } catch (e) {
       setState((s) => ({
         ...s,
@@ -784,7 +795,7 @@ export function useAppStore() {
         messages: s.messages.filter((m) => m.message_id !== optimisticMsg.message_id),
       }));
     }
-  }, [state.activeCharacter, state.apiKey, state.activeWorld, state.autoRespond]);
+  }, [state.activeCharacter, state.apiKey, state.activeWorld, state.autoRespond, state.notifyOnMessage]);
 
   const promptCharacter = useCallback(async () => {
     if (!state.activeCharacter || !state.apiKey) return;
@@ -799,6 +810,7 @@ export function useAppStore() {
         totalMessages: s.totalMessages + 1,
         sending: null,
       }));
+      if (state.notifyOnMessage) playChime();
     } catch (e) {
       setState((s) => ({
         ...s,
@@ -819,6 +831,7 @@ export function useAppStore() {
         ? await api.generateGroupNarrative(state.apiKey, entityId, customInstructions)
         : await api.generateNarrative(state.apiKey, entityId, customInstructions);
       setState((s) => ({ ...s, messages: [...s.messages, result.narrative_message], totalMessages: s.totalMessages + 1, sending: null, generatingNarrative: null }));
+      if (state.notifyOnMessage) playChime();
     } catch (e) {
       setState((s) => ({ ...s, sending: null, generatingNarrative: null, chatError: String(e) }));
     }
@@ -1239,6 +1252,7 @@ export function useAppStore() {
     unarchiveCharacter,
     sendMessage,
     setAutoRespond,
+    setNotifyOnMessage,
     promptCharacter,
     generateNarrative,
     generateIllustration,

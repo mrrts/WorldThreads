@@ -801,6 +801,7 @@ export function GroupChatView({ store, onNavigateToCharacter }: Props) {
           Object.entries(store.activePortraits).filter(([, p]) => p?.data_url).map(([id, p]) => [id, p!.data_url!])
         )}
         userAvatarUrl={userAvatarUrl}
+        notifyOnMessage={store.notifyOnMessage}
       />
 
       {userAvatarUrl && (

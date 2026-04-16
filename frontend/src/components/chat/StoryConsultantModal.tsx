@@ -5,6 +5,7 @@ import { X, Loader2, Send, Lightbulb, Sparkles, Trash2, ChevronDown, Pencil, Plu
 import { formatMessage, markdownComponents, remarkPlugins, rehypePlugins } from "./formatMessage";
 import { listen } from "@tauri-apps/api/event";
 import { api, type ConsultantChat } from "@/lib/tauri";
+import { playChime } from "@/lib/chime";
 import { Button } from "@/components/ui/button";
 
 interface ConsultantMessage {
@@ -25,6 +26,8 @@ interface Props {
   portraits: Record<string, string>;
   /** User avatar URL */
   userAvatarUrl: string;
+  /** Whether to play a chime on first token */
+  notifyOnMessage: boolean;
 }
 
 interface PromptCategory {
@@ -76,7 +79,7 @@ function buildCategories(names: string[]): PromptCategory[] {
   ];
 }
 
-export function StoryConsultantModal({ open, onClose, apiKey, characterId, groupChatId, threadId, characterNames, worldImageUrl, portraits, userAvatarUrl }: Props) {
+export function StoryConsultantModal({ open, onClose, apiKey, characterId, groupChatId, threadId, characterNames, worldImageUrl, portraits, userAvatarUrl, notifyOnMessage }: Props) {
   const [chats, setChats] = useState<ConsultantChat[]>([]);
   const [activeChatId, setActiveChatId] = useState<string | null>(null);
   const [messages, setMessages] = useState<ConsultantMessage[]>([]);
@@ -186,7 +189,9 @@ export function StoryConsultantModal({ open, onClose, apiKey, characterId, group
     if (inputRef.current) inputRef.current.style.height = "auto";
 
     // Listen for streaming tokens
+    let chimePlayed = false;
     const unlisten = await listen<string>("consultant-token", (event) => {
+      if (!chimePlayed && notifyOnMessage) { playChime(); chimePlayed = true; }
       setMessages((prev) => {
         const updated = [...prev];
         const last = updated[updated.length - 1];

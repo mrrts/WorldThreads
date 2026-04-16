@@ -286,6 +286,21 @@ export function SettingsPanel({ store }: Props) {
             </div>
           </FieldGroup>
 
+          <FieldGroup label="Notifications">
+            <div className="flex items-center justify-between py-2 px-4 rounded-lg border border-border bg-card/50">
+              <div>
+                <p className="text-sm font-medium">Message Chime</p>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Play a sound when a new message arrives
+                </p>
+              </div>
+              <Switch
+                checked={store.notifyOnMessage}
+                onCheckedChange={(checked) => store.setNotifyOnMessage(checked)}
+              />
+            </div>
+          </FieldGroup>
+
           <FieldGroup label="Restore Backup">
             <p className="text-xs text-muted-foreground/60 -mt-2">
               Backups are created automatically every 20 minutes and on each app launch.
