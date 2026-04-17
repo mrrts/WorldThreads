@@ -9,7 +9,9 @@ import { playChime } from "@/lib/chime";
 import { Button } from "@/components/ui/button";
 
 interface ConsultantMessage {
-  role: "user" | "assistant";
+  // "import" is a marker role used when the user pulls in recent thread
+  // messages as context — it's rendered as a collapsed bar, not a bubble.
+  role: "user" | "assistant" | "import";
   content: string;
 }
 
@@ -99,6 +101,11 @@ export function StoryConsultantModal({ open, onClose, apiKey, characterId, group
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const lastAssistantRef = useRef<HTMLDivElement>(null);
+  // True while we're waiting for the first token and the prompt is likely
+  // in prompt-ingest phase on the local model (large context = long wait
+  // before the first token). Shown for the first response in a chat and
+  // for the first response after "Import Latest".
+  const [showReadingLabel, setShowReadingLabel] = useState(false);
 
   const categories = buildCategories(characterNames);
 
@@ -177,6 +184,16 @@ export function StoryConsultantModal({ open, onClose, apiKey, characterId, group
       setActiveChatId(chatId);
     }
 
+    // Decide whether to show the "Reading the latest messages..." label.
+    // True for the first consultant response in a chat (no prior assistant
+    // bubble with content), OR when the most recent non-user message was an
+    // import — both are the cases where the local model chews on a large
+    // fresh prompt before emitting any tokens.
+    const priorAssistant = messages.some((m) => m.role === "assistant" && m.content);
+    const lastNonUser = [...messages].reverse().find((m) => m.role !== "user");
+    const shouldShowReading = !priorAssistant || lastNonUser?.role === "import";
+    setShowReadingLabel(shouldShowReading);
+
     setMessages((prev) => [...prev, { role: "user", content: trimmed }, { role: "assistant", content: "" }]);
     setInput("");
     setLoading(true);
@@ -188,6 +205,8 @@ export function StoryConsultantModal({ open, onClose, apiKey, characterId, group
     let chimePlayed = false;
     const unlisten = await listen<string>("consultant-token", (event) => {
       if (!chimePlayed && notifyOnMessage) { playChime(); chimePlayed = true; }
+      // First token arrived → we're out of the ingest phase, hide the label.
+      setShowReadingLabel(false);
       setMessages((prev) => {
         const updated = [...prev];
         const last = updated[updated.length - 1];
@@ -493,12 +512,15 @@ export function StoryConsultantModal({ open, onClose, apiKey, characterId, group
                 })}
                 {/* Typing indicator shows only before first token arrives */}
                 {loading && messages.length > 0 && messages[messages.length - 1]?.role === "assistant" && !messages[messages.length - 1]?.content && (
-                  <div className="flex justify-start -mt-4">
+                  <div className="flex flex-col items-start gap-1.5 -mt-4">
                     <div className="bg-secondary/60 rounded-2xl rounded-bl-md px-4 py-3 flex items-center gap-1.5 border border-border/30 backdrop-blur-sm">
                       <span className="w-1.5 h-1.5 rounded-full bg-muted-foreground/60 animate-bounce [animation-delay:0ms]" />
                       <span className="w-1.5 h-1.5 rounded-full bg-muted-foreground/60 animate-bounce [animation-delay:150ms]" />
                       <span className="w-1.5 h-1.5 rounded-full bg-muted-foreground/60 animate-bounce [animation-delay:300ms]" />
                     </div>
+                    {showReadingLabel && (
+                      <span className="text-[11px] text-muted-foreground/60 ml-3 animate-pulse">Reading the latest messages...</span>
+                    )}
                   </div>
                 )}
               </div>
