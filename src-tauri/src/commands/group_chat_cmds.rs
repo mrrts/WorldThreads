@@ -587,9 +587,17 @@ pub async fn generate_group_illustration_cmd(
         _ => ("1536x1024", "medium"),
     };
 
-    // Use first character for the orchestrator (it needs a Character struct)
+    // Use first character as the "primary" for the orchestrator, and pass the
+    // rest as additional_cast so the scene director knows the full cast.
     let primary_character = characters.first()
         .ok_or_else(|| "No characters in group chat".to_string())?;
+    let additional_cast_vec: Vec<&Character> = characters.iter()
+        .filter(|c| c.character_id != primary_character.character_id)
+        .collect();
+    let additional_cast_opt: Option<&[&Character]> = if additional_cast_vec.is_empty() { None } else { Some(&additional_cast_vec) };
+    let names_map: std::collections::HashMap<String, String> = characters.iter()
+        .map(|c| (c.character_id.clone(), c.display_name.clone()))
+        .collect();
 
     let (scene_description, image_bytes, chat_usage) = orchestrator::generate_illustration_with_base(
         &model_config.chat_api_base(),
@@ -600,13 +608,14 @@ pub async fn generate_group_illustration_cmd(
         img_quality,
         img_size,
         model_config.image_output_format().as_deref(),
-        &world, primary_character, &recent_msgs,
+        &world, primary_character, additional_cast_opt, &recent_msgs,
         user_profile.as_ref(),
         &reference_images,
         custom_instructions.as_deref(),
         has_previous,
         include_scene_summary.unwrap_or(true),
         Some(&characters.iter().map(|c| c.display_name.clone()).collect::<Vec<_>>()),
+        Some(&names_map),
     ).await?;
 
     if let Some(u) = &chat_usage {
@@ -724,15 +733,18 @@ pub async fn generate_group_narrative_cmd(
     ].into_iter().flatten().collect();
     let merged_instructions = if all_instructions.is_empty() { None } else { Some(all_instructions.join("\n")) };
 
-    let all_char_names: Vec<String> = characters.iter().map(|c| c.display_name.clone()).collect();
+    let additional_cast: Vec<&Character> = characters.iter()
+        .filter(|c| c.character_id != primary_character.character_id)
+        .collect();
     let (narrative_text, usage) = orchestrator::run_narrative_with_base(
         &model_config.chat_api_base(), &api_key, &model_config.dialogue_model,
-        &world, primary_character, &recent_msgs, &[],
+        &world, primary_character,
+        if additional_cast.is_empty() { None } else { Some(&additional_cast) },
+        &recent_msgs, &[],
         user_profile.as_ref(),
         None,
         narration_tone.as_deref(),
         merged_instructions.as_deref(),
-        Some(&all_char_names),
     ).await?;
 
     if let Some(u) = &usage {

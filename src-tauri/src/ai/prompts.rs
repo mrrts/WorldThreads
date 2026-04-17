@@ -472,14 +472,18 @@ IMPORTANT: Output raw JSON only. Do NOT wrap in markdown code fences."#);
     msgs
 }
 
+// `additional_cast`: other characters in the scene beyond the primary. When
+// present, the prompt emits a full `# CAST` block with per-character pronouns
+// so the narrator doesn't conflate two characters of the same gender — the
+// main failure mode we see with local models on group scenes.
 pub fn build_narrative_system_prompt(
     world: &World,
     character: &Character,
+    additional_cast: Option<&[&Character]>,
     user_profile: Option<&UserProfile>,
     mood_directive: Option<&str>,
     narration_tone: Option<&str>,
     narration_instructions: Option<&str>,
-    all_character_names: Option<&[String]>,
 ) -> String {
     let mut parts = Vec::new();
 
@@ -487,60 +491,84 @@ pub fn build_narrative_system_prompt(
         .map(|p| p.display_name.as_str())
         .unwrap_or("the human");
 
-    let char_names = all_character_names
-        .map(|names| names.join(" and "))
-        .unwrap_or_else(|| character.display_name.clone());
+    // Build the full cast (primary + additional) as a slice of &Character.
+    let mut cast: Vec<&Character> = vec![character];
+    if let Some(extra) = additional_cast {
+        for c in extra {
+            cast.push(*c);
+        }
+    }
+
+    let cast_names_joined = match cast.len() {
+        1 => cast[0].display_name.clone(),
+        2 => format!("{} and {}", cast[0].display_name, cast[1].display_name),
+        n => {
+            let mut s = String::new();
+            for (i, c) in cast.iter().enumerate() {
+                if i == n - 1 { s.push_str(", and "); }
+                else if i > 0 { s.push_str(", "); }
+                s.push_str(&c.display_name);
+            }
+            s
+        }
+    };
 
     parts.push(format!(
         "You are a vivid narrative voice woven into a living conversation between {user} and {chars}. \
          Your job is to write a single, immersive narrative beat — no dialogue — \
          that deepens, expands, or advances the current moment.",
         user = user_name,
-        chars = char_names,
+        chars = cast_names_joined,
     ));
 
-    let mut pov = format!(
-        "POINT OF VIEW — THIS IS CRITICAL:\n\
-         - Write in SECOND PERSON.\n\
-         - {user} is \"you\". Always refer to {user} as \"you\" — never by name, never in third person.",
-        user = user_name,
-    );
-    if let Some(names) = all_character_names {
-        for name in names {
-            pov.push_str(&format!("\n- {name} is a third-person character. Refer to {name} by name or as \"he\"/\"she\" — NEVER as \"you\", \"I\", or \"me\"."));
-        }
-    } else {
+    // POINT OF VIEW — one explicit binding per character, with concrete pronouns
+    // derived from sex. Local models reliably respect explicit pronoun rules;
+    // they don't reliably infer them from identity descriptions.
+    let mut pov = String::from("POINT OF VIEW — THIS IS CRITICAL:\n");
+    pov.push_str("- Write in SECOND PERSON.\n");
+    pov.push_str(&format!("- {user_name} is \"you\". Always refer to {user_name} as \"you\" — never by name, never in third person.\n"));
+    for c in &cast {
+        let pronoun = match c.sex.as_str() {
+            "female" => "she/her",
+            "male" => "he/him",
+            _ => "they/them",
+        };
         pov.push_str(&format!(
-            "\n- {char} is a third-person character. Refer to {char} by name or as \"{pronoun}\" — NEVER as \"you\", \"I\", or \"me\".\n\
-             - Example: \"You notice {char} glancing away...\" — NOT \"{user} notices...\" and NOT \"You glance away\" (when meaning {char}).\n\
-             - NEVER write from {char}'s first-person perspective. No \"I felt\" or \"I noticed\" from {char}.",
-            char = character.display_name,
-            pronoun = if character.sex == "female" { "she/her" } else { "he/him" },
-            user = user_name,
+            "- {name} is a third-person character. {sex_desc}. Refer to {name} by name or as \"{pronoun}\" — NEVER as \"you\", \"I\", or \"me\".\n",
+            name = c.display_name,
+            sex_desc = sex_descriptor(&c.sex),
+            pronoun = pronoun,
         ));
     }
-    pov.push_str("\n- Never write dialogue. No quotation marks. No spoken words.");
-    pov.push_str("\n- This is SECOND PERSON from the human's perspective only. All other characters are third person.");
+    if cast.len() >= 2 {
+        pov.push_str("- When two characters of the same gender are in the same sentence, use NAMES instead of pronouns to disambiguate. Never rely on \"he\" or \"she\" alone when it could refer to either one.\n");
+    }
+    pov.push_str("- Never write from any character's first-person perspective. No \"I felt\" or \"I noticed\" from any character.\n");
+    pov.push_str("- Never write dialogue. No quotation marks. No spoken words.\n");
+    pov.push_str("- This is SECOND PERSON from the human's perspective only. All other characters are third person.");
     parts.push(pov);
 
-    parts.push(format!(
-        "CHARACTER — {}:\n{} {}",
-        character.display_name,
-        if character.sex == "female" { "A woman." } else { "A man." },
-        if character.identity.is_empty() {
-            "A complex, vivid character.".to_string()
-        } else {
-            character.identity.clone()
-        }
-    ));
-
-    let backstory = json_array_to_strings(&character.backstory_facts);
-    if !backstory.is_empty() {
-        parts.push(format!(
-            "CHARACTER BACKSTORY:\n{}",
-            backstory.iter().map(|f| format!("- {f}")).collect::<Vec<_>>().join("\n")
+    // CAST block — one entry per character with sex + identity + backstory.
+    // In solo scenes this is just one entry; in group scenes it's the full cast.
+    let mut cast_block = String::from("# CAST\n");
+    for c in &cast {
+        cast_block.push_str(&format!(
+            "\n{name} ({sex_desc}):\n{identity}",
+            name = c.display_name,
+            sex_desc = sex_descriptor(&c.sex),
+            identity = if c.identity.is_empty() { "A complex, vivid character.".to_string() } else { c.identity.clone() },
         ));
+        let backstory = json_array_to_strings(&c.backstory_facts);
+        if !backstory.is_empty() {
+            cast_block.push_str(&format!(
+                "\n{name}'s backstory:\n{facts}",
+                name = c.display_name,
+                facts = backstory.iter().map(|f| format!("- {f}")).collect::<Vec<_>>().join("\n"),
+            ));
+        }
+        cast_block.push('\n');
     }
+    parts.push(cast_block);
 
     if let Some(profile) = user_profile {
         let mut user_parts = vec![format!("The human's name is {}.", profile.display_name)];
@@ -634,37 +662,68 @@ pub fn build_narrative_system_prompt(
 pub fn build_scene_description_prompt(
     world: &World,
     character: &Character,
+    additional_cast: Option<&[&Character]>,
     user_profile: Option<&UserProfile>,
     recent_messages: &[Message],
+    // character_names: group-chat character_id → display_name, for prefixing
+    // assistant messages in the conversation history so the scene director
+    // can tell speakers apart.
+    character_names: Option<&HashMap<String, String>>,
 ) -> Vec<crate::ai::openai::ChatMessage> {
     let user_name = user_profile
         .map(|p| p.display_name.as_str())
         .unwrap_or("the human");
 
+    let mut cast: Vec<&Character> = vec![character];
+    if let Some(extra) = additional_cast {
+        for c in extra { cast.push(*c); }
+    }
+
+    let cast_joined = match cast.len() {
+        1 => cast[0].display_name.clone(),
+        2 => format!("{} and {}", cast[0].display_name, cast[1].display_name),
+        n => {
+            let mut s = String::new();
+            for (i, c) in cast.iter().enumerate() {
+                if i == n - 1 { s.push_str(", and "); } else if i > 0 { s.push_str(", "); }
+                s.push_str(&c.display_name);
+            }
+            s
+        }
+    };
+
     let mut system_parts = Vec::new();
 
     system_parts.push(format!(
-        "You are a visual scene director. Your job is to describe the current moment between {user} and {char} \
+        "You are a visual scene director. Your job is to describe the current moment between {user} and {chars} \
          as a single, detailed image description suitable for an illustrator or image generation model.",
         user = user_name,
-        char = character.display_name,
+        chars = cast_joined,
     ));
 
-    system_parts.push(format!(
-        "CHARACTERS:\n\
-         - {user}: the human. Refer to them by name or appearance, not as \"you\".\n\
-         - {char}: the fictional character.",
-        user = user_name,
-        char = character.display_name,
-    ));
+    // CHARACTERS block — explicit list of everyone who must appear.
+    let mut chars_block = String::from("CHARACTERS:\n");
+    chars_block.push_str(&format!("- {user_name}: the human. Refer to them by name or appearance, not as \"you\".\n"));
+    for c in &cast {
+        chars_block.push_str(&format!(
+            "- {name} ({sex_desc}): a fictional character.\n",
+            name = c.display_name,
+            sex_desc = sex_descriptor(&c.sex).to_lowercase(),
+        ));
+    }
+    system_parts.push(chars_block.trim_end().to_string());
 
-    if !character.identity.is_empty() {
-        let identity = if character.identity.len() > 300 {
-            format!("{}...", &character.identity[..300])
-        } else {
-            character.identity.clone()
-        };
-        system_parts.push(format!("{} is: {}", character.display_name, identity));
+    // Per-character identity (trimmed). Keeps each distinct — same-gender
+    // characters need descriptive anchors or they blur in the illustration.
+    for c in &cast {
+        if !c.identity.is_empty() {
+            let identity = if c.identity.len() > 300 {
+                format!("{}...", &c.identity[..300])
+            } else {
+                c.identity.clone()
+            };
+            system_parts.push(format!("{} is: {}", c.display_name, identity));
+        }
     }
 
     if let Some(profile) = user_profile {
@@ -686,15 +745,18 @@ pub fn build_scene_description_prompt(
         system_parts.push(time_desc);
     }
 
-    system_parts.push(r#"OUTPUT INSTRUCTIONS:
-- First, write a detailed scene description as a single paragraph (4-8 sentences): environment, lighting, weather, spatial arrangement of the two characters, their poses, expressions, body language, clothing, and any notable objects or details.
+    let char_count_phrase = if cast.len() == 1 { "both characters" } else { "ALL characters" };
+    system_parts.push(format!(
+        r#"OUTPUT INSTRUCTIONS:
+- First, write a detailed scene description as a single paragraph (4-8 sentences): environment, lighting, weather, spatial arrangement of the characters, their poses, expressions, body language, clothing, and any notable objects or details.
 - Write in third person, present tense, as if describing a painting.
 - Be specific about spatial relationships: who is where, facing which direction, what they're doing with their hands, eyes, body.
 - Include atmosphere: time of day, colors, mood, textures. The lighting MUST match the current time of day.
 - Do NOT include dialogue, speech bubbles, or text.
 - Do NOT include meta-instructions like "paint this" or "in watercolor style" — just describe the scene itself.
-- Both characters must appear in the scene.
-- Keep the description PG. No nudity, explicit sexual content, or graphic violence. Romantic or tense moments are fine, but keep them tasteful and implied rather than explicit."#.to_string());
+- {char_count_phrase} must appear in the scene.
+- Keep the description PG. No nudity, explicit sexual content, or graphic violence. Romantic or tense moments are fine, but keep them tasteful and implied rather than explicit."#,
+    ));
 
     let system = system_parts.join("\n\n");
 
@@ -703,7 +765,9 @@ pub fn build_scene_description_prompt(
         content: system,
     }];
 
-    // Include recent conversation as context (skip illustrations)
+    // Include recent conversation as context (skip illustrations).
+    // In group scenes, prefix assistant messages with [CharName] so the scene
+    // director can tell who's speaking (same fix as dialogue history).
     let conversation: Vec<String> = recent_messages.iter()
         .filter(|m| m.role != "illustration" && m.role != "video")
         .map(|m| {
@@ -711,6 +775,8 @@ pub fn build_scene_description_prompt(
                 user_name.to_string()
             } else if m.role == "narrative" {
                 "[Narrative]".to_string()
+            } else if let (Some(names), Some(sid)) = (character_names, &m.sender_character_id) {
+                names.get(sid).cloned().unwrap_or_else(|| character.display_name.clone())
             } else {
                 character.display_name.clone()
             };
@@ -721,10 +787,10 @@ pub fn build_scene_description_prompt(
     msgs.push(crate::ai::openai::ChatMessage {
         role: "user".to_string(),
         content: format!(
-            "Here is the recent conversation:\n\n{}\n\nDescribe the current scene as a single illustration showing both {} and {}. Focus especially on the last two messages — depict the physical situation, positions, and actions happening right now in this moment.",
+            "Here is the recent conversation:\n\n{}\n\nDescribe the current scene as a single illustration showing {} and {}. Focus especially on the last two messages — depict the physical situation, positions, and actions happening right now in this moment.",
             conversation.join("\n"),
             user_name,
-            character.display_name,
+            cast_joined,
         ),
     });
 
@@ -734,15 +800,34 @@ pub fn build_scene_description_prompt(
 pub fn build_animation_prompt(
     world: &World,
     character: &Character,
+    additional_cast: Option<&[&Character]>,
     user_profile: Option<&UserProfile>,
     recent_messages: &[Message],
+    character_names: Option<&HashMap<String, String>>,
 ) -> Vec<crate::ai::openai::ChatMessage> {
     let user_name = user_profile
         .map(|p| p.display_name.as_str())
         .unwrap_or("the human");
 
+    let mut cast: Vec<&Character> = vec![character];
+    if let Some(extra) = additional_cast {
+        for c in extra { cast.push(*c); }
+    }
+    let cast_joined = match cast.len() {
+        1 => cast[0].display_name.clone(),
+        2 => format!("{} and {}", cast[0].display_name, cast[1].display_name),
+        n => {
+            let mut s = String::new();
+            for (i, c) in cast.iter().enumerate() {
+                if i == n - 1 { s.push_str(", and "); } else if i > 0 { s.push_str(", "); }
+                s.push_str(&c.display_name);
+            }
+            s
+        }
+    };
+
     let mut system_parts = vec![format!(
-        r#"You are a motion director. Given a conversation between {user} and {char}, write a vivid animation direction (2-4 sentences) describing how to bring a still illustration of their current scene to life as a short video.
+        r#"You are a motion director. Given a conversation between {user} and {chars}, write a vivid animation direction (2-4 sentences) describing how to bring a still illustration of their current scene to life as a short video.
 
 The animation should be a natural continuation of the action and emotion in the scene. Be bold — characters can move, gesture, react, shift position, interact with objects, and express themselves. The environment can change too: weather, light, background activity.
 
@@ -750,17 +835,20 @@ Keep it PG. No nudity, explicit sexual content, or graphic violence. Romantic or
 Do NOT describe camera movements or use technical film terms. Just describe what happens — the motion, the action, the life in the scene.
 Write ONLY the animation direction, nothing else."#,
         user = user_name,
-        char = character.display_name,
+        chars = cast_joined,
     )];
 
     if let Some(time_desc) = world_time_description(world) {
         system_parts.push(time_desc);
     }
 
-    // Include character descriptions so the prompt can reference them
-    if !character.identity.is_empty() {
-        let id = if character.identity.len() > 150 { format!("{}...", &character.identity[..150]) } else { character.identity.clone() };
-        system_parts.push(format!("{} is: {}", character.display_name, id));
+    // Per-character descriptions so the motion director can reference them
+    // distinctly by name (critical for group scenes with same-gender pairs).
+    for c in &cast {
+        if !c.identity.is_empty() {
+            let id = if c.identity.len() > 150 { format!("{}...", &c.identity[..150]) } else { c.identity.clone() };
+            system_parts.push(format!("{} is: {}", c.display_name, id));
+        }
     }
     if let Some(profile) = user_profile {
         if !profile.description.is_empty() {
@@ -779,6 +867,8 @@ Write ONLY the animation direction, nothing else."#,
                 user_name.to_string()
             } else if m.role == "narrative" {
                 "[Narrative]".to_string()
+            } else if let (Some(names), Some(sid)) = (character_names, &m.sender_character_id) {
+                names.get(sid).cloned().unwrap_or_else(|| character.display_name.clone())
             } else {
                 character.display_name.clone()
             };

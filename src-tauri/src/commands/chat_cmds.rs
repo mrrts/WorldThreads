@@ -669,15 +669,14 @@ pub async fn generate_narrative_cmd(
     ].into_iter().flatten().collect();
     let merged_instructions = if all_instructions.is_empty() { None } else { Some(all_instructions.join("\n")) };
 
-    // Generate narrative
+    // Generate narrative (solo chat — no additional cast)
     let (narrative_text, usage) = orchestrator::run_narrative_with_base(
         &model_config.chat_api_base(), &api_key, &model_config.dialogue_model,
-        &world, &character, &recent_msgs, &retrieved,
+        &world, &character, None, &recent_msgs, &retrieved,
         user_profile.as_ref(),
         mood_directive.as_deref(),
         narration_tone.as_deref(),
         merged_instructions.as_deref(),
-        None,
     ).await?;
 
     // Store as a "narrative" role message

@@ -278,7 +278,9 @@ async fn generate_animation_prompt(
 ) -> Result<String, String> {
     use crate::ai::prompts;
 
-    let messages = prompts::build_animation_prompt(world, character, user_profile, recent_msgs);
+    // Videos are only generated from individual chats today (the frontend
+    // guards on activeCharacter), so no additional cast or names map.
+    let messages = prompts::build_animation_prompt(world, character, None, user_profile, recent_msgs, None);
     let request = ChatRequest {
         model: model_config.dialogue_model.clone(),
         messages,

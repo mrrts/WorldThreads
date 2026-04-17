@@ -174,12 +174,13 @@ pub async fn generate_illustration_cmd(
         img_quality,
         img_size,
         model_config.image_output_format().as_deref(),
-        &world, &character, &recent_msgs,
+        &world, &character, None, &recent_msgs,
         user_profile.as_ref(),
         &reference_images,
         custom_instructions.as_deref(),
         has_previous,
         include_scene_summary.unwrap_or(true),
+        None,
         None,
     ).await?;
 

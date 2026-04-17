@@ -198,17 +198,17 @@ pub async fn run_narrative_streaming(
     model: &str,
     world: &World,
     character: &Character,
+    additional_cast: Option<&[&Character]>,
     recent_messages: &[Message],
     retrieved_snippets: &[String],
     user_profile: Option<&UserProfile>,
     mood_directive: Option<&str>,
     narration_tone: Option<&str>,
     narration_instructions: Option<&str>,
-    all_character_names: Option<&[String]>,
     app_handle: &tauri::AppHandle,
     event_name: &str,
 ) -> Result<String, String> {
-    let system = prompts::build_narrative_system_prompt(world, character, user_profile, mood_directive, narration_tone, narration_instructions, all_character_names);
+    let system = prompts::build_narrative_system_prompt(world, character, additional_cast, user_profile, mood_directive, narration_tone, narration_instructions);
 
     let mut msgs = Vec::new();
     let mut system_content = system.clone();
@@ -405,15 +405,15 @@ pub async fn run_narrative_with_base(
     model: &str,
     world: &World,
     character: &Character,
+    additional_cast: Option<&[&Character]>,
     recent_messages: &[Message],
     retrieved_snippets: &[String],
     user_profile: Option<&UserProfile>,
     mood_directive: Option<&str>,
     narration_tone: Option<&str>,
     narration_instructions: Option<&str>,
-    all_character_names: Option<&[String]>,
 ) -> Result<(String, Option<openai::Usage>), String> {
-    let system = prompts::build_narrative_system_prompt(world, character, user_profile, mood_directive, narration_tone, narration_instructions, all_character_names);
+    let system = prompts::build_narrative_system_prompt(world, character, additional_cast, user_profile, mood_directive, narration_tone, narration_instructions);
 
     let mut msgs = Vec::new();
 
@@ -509,6 +509,7 @@ pub async fn generate_illustration_with_base(
     image_output_format: Option<&str>,
     world: &World,
     character: &Character,
+    additional_cast: Option<&[&Character]>,
     recent_messages: &[Message],
     user_profile: Option<&UserProfile>,
     reference_images: &[Vec<u8>],
@@ -516,10 +517,11 @@ pub async fn generate_illustration_with_base(
     has_previous_scene: bool,
     include_scene_summary: bool,
     all_character_names: Option<&[String]>,
+    character_names_map: Option<&std::collections::HashMap<String, String>>,
 ) -> Result<(String, Vec<u8>, Option<openai::Usage>), String> {
     // Step 1: Generate scene description (if requested)
     let (scene_description, chat_usage) = if include_scene_summary {
-        let scene_messages = prompts::build_scene_description_prompt(world, character, user_profile, recent_messages);
+        let scene_messages = prompts::build_scene_description_prompt(world, character, additional_cast, user_profile, recent_messages, character_names_map);
 
         let scene_request = ChatRequest {
             model: chat_model.to_string(),
