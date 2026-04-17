@@ -1008,9 +1008,9 @@ export function GroupChatView({ store, onNavigateToCharacter }: Props) {
       <IllustrationPickerModal
         open={showIllustrationPicker}
         onClose={() => setShowIllustrationPicker(false)}
-        onGenerate={(tier, selectedId) => {
+        onGenerate={(tier, selectedId, instructions) => {
           setShowIllustrationPicker(false);
-          store.generateIllustration(tier, illustrationInstructions.trim() || undefined, selectedId, includeSceneSummary);
+          store.generateIllustration(tier, instructions.trim() || undefined, selectedId, includeSceneSummary);
           setIllustrationInstructions("");
           setUsePreviousScene(false);
           setIncludeSceneSummary(false);

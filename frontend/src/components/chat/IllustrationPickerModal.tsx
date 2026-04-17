@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Dialog } from "@/components/ui/dialog";
 import { Image, X, ChevronDown, Lightbulb } from "lucide-react";
 
@@ -10,7 +10,7 @@ interface RecentIllustration {
 interface IllustrationPickerModalProps {
   open: boolean;
   onClose: () => void;
-  onGenerate: (tier: string, selectedIllusId?: string) => void;
+  onGenerate: (tier: string, selectedIllusId: string | undefined, instructions: string) => void;
   illustrationInstructions: string;
   setIllustrationInstructions: (v: string) => void;
   usePreviousScene: boolean;
@@ -39,13 +39,28 @@ export function IllustrationPickerModal({
 }: IllustrationPickerModalProps) {
   const [showPicker, setShowPicker] = useState(false);
   const [selectedRef, setSelectedRef] = useState<RecentIllustration | null>(null);
+  // Local text state — avoids re-rendering the parent chat view on every
+  // keystroke (which otherwise causes noticeable lag as messages, markdown,
+  // and the 3D scene all re-reconcile). Synced back to the parent on
+  // close/generate.
+  const [localInstructions, setLocalInstructions] = useState(illustrationInstructions);
+  useEffect(() => {
+    if (open) setLocalInstructions(illustrationInstructions);
+  }, [open]);
+
+  const closeAndSync = () => {
+    setIllustrationInstructions(localInstructions);
+    onClose();
+    setSelectedRef(null);
+    setShowPicker(false);
+  };
 
   // The displayed reference image: selected override or the default latest
   const displayedUrl = selectedRef?.content ?? previousIllustrationUrl;
   const displayedId = selectedRef?.id ?? recentIllustrations[0]?.id;
 
   return (
-    <Dialog open={open} onClose={() => { onClose(); setSelectedRef(null); setShowPicker(false); }} className="max-w-sm">
+    <Dialog open={open} onClose={closeAndSync} className="max-w-sm">
       <div className="p-5 space-y-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -53,7 +68,7 @@ export function IllustrationPickerModal({
             <h3 className="font-semibold">Generate Illustration</h3>
           </div>
           <button
-            onClick={() => { onClose(); setSelectedRef(null); setShowPicker(false); }}
+            onClick={closeAndSync}
             className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-muted transition-colors cursor-pointer"
           >
             <X size={16} />
@@ -62,8 +77,8 @@ export function IllustrationPickerModal({
         <div>
           <label className="text-xs font-medium text-muted-foreground block mb-1.5">Custom Instructions (optional)</label>
           <textarea
-            value={illustrationInstructions}
-            onChange={(e) => setIllustrationInstructions(e.target.value)}
+            value={localInstructions}
+            onChange={(e) => setLocalInstructions(e.target.value)}
             placeholder="e.g. Show them outdoors in the rain. Frame it from a low angle..."
             className="w-full min-h-[60px] max-h-[120px] resize-y rounded-lg border border-input bg-transparent px-3 py-2 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring"
             rows={2}
@@ -146,7 +161,7 @@ export function IllustrationPickerModal({
               key={tier}
               onClick={() => {
                 const refId = usePreviousScene ? displayedId : undefined;
-                onGenerate(tier, refId);
+                onGenerate(tier, refId, localInstructions);
                 setSelectedRef(null);
                 setShowPicker(false);
               }}
