@@ -975,9 +975,9 @@ export function ChatView({ store, onNavigateToCharacter }: Props) {
       <VideoGenerationModal
         open={!!videoModalId}
         onClose={() => setVideoModalId(null)}
-        onGenerate={() => {
+        onGenerate={(prompt) => {
           if (videoModalId) {
-            store.generateVideo(videoModalId, videoPrompt.trim() || undefined, videoDuration, videoStyle, videoIncludeContext);
+            store.generateVideo(videoModalId, prompt.trim() || undefined, videoDuration, videoStyle, videoIncludeContext);
             setVideoModalId(null);
           }
         }}

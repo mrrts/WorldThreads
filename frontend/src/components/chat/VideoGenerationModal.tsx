@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
 import { Video, X, Loader2, Lightbulb } from "lucide-react";
@@ -5,7 +6,7 @@ import { Video, X, Loader2, Lightbulb } from "lucide-react";
 interface VideoGenerationModalProps {
   open: boolean;
   onClose: () => void;
-  onGenerate: () => void;
+  onGenerate: (prompt: string) => void;
   onUpload: (file: File) => Promise<void>;
   videoTab: "generate" | "upload";
   setVideoTab: (v: "generate" | "upload") => void;
@@ -37,8 +38,25 @@ export function VideoGenerationModal({
   setIncludeContext,
   uploadingVideo,
 }: VideoGenerationModalProps) {
+  // Local textarea state — keeps per-keystroke re-renders out of the parent
+  // chat view (where they caused noticeable lag). Synced back on close/generate.
+  const [localPrompt, setLocalPrompt] = useState(videoPrompt);
+  useEffect(() => {
+    if (open) setLocalPrompt(videoPrompt);
+  }, [open]);
+
+  const closeAndSync = () => {
+    setVideoPrompt(localPrompt);
+    onClose();
+  };
+
+  const generateAndSync = () => {
+    setVideoPrompt(localPrompt);
+    onGenerate(localPrompt);
+  };
+
   return (
-    <Dialog open={open} onClose={onClose} className="max-w-sm">
+    <Dialog open={open} onClose={closeAndSync} className="max-w-sm">
       <div className="p-5 space-y-4 bg-card/95 backdrop-blur-md border border-border rounded-xl shadow-2xl shadow-black/50">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -46,7 +64,7 @@ export function VideoGenerationModal({
             <h3 className="font-semibold">Animate Illustration</h3>
           </div>
           <button
-            onClick={onClose}
+            onClick={closeAndSync}
             className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-muted transition-colors cursor-pointer"
           >
             <X size={16} />
@@ -101,8 +119,8 @@ export function VideoGenerationModal({
             <div>
               <label className="text-xs font-medium text-muted-foreground block mb-1.5">Custom Direction (optional)</label>
               <textarea
-                value={videoPrompt}
-                onChange={(e) => setVideoPrompt(e.target.value)}
+                value={localPrompt}
+                onChange={(e) => setLocalPrompt(e.target.value)}
                 placeholder="e.g. She turns to look out the window as rain begins to fall..."
                 className="w-full min-h-[60px] max-h-[120px] resize-y rounded-lg border border-input bg-transparent px-3 py-2 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring"
                 rows={2}
@@ -141,13 +159,13 @@ export function VideoGenerationModal({
             </div>
 
             <div className="flex justify-end gap-2">
-              <Button variant="ghost" size="sm" onClick={onClose}>
+              <Button variant="ghost" size="sm" onClick={closeAndSync}>
                 Cancel
               </Button>
               <Button
                 size="sm"
                 className="bg-purple-600 hover:bg-purple-700 text-white"
-                onClick={onGenerate}
+                onClick={generateAndSync}
               >
                 Generate Video
               </Button>
@@ -182,7 +200,7 @@ export function VideoGenerationModal({
             )}
 
             <div className="flex justify-end">
-              <Button variant="ghost" size="sm" onClick={onClose}>
+              <Button variant="ghost" size="sm" onClick={closeAndSync}>
                 Cancel
               </Button>
             </div>
