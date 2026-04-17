@@ -314,10 +314,16 @@ fn sex_descriptor(sex: &str) -> &'static str {
 }
 
 fn response_length_block(length: &str) -> Option<String> {
+    // Sentence targets here sit below the max_completion_tokens caps in
+    // orchestrator.rs (Short=150, Medium=250, Long=1024). We deliberately
+    // aim shorter than the token budget so a chatty model that overshoots
+    // its sentence target still lands inside the cap instead of getting
+    // truncated mid-sentence. Don't raise these numbers without also
+    // raising the token caps in orchestrator::run_dialogue_with_base.
     match length {
-        "Short" => Some("IMPORTANT — RESPONSE LENGTH:\nKeep your reply to 2–3 sentences MAX, regardless of how long previous messages were. Be concise and punchy. Do not elaborate beyond what is essential. This is a HARD LIMIT — do not exceed 3 sentences under any circumstances.".to_string()),
-        "Medium" => Some("IMPORTANT — RESPONSE LENGTH:\nAim for 4–6 sentences, regardless of how long previous messages were. Give enough detail to be engaging and expressive, but don't ramble. Do not exceed 6 sentences.".to_string()),
-        "Long" => Some("IMPORTANT — RESPONSE LENGTH:\nWrite 7 or more sentences, regardless of how long previous messages were. Be detailed, expansive, and richly expressive. Take your time with the moment — describe, reflect, react fully.".to_string()),
+        "Short" => Some("IMPORTANT — RESPONSE LENGTH:\nKeep your reply to 1–2 sentences, regardless of how long previous messages were. Be brief and punchy — a few chosen words often land harder than a paragraph. Never exceed 3 sentences under any circumstances. Do not start a sentence you cannot finish inside this limit.".to_string()),
+        "Medium" => Some("IMPORTANT — RESPONSE LENGTH:\nAim for 3–4 sentences, regardless of how long previous messages were. Give enough to be expressive but don't ramble. Never exceed 5 sentences. Do not start a sentence you cannot finish inside this limit.".to_string()),
+        "Long" => Some("IMPORTANT — RESPONSE LENGTH:\nWrite 5–8 sentences, regardless of how long previous messages were. Be detailed, expansive, and richly expressive. Up to 10 sentences is fine, but do not run longer than that. Do not start a sentence you cannot finish inside this limit.".to_string()),
         _ => None,
     }
 }

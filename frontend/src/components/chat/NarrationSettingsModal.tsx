@@ -120,9 +120,9 @@ export function NarrationSettingsModal({
             </select>
             <p className="text-[10px] text-muted-foreground mt-1">
               {responseLength === "Auto" && "The character decides how much to say."}
-              {responseLength === "Short" && "Brief replies, 2\u20133 sentences."}
-              {responseLength === "Medium" && "Moderate replies, 4\u20136 sentences."}
-              {responseLength === "Long" && "Detailed replies, 7+ sentences with rich detail."}
+              {responseLength === "Short" && "Brief replies, 1\u20132 sentences."}
+              {responseLength === "Medium" && "Moderate replies, 3\u20134 sentences."}
+              {responseLength === "Long" && "Detailed replies, 5\u20138 sentences with rich detail."}
             </p>
           </div>
 
