@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import Markdown from "react-markdown";
-import { BookOpen, Link2, Image, Loader2, Trash2, BookText, Sparkles, RotateCw, Pencil } from "lucide-react";
+import { BookOpen, Link2, Image, Loader2, Trash2, BookText, Sparkles, RotateCw, Pencil, MessageSquare } from "lucide-react";
 import { formatMessage, markdownComponents, remarkPlugins, rehypePlugins } from "./formatMessage";
 import { TimeDivider } from "./TimeDivider";
 import { Button } from "@/components/ui/button";
@@ -212,17 +212,30 @@ export function DayPageSlide({
         <h2 className="text-lg font-bold text-foreground tracking-tight">Day {day}</h2>
         {novelEntry ? (
           <>
-            <button
-              onClick={() => setShowNovelView(!showNovelView)}
-              className={`px-3 py-1 text-xs font-medium rounded-full transition-colors cursor-pointer flex items-center gap-1.5 ${
-                showNovelView
-                  ? "bg-amber-600 text-white"
-                  : "bg-amber-600/20 text-amber-400 hover:bg-amber-600/30"
-              }`}
-            >
-              <BookText size={12} />
-              Novel
-            </button>
+            <div className="inline-flex rounded-full overflow-hidden border border-amber-600/30">
+              <button
+                onClick={() => setShowNovelView(true)}
+                className={`px-3 py-1 text-xs font-medium transition-colors cursor-pointer flex items-center gap-1.5 ${
+                  showNovelView
+                    ? "bg-amber-600 text-white"
+                    : "bg-amber-600/10 text-amber-400/80 hover:bg-amber-600/20 hover:text-amber-400"
+                }`}
+              >
+                <BookText size={12} />
+                Novel View
+              </button>
+              <button
+                onClick={() => setShowNovelView(false)}
+                className={`px-3 py-1 text-xs font-medium transition-colors cursor-pointer flex items-center gap-1.5 border-l border-amber-600/30 ${
+                  !showNovelView
+                    ? "bg-amber-600 text-white"
+                    : "bg-amber-600/10 text-amber-400/80 hover:bg-amber-600/20 hover:text-amber-400"
+                }`}
+              >
+                <MessageSquare size={12} />
+                Chat View
+              </button>
+            </div>
             <button
               onClick={() => setRegenerateConfirmOpen(true)}
               disabled={!apiKey || novelGenerating}
