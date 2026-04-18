@@ -129,6 +129,13 @@ struct StreamChoice {
 #[derive(Debug, Deserialize)]
 struct StreamDelta {
     content: Option<String>,
+    /// Emitted by reasoning/chain-of-thought models (e.g. via LM Studio's
+    /// reasoning-model support). Normally we never surface this to the UI
+    /// — but if a whole response produces ONLY reasoning and no content
+    /// tokens (e.g. the model ran out of tokens while thinking), we fall
+    /// back to it so the caller isn't stuck with an empty string.
+    #[serde(default)]
+    reasoning_content: Option<String>,
 }
 
 /// Stream a chat completion, emitting each token chunk as a Tauri event.
@@ -160,6 +167,7 @@ pub async fn chat_completion_stream(
     }
 
     let mut full_text = String::new();
+    let mut reasoning_text = String::new();
     let mut stream = resp.bytes_stream();
 
     let mut buffer = String::new();
@@ -183,12 +191,23 @@ pub async fn chat_completion_stream(
                             full_text.push_str(content);
                             let _ = tauri::Emitter::emit(app_handle, event_name, content.clone());
                         }
+                        if let Some(reasoning) = &choice.delta.reasoning_content {
+                            // Accumulate silently; don't emit to UI.
+                            reasoning_text.push_str(reasoning);
+                        }
                     }
                 }
             }
         }
     }
 
+    // Emergency fallback: if the model emitted zero content tokens but did
+    // produce reasoning (e.g. filled its budget thinking), use the reasoning
+    // so the caller gets SOMETHING instead of an empty string.
+    if full_text.is_empty() && !reasoning_text.is_empty() {
+        let _ = tauri::Emitter::emit(app_handle, event_name, reasoning_text.clone());
+        return Ok(reasoning_text);
+    }
     Ok(full_text)
 }
 
@@ -221,6 +240,7 @@ pub async fn chat_completion_stream_silent(
     }
 
     let mut full_text = String::new();
+    let mut reasoning_text = String::new();
     let mut stream = resp.bytes_stream();
     let mut buffer = String::new();
     while let Some(chunk_result) = stream.next().await {
@@ -236,10 +256,16 @@ pub async fn chat_completion_stream_silent(
                         if let Some(content) = &choice.delta.content {
                             full_text.push_str(content);
                         }
+                        if let Some(reasoning) = &choice.delta.reasoning_content {
+                            reasoning_text.push_str(reasoning);
+                        }
                     }
                 }
             }
         }
+    }
+    if full_text.is_empty() && !reasoning_text.is_empty() {
+        return Ok(reasoning_text);
     }
     Ok(full_text)
 }

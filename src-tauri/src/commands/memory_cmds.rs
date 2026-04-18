@@ -74,7 +74,7 @@ pub async fn generate_chat_summary_cmd(
         model: model_config.dialogue_model.clone(),
         messages,
         temperature: Some(0.5),
-        max_completion_tokens: Some(1600),
+        max_completion_tokens: Some(3200),
         stream: true,
     };
 
@@ -150,7 +150,7 @@ pub async fn generate_group_chat_summary_cmd(
         model: model_config.dialogue_model.clone(),
         messages,
         temperature: Some(0.5),
-        max_completion_tokens: Some(1600),
+        max_completion_tokens: Some(3200),
         stream: true,
     };
 
