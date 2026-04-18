@@ -12,6 +12,19 @@ fn approx_tokens(s: &str) -> usize {
     (s.chars().count() as f64 / 3.5) as usize
 }
 
+/// Truncate a beat line so it fits as an in-prose label (e.g., the opening
+/// and closing anchors we echo in the chapter prompt). Keeps it to roughly
+/// `max_chars` characters and trims at a word boundary when possible.
+fn truncate_label(s: &str, max_chars: usize) -> String {
+    let trimmed = s.trim();
+    if trimmed.chars().count() <= max_chars {
+        return trimmed.to_string();
+    }
+    let cut: String = trimmed.chars().take(max_chars).collect();
+    let head = cut.rsplit_once(' ').map(|(h, _)| h).unwrap_or(&cut);
+    format!("{head}…")
+}
+
 /// Generate a novel chapter from a day's messages via LLM.
 #[tauri::command]
 pub async fn generate_novel_entry_cmd(
@@ -297,10 +310,18 @@ Rules:
         "phase": "chapter",
     }));
 
+    // Number the beats so the chapter model has a concrete "counter" to
+    // track against — local models skip swaths of an unnumbered list
+    // because nothing anchors their attention to each item.
     let beats_joined = all_beats.iter()
-        .map(|b| format!("- {b}"))
+        .enumerate()
+        .map(|(i, b)| format!("{}. {}", i + 1, b))
         .collect::<Vec<_>>()
         .join("\n");
+
+    let beat_count = all_beats.len();
+    let first_beat = all_beats.first().cloned().unwrap_or_default();
+    let last_beat = all_beats.last().cloned().unwrap_or_default();
 
     let api_messages = vec![
         openai::ChatMessage {
@@ -309,23 +330,39 @@ Rules:
         },
         openai::ChatMessage {
             role: "user".to_string(),
+            // Instructions bracket the beats list on both sides. A long beat
+            // list in the middle of a prompt gets de-attended by local models
+            // if the task framing is only stated once.
             content: format!(
-                "Here are the narrative beats for Day {}, extracted in order from the full conversation:\n\n{}\n\nTransform these beats into a vivid novel chapter. \n\
-                 - Preserve the direct quotes verbatim when they appear.\n\
-                 - Honor every time-of-day marker (morning, afternoon, evening, night, etc.). When the beats show a transition, let the chapter reflect it in lighting, atmosphere, and pacing.\n\
-                 - Every significant beat should land in the chapter — a realization, a decision, a line that mattered, a shift between characters. Do not smooth them into vague summary.\n\
-                 - Expand the rest into rich prose with a coherent arc from opening image to resonant closing moment.",
-                world_day,
-                beats_joined,
+                "You will write a single novel chapter for Day {day} that covers THE ENTIRE DAY, from the first beat to the last, in order.\n\n\
+                 Beat 1 opens the chapter. Beat {count} is the closing moment. Every numbered beat between them must appear in the chapter — none may be skipped, summarized vaguely, or merged away.\n\n\
+                 NARRATIVE BEATS (in chronological order, {count} total):\n\n{beats}\n\n\
+                 WRITING INSTRUCTIONS:\n\
+                 - Begin the chapter with Beat 1 ({first_label}). Do NOT start somewhere in the middle of the day.\n\
+                 - Proceed through the beats in order. Walk your way through all {count} of them.\n\
+                 - End the chapter with Beat {count} ({last_label}) — the resonant closing moment.\n\
+                 - Honor every [It is now X.] time transition: let the chapter's lighting, atmosphere, and pacing reflect morning → afternoon → evening as the beats progress.\n\
+                 - Preserve direct quotes verbatim wherever they appear in the beats.\n\
+                 - Expand each beat into rich prose. If the list is long, make the chapter long — do not skip beats to stay short.\n\n\
+                 Write the full chapter now, beginning with the opening of the day.",
+                day = world_day,
+                count = beat_count,
+                beats = beats_joined,
+                first_label = truncate_label(&first_beat, 80),
+                last_label = truncate_label(&last_beat, 80),
             ),
         },
     ];
+
+    // Chapter budget scales a bit with beat count — a 50-beat day needs more
+    // tokens than a 10-beat day. 4096 was too tight for rich days.
+    let chapter_tokens = (4_096 + (beat_count as u32) * 40).min(8_000);
 
     let request = StreamingRequest {
         model: model_config.dialogue_model.clone(),
         messages: api_messages,
         temperature: Some(0.95),
-        max_completion_tokens: Some(4096),
+        max_completion_tokens: Some(chapter_tokens),
         stream: true,
     };
 
