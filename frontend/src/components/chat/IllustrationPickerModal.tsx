@@ -88,6 +88,15 @@ export function IllustrationPickerModal({
             <span>Named character portraits will be sent as references, so you can refer to the characters by their names in third person.</span>
           </div>
         </div>
+        <label className="flex items-center gap-2 cursor-pointer select-none">
+          <input
+            type="checkbox"
+            checked={includeSceneSummary}
+            onChange={(e) => setIncludeSceneSummary(e.target.checked)}
+            className="accent-emerald-500 w-3.5 h-3.5"
+          />
+          <span className="text-xs text-muted-foreground">Include current scene summary</span>
+        </label>
         {hasPreviousIllustration && (
           <div>
             <label className="flex items-center gap-2 cursor-pointer select-none">
@@ -142,15 +151,6 @@ export function IllustrationPickerModal({
             )}
           </div>
         )}
-        <label className="flex items-center gap-2 cursor-pointer select-none">
-          <input
-            type="checkbox"
-            checked={includeSceneSummary}
-            onChange={(e) => setIncludeSceneSummary(e.target.checked)}
-            className="accent-emerald-500 w-3.5 h-3.5"
-          />
-          <span className="text-xs text-muted-foreground">Include current scene summary</span>
-        </label>
         <div className="flex gap-2">
           {([
             { tier: "low", label: "Quick" },
