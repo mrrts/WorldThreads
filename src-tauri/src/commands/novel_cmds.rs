@@ -191,6 +191,10 @@ async fn extract_beats(
 /// If the section's raw messages fit the local budget, we send them directly
 /// to the chapter writer (skipping beat extraction for quality). Otherwise
 /// we extract beats first and write the section from those.
+// `target_words`: rough target length in words, proportional to this
+// section's share of the day's content. The model is told to treat this as
+// a guide to pacing, not a strict limit. No corresponding
+// max_completion_tokens clamp — we prefer natural endings over hard cutoffs.
 #[allow(clippy::too_many_arguments)]
 async fn stream_section(
     app_handle: &AppHandle,
@@ -201,6 +205,7 @@ async fn stream_section(
     section_index: usize,
     total_sections: usize,
     world_day: i64,
+    target_words: usize,
 ) -> Result<String, String> {
     let section_text = section.lines.join("\n");
     let section_tokens = approx_tokens(&section_text);
@@ -214,6 +219,9 @@ async fn stream_section(
     } else {
         format!("{} section ({} of {})", section.label, section_index + 1, total_sections)
     };
+    let weight_line = format!(
+        "- This section should run roughly {target_words} words — give or take. Use that as a guide to pacing and how much weight this part of the day deserves, not a strict limit."
+    );
 
     let user_content = if fits_directly {
         format!(
@@ -224,12 +232,14 @@ async fn stream_section(
              - Transform these messages into vivid literary prose in second person, present tense.\n\
              - Every significant moment must land in the prose — a realization, a decision, a line that mattered, an emotional shift. Do not smooth them into summary.\n\
              - Capture the essence of memorable lines. Quote verbatim if a line is perfect as-is, or lightly paraphrase for rhythm and clarity — creative liberty with the exact wording is welcome.\n\
+             {weight}\n\
              - Do NOT include a section heading or title. Write only the prose.\n\
              - Do NOT write \"The End.\" or similar closings unless this is the final section.",
             shape = shape_hint,
             name = section_name,
             day = world_day,
             lines = section_text,
+            weight = weight_line,
         )
     } else {
         let _ = app_handle.emit("novel-phase", serde_json::json!({
@@ -251,6 +261,7 @@ async fn stream_section(
              - Walk through all {count} beats in order, expanding each into rich literary prose.\n\
              - Every beat must land in the prose — no skipping, no vague summarizing.\n\
              - Capture the essence of memorable lines. Quote verbatim if a line is perfect as-is, or lightly paraphrase for rhythm and clarity — creative liberty with the exact wording is welcome.\n\
+             {weight}\n\
              - Write in second person, present tense.\n\
              - Do NOT include a section heading or title. Write only the prose.\n\
              - Do NOT write \"The End.\" or similar closings unless this is the final section.",
@@ -259,6 +270,7 @@ async fn stream_section(
             day = world_day,
             count = beat_count,
             beats = beats_joined,
+            weight = weight_line,
         )
     };
 
@@ -462,9 +474,27 @@ INSTRUCTIONS:
     // Each section streams into the same `novel-token` channel. Between
     // sections we emit a divider token directly so the final stored text
     // contains the section break inline.
+    //
+    // Per-section length target: a section with ~3% of the day's content
+    // shouldn't come out the same length as a section with ~90%. We compute
+    // each section's token share of the day and tell the model, in words,
+    // roughly how much prose that deserves. Total chapter target scales a
+    // bit with day length but is clamped to [1500, 5000] words.
+    let section_content_tokens: Vec<usize> = sections.iter()
+        .map(|s| approx_tokens(&s.lines.join("\n")))
+        .collect();
+    let total_content_tokens: usize = section_content_tokens.iter().sum();
+    let total_chapter_words: usize = (total_content_tokens * 3 / 4).clamp(1_500, 5_000);
     let total = sections.len();
     let mut full_chapter = String::new();
     for (i, section) in sections.iter().enumerate() {
+        let ratio = if total_content_tokens > 0 {
+            section_content_tokens[i] as f64 / total_content_tokens as f64
+        } else {
+            1.0 / (total as f64).max(1.0)
+        };
+        let target_words = ((ratio * total_chapter_words as f64).round() as usize).max(150);
+
         let section_text = stream_section(
             &app_handle,
             &model_config,
@@ -474,6 +504,7 @@ INSTRUCTIONS:
             i,
             total,
             world_day,
+            target_words,
         ).await?;
         full_chapter.push_str(&section_text);
 
