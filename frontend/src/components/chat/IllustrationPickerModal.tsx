@@ -85,7 +85,7 @@ export function IllustrationPickerModal({
           />
           <div className="mt-1.5 flex items-start gap-1.5 text-[10px] text-muted-foreground/70 leading-snug">
             <Lightbulb size={11} className="flex-shrink-0 mt-px text-amber-500/80" />
-            <span>Named character portraits will be sent as references, so you can refer to the characters by their names in third person.</span>
+            <span>Named character portraits will be sent as references, so you can refer to the characters by their names, including your own, in third person.</span>
           </div>
         </div>
         <label className="flex items-center gap-2 cursor-pointer select-none">
