@@ -5,9 +5,36 @@ import { formatMessage, markdownComponents, remarkPlugins, rehypePlugins } from 
 import { TimeDivider } from "./TimeDivider";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogBody } from "@/components/ui/dialog";
+import { CyclingLoadingMessages } from "@/components/ui/cycling-loading-messages";
 import { listen } from "@tauri-apps/api/event";
 import { api, type Message, type NovelEntry } from "@/lib/tauri";
 import { playChime } from "@/lib/chime";
+
+// Cute flavor for the long ingest-before-first-token wait when writing a
+// chapter. "Reading messages..." is index 0 so it's what the user sees first
+// — it also happens to be what the model is literally doing at that moment.
+const NOVELIST_LOADING_MESSAGES = [
+  "Reading messages...",
+  "Calibrating typewriter...",
+  "Making tea...",
+  "Getting the creative juices flowing...",
+  "Checking notes...",
+  "Lighting candles...",
+  "Imagining details...",
+  "Procrastinating...",
+  "Sharpening pencils...",
+  "Staring out the window...",
+  "Consulting the muse...",
+  "Rearranging index cards...",
+  "Listening for the right voice...",
+  "Pacing the study...",
+  "Pouring another cup...",
+  "Finding the first sentence...",
+  "Cracking knuckles...",
+  "Settling in...",
+  "Dusting off the thesaurus...",
+  "Remembering what happened...",
+];
 
 interface Props {
   day: number;
@@ -365,7 +392,9 @@ export function DayPageSlide({
             {novelGenerating && !novelDraft ? (
               <div className="flex flex-col items-center justify-center py-20 gap-3">
                 <Loader2 size={28} className="animate-spin text-primary" />
-                <p className="text-sm text-muted-foreground">Writing chapter...</p>
+                <p className="text-sm text-muted-foreground">
+                  <CyclingLoadingMessages messages={NOVELIST_LOADING_MESSAGES} />
+                </p>
               </div>
             ) : novelTab === "read" || novelGenerating ? (
               <div className="max-h-[60vh] overflow-y-auto px-6 py-5">
