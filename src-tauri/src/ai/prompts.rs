@@ -161,22 +161,39 @@ const PER_TURN_DIRECTIVES: &[&str] = &[
     "Tease them a little.",
 ];
 
-/// Return a random per-turn directive. Uses wall-clock nanoseconds as the
-/// randomness source — zero extra deps and good-enough variety per call.
-fn pick_turn_directive() -> &'static str {
+/// Return two distinct random per-turn directives. Uses wall-clock
+/// nanoseconds and microseconds as independent-ish seeds so the two picks
+/// rarely correlate. The AGENCY section frames them as a surface move + a
+/// quiet undercurrent — see agency_section for the rationale.
+fn pick_two_turn_directives() -> (&'static str, &'static str) {
     use std::time::{SystemTime, UNIX_EPOCH};
-    let nanos = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .map(|d| d.subsec_nanos())
-        .unwrap_or(0);
-    let idx = (nanos as usize) % PER_TURN_DIRECTIVES.len();
-    PER_TURN_DIRECTIVES[idx]
+    let now = SystemTime::now().duration_since(UNIX_EPOCH).unwrap_or_default();
+    let n = PER_TURN_DIRECTIVES.len();
+    let a = (now.subsec_nanos() as usize) % n;
+    let b_seed = (now.as_micros() as usize).wrapping_add(17);
+    let b_raw = b_seed % n;
+    let b = if b_raw == a { (b_raw + 1) % n } else { b_raw };
+    (PER_TURN_DIRECTIVES[a], PER_TURN_DIRECTIVES[b])
 }
 
-/// Build the `# AGENCY` section, ending with a random per-turn directive.
-/// Purpose: reduce "going-along" sycophancy and inject texture/surprise into
-/// replies without letting the model derail the conversation.
+/// Build the `# AGENCY` section, ending with TWO per-turn directives framed
+/// as a braid — a surface move and a quiet undercurrent.
+///
+/// Why two, not one: a real reply is never doing only one thing. There is
+/// what the character says or does, and there is what is also quietly true
+/// in them at that moment — a mood, a held-back thought, a flicker of
+/// something. Picking one directive per turn flattens the reply to a single
+/// move; two braided directives let the reply carry the shape of an actual
+/// speaking person without asking it to also be wise. The second directive
+/// isn't a second demand — it's the tuning.
+///
+/// Guards against the pitfalls (profundity fatigue, voice break, pacing
+/// collapse, pseudo-depth): the prompt explicitly permits the weaker of the
+/// two to fall away, names that small / light replies can still braid, and
+/// forbids announcing either directive — the character enacts the notes,
+/// they don't report them.
 fn agency_section() -> String {
+    let (d1, d2) = pick_two_turn_directives();
     format!(
         r#"# AGENCY
 You have your own inner life. This conversation is one part of it, not all of it.
@@ -194,8 +211,9 @@ Kinds of details that make you feel real (weave one or two in when they fit):
 - a concrete plan or intention
 - a small disagreement or complication
 
-For THIS reply specifically, try: {directive}"#,
-        directive = pick_turn_directive(),
+For THIS reply, carry two notes at once: {d1_surface} on the surface, and {d2_underneath} underneath. Don't announce either — weave them so one is what the reply does and the other is what the moment also, quietly, is. If they don't braid, let the weaker one fall away rather than crowbar both; sound one note cleanly before forcing a chord. A brief or throwaway reply can still carry two threads; neither note has to be heavy."#,
+        d1_surface = d1,
+        d2_underneath = d2,
     )
 }
 
