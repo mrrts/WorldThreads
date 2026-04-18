@@ -62,7 +62,10 @@ export function SummaryModal({
   currentCharacterId, currentGroupChatId, onContextSent,
 }: Props) {
   const [summary, setSummary] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
+  // Initial-render-safe: if the modal opens already open, loading is true on
+  // the very first paint — otherwise there's a one-render flash of empty
+  // body before useEffect fires and flips loading=true.
+  const [loading, setLoading] = useState(() => open);
   const [error, setError] = useState<string | null>(null);
   const [selectedTargets, setSelectedTargets] = useState<Set<string>>(new Set());
   const [sending, setSending] = useState(false);
@@ -175,6 +178,12 @@ export function SummaryModal({
             </div>
           ) : error ? (
             <div className="text-sm text-destructive py-4">{error}</div>
+          ) : !loading && !summary ? (
+            // Request completed but returned an empty string — don't leave
+            // the modal blank. Surfaces a clear hint instead of silent void.
+            <div className="text-sm text-muted-foreground py-6 text-center">
+              The model returned no summary. Try again?
+            </div>
           ) : summary ? (
             <>
               <p className="text-sm text-foreground leading-relaxed whitespace-pre-wrap">{summary}{loading ? <span className="inline-block w-1.5 h-4 bg-primary/60 animate-pulse ml-0.5 align-text-bottom" /> : null}</p>
