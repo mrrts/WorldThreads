@@ -222,7 +222,7 @@ export function DayPageSlide({
                 }`}
               >
                 <BookText size={12} />
-                Novel View
+                Novel
               </button>
               <button
                 onClick={() => setShowNovelView(false)}
@@ -233,7 +233,7 @@ export function DayPageSlide({
                 }`}
               >
                 <MessageSquare size={12} />
-                Chat View
+                Chat
               </button>
             </div>
             <button
