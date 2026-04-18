@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Dialog } from "@/components/ui/dialog";
 import { Image, X, ChevronDown, Lightbulb } from "lucide-react";
 
@@ -44,9 +44,21 @@ export function IllustrationPickerModal({
   // and the 3D scene all re-reconcile). Synced back to the parent on
   // close/generate.
   const [localInstructions, setLocalInstructions] = useState(illustrationInstructions);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
   useEffect(() => {
     if (open) setLocalInstructions(illustrationInstructions);
   }, [open]);
+
+  // Auto-grow the textarea to fit its content. Runs on every content change
+  // and when the modal opens so a pre-populated value sizes correctly.
+  const autoGrow = (el: HTMLTextAreaElement | null) => {
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = `${el.scrollHeight}px`;
+  };
+  useEffect(() => {
+    if (open) autoGrow(textareaRef.current);
+  }, [open, localInstructions]);
 
   const closeAndSync = () => {
     setIllustrationInstructions(localInstructions);
@@ -77,11 +89,15 @@ export function IllustrationPickerModal({
         <div>
           <label className="text-xs font-medium text-muted-foreground block mb-1.5">Custom Instructions (optional)</label>
           <textarea
+            ref={textareaRef}
             value={localInstructions}
-            onChange={(e) => setLocalInstructions(e.target.value)}
+            onChange={(e) => {
+              setLocalInstructions(e.target.value);
+              autoGrow(e.currentTarget);
+            }}
             placeholder="e.g. Show them outdoors in the rain. Frame it from a low angle..."
-            className="w-full min-h-[60px] max-h-[120px] resize-y rounded-lg border border-input bg-transparent px-3 py-2 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring"
-            rows={2}
+            className="w-full resize-none overflow-hidden rounded-lg border border-input bg-transparent px-3 py-2 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+            rows={4}
           />
           <div className="mt-1.5 flex items-start gap-1.5 text-[10px] text-muted-foreground/70 leading-snug">
             <Lightbulb size={11} className="flex-shrink-0 mt-px text-amber-500/80" />
