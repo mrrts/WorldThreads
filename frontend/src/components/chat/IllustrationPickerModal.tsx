@@ -167,7 +167,7 @@ export function IllustrationPickerModal({
             )}
           </div>
         )}
-        <div>
+        <div className="pt-3 mt-1 border-t border-border/50">
           <label className="text-xs font-medium text-muted-foreground block mb-1.5">Click to Generate Image:</label>
           <div className="flex gap-2">
             {([
