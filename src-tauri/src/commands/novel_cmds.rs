@@ -61,24 +61,41 @@ pub async fn generate_novel_entry_cmd(
         (day_msgs, world, characters, char_names, user_name, user_profile, model_config)
     };
 
-    // Build conversation text
-    let conversation: Vec<String> = messages.iter()
-        .map(|m| {
-            let speaker = match m.role.as_str() {
-                "user" => user_name.clone(),
-                "narrative" => "[Narrative]".to_string(),
-                "context" => "[Context]".to_string(),
-                "assistant" => {
-                    m.sender_character_id.as_ref()
-                        .and_then(|id| character_names.get(id))
-                        .cloned()
-                        .unwrap_or_else(|| "Character".to_string())
-                }
-                _ => m.role.clone(),
-            };
-            format!("{}: {}", speaker, m.content)
-        })
-        .collect();
+    // Build conversation text with time-of-day transition markers inserted
+    // whenever world_time changes. Without these, the beats extractor (and
+    // the chapter synthesizer) has no idea when morning became afternoon
+    // became evening — the novelization ends up lumping everything under
+    // one lighting / time mood.
+    let mut conversation: Vec<String> = Vec::new();
+    let mut last_time: Option<String> = None;
+    for m in &messages {
+        if let Some(wt) = &m.world_time {
+            if last_time.as_deref() != Some(wt.as_str()) {
+                let formatted = wt.split(' ').map(|w| {
+                    let mut c = w.chars();
+                    match c.next() {
+                        Some(first) => first.to_uppercase().to_string() + &c.as_str().to_lowercase(),
+                        None => String::new(),
+                    }
+                }).collect::<Vec<_>>().join(" ");
+                conversation.push(format!("[It is now {formatted}.]"));
+                last_time = Some(wt.clone());
+            }
+        }
+        let speaker = match m.role.as_str() {
+            "user" => user_name.clone(),
+            "narrative" => "[Narrative]".to_string(),
+            "context" => "[Context]".to_string(),
+            "assistant" => {
+                m.sender_character_id.as_ref()
+                    .and_then(|id| character_names.get(id))
+                    .cloned()
+                    .unwrap_or_else(|| "Character".to_string())
+            }
+            _ => m.role.clone(),
+        };
+        conversation.push(format!("{}: {}", speaker, m.content));
+    }
 
     // Build rich character descriptions
     let char_descriptions: Vec<String> = characters.iter().map(|c| {
@@ -175,18 +192,31 @@ INSTRUCTIONS:
     // safe prompt budget, and ask the model to produce a compact list of
     // concrete story beats for each chunk. These are tiny — the final
     // chapter call will receive ALL of them together with full context.
-    let beats_system = r#"You are a story editor. Read the conversation excerpt and extract a concise list of narrative BEATS — concrete moments that would belong in a novel chapter.
+    let beats_system = r#"You are a story editor. Read the conversation excerpt and extract a thorough, in-order list of narrative BEATS — every concrete moment that would belong in a novel chapter of this day.
+
+What counts as a beat:
+- A realization, a decision, a confession, a refusal.
+- A shift in mood or power between characters.
+- A new piece of information learned, or withheld.
+- An action taken, a gesture, a significant movement.
+- A line of dialogue that lands — include it verbatim in quotation marks.
+- A silence that lingers, a pause that means something.
+- A change in setting or the time of day ("the light shifts to late afternoon").
 
 Rules:
 - Output ONLY a list, one beat per line, prefixed with "- ".
-- Each beat is a crisp, specific sentence in the present tense: an action, a decision, a revelation, a shift, a quiet moment that matters.
-- Include key direct quotes verbatim inside the beat, in quotation marks, when a specific line lands.
-- Skip filler. Skip "they agreed" if nothing changed.
-- Aim for 4 to 10 beats per excerpt.
+- Each beat is a crisp, specific sentence in the present tense.
+- Preserve [It is now X.] time markers when you cross one — emit a beat like "- The time turns to afternoon." so the chapter can honor it.
+- Include direct quotes verbatim in "…" whenever a specific line carries weight.
+- BE THOROUGH. Aim for 8 to 20 beats per excerpt — err high rather than low. Readers should get the significant moments of what happened, not a vague summary.
+- Skip only pure filler — "they keep talking about X" with no change.
 - Do NOT write prose. Do NOT write a summary paragraph. Just the beat list."#;
 
     // Chunk budget accounts for the beats system prompt + completion space.
-    let chunk_budget = budget.saturating_sub(approx_tokens(beats_system) + 600);
+    // Reserve room for up to ~1500 tokens of beat output per chunk so the
+    // model isn't forced to compress; a rich chunk can easily produce 20
+    // beats at ~50-80 tokens each.
+    let chunk_budget = budget.saturating_sub(approx_tokens(beats_system) + 1_600);
     let chunk_budget = chunk_budget.max(2_000); // don't go absurdly small
 
     let mut chunks: Vec<Vec<String>> = Vec::new();
@@ -230,7 +260,7 @@ Rules:
                 },
             ],
             temperature: Some(0.5),
-            max_completion_tokens: Some(600),
+            max_completion_tokens: Some(1_500),
             response_format: None,
         };
         let beats_response = openai::chat_completion_with_base(
@@ -279,7 +309,11 @@ Rules:
         openai::ChatMessage {
             role: "user".to_string(),
             content: format!(
-                "Here are the narrative beats for Day {}, extracted in order from the full conversation:\n\n{}\n\nTransform these beats into a vivid novel chapter. Preserve the direct quotes verbatim when they appear, expand the rest into rich prose, and give the chapter a coherent arc.",
+                "Here are the narrative beats for Day {}, extracted in order from the full conversation:\n\n{}\n\nTransform these beats into a vivid novel chapter. \n\
+                 - Preserve the direct quotes verbatim when they appear.\n\
+                 - Honor every time-of-day marker (morning, afternoon, evening, night, etc.). When the beats show a transition, let the chapter reflect it in lighting, atmosphere, and pacing.\n\
+                 - Every significant beat should land in the chapter — a realization, a decision, a line that mattered, a shift between characters. Do not smooth them into vague summary.\n\
+                 - Expand the rest into rich prose with a coherent arc from opening image to resonant closing moment.",
                 world_day,
                 beats_joined,
             ),
