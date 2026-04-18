@@ -391,7 +391,10 @@ export function Sidebar({ store, onNavigate }: Props) {
                   const nextDay = isLastTime ? currentDay + 1 : currentDay;
                   const nextTime = isLastTime ? TIMES[0] : TIMES[currentIdx + 1];
 
-                  const advanceDay = () => setTimeConfirm({ day: currentDay + 1, time: currentTime });
+                  // Advancing to a new day also rolls time-of-day back to DAWN —
+                  // otherwise clicking "+ day" at Day 11 / Night would jump to
+                  // Day 12 / Night, skipping the whole beginning of Day 12.
+                  const advanceDay = () => setTimeConfirm({ day: currentDay + 1, time: TIMES[0] });
                   const advanceTime = () => setTimeConfirm({ day: nextDay, time: nextTime });
 
                   return (
