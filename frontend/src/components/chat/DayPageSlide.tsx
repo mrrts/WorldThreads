@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import Markdown from "react-markdown";
-import { BookOpen, Link2, Image, Loader2, Trash2, BookText, Sparkles, RotateCw } from "lucide-react";
+import { BookOpen, Link2, Image, Loader2, Trash2, BookText, Sparkles, RotateCw, Pencil } from "lucide-react";
 import { formatMessage, markdownComponents, remarkPlugins, rehypePlugins } from "./formatMessage";
 import { TimeDivider } from "./TimeDivider";
 import { Button } from "@/components/ui/button";
@@ -108,6 +108,10 @@ export function DayPageSlide({
   const [novelTab, setNovelTab] = useState<"read" | "edit">("read");
   const [clearConfirmOpen, setClearConfirmOpen] = useState(false);
   const [regenerateConfirmOpen, setRegenerateConfirmOpen] = useState(false);
+  // True during inter-section gaps — after a section finishes streaming but
+  // before the next section's first token arrives. Drives the inline
+  // "Writing next day part..." spinner.
+  const [preparingSection, setPreparingSection] = useState(false);
 
   // Sync novel view with entry existence
   useEffect(() => {
@@ -116,26 +120,54 @@ export function DayPageSlide({
   }, [novelEntry]);
 
   const handleNovelize = async () => {
-    setNovelModalOpen(true);
     setNovelGenerating(true);
     setNovelDraft("");
-    setNovelTab("read");
+    setShowNovelView(true);
+    setPreparingSection(false);
 
     let chimePlayed = false;
     const unlisten = await listen<string>("novel-token", (event) => {
       if (!chimePlayed && notifyOnMessage) { playChime(); chimePlayed = true; }
       setNovelDraft((prev) => prev + event.payload);
+      // First token of any section — we're streaming again, clear the gap spinner.
+      setPreparingSection(false);
     });
+    // Backend emits novel-phase events to signal transitions between sections
+    // (and beats-extraction sub-phases). While those are in flight we show the
+    // "Writing next day part..." state inline.
+    const unlistenPhase = await listen<{ phase: string; section_index?: number }>(
+      "novel-phase",
+      (event) => {
+        const { phase, section_index } = event.payload ?? {};
+        if (phase === "beats" || (phase === "section" && (section_index ?? 0) > 0)) {
+          setPreparingSection(true);
+        }
+      },
+    );
 
     try {
       const content = await api.generateNovelEntry(apiKey, threadId, day, isGroup);
-      setNovelDraft(content);
+      // Auto-save the final chapter so the inline view transitions seamlessly
+      // from "streaming" to "saved novel entry" without a modal step.
+      await api.saveNovelEntry(threadId, day, content);
+      onNovelChange();
+      setNovelDraft("");
     } catch (e) {
       setNovelDraft(`Error generating chapter: ${e}`);
     } finally {
       unlisten();
+      unlistenPhase();
       setNovelGenerating(false);
+      setPreparingSection(false);
     }
+  };
+
+  // Open the modal in edit mode with the saved chapter content loaded.
+  const handleEdit = () => {
+    if (!novelEntry) return;
+    setNovelDraft(novelEntry.content);
+    setNovelTab("edit");
+    setNovelModalOpen(true);
   };
 
   const handleSave = async () => {
@@ -199,6 +231,14 @@ export function DayPageSlide({
             >
               <RotateCw size={12} />
             </button>
+            <button
+              onClick={handleEdit}
+              disabled={novelGenerating}
+              title="Edit chapter"
+              className="px-2 py-1 text-xs font-medium rounded-full bg-amber-600/10 text-amber-400/80 hover:bg-amber-600/20 hover:text-amber-400 transition-colors cursor-pointer flex items-center gap-1 disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              <Pencil size={12} />
+            </button>
           </>
         ) : (
           <button
@@ -213,24 +253,55 @@ export function DayPageSlide({
       </div>
 
       {/* Content area */}
-      {showNovelView && novelEntry ? (
+      {(showNovelView && novelEntry) || novelGenerating ? (
         /* ── Novel view: chapter + gallery side by side ── */
         <div className="flex-1 overflow-hidden relative z-[1] flex">
           {/* Chapter text */}
           <div className={`overflow-y-auto px-8 py-8 ${dayIllustrations.length > 0 ? "flex-1" : "w-full"}`}>
             <div className="max-w-prose mx-auto">
-              <article className="prose prose-lg prose-invert max-w-none leading-[1.9] [--tw-prose-body:var(--color-foreground)] [--tw-prose-headings:var(--color-foreground)] [--tw-prose-bold:var(--color-foreground)] [--tw-prose-links:var(--color-primary)] first-letter:text-5xl first-letter:font-serif first-letter:font-bold first-letter:float-left first-letter:mr-2 first-letter:mt-1 first-letter:leading-none first-letter:text-amber-400">
-                <Markdown components={novelMarkdownComponents} remarkPlugins={remarkPlugins} rehypePlugins={rehypePlugins}>{novelEntry.content}</Markdown>
-              </article>
-              <div className="mt-8 flex justify-center">
-                <button
-                  onClick={() => setClearConfirmOpen(true)}
-                  className="text-xs text-muted-foreground/50 hover:text-destructive transition-colors cursor-pointer flex items-center gap-1"
-                >
-                  <Trash2 size={10} />
-                  Clear Novel Entry
-                </button>
-              </div>
+              {novelGenerating && !novelDraft ? (
+                // Pre-first-token: centered spinner + cycling novelist messages.
+                <div className="flex flex-col items-center justify-center py-24 gap-3">
+                  <Loader2 size={28} className="animate-spin text-primary" />
+                  <p className="text-sm text-muted-foreground">
+                    <CyclingLoadingMessages messages={NOVELIST_LOADING_MESSAGES} />
+                  </p>
+                </div>
+              ) : (
+                <>
+                  <article className="prose prose-lg prose-invert max-w-none leading-[1.9] [--tw-prose-body:var(--color-foreground)] [--tw-prose-headings:var(--color-foreground)] [--tw-prose-bold:var(--color-foreground)] [--tw-prose-links:var(--color-primary)] first-letter:text-5xl first-letter:font-serif first-letter:font-bold first-letter:float-left first-letter:mr-2 first-letter:mt-1 first-letter:leading-none first-letter:text-amber-400">
+                    <Markdown components={novelMarkdownComponents} remarkPlugins={remarkPlugins} rehypePlugins={rehypePlugins}>
+                      {novelGenerating ? novelDraft : (novelEntry?.content ?? "")}
+                    </Markdown>
+                    {novelGenerating && !preparingSection && novelDraft && (
+                      <span className="inline-block w-1.5 h-5 bg-primary/60 animate-pulse ml-0.5 align-text-bottom" />
+                    )}
+                  </article>
+                  {novelGenerating && preparingSection && (
+                    // Between-section gap: backend is extracting beats or
+                    // about to start the next section. Show the spinner +
+                    // cycling messages with a header.
+                    <div className="flex flex-col items-center justify-center py-10 gap-3">
+                      <p className="text-sm text-muted-foreground font-medium">Writing next day part...</p>
+                      <Loader2 size={24} className="animate-spin text-primary" />
+                      <p className="text-xs text-muted-foreground">
+                        <CyclingLoadingMessages messages={NOVELIST_LOADING_MESSAGES} />
+                      </p>
+                    </div>
+                  )}
+                  {!novelGenerating && novelEntry && (
+                    <div className="mt-8 flex justify-center">
+                      <button
+                        onClick={() => setClearConfirmOpen(true)}
+                        className="text-xs text-muted-foreground/50 hover:text-destructive transition-colors cursor-pointer flex items-center gap-1"
+                      >
+                        <Trash2 size={10} />
+                        Clear Novel Entry
+                      </button>
+                    </div>
+                  )}
+                </>
+              )}
             </div>
           </div>
           {/* Image gallery */}
