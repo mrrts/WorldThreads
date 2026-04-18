@@ -205,7 +205,7 @@ pub async fn run_dialogue_with_base(
 /// Returns an empty string if no terminator is found — callers should fall
 /// back to the original text (still passed through `balance_trailing_openers`)
 /// in that case.
-fn trim_to_last_complete_sentence(s: &str) -> String {
+pub fn trim_to_last_complete_sentence(s: &str) -> String {
     let trimmed = s.trim_end();
     if trimmed.is_empty() { return String::new(); }
 
@@ -236,7 +236,7 @@ fn trim_to_last_complete_sentence(s: &str) -> String {
 /// parentheses. The LLM may end mid-way through `"some dialogue` or
 /// `*she turned` and we'd rather render `"some dialogue."` / `*she turned.*`
 /// than leave the markup dangling.
-fn balance_trailing_openers(s: &str) -> String {
+pub fn balance_trailing_openers(s: &str) -> String {
     let mut stars: usize = 0;
     let mut paren_depth: i32 = 0;
     let mut dquotes: usize = 0;

@@ -243,12 +243,17 @@ export function DayPageSlide({
         ) : (
           <button
             onClick={handleNovelize}
-            disabled={!apiKey}
-            className="px-3 py-1 text-xs font-medium rounded-full bg-primary/20 text-primary hover:bg-primary/30 transition-colors cursor-pointer flex items-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed"
+            disabled={!apiKey || novelGenerating}
+            className="px-3 py-1 text-xs font-medium rounded-full bg-primary/20 text-primary hover:bg-primary/30 transition-colors cursor-pointer flex items-center gap-1.5 disabled:opacity-60 disabled:cursor-not-allowed"
           >
-            <Sparkles size={12} />
-            Novelize
+            {novelGenerating ? <Loader2 size={12} className="animate-spin" /> : <Sparkles size={12} />}
+            {novelGenerating ? "Novelizing" : "Novelize"}
           </button>
+        )}
+        {novelGenerating && (
+          <span className="text-[11px] text-muted-foreground/80 italic">
+            Novelizing… do not close gallery.
+          </span>
         )}
       </div>
 

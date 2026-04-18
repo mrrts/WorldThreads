@@ -291,9 +291,19 @@ async fn stream_section(
         max_completion_tokens: Some(4_096),
         stream: true,
     };
-    openai::chat_completion_stream(
+    let raw = openai::chat_completion_stream(
         &model_config.chat_api_base(), api_key, &request, app_handle, "novel-token",
-    ).await
+    ).await?;
+    // Same tail cleanup we use for chat replies — a section that runs out of
+    // completion tokens mid-sentence or leaves a dangling quote/paren/asterisk
+    // would be jarring at a section boundary right before the divider. The
+    // frontend still shows the raw streamed text during generation, but the
+    // returned content (which becomes novel_entries.content after save) is
+    // clean. When the saved entry reloads after onNovelChange(), the view
+    // updates to the cleaned version automatically.
+    let trimmed = orchestrator::trim_to_last_complete_sentence(&raw);
+    let base = if trimmed.is_empty() { raw.as_str() } else { trimmed.as_str() };
+    Ok(orchestrator::balance_trailing_openers(base))
 }
 
 /// Per-section shape hint — told to the chapter writer so opening /
