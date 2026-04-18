@@ -262,6 +262,9 @@ pub fn balance_trailing_openers(s: &str) -> String {
 }
 
 /// Streaming variant of run_dialogue_with_base — emits tokens via Tauri events.
+/// Not currently called by any caller — kept for future reactivation when
+/// dialogue goes streaming end-to-end.
+#[allow(dead_code)]
 pub async fn run_dialogue_streaming(
     base_url: &str,
     api_key: &str,
@@ -301,6 +304,9 @@ pub async fn run_dialogue_streaming(
 }
 
 /// Streaming variant of run_narrative_with_base — emits tokens via Tauri events.
+/// Not currently called — kept for future reactivation when narrative
+/// generation goes streaming end-to-end.
+#[allow(dead_code)]
 pub async fn run_narrative_streaming(
     base_url: &str,
     api_key: &str,
@@ -449,6 +455,10 @@ pub async fn run_memory_update_with_base(
     Ok((val, response.usage))
 }
 
+/// Generate a short emoji-like reaction from a character to a just-exchanged
+/// message pair. Not currently wired up — reactions were disabled in
+/// chat_cmds to keep cost down. Kept for future reactivation.
+#[allow(dead_code)]
 pub async fn generate_reaction_with_base(
     base_url: &str,
     api_key: &str,

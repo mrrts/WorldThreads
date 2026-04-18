@@ -120,6 +120,9 @@ struct StreamChunk {
 #[derive(Debug, Deserialize)]
 struct StreamChoice {
     delta: StreamDelta,
+    // Parsed from the SSE payload but unused today — kept so future code
+    // can distinguish natural stops from length cutoffs in streaming.
+    #[allow(dead_code)]
     finish_reason: Option<String>,
 }
 

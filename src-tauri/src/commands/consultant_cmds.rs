@@ -188,7 +188,7 @@ pub fn import_chat_messages_cmd(
         params![chat_id], |r| r.get(0),
     ).ok().flatten();
 
-    let (new_msgs, characters, user_name, thread_id) = if is_group {
+    let (new_msgs, characters, user_name, _thread_id) = if is_group {
         let gc = get_group_chat(&conn, group_chat_id.as_deref().unwrap()).map_err(|e| e.to_string())?;
         let all_msgs = get_all_group_messages(&conn, &gc.thread_id).map_err(|e| e.to_string())?;
         let user_name = get_user_profile(&conn, &gc.world_id)
