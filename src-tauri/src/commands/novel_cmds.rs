@@ -97,13 +97,13 @@ What counts as a beat:
 - A shift in mood or power between characters.
 - A new piece of information learned, or withheld.
 - An action taken, a gesture, a significant movement.
-- A line of dialogue that lands — include it verbatim in quotation marks.
+- A line of dialogue that lands — capture its essence. You may quote it verbatim or paraphrase for rhythm and clarity; what matters is that the emotional content comes through.
 - A silence that lingers, a pause that means something.
 
 Rules:
 - Output ONLY a list, one beat per line, prefixed with "- ".
 - Each beat is a crisp, specific sentence in the present tense.
-- Include direct quotes verbatim in "…" whenever a specific line carries weight.
+- Include memorable lines in "…" when they land — you may quote verbatim OR lightly paraphrase to capture the essence. Creative liberty with the exact wording is fine; fidelity to the emotional beat is what matters.
 - BE THOROUGH. Aim for 8 to 20 beats per excerpt — err high rather than low. Readers should get the significant moments of what happened, not a vague summary.
 - Skip only pure filler — "they keep talking about X" with no change.
 - Do NOT write prose. Do NOT write a summary paragraph. Just the beat list."#;
@@ -223,7 +223,7 @@ async fn stream_section(
              WRITING INSTRUCTIONS:\n\
              - Transform these messages into vivid literary prose in second person, present tense.\n\
              - Every significant moment must land in the prose — a realization, a decision, a line that mattered, an emotional shift. Do not smooth them into summary.\n\
-             - Preserve memorable direct quotes verbatim.\n\
+             - Capture the essence of memorable lines. Quote verbatim if a line is perfect as-is, or lightly paraphrase for rhythm and clarity — creative liberty with the exact wording is welcome.\n\
              - Do NOT include a section heading or title. Write only the prose.\n\
              - Do NOT write \"The End.\" or similar closings unless this is the final section.",
             shape = shape_hint,
@@ -250,7 +250,7 @@ async fn stream_section(
              WRITING INSTRUCTIONS:\n\
              - Walk through all {count} beats in order, expanding each into rich literary prose.\n\
              - Every beat must land in the prose — no skipping, no vague summarizing.\n\
-             - Preserve direct quotes verbatim.\n\
+             - Capture the essence of memorable lines. Quote verbatim if a line is perfect as-is, or lightly paraphrase for rhythm and clarity — creative liberty with the exact wording is welcome.\n\
              - Write in second person, present tense.\n\
              - Do NOT include a section heading or title. Write only the prose.\n\
              - Do NOT write \"The End.\" or similar closings unless this is the final section.",
