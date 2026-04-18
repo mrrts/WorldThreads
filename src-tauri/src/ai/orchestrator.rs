@@ -16,10 +16,18 @@ pub struct ModelConfig {
     pub ai_provider: String,
     #[serde(default = "default_lmstudio_url")]
     pub lmstudio_url: String,
+    /// User-declared context window for the local model, in tokens. Used to
+    /// chunk long novelization prompts safely. The user sees this in the
+    /// settings UI in 10k increments ("40k", "50k", ...); internally we aim
+    /// for ~60% of this value per call to leave room for the system prompt,
+    /// completion budget, and tokenizer variance.
+    #[serde(default = "default_lmstudio_context_tokens")]
+    pub lmstudio_context_tokens: u32,
 }
 
 fn default_provider() -> String { "openai".to_string() }
 fn default_lmstudio_url() -> String { "http://127.0.0.1:1234".to_string() }
+fn default_lmstudio_context_tokens() -> u32 { 40_000 }
 
 impl Default for ModelConfig {
     fn default() -> Self {
@@ -32,7 +40,17 @@ impl Default for ModelConfig {
             vision_model: "gpt-4.1".to_string(),
             ai_provider: default_provider(),
             lmstudio_url: default_lmstudio_url(),
+            lmstudio_context_tokens: default_lmstudio_context_tokens(),
         }
+    }
+}
+
+impl ModelConfig {
+    /// Safe per-call prompt-token budget when running locally. Aims below the
+    /// user's declared context window to leave room for system prompt +
+    /// completion + tokenizer variance.
+    pub fn safe_local_prompt_budget(&self) -> u32 {
+        ((self.lmstudio_context_tokens as f64) * 0.6) as u32
     }
 }
 
@@ -103,6 +121,9 @@ pub fn load_model_config(conn: &Connection) -> ModelConfig {
         vision_model: get("model.vision", "gpt-4.1"),
         ai_provider: get("ai_provider", "openai"),
         lmstudio_url: get("lmstudio_url", "http://127.0.0.1:1234"),
+        lmstudio_context_tokens: get("lmstudio_context_tokens", "40000")
+            .parse::<u32>()
+            .unwrap_or(40_000),
     }
 }
 
@@ -115,6 +136,7 @@ pub fn save_model_config(conn: &Connection, config: &ModelConfig) -> Result<(), 
     set_setting(conn, "model.vision", &config.vision_model)?;
     set_setting(conn, "ai_provider", &config.ai_provider)?;
     set_setting(conn, "lmstudio_url", &config.lmstudio_url)?;
+    set_setting(conn, "lmstudio_context_tokens", &config.lmstudio_context_tokens.to_string())?;
     Ok(())
 }
 

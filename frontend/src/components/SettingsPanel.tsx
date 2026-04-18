@@ -5,7 +5,7 @@ import { Select } from "@/components/ui/select";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Switch } from "@/components/ui/switch";
 import { Field, FieldGroup } from "@/components/ui/field";
-import { Save, Eye, EyeOff, Check, RefreshCw, Loader2, DatabaseBackup } from "lucide-react";
+import { Save, Eye, EyeOff, Check, RefreshCw, Loader2, DatabaseBackup, Minus, Plus } from "lucide-react";
 import type { useAppStore } from "@/hooks/use-app-store";
 import type { ModelConfig, LocalModelInfo } from "@/lib/tauri";
 import { api } from "@/lib/tauri";
@@ -219,6 +219,15 @@ export function SettingsPanel({ store }: Props) {
                   {localModels.length} model{localModels.length !== 1 ? "s" : ""} available
                 </p>
               )}
+              <Field
+                label="Context Window"
+                hint="How many tokens your local model can hold. We aim well below this when chunking long novelization prompts."
+              >
+                <ContextWindowControl
+                  valueTokens={config.lmstudio_context_tokens}
+                  onChange={(v) => { setConfig({ ...config, lmstudio_context_tokens: v }); setDirty(true); }}
+                />
+              </Field>
             </FieldGroup>
           )}
 
@@ -376,6 +385,45 @@ export function SettingsPanel({ store }: Props) {
           </FieldGroup>
         </div>
       </ScrollArea>
+    </div>
+  );
+}
+
+/** +/- stepper for LM Studio context window. Steps in 10,000-token increments,
+ *  min 10k, max 1M. Displays the value as "40k" / "120k" for readability. */
+function ContextWindowControl({ valueTokens, onChange }: { valueTokens: number; onChange: (v: number) => void }) {
+  const STEP = 10_000;
+  const MIN = 10_000;
+  const MAX = 1_000_000;
+  const snap = (v: number) => Math.max(MIN, Math.min(MAX, Math.round(v / STEP) * STEP));
+  const formatted = `${Math.round(valueTokens / 1000)}k`;
+  return (
+    <div className="flex items-center gap-2">
+      <Button
+        type="button"
+        variant="outline"
+        size="icon"
+        className="h-8 w-8"
+        onClick={() => onChange(snap(valueTokens - STEP))}
+        disabled={valueTokens <= MIN}
+        aria-label="Decrease context window"
+      >
+        <Minus size={14} />
+      </Button>
+      <div className="min-w-[64px] text-center font-mono text-sm bg-muted rounded-md py-1.5 border border-border">
+        {formatted}
+      </div>
+      <Button
+        type="button"
+        variant="outline"
+        size="icon"
+        className="h-8 w-8"
+        onClick={() => onChange(snap(valueTokens + STEP))}
+        disabled={valueTokens >= MAX}
+        aria-label="Increase context window"
+      >
+        <Plus size={14} />
+      </Button>
     </div>
   );
 }

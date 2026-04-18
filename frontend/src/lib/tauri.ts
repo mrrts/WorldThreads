@@ -85,6 +85,9 @@ export interface ModelConfig {
   vision_model: string;
   ai_provider: string;
   lmstudio_url: string;
+  /** Declared local-model context window in tokens. Used for chunking long
+   *  novelization prompts. UI shows this in 10k steps (e.g. "40k"). */
+  lmstudio_context_tokens: number;
 }
 
 export interface LocalModelInfo {

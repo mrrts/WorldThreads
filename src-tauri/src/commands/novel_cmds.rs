@@ -1,9 +1,16 @@
-use crate::ai::openai::{self, StreamingRequest};
+use crate::ai::openai::{self, ChatRequest, StreamingRequest};
 use crate::ai::orchestrator;
 use crate::db::queries::*;
 use crate::db::Database;
 use chrono::Utc;
-use tauri::{AppHandle, State};
+use tauri::{AppHandle, Emitter, State};
+
+/// Approximate token count. English text is typically ~4 chars/token; we
+/// slightly pessimize (3.5) to leave headroom against the user's declared
+/// context window.
+fn approx_tokens(s: &str) -> usize {
+    (s.chars().count() as f64 / 3.5) as usize
+}
 
 /// Generate a novel chapter from a day's messages via LLM.
 #[tauri::command]
@@ -123,6 +130,147 @@ INSTRUCTIONS:
         char_list = char_descriptions.join("\n"),
     );
 
+    let conversation_text = conversation.join("\n");
+
+    // If the local model's context window can't comfortably hold the whole
+    // day in one shot, fall back to a two-phase "beats → chapter" novelization
+    // (see the "phased novelization" plan). Otherwise keep the original
+    // single-shot streaming path.
+    let is_local = model_config.is_local();
+    let est_prompt_tokens = approx_tokens(&system_prompt) + approx_tokens(&conversation_text) + 200;
+    let budget = model_config.safe_local_prompt_budget() as usize;
+    let needs_chunking = is_local && est_prompt_tokens > budget;
+
+    if !needs_chunking {
+        let api_messages = vec![
+            openai::ChatMessage {
+                role: "system".to_string(),
+                content: system_prompt,
+            },
+            openai::ChatMessage {
+                role: "user".to_string(),
+                content: format!(
+                    "Here is the full conversation for Day {}:\n\n{}\n\nTransform this into a vivid novel chapter.",
+                    world_day,
+                    conversation_text,
+                ),
+            },
+        ];
+
+        let request = StreamingRequest {
+            model: model_config.dialogue_model.clone(),
+            messages: api_messages,
+            temperature: Some(0.95),
+            max_completion_tokens: Some(4096),
+            stream: true,
+        };
+
+        return openai::chat_completion_stream(
+            &model_config.chat_api_base(), &api_key, &request, &app_handle, "novel-token",
+        ).await;
+    }
+
+    // ── Phase 1: beats extraction ────────────────────────────────────────
+    // Slice the day's conversation lines into chunks that each fit in the
+    // safe prompt budget, and ask the model to produce a compact list of
+    // concrete story beats for each chunk. These are tiny — the final
+    // chapter call will receive ALL of them together with full context.
+    let beats_system = r#"You are a story editor. Read the conversation excerpt and extract a concise list of narrative BEATS — concrete moments that would belong in a novel chapter.
+
+Rules:
+- Output ONLY a list, one beat per line, prefixed with "- ".
+- Each beat is a crisp, specific sentence in the present tense: an action, a decision, a revelation, a shift, a quiet moment that matters.
+- Include key direct quotes verbatim inside the beat, in quotation marks, when a specific line lands.
+- Skip filler. Skip "they agreed" if nothing changed.
+- Aim for 4 to 10 beats per excerpt.
+- Do NOT write prose. Do NOT write a summary paragraph. Just the beat list."#;
+
+    // Chunk budget accounts for the beats system prompt + completion space.
+    let chunk_budget = budget.saturating_sub(approx_tokens(beats_system) + 600);
+    let chunk_budget = chunk_budget.max(2_000); // don't go absurdly small
+
+    let mut chunks: Vec<Vec<String>> = Vec::new();
+    let mut current: Vec<String> = Vec::new();
+    let mut current_tokens: usize = 0;
+    for line in &conversation {
+        let t = approx_tokens(line) + 1;
+        if current_tokens + t > chunk_budget && !current.is_empty() {
+            chunks.push(std::mem::take(&mut current));
+            current_tokens = 0;
+        }
+        current.push(line.clone());
+        current_tokens += t;
+    }
+    if !current.is_empty() {
+        chunks.push(current);
+    }
+
+    let _ = app_handle.emit("novel-phase", serde_json::json!({
+        "phase": "beats",
+        "chunks_total": chunks.len(),
+        "chunk_index": 0,
+    }));
+
+    let mut all_beats: Vec<String> = Vec::new();
+    for (i, chunk) in chunks.iter().enumerate() {
+        let beats_request = ChatRequest {
+            model: model_config.dialogue_model.clone(),
+            messages: vec![
+                openai::ChatMessage {
+                    role: "system".to_string(),
+                    content: beats_system.to_string(),
+                },
+                openai::ChatMessage {
+                    role: "user".to_string(),
+                    content: format!(
+                        "Conversation excerpt (part {} of {} from Day {}):\n\n{}\n\nReturn the beat list.",
+                        i + 1, chunks.len(), world_day,
+                        chunk.join("\n"),
+                    ),
+                },
+            ],
+            temperature: Some(0.5),
+            max_completion_tokens: Some(600),
+            response_format: None,
+        };
+        let beats_response = openai::chat_completion_with_base(
+            &model_config.chat_api_base(), &api_key, &beats_request,
+        ).await?;
+        let beats_text = beats_response.choices.first()
+            .map(|c| c.message.content.clone())
+            .unwrap_or_default();
+        // Collect bullet lines, tolerant of the model using "* " or no prefix.
+        for line in beats_text.lines() {
+            let trimmed = line.trim();
+            if trimmed.is_empty() { continue; }
+            let cleaned = trimmed
+                .trim_start_matches("- ")
+                .trim_start_matches("* ")
+                .trim_start_matches("• ")
+                .to_string();
+            if !cleaned.is_empty() {
+                all_beats.push(cleaned);
+            }
+        }
+        let _ = app_handle.emit("novel-phase", serde_json::json!({
+            "phase": "beats",
+            "chunks_total": chunks.len(),
+            "chunk_index": i + 1,
+        }));
+    }
+
+    // ── Phase 2: chapter synthesis ───────────────────────────────────────
+    // Feed all collected beats plus the original character / world context
+    // to the model and stream a full chapter.
+    let _ = app_handle.emit("novel-phase", serde_json::json!({
+        "phase": "chapter",
+    }));
+
+    let beats_joined = all_beats.iter()
+        .map(|b| format!("- {b}"))
+        .collect::<Vec<_>>()
+        .join("\n");
+
     let api_messages = vec![
         openai::ChatMessage {
             role: "system".to_string(),
@@ -131,9 +279,9 @@ INSTRUCTIONS:
         openai::ChatMessage {
             role: "user".to_string(),
             content: format!(
-                "Here is the full conversation for Day {}:\n\n{}\n\nTransform this into a vivid novel chapter.",
+                "Here are the narrative beats for Day {}, extracted in order from the full conversation:\n\n{}\n\nTransform these beats into a vivid novel chapter. Preserve the direct quotes verbatim when they appear, expand the rest into rich prose, and give the chapter a coherent arc.",
                 world_day,
-                conversation.join("\n"),
+                beats_joined,
             ),
         },
     ];
