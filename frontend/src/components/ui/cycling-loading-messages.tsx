@@ -37,7 +37,7 @@ export function CyclingLoadingMessages({ messages, intervalMs = 7200, className 
   useEffect(() => { setIdx(0); }, [messages]);
 
   return (
-    <span className={cn("inline-grid relative", className)}>
+    <span className={cn("inline-grid relative text-center", className)}>
       {messages.map((m, i) => (
         <span
           key={i}
