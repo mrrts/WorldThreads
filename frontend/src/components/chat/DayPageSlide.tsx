@@ -56,6 +56,17 @@ const NOVELIST_LOADING_MESSAGES = [
   "Arguing with the narrator...",
 ];
 
+// Markdown components for the novel text. Extends the default formatter
+// with a decorative `<hr>` that renders as a centered ornament — the
+// backend emits "* * *" between daypart sections, which markdown parses
+// as a horizontal rule and we render as a fleuron.
+const novelMarkdownComponents = {
+  ...markdownComponents,
+  hr: () => (
+    <div className="text-center my-8 text-3xl text-amber-400/70 select-none" aria-hidden="true">❧</div>
+  ),
+};
+
 interface Props {
   day: number;
   messages: Message[];
@@ -191,7 +202,7 @@ export function DayPageSlide({
           <div className={`overflow-y-auto px-8 py-8 ${dayIllustrations.length > 0 ? "flex-1" : "w-full"}`}>
             <div className="max-w-prose mx-auto">
               <article className="prose prose-lg prose-invert max-w-none leading-[1.9] [--tw-prose-body:var(--color-foreground)] [--tw-prose-headings:var(--color-foreground)] [--tw-prose-bold:var(--color-foreground)] [--tw-prose-links:var(--color-primary)] first-letter:text-5xl first-letter:font-serif first-letter:font-bold first-letter:float-left first-letter:mr-2 first-letter:mt-1 first-letter:leading-none first-letter:text-amber-400">
-                <Markdown components={markdownComponents} remarkPlugins={remarkPlugins} rehypePlugins={rehypePlugins}>{novelEntry.content}</Markdown>
+                <Markdown components={novelMarkdownComponents} remarkPlugins={remarkPlugins} rehypePlugins={rehypePlugins}>{novelEntry.content}</Markdown>
               </article>
               <div className="mt-8 flex justify-center">
                 <button
@@ -419,7 +430,7 @@ export function DayPageSlide({
             ) : novelTab === "read" || novelGenerating ? (
               <div className="max-h-[60vh] overflow-y-auto px-6 py-5">
                 <article className="prose prose-sm prose-invert max-w-none leading-relaxed [--tw-prose-body:var(--color-foreground)] [--tw-prose-bold:var(--color-foreground)] first-letter:text-4xl first-letter:font-serif first-letter:font-bold first-letter:float-left first-letter:mr-2 first-letter:mt-1 first-letter:leading-none first-letter:text-amber-400">
-                  <Markdown components={markdownComponents} remarkPlugins={remarkPlugins} rehypePlugins={rehypePlugins}>{novelDraft}</Markdown>
+                  <Markdown components={novelMarkdownComponents} remarkPlugins={remarkPlugins} rehypePlugins={rehypePlugins}>{novelDraft}</Markdown>
                   {novelGenerating && <span className="inline-block w-1.5 h-4 bg-primary/60 animate-pulse ml-0.5 align-text-bottom" />}
                 </article>
               </div>

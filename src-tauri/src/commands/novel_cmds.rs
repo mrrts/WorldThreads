@@ -1,9 +1,14 @@
 use crate::ai::openai::{self, ChatRequest, StreamingRequest};
-use crate::ai::orchestrator;
+use crate::ai::orchestrator::{self, ModelConfig};
 use crate::db::queries::*;
 use crate::db::Database;
 use chrono::Utc;
+use std::collections::HashMap;
 use tauri::{AppHandle, Emitter, State};
+
+/// Emitted between rendered sections as a literal novel-token event. Renders
+/// to a horizontal rule in markdown; the UI can decorate `<hr>` if desired.
+const SECTION_DIVIDER: &str = "\n\n* * *\n\n";
 
 /// Approximate token count. English text is typically ~4 chars/token; we
 /// slightly pessimize (3.5) to leave headroom against the user's declared
@@ -12,17 +17,285 @@ fn approx_tokens(s: &str) -> usize {
     (s.chars().count() as f64 / 3.5) as usize
 }
 
-/// Truncate a beat line so it fits as an in-prose label (e.g., the opening
-/// and closing anchors we echo in the chapter prompt). Keeps it to roughly
-/// `max_chars` characters and trims at a word boundary when possible.
-fn truncate_label(s: &str, max_chars: usize) -> String {
-    let trimmed = s.trim();
-    if trimmed.chars().count() <= max_chars {
-        return trimmed.to_string();
+/// Capitalize each word of a world_time label ("MORNING" → "Morning").
+fn format_time_of_day(wt: &str) -> String {
+    wt.split_whitespace()
+        .map(|w| {
+            let mut c = w.chars();
+            match c.next() {
+                Some(first) => first.to_uppercase().to_string() + &c.as_str().to_lowercase(),
+                None => String::new(),
+            }
+        })
+        .collect::<Vec<_>>()
+        .join(" ")
+}
+
+/// One daypart-scoped slice of a day's conversation. If a day runs through
+/// MORNING → AFTERNOON → EVENING, it yields three sections; a day that
+/// never changes time yields one.
+struct Section {
+    /// Capitalized time-of-day label ("Morning") or empty if messages carry
+    /// no world_time.
+    label: String,
+    /// Formatted conversation lines for this section (`speaker: content`).
+    lines: Vec<String>,
+}
+
+/// Format a single Message into a conversation line. Separated out so the
+/// sectioning pass and any single-shot path can produce the same output.
+fn format_line(m: &Message, user_name: &str, character_names: &HashMap<String, String>) -> String {
+    let speaker = match m.role.as_str() {
+        "user" => user_name.to_string(),
+        "narrative" => "[Narrative]".to_string(),
+        "context" => "[Context]".to_string(),
+        "assistant" => m.sender_character_id.as_ref()
+            .and_then(|id| character_names.get(id))
+            .cloned()
+            .unwrap_or_else(|| "Character".to_string()),
+        other => other.to_string(),
+    };
+    format!("{}: {}", speaker, m.content)
+}
+
+/// Group the day's messages into sections by world_time transitions. A new
+/// section starts every time world_time changes value; messages without
+/// world_time are appended to whatever section is currently open.
+fn group_into_sections(
+    messages: &[Message],
+    user_name: &str,
+    character_names: &HashMap<String, String>,
+) -> Vec<Section> {
+    let mut sections: Vec<Section> = Vec::new();
+    let mut cur_label = String::new();
+    let mut cur_lines: Vec<String> = Vec::new();
+
+    for m in messages {
+        let formatted = m.world_time.as_deref().map(format_time_of_day).unwrap_or_default();
+        if !formatted.is_empty() && !cur_label.is_empty() && formatted != cur_label {
+            // Time rolled over — close off the current section.
+            sections.push(Section { label: std::mem::take(&mut cur_label), lines: std::mem::take(&mut cur_lines) });
+        }
+        if cur_label.is_empty() && !formatted.is_empty() {
+            cur_label = formatted;
+        }
+        cur_lines.push(format_line(m, user_name, character_names));
     }
-    let cut: String = trimmed.chars().take(max_chars).collect();
-    let head = cut.rsplit_once(' ').map(|(h, _)| h).unwrap_or(&cut);
-    format!("{head}…")
+    if !cur_lines.is_empty() {
+        sections.push(Section { label: cur_label, lines: cur_lines });
+    }
+    sections
+}
+
+/// System prompt for extracting narrative beats from a chunk of conversation.
+/// Shared between all beat-extraction calls.
+const BEATS_SYSTEM: &str = r#"You are a story editor. Read the conversation excerpt and extract a thorough, in-order list of narrative BEATS — every concrete moment that would belong in a novel chapter of this day.
+
+What counts as a beat:
+- Intense emotional moments or major decisions.
+- A realization, a decision, a confession, a refusal.
+- A shift in mood or power between characters.
+- A new piece of information learned, or withheld.
+- An action taken, a gesture, a significant movement.
+- A line of dialogue that lands — include it verbatim in quotation marks.
+- A silence that lingers, a pause that means something.
+
+Rules:
+- Output ONLY a list, one beat per line, prefixed with "- ".
+- Each beat is a crisp, specific sentence in the present tense.
+- Include direct quotes verbatim in "…" whenever a specific line carries weight.
+- BE THOROUGH. Aim for 8 to 20 beats per excerpt — err high rather than low. Readers should get the significant moments of what happened, not a vague summary.
+- Skip only pure filler — "they keep talking about X" with no change.
+- Do NOT write prose. Do NOT write a summary paragraph. Just the beat list."#;
+
+/// Extract numbered beats from `lines`, chunking as needed so each chunk
+/// fits the local model's safe prompt budget. Emits `novel-phase` progress
+/// events between chunks.
+async fn extract_beats(
+    app_handle: &AppHandle,
+    model_config: &ModelConfig,
+    api_key: &str,
+    lines: &[String],
+    label: &str,
+    world_day: i64,
+) -> Result<Vec<String>, String> {
+    let budget = model_config.safe_local_prompt_budget() as usize;
+    // Reserve space for system prompt + up to 1500 tokens of beat output.
+    let chunk_budget = budget.saturating_sub(approx_tokens(BEATS_SYSTEM) + 1_600).max(2_000);
+
+    let mut chunks: Vec<Vec<String>> = Vec::new();
+    let mut current: Vec<String> = Vec::new();
+    let mut current_tokens: usize = 0;
+    for line in lines {
+        let t = approx_tokens(line) + 1;
+        if current_tokens + t > chunk_budget && !current.is_empty() {
+            chunks.push(std::mem::take(&mut current));
+            current_tokens = 0;
+        }
+        current.push(line.clone());
+        current_tokens += t;
+    }
+    if !current.is_empty() {
+        chunks.push(current);
+    }
+
+    let mut all_beats: Vec<String> = Vec::new();
+    for (i, chunk) in chunks.iter().enumerate() {
+        let beats_request = ChatRequest {
+            model: model_config.dialogue_model.clone(),
+            messages: vec![
+                openai::ChatMessage { role: "system".to_string(), content: BEATS_SYSTEM.to_string() },
+                openai::ChatMessage {
+                    role: "user".to_string(),
+                    content: format!(
+                        "Conversation excerpt (part {} of {}) from Day {} — {} section:\n\n{}\n\nReturn the beat list.",
+                        i + 1, chunks.len(), world_day,
+                        if label.is_empty() { "untagged".to_string() } else { label.to_string() },
+                        chunk.join("\n"),
+                    ),
+                },
+            ],
+            temperature: Some(0.5),
+            max_completion_tokens: Some(1_500),
+            response_format: None,
+        };
+        let beats_response = openai::chat_completion_with_base(
+            &model_config.chat_api_base(), api_key, &beats_request,
+        ).await?;
+        let beats_text = beats_response.choices.first()
+            .map(|c| c.message.content.clone())
+            .unwrap_or_default();
+        for line in beats_text.lines() {
+            let trimmed = line.trim();
+            if trimmed.is_empty() { continue; }
+            let cleaned = trimmed
+                .trim_start_matches("- ")
+                .trim_start_matches("* ")
+                .trim_start_matches("• ")
+                .to_string();
+            if !cleaned.is_empty() {
+                all_beats.push(cleaned);
+            }
+        }
+        let _ = app_handle.emit("novel-phase", serde_json::json!({
+            "phase": "beats",
+            "section": label,
+            "chunks_total": chunks.len(),
+            "chunk_index": i + 1,
+        }));
+    }
+    Ok(all_beats)
+}
+
+/// Produce a section of the novel chapter and stream it via `novel-token`.
+/// If the section's raw messages fit the local budget, we send them directly
+/// to the chapter writer (skipping beat extraction for quality). Otherwise
+/// we extract beats first and write the section from those.
+#[allow(clippy::too_many_arguments)]
+async fn stream_section(
+    app_handle: &AppHandle,
+    model_config: &ModelConfig,
+    api_key: &str,
+    base_system: &str,
+    section: &Section,
+    section_index: usize,
+    total_sections: usize,
+    world_day: i64,
+) -> Result<String, String> {
+    let section_text = section.lines.join("\n");
+    let section_tokens = approx_tokens(&section_text);
+    let budget = model_config.safe_local_prompt_budget() as usize;
+    // Reserve ~3000 tokens for the chapter completion + per-section framing.
+    let fits_directly = section_tokens + 3_000 <= budget;
+
+    let shape_hint = section_shape(section_index, total_sections);
+    let section_name = if section.label.is_empty() {
+        format!("Section {} of {}", section_index + 1, total_sections)
+    } else {
+        format!("{} section ({} of {})", section.label, section_index + 1, total_sections)
+    };
+
+    let user_content = if fits_directly {
+        format!(
+            "{shape}\n\n\
+             You are writing the {name} of Day {day}'s chapter.\n\n\
+             Here are the messages for this portion of the day:\n\n{lines}\n\n\
+             WRITING INSTRUCTIONS:\n\
+             - Transform these messages into vivid literary prose in second person, present tense.\n\
+             - Every significant moment must land in the prose — a realization, a decision, a line that mattered, an emotional shift. Do not smooth them into summary.\n\
+             - Preserve memorable direct quotes verbatim.\n\
+             - Do NOT include a section heading or title. Write only the prose.\n\
+             - Do NOT write \"The End.\" or similar closings unless this is the final section.",
+            shape = shape_hint,
+            name = section_name,
+            day = world_day,
+            lines = section_text,
+        )
+    } else {
+        let _ = app_handle.emit("novel-phase", serde_json::json!({
+            "phase": "beats",
+            "section": section.label,
+        }));
+        let beats = extract_beats(app_handle, model_config, api_key, &section.lines, &section.label, world_day).await?;
+        let beat_count = beats.len();
+        let beats_joined = beats.iter()
+            .enumerate()
+            .map(|(i, b)| format!("{}. {}", i + 1, b))
+            .collect::<Vec<_>>()
+            .join("\n");
+        format!(
+            "{shape}\n\n\
+             You are writing the {name} of Day {day}'s chapter.\n\n\
+             NARRATIVE BEATS for this section (in chronological order, {count} total):\n\n{beats}\n\n\
+             WRITING INSTRUCTIONS:\n\
+             - Walk through all {count} beats in order, expanding each into rich literary prose.\n\
+             - Every beat must land in the prose — no skipping, no vague summarizing.\n\
+             - Preserve direct quotes verbatim.\n\
+             - Write in second person, present tense.\n\
+             - Do NOT include a section heading or title. Write only the prose.\n\
+             - Do NOT write \"The End.\" or similar closings unless this is the final section.",
+            shape = shape_hint,
+            name = section_name,
+            day = world_day,
+            count = beat_count,
+            beats = beats_joined,
+        )
+    };
+
+    let _ = app_handle.emit("novel-phase", serde_json::json!({
+        "phase": "section",
+        "section": section.label,
+        "section_index": section_index,
+        "total_sections": total_sections,
+    }));
+
+    let request = StreamingRequest {
+        model: model_config.dialogue_model.clone(),
+        messages: vec![
+            openai::ChatMessage { role: "system".to_string(), content: base_system.to_string() },
+            openai::ChatMessage { role: "user".to_string(), content: user_content },
+        ],
+        temperature: Some(0.95),
+        max_completion_tokens: Some(4_096),
+        stream: true,
+    };
+    openai::chat_completion_stream(
+        &model_config.chat_api_base(), api_key, &request, app_handle, "novel-token",
+    ).await
+}
+
+/// Per-section shape hint — told to the chapter writer so opening /
+/// middle / closing sections each know what they are.
+fn section_shape(index: usize, total: usize) -> &'static str {
+    if total == 1 {
+        "This is a complete, single-section chapter. Open on a specific image, build through the middle, and land on a moment of resonance."
+    } else if index == 0 {
+        "This is the OPENING section of a multi-section chapter. Open on a specific, evocative image drawn from the first beat or first message of this section. Establish atmosphere. Do NOT conclude the chapter — a later section will close it."
+    } else if index + 1 == total {
+        "This is the FINAL section of a multi-section chapter. Assume earlier sections have already established the day. Close the chapter on a resonant final image or line."
+    } else {
+        "This is a MIDDLE section of a multi-section chapter. Assume an earlier section opened the day and a later section will close it. Continue the narrative arc — advance, escalate, or shift. Do NOT open with a fresh scene-setting paragraph or close with a farewell."
+    }
 }
 
 /// Generate a novel chapter from a day's messages via LLM.
@@ -74,40 +347,22 @@ pub async fn generate_novel_entry_cmd(
         (day_msgs, world, characters, char_names, user_name, user_profile, model_config)
     };
 
-    // Build conversation text with time-of-day transition markers inserted
-    // whenever world_time changes. Without these, the beats extractor (and
-    // the chapter synthesizer) has no idea when morning became afternoon
-    // became evening — the novelization ends up lumping everything under
-    // one lighting / time mood.
+    // Group messages into sections by world_time (Morning, Afternoon,
+    // Evening, ...). Each section will be written independently and stitched
+    // together with dividers in the final chapter. Days without time-of-day
+    // info collapse to a single untagged section.
+    let sections = group_into_sections(&messages, &user_name, &character_names);
+
+    // Flat conversation text, used only by the single-shot (non-local or
+    // tiny-day) fallback path below and for estimating total token size.
     let mut conversation: Vec<String> = Vec::new();
-    let mut last_time: Option<String> = None;
-    for m in &messages {
-        if let Some(wt) = &m.world_time {
-            if last_time.as_deref() != Some(wt.as_str()) {
-                let formatted = wt.split(' ').map(|w| {
-                    let mut c = w.chars();
-                    match c.next() {
-                        Some(first) => first.to_uppercase().to_string() + &c.as_str().to_lowercase(),
-                        None => String::new(),
-                    }
-                }).collect::<Vec<_>>().join(" ");
-                conversation.push(format!("[It is now {formatted}.]"));
-                last_time = Some(wt.clone());
-            }
+    let mut last_label = String::new();
+    for s in &sections {
+        if !s.label.is_empty() && s.label != last_label {
+            conversation.push(format!("[It is now {}.]", s.label));
+            last_label = s.label.clone();
         }
-        let speaker = match m.role.as_str() {
-            "user" => user_name.clone(),
-            "narrative" => "[Narrative]".to_string(),
-            "context" => "[Context]".to_string(),
-            "assistant" => {
-                m.sender_character_id.as_ref()
-                    .and_then(|id| character_names.get(id))
-                    .cloned()
-                    .unwrap_or_else(|| "Character".to_string())
-            }
-            _ => m.role.clone(),
-        };
-        conversation.push(format!("{}: {}", speaker, m.content));
+        for line in &s.lines { conversation.push(line.clone()); }
     }
 
     // Build rich character descriptions
@@ -203,176 +458,31 @@ INSTRUCTIONS:
         ).await;
     }
 
-    // ── Phase 1: beats extraction ────────────────────────────────────────
-    // Slice the day's conversation lines into chunks that each fit in the
-    // safe prompt budget, and ask the model to produce a compact list of
-    // concrete story beats for each chunk. These are tiny — the final
-    // chapter call will receive ALL of them together with full context.
-    let beats_system = r#"You are a story editor. Read the conversation excerpt and extract a thorough, in-order list of narrative BEATS — every concrete moment that would belong in a novel chapter of this day.
-
-What counts as a beat:
-- Intense emotional moments or major decisions.
-- A realization, a decision, a confession, a refusal.
-- A shift in mood or power between characters.
-- A new piece of information learned, or withheld.
-- An action taken, a gesture, a significant movement.
-- A line of dialogue that lands — include it verbatim in quotation marks.
-- A silence that lingers, a pause that means something.
-- A change in setting or the time of day ("the light shifts to late afternoon").
-
-Rules:
-- Output ONLY a list, one beat per line, prefixed with "- ".
-- Each beat is a crisp, specific sentence in the present tense.
-- Preserve [It is now X.] time markers when you cross one — emit a beat like "- The time turns to afternoon." so the chapter can honor it.
-- Include direct quotes verbatim in "…" whenever a specific line carries weight.
-- BE THOROUGH. Aim for 8 to 20 beats per excerpt — err high rather than low. Readers should get the significant moments of what happened, not a vague summary.
-- Skip only pure filler — "they keep talking about X" with no change.
-- Do NOT write prose. Do NOT write a summary paragraph. Just the beat list."#;
-
-    // Chunk budget accounts for the beats system prompt + completion space.
-    // Reserve room for up to ~1500 tokens of beat output per chunk so the
-    // model isn't forced to compress; a rich chunk can easily produce 20
-    // beats at ~50-80 tokens each.
-    let budget = model_config.safe_local_prompt_budget() as usize;
-    let chunk_budget = budget.saturating_sub(approx_tokens(beats_system) + 1_600);
-    let chunk_budget = chunk_budget.max(2_000); // don't go absurdly small
-
-    let mut chunks: Vec<Vec<String>> = Vec::new();
-    let mut current: Vec<String> = Vec::new();
-    let mut current_tokens: usize = 0;
-    for line in &conversation {
-        let t = approx_tokens(line) + 1;
-        if current_tokens + t > chunk_budget && !current.is_empty() {
-            chunks.push(std::mem::take(&mut current));
-            current_tokens = 0;
-        }
-        current.push(line.clone());
-        current_tokens += t;
-    }
-    if !current.is_empty() {
-        chunks.push(current);
-    }
-
-    let _ = app_handle.emit("novel-phase", serde_json::json!({
-        "phase": "beats",
-        "chunks_total": chunks.len(),
-        "chunk_index": 0,
-    }));
-
-    let mut all_beats: Vec<String> = Vec::new();
-    for (i, chunk) in chunks.iter().enumerate() {
-        let beats_request = ChatRequest {
-            model: model_config.dialogue_model.clone(),
-            messages: vec![
-                openai::ChatMessage {
-                    role: "system".to_string(),
-                    content: beats_system.to_string(),
-                },
-                openai::ChatMessage {
-                    role: "user".to_string(),
-                    content: format!(
-                        "Conversation excerpt (part {} of {} from Day {}):\n\n{}\n\nReturn the beat list.",
-                        i + 1, chunks.len(), world_day,
-                        chunk.join("\n"),
-                    ),
-                },
-            ],
-            temperature: Some(0.5),
-            max_completion_tokens: Some(1_500),
-            response_format: None,
-        };
-        let beats_response = openai::chat_completion_with_base(
-            &model_config.chat_api_base(), &api_key, &beats_request,
+    // ── Sectioned generation ─────────────────────────────────────────────
+    // Each section streams into the same `novel-token` channel. Between
+    // sections we emit a divider token directly so the final stored text
+    // contains the section break inline.
+    let total = sections.len();
+    let mut full_chapter = String::new();
+    for (i, section) in sections.iter().enumerate() {
+        let section_text = stream_section(
+            &app_handle,
+            &model_config,
+            &api_key,
+            &system_prompt,
+            section,
+            i,
+            total,
+            world_day,
         ).await?;
-        let beats_text = beats_response.choices.first()
-            .map(|c| c.message.content.clone())
-            .unwrap_or_default();
-        // Collect bullet lines, tolerant of the model using "* " or no prefix.
-        for line in beats_text.lines() {
-            let trimmed = line.trim();
-            if trimmed.is_empty() { continue; }
-            let cleaned = trimmed
-                .trim_start_matches("- ")
-                .trim_start_matches("* ")
-                .trim_start_matches("• ")
-                .to_string();
-            if !cleaned.is_empty() {
-                all_beats.push(cleaned);
-            }
+        full_chapter.push_str(&section_text);
+
+        if i + 1 < total {
+            let _ = app_handle.emit("novel-token", SECTION_DIVIDER);
+            full_chapter.push_str(SECTION_DIVIDER);
         }
-        let _ = app_handle.emit("novel-phase", serde_json::json!({
-            "phase": "beats",
-            "chunks_total": chunks.len(),
-            "chunk_index": i + 1,
-        }));
     }
-
-    // ── Phase 2: chapter synthesis ───────────────────────────────────────
-    // Feed all collected beats plus the original character / world context
-    // to the model and stream a full chapter.
-    let _ = app_handle.emit("novel-phase", serde_json::json!({
-        "phase": "chapter",
-    }));
-
-    // Number the beats so the chapter model has a concrete "counter" to
-    // track against — local models skip swaths of an unnumbered list
-    // because nothing anchors their attention to each item.
-    let beats_joined = all_beats.iter()
-        .enumerate()
-        .map(|(i, b)| format!("{}. {}", i + 1, b))
-        .collect::<Vec<_>>()
-        .join("\n");
-
-    let beat_count = all_beats.len();
-    let first_beat = all_beats.first().cloned().unwrap_or_default();
-    let last_beat = all_beats.last().cloned().unwrap_or_default();
-
-    let api_messages = vec![
-        openai::ChatMessage {
-            role: "system".to_string(),
-            content: system_prompt,
-        },
-        openai::ChatMessage {
-            role: "user".to_string(),
-            // Instructions bracket the beats list on both sides. A long beat
-            // list in the middle of a prompt gets de-attended by local models
-            // if the task framing is only stated once.
-            content: format!(
-                "You will write a single novel chapter for Day {day} that covers THE ENTIRE DAY, from the first beat to the last, in order.\n\n\
-                 Beat 1 opens the chapter. Beat {count} is the closing moment. Every numbered beat between them must appear in the chapter — none may be skipped, summarized vaguely, or merged away.\n\n\
-                 NARRATIVE BEATS (in chronological order, {count} total):\n\n{beats}\n\n\
-                 WRITING INSTRUCTIONS:\n\
-                 - Begin the chapter with Beat 1 ({first_label}). Do NOT start somewhere in the middle of the day.\n\
-                 - Proceed through the beats in order. Walk your way through all {count} of them.\n\
-                 - End the chapter with Beat {count} ({last_label}) — the resonant closing moment.\n\
-                 - Honor every [It is now X.] time transition: let the chapter's lighting, atmosphere, and pacing reflect morning → afternoon → evening as the beats progress.\n\
-                 - Preserve direct quotes verbatim wherever they appear in the beats.\n\
-                 - Expand each beat into rich prose. If the list is long, make the chapter long — do not skip beats to stay short.\n\n\
-                 Write the full chapter now, beginning with the opening of the day.",
-                day = world_day,
-                count = beat_count,
-                beats = beats_joined,
-                first_label = truncate_label(&first_beat, 80),
-                last_label = truncate_label(&last_beat, 80),
-            ),
-        },
-    ];
-
-    // Chapter budget scales a bit with beat count — a 50-beat day needs more
-    // tokens than a 10-beat day. 4096 was too tight for rich days.
-    let chapter_tokens = (4_096 + (beat_count as u32) * 40).min(8_000);
-
-    let request = StreamingRequest {
-        model: model_config.dialogue_model.clone(),
-        messages: api_messages,
-        temperature: Some(0.95),
-        max_completion_tokens: Some(chapter_tokens),
-        stream: true,
-    };
-
-    openai::chat_completion_stream(
-        &model_config.chat_api_base(), &api_key, &request, &app_handle, "novel-token",
-    ).await
+    Ok(full_chapter)
 }
 
 /// Save (or update) a novel entry.
