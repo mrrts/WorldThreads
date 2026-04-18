@@ -152,7 +152,7 @@ export function IllustrationPickerModal({
           </div>
         )}
         <div>
-          <label className="text-xs font-medium text-muted-foreground block mb-1.5">Generate Image:</label>
+          <label className="text-xs font-medium text-muted-foreground block mb-1.5">Click to Generate Image:</label>
           <div className="flex gap-2">
             {([
               { tier: "low", label: "Quick" },
