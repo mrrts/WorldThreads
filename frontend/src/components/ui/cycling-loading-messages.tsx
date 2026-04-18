@@ -12,12 +12,17 @@ interface Props {
 }
 
 /**
- * Shows one message at a time from `messages`, cycling every `intervalMs` and
- * fading between them. Intended as a stand-in for a static "Loading..." label
- * when the underlying work has long ingest/prep phases — gives the user
- * something to read rather than a frozen screen.
+ * Shows one message at a time from `messages`, cross-fading to the next every
+ * `intervalMs` and pulsing gently while visible. Intended as a stand-in for a
+ * static "Loading..." label when the underlying work has long ingest/prep
+ * phases — gives the user something to read rather than a frozen screen.
+ *
+ * Implementation: all messages are rendered stacked in a single grid cell so
+ * the container is sized by the longest one (no jitter on cycle). Opacity
+ * transitions on the outer wrapper do the cross-fade; an inner span carries
+ * the pulse so the two animations don't fight over the same property.
  */
-export function CyclingLoadingMessages({ messages, intervalMs = 2400, className }: Props) {
+export function CyclingLoadingMessages({ messages, intervalMs = 7200, className }: Props) {
   const [idx, setIdx] = useState(0);
 
   useEffect(() => {
@@ -31,15 +36,19 @@ export function CyclingLoadingMessages({ messages, intervalMs = 2400, className 
   // Reset if the messages array identity changes (different caller context).
   useEffect(() => { setIdx(0); }, [messages]);
 
-  const current = messages[idx] ?? "";
-
-  // key={idx} remounts the span so the fade-in animation retriggers each cycle.
   return (
-    <span
-      key={idx}
-      className={cn("inline-block animate-in fade-in duration-500", className)}
-    >
-      {current}
+    <span className={cn("inline-grid relative", className)}>
+      {messages.map((m, i) => (
+        <span
+          key={i}
+          className={cn(
+            "col-start-1 row-start-1 transition-opacity duration-700 ease-in-out",
+            i === idx ? "opacity-100" : "opacity-0",
+          )}
+        >
+          <span className="animate-pulse">{m}</span>
+        </span>
+      ))}
     </span>
   );
 }
