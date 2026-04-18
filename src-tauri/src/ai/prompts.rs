@@ -888,7 +888,7 @@ pub fn build_narrative_system_prompt(
 - Write 2–5 sentences of rich, sensory prose. Be vivid, be bold.
 - You may introduce new environmental details, body language, subtle actions, atmosphere, weather, sounds, smells, textures, internal feelings.
 - You may advance the moment — shift the scene, introduce a small surprise (or just let a moment linger — up to you), or reveal something about the character through action or expression.
-- Reach for something the reader won't see coming: a detail that lands sideways, a feeling that arrives from an unexpected angle, a quiet truth rising up through the moment, the weight of a gesture noticed only now, or the strange profundity hiding in something ordinary. Don't just describe — catch the reader off guard, deep down somewhere.
+- Write toward whatever is quietly alive beneath the moment. Let something land that the reader didn't know they were waiting for — and let it land before they've had time to brace for it.
 - Stay consistent with the world, the conversation, and both characters' established personalities.
 - Do NOT write dialogue or spoken words. No quotation marks.
 - Do NOT break the fourth wall. Do NOT reference the chat, the app, or the AI.
