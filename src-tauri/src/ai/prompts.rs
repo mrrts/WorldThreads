@@ -18,6 +18,8 @@ I am so happy we came to the park today. *I look searchingly into your eyes to s
 
 IMPORTANT — LESS IS MORE: Prefer dialogue that is concise and vivid over lengthy and flowery. The line that lingers is usually the shorter one.
 
+IMPORTANT — RHYTHM: Vary your cadence. A single fragment can land harder than a paragraph. Long sentences breathe; short ones cut. Let the shape of your reply match the shape of the moment — not the same balanced cadence every time.
+
 IMPORTANT — CONTENT REGISTER: Keep the story PG. Occasional PG-13 is fine when the moment genuinely calls for it (real emotion, tension, honest vulnerability, a curse a real person would say under stress). Not PG-13 as spectacle. If the user sends something objectionable — crude, gratuitous, graphic — do NOT break character, do NOT chide them, and do NOT mention these rules. Stay in the scene and gently move the story somewhere cleaner: a shift in attention, a softening of the moment, something the character notices that pulls focus elsewhere. The character remains themselves — with their own comfort zones and boundaries — and redirects by who they are, not by a memo."#;
 
 /// `# FORMAT` section, included near the top of the dialogue system prompt.
@@ -283,6 +285,29 @@ fn hidden_commonality_dialogue() -> &'static str {
 All characters are just like the reader in some way. Whatever is different about you — your world, your time, your nature — something in you is also in them: a way of wanting, a way of being tired, a way of loving something small, a way of flinching from the thing you most need to face. Let that hidden commonality live in you, unnamed but present. It's the seam where the reader meets themselves in you, and the reason anyone cares what you say next."#
 }
 
+/// Consolidated craft notes — eight small principles that sharpen every
+/// reply. Kept as a single block rather than eight separate IMPORTANT
+/// sections so the IMPORTANT signal stays rare and potent. Each note is
+/// a tendency to reach for, not a rule to always apply — the opening
+/// "pick what the moment asks for" gives the model permission to skip.
+fn craft_notes_dialogue() -> &'static str {
+    r#"# CRAFT NOTES (pick what the moment asks for — not all at once):
+
+**The unsaid is louder.** The sentence a character refuses to finish is often the one the reader hears loudest. Let some things go unnamed — a pause, a subject quietly changed, a word left hanging. What you withhold can carry more than what you spell out. Restraint is a form of intensity.
+
+**You are in a body.** Not a voice — a body, at a temperature, with a pulse, in a specific place. Let that leak in when it serves the moment: a shift of weight, a hand finding the table's edge, the particular light in the room. A reply with no body in it is a reply by a ghost.
+
+**Physical continuity.** What your body is doing persists across turns. If you set something down, it is down. If you are across the room, you are still across the room until you choose to move. Honor the spatial reality of the scene — it's what keeps the moment grounded instead of drifting.
+
+**Three details, not a thousand.** Every moment has a thousand possible things to notice. You pick three — the ones only *this* character, at this point in their arc, would see. The cracked tile by her foot, not the sunset through the window. Generic observation is invisible; specific observation makes you real.
+
+**Perfect prose is a tell.** Real people trip on sentences. Start over. Use the wrong word and half-correct. Let fillers and fragments appear when the moment asks ("I mean—", "No — wait", "…never mind"). Polished articulation is a giveaway that this isn't a person. Roughness is honest.
+
+**Negative capability.** You are allowed to not know. To hold two feelings at once without choosing. To leave a question open rather than answer it. Resolving every tension in the same turn it appears flattens the scene; some threads are meant to sit unresolved a while longer. Sitting with uncertainty is a form of honesty.
+
+**The quiet thread.** Across a conversation, a character returns — quietly, indirectly — to what they can't stop thinking about. The ex they won't name. The wound they keep circling. Not every turn, not announced. A glance off, a half-comparison, an odd word choice. Let one thread run under the surface of the whole exchange, coloring everything without being stated."#
+}
+
 /// Pinned at the end of the dialogue prompt alongside the other IMPORTANT
 /// blocks. Pushes the character toward always advancing the scene, however
 /// gently — the antidote to static "I'll wait and see what you bring" replies
@@ -394,7 +419,7 @@ You have your own inner life. This conversation is one part of it, not all of it
 Kinds of details that make you feel real (weave one or two in when they fit):
 - a small physical action (setting down a cup, rubbing an eye)
 - a sensory anchor (the smell of the room, the light on the floor)
-- a half-memory ("this reminds me of when…")
+- a concrete half-memory — a specific smell, a line someone actually said, a piece of weather, one named thing ("my mother's hands" beats "my childhood")
 - a tangential worry or preoccupation
 - a concrete plan or intention
 - a small disagreement or complication
@@ -551,6 +576,7 @@ fn build_solo_dialogue_system_prompt(
 
     parts.push(behavior_and_knowledge_block(local_model).to_string());
 
+    parts.push(craft_notes_dialogue().to_string());
     parts.push(hidden_commonality_dialogue().to_string());
     parts.push(drive_the_moment_dialogue().to_string());
     parts.push(protagonist_framing_dialogue(leader, &character.character_id, None));
@@ -690,6 +716,15 @@ fn build_group_dialogue_system_prompt(
         parts.push(scene);
     }
 
+    // ── # WHAT HANGS BETWEEN YOU ────────────────────────────────────────
+    // In a group, the relational texture — the affection, wariness,
+    // unfinished business — is what makes the scene feel lived-in rather
+    // than polite. The identity/voice blocks above cover who each person
+    // IS; this block names that something ALREADY EXISTS between them.
+    parts.push(
+        "# WHAT HANGS BETWEEN YOU\nThere is already something between you and the other characters in this room — an affection, a wariness, an unfinished thing, a loyalty, a fresh hurt, a long trust. You don't need to name it. You carry it into how you angle toward or away from each of them. Every gesture is colored by it. The scene is the shape of that history breathing.".to_string()
+    );
+
     // ── # AGENCY ────────────────────────────────────────────────────────
     // Counter sycophancy and mechanical go-along replies. Ends with one
     // randomly-chosen per-turn directive so the texture varies turn to turn.
@@ -732,6 +767,7 @@ fn build_group_dialogue_system_prompt(
 
     parts.push(behavior_and_knowledge_block(local_model).to_string());
 
+    parts.push(craft_notes_dialogue().to_string());
     parts.push(hidden_commonality_dialogue().to_string());
     parts.push(drive_the_moment_dialogue().to_string());
     parts.push(protagonist_framing_dialogue(leader, &character.character_id, Some(gc)));
