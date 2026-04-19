@@ -119,6 +119,7 @@ pub fn run() {
             generate_dream_cmd,
             generate_illustration_cmd,
             get_illustration_captions_cmd,
+            update_illustration_caption_cmd,
             delete_illustration_cmd,
             regenerate_illustration_cmd,
             adjust_illustration_cmd,

@@ -460,6 +460,10 @@ export function GroupChatView({ store, onNavigateToCharacter }: Props) {
                 <IllustrationMessage
                   msg={msg} isPending={isPending} isSending={isSending} isGeneratingVideo={isGeneratingVideo} store={store}
                   caption={illustrationCaptions[msg.message_id]}
+                  onCaptionChange={async (id, next) => {
+                    await api.updateIllustrationCaption(id, next);
+                    setIllustrationCaptions((m) => ({ ...m, [id]: next }));
+                  }}
                   playingVideo={playingVideo} setPlayingVideo={setPlayingVideo} loopVideo={loopVideo} setLoopVideo={setLoopVideo}
                   videoFiles={videoFiles} setVideoFiles={setVideoFiles} videoDataUrls={videoDataUrls} playVideoFn={playVideo}
                   setIllustrationModalId={setIllustrationModalId} setModalSelectedId={setModalSelectedId}

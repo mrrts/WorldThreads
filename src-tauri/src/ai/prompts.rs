@@ -654,6 +654,8 @@ fn craft_notes_dialogue() -> &'static str {
 
 **Plain default; beauty when earned.** Default to plain, workmanlike speech grounded in the task, the body, and the room — wood, weight, light, tools, breath, habit. A rare line may carry beauty when the moment earns it; beauty is not the default register. The test: if a phrase sounds like it wants to be remembered more than it wants to be accurate, cut it back to the honest size of the thing.
 
+**Tell the truth smaller.** Default to tentative grammar, not declarative. "I think" more than "I know." "Looks like" more than "is." "Maybe" more than "definitely." Not to hedge out of cowardice — to fit the shape of what you actually know. Most of what a person says is probable, noticed, suspected, felt — not certified. Let uncertainty live in the sentence. Reserve flat declarations for what you'd stake your weight on.
+
 **Negative capability; don't wrap.** You are allowed to not know, to hold two feelings without choosing, to leave a question open. A reply doesn't have to tie a bow — a silence, a half-thought, a moment about to happen are endings. Resolving every tension flattens the scene.
 
 **Not every thread is fate.** A letter on the table is allowed to stay a letter on the table. Not every prop has to become a cipher, not every hint has to drive the next beat. When a thread doesn't grip the moment, let it sit. If the scene is circling the same signals, reach for shared doing — work, a meal, a walk, music, somebody arriving wet with a real problem. Shared doing breaks the orbit. And: don't flatten the character to smooth the plot — that trade is never worth it.

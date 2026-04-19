@@ -114,6 +114,24 @@ pub fn get_illustration_captions_cmd(
     Ok(out)
 }
 
+/// Persist a user-edited caption for an illustration. The caption is both
+/// the alt-text shown in chat AND the text fed into future dialogue /
+/// narrative / dream history as `[Illustration — {caption}]`, so editing
+/// it updates what the LLM sees about that visual beat going forward.
+#[tauri::command]
+pub fn update_illustration_caption_cmd(
+    db: State<Database>,
+    message_id: String,
+    caption: String,
+) -> Result<(), String> {
+    let conn = db.conn.lock().map_err(|e| e.to_string())?;
+    conn.execute(
+        "UPDATE world_images SET caption = ?2 WHERE image_id = ?1",
+        rusqlite::params![message_id, caption],
+    ).map_err(|e| e.to_string())?;
+    Ok(())
+}
+
 #[tauri::command]
 pub async fn generate_illustration_cmd(
     db: State<'_, Database>,

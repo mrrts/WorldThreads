@@ -462,6 +462,8 @@ export const api = {
     invoke<IllustrationResult>("generate_illustration_cmd", { apiKey, characterId, qualityTier: qualityTier ?? null, customInstructions: customInstructions ?? null, previousIllustrationId: previousIllustrationId ?? null, includeSceneSummary: includeSceneSummary ?? true }),
   deleteIllustration: (messageId: string) =>
     invoke<void>("delete_illustration_cmd", { messageId }),
+  updateIllustrationCaption: (messageId: string, caption: string) =>
+    invoke<void>("update_illustration_caption_cmd", { messageId, caption }),
   getIllustrationCaptions: (messageIds: string[]) =>
     invoke<Record<string, string>>("get_illustration_captions_cmd", { messageIds }),
   regenerateIllustration: (apiKey: string, characterId: string, messageId: string) =>

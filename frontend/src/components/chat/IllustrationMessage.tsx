@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { Image, Square, Repeat, SlidersHorizontal, RefreshCw, Trash2, ExternalLink, Check, Download, Video } from "lucide-react";
+import React, { useState, useRef, useEffect } from "react";
+import { Image, Square, Repeat, SlidersHorizontal, RefreshCw, Trash2, ExternalLink, Check, Download, Video, Pencil, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
 import { WebviewWindow } from "@tauri-apps/api/webviewWindow";
@@ -16,6 +16,9 @@ interface Props {
    *  instructions verbatim or an LLM-picked "memorable moment" sentence.
    *  Rendered as a visible caption below the image AND as the alt attr. */
   caption?: string;
+  /** Persist a user-edited caption. Called when the user saves an inline
+   *  edit. Updates the DB and any cached caption state. */
+  onCaptionChange?: (messageId: string, caption: string) => void;
   // Video state
   playingVideo: string | null;
   setPlayingVideo: (v: string | null) => void;
@@ -55,10 +58,46 @@ export function IllustrationMessage({
   setVideoModalId, setVideoPrompt, setVideoDuration, setVideoStyle, setVideoTab,
   setRemoveVideoConfirmId, setResetConfirmId,
   downloadedId, setDownloadedId, loadIllustrations,
-  caption,
+  caption, onCaptionChange,
 }: Props) {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showRegenConfirm, setShowRegenConfirm] = useState(false);
+  const [editingCaption, setEditingCaption] = useState(false);
+  const [captionDraft, setCaptionDraft] = useState("");
+  const [savingCaption, setSavingCaption] = useState(false);
+  const captionInputRef = useRef<HTMLTextAreaElement | null>(null);
+
+  const startEditCaption = () => {
+    setCaptionDraft(caption ?? "");
+    setEditingCaption(true);
+  };
+  const cancelEditCaption = () => {
+    setEditingCaption(false);
+    setCaptionDraft("");
+  };
+  const saveCaption = async () => {
+    if (!onCaptionChange) { cancelEditCaption(); return; }
+    const next = captionDraft.trim();
+    if (next === (caption ?? "").trim()) { cancelEditCaption(); return; }
+    setSavingCaption(true);
+    try {
+      await onCaptionChange(msg.message_id, next);
+      setEditingCaption(false);
+      setCaptionDraft("");
+    } finally {
+      setSavingCaption(false);
+    }
+  };
+
+  useEffect(() => {
+    if (editingCaption) {
+      // Focus + move cursor to end.
+      requestAnimationFrame(() => {
+        const el = captionInputRef.current;
+        if (el) { el.focus(); el.setSelectionRange(el.value.length, el.value.length); }
+      });
+    }
+  }, [editingCaption]);
 
   return (<>
     <div data-message-id={msg.message_id} className="flex justify-center my-3">
@@ -229,11 +268,67 @@ export function IllustrationMessage({
             </div>
           )}
         </div>
-        {caption && caption.trim() !== "" && (
-          <p className="px-4 pt-0.5 pb-2 text-xs text-emerald-100/80 italic leading-snug">
-            {caption}
-          </p>
-        )}
+        {/* Caption: click pencil on hover to edit. When no caption exists,
+            an "Add caption" affordance still appears on hover so the user
+            can attach one. Editing is inline (textarea + Save/Cancel).
+            Persisting the edit updates both the chat display and what the
+            LLM sees as [Illustration — {caption}] in future history. */}
+        {editingCaption ? (
+          <div className="px-4 pt-1 pb-2">
+            <textarea
+              ref={captionInputRef}
+              value={captionDraft}
+              onChange={(e) => setCaptionDraft(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Escape") { e.preventDefault(); cancelEditCaption(); }
+                if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) { e.preventDefault(); saveCaption(); }
+              }}
+              rows={Math.max(2, Math.min(6, (captionDraft.match(/\n/g)?.length ?? 0) + 2))}
+              placeholder="Describe what's actually pictured…"
+              className="w-full bg-emerald-950/40 border border-emerald-700/40 rounded-md px-2.5 py-1.5 text-xs text-emerald-100 italic leading-snug resize-y focus:outline-none focus:ring-1 focus:ring-emerald-500/60"
+              disabled={savingCaption}
+            />
+            <div className="flex items-center gap-1.5 mt-1.5">
+              <button
+                onClick={saveCaption}
+                disabled={savingCaption}
+                className="text-[10px] px-2 py-1 rounded-md bg-emerald-600/80 text-white hover:bg-emerald-600 transition-colors cursor-pointer disabled:opacity-50 not-italic flex items-center gap-1"
+              >
+                <Check size={10} /> Save
+              </button>
+              <button
+                onClick={cancelEditCaption}
+                disabled={savingCaption}
+                className="text-[10px] px-2 py-1 rounded-md text-emerald-300/70 hover:text-emerald-200 hover:bg-emerald-900/40 transition-colors cursor-pointer disabled:opacity-50 not-italic flex items-center gap-1"
+              >
+                <X size={10} /> Cancel
+              </button>
+              <span className="text-[9px] text-emerald-500/40 ml-auto not-italic">⌘↵ to save · Esc to cancel</span>
+            </div>
+          </div>
+        ) : caption && caption.trim() !== "" ? (
+          <div className="px-4 pt-0.5 pb-2 group/cap flex items-start gap-1.5">
+            <p className="text-xs text-emerald-100/80 italic leading-snug flex-1">{caption}</p>
+            {!isPending && onCaptionChange && (
+              <button
+                onClick={startEditCaption}
+                className="opacity-0 group-hover/cap:opacity-100 transition-opacity text-emerald-500/50 hover:text-emerald-300 flex-shrink-0 mt-0.5 cursor-pointer"
+                title="Edit caption"
+              >
+                <Pencil size={10} />
+              </button>
+            )}
+          </div>
+        ) : !isPending && onCaptionChange ? (
+          <div className="px-4 pt-0.5 pb-2 opacity-0 group-hover/illus:opacity-100 transition-opacity">
+            <button
+              onClick={startEditCaption}
+              className="text-[10px] italic text-emerald-500/50 hover:text-emerald-300 cursor-pointer flex items-center gap-1"
+            >
+              <Pencil size={9} /> Add caption
+            </button>
+          </div>
+        ) : null}
         <p className="text-[10px] px-4 pb-3 text-emerald-500/50 flex items-center gap-2">
           {new Date(msg.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
           {!isPending && (
