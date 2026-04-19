@@ -305,9 +305,9 @@ export function CanonizationModal({
           {/* Actions */}
           <div className="flex items-center justify-end gap-2 pt-1">
             <Button variant="ghost" onClick={() => onOpenChange(false)} disabled={saving}>Cancel</Button>
-            <Button onClick={handleSave} disabled={saving || !content.trim() || loadingWeave}>
-              {saving ? <Loader2 size={14} className="animate-spin mr-1.5" /> : null}
-              {saving ? "Saving..." : "Save to canon"}
+            <Button onClick={handleSave} disabled={saving || loadingWeave || !content.trim()}>
+              {(saving || loadingWeave) ? <Loader2 size={14} className="animate-spin mr-1.5" /> : null}
+              {saving ? "Saving..." : loadingWeave ? "Loading preview..." : "Save to canon"}
             </Button>
           </div>
         </div>
