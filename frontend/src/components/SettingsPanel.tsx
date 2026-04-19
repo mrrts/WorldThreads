@@ -241,6 +241,14 @@ export function SettingsPanel({ store }: Props) {
               <Field label="Dialogue" hint="Character responses — higher quality">
                 {modelSelect(config.dialogue_model, (v) => setConfig({ ...config, dialogue_model: v }))}
               </Field>
+              <Field label="Frontier override" hint="Used when a chat picks 'Frontier' in its settings. Free-text — type any OpenAI model ID (gpt-4o, gpt-5, gpt-5.4, etc).">
+                <Input
+                  value={config.dialogue_model_frontier ?? ""}
+                  onChange={(e) => { setConfig({ ...config, dialogue_model_frontier: e.target.value }); setDirty(true); }}
+                  className="font-mono text-xs"
+                  placeholder="gpt-4o"
+                />
+              </Field>
               <Field label="World Tick" hint="Off-screen simulation — cheaper">
                 {modelSelect(config.tick_model, (v) => setConfig({ ...config, tick_model: v }))}
               </Field>

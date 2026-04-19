@@ -93,6 +93,11 @@ export interface ModelConfig {
   /** Declared local-model context window in tokens. Used for chunking long
    *  novelization prompts. UI shows this in 10k steps (e.g. "40k"). */
   lmstudio_context_tokens: number;
+  /** Frontier (OpenAI) dialogue model used when a chat opts into the
+   *  per-chat "Frontier" provider override. Stored separately from
+   *  dialogue_model so the override works even when the primary dialogue
+   *  model is configured for a local backend. */
+  dialogue_model_frontier: string;
 }
 
 export interface LocalModelInfo {

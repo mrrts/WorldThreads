@@ -23,11 +23,19 @@ pub struct ModelConfig {
     /// completion budget, and tokenizer variance.
     #[serde(default = "default_lmstudio_context_tokens")]
     pub lmstudio_context_tokens: u32,
+    /// Frontier (OpenAI) dialogue model used when a chat opts into the
+    /// "Frontier" per-chat provider override. Separate from `dialogue_model`
+    /// because the primary dialogue_model may be configured for the user's
+    /// local setup (an LM Studio model ID) — we need a frontier-specific
+    /// model ID that's valid against OpenAI's API independent of that.
+    #[serde(default = "default_dialogue_frontier")]
+    pub dialogue_model_frontier: String,
 }
 
 fn default_provider() -> String { "openai".to_string() }
 fn default_lmstudio_url() -> String { "http://127.0.0.1:1234".to_string() }
 fn default_lmstudio_context_tokens() -> u32 { 40_000 }
+fn default_dialogue_frontier() -> String { "gpt-4o".to_string() }
 
 impl Default for ModelConfig {
     fn default() -> Self {
@@ -41,6 +49,7 @@ impl Default for ModelConfig {
             ai_provider: default_provider(),
             lmstudio_url: default_lmstudio_url(),
             lmstudio_context_tokens: default_lmstudio_context_tokens(),
+            dialogue_model_frontier: default_dialogue_frontier(),
         }
     }
 }
@@ -100,15 +109,12 @@ impl ModelConfig {
         match ov.as_str() {
             "openai" => {
                 self.ai_provider = "openai".to_string();
-                // Frontier model lives in its own setting so this works
-                // even when the user's global dialogue_model is an
-                // LM-Studio-only model ID like "llama-3.1-8b-instruct".
-                let frontier_model = get_setting(conn, "model.dialogue_frontier")
-                    .ok()
-                    .flatten()
-                    .filter(|s| !s.is_empty())
-                    .unwrap_or_else(|| "gpt-4o".to_string());
-                self.dialogue_model = frontier_model;
+                // Frontier model is stored separately so this works even
+                // when the user's global dialogue_model is an LM-Studio-
+                // only model ID like "llama-3.1-8b-instruct".
+                if !self.dialogue_model_frontier.is_empty() {
+                    self.dialogue_model = self.dialogue_model_frontier.clone();
+                }
             }
             "lmstudio" => {
                 self.ai_provider = "lmstudio".to_string();
@@ -174,6 +180,7 @@ pub fn load_model_config(conn: &Connection) -> ModelConfig {
         lmstudio_context_tokens: get("lmstudio_context_tokens", "40000")
             .parse::<u32>()
             .unwrap_or(40_000),
+        dialogue_model_frontier: get("model.dialogue_frontier", "gpt-4o"),
     }
 }
 
@@ -187,6 +194,7 @@ pub fn save_model_config(conn: &Connection, config: &ModelConfig) -> Result<(), 
     set_setting(conn, "ai_provider", &config.ai_provider)?;
     set_setting(conn, "lmstudio_url", &config.lmstudio_url)?;
     set_setting(conn, "lmstudio_context_tokens", &config.lmstudio_context_tokens.to_string())?;
+    set_setting(conn, "model.dialogue_frontier", &config.dialogue_model_frontier)?;
     Ok(())
 }
 
