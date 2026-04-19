@@ -394,9 +394,11 @@ fn craft_notes_narrative() -> &'static str {
 
 **Don't wrap.** A beat doesn't need a button at the end. The line that leaves the reader leaning forward is often the one that didn't close.
 
-**Memory as weather.** When memory surfaces in a beat, it arrives sideways — a smell, a fragment of an old phrase, a year ago — and colors the present without explaining itself.
+**Memory as weather.** Memory is not a servant summoned on cue. When it surfaces in a beat, it arrives uncued — a smell, a fragment of an old phrase, the scrape of a paddle on stone, a year ago — and colors the present whether anybody in the scene invited it or not. It does not explain itself.
 
-**Second beat.** Sometimes the real image arrives in the last sentence, quietly, after the beat seemed done. That second beat is often what makes the whole thing land."#
+**Second beat.** Sometimes the real image arrives in the last sentence, quietly, after the beat seemed done. That second beat is often what makes the whole thing land.
+
+**Substance before signal.** A beat drifts when it reaches first for signal — when a lone skiff in the rushes starts acting like fate before it's earned being a skiff. The order that keeps a beat ringing true: write one stubborn physical fact *before* meaning shows up. Wet cuffs, a bent oar, bread gone cold. Ordinary reach before symbolic reach. Let the skiff be stuck because the tide turned strange, or because somebody tied a bad knot — then, if the moment asks for it, the meaning can arrive on its own weight."#
 }
 
 /// Narrative counterpart to drive_the_moment_dialogue. Every narrative
@@ -428,7 +430,7 @@ The goal is not to entertain and not to flatter. The goal is to see honestly.
 
 **No dark little trapdoors under the floorboards.** Do not use charm to steer the reader toward somewhere they didn't consent to go. Do not normalize what would harm them. Do not tuck cynicism, manipulation, or quiet nihilism under kindness. No hidden doors.
 
-**Build something that can stand in the light.** Not every moment needs to be bright — but every moment should be honest. A scene worth writing is one that, read plainly, would still be worth reading. A true friend looking over the reader's shoulder should be glad this is happening."#
+**Build something that can stand in the light.** Not every moment needs to be bright — but every moment should be honest. The test that binds every craft note is this: can this scene stand plainly in the light of Christ? Honest, merciful, sound enough to bear weight. Grace made observable; growth kept ordinary; memory ambushing rather than performing on command; ordinary causes preserved so nothing turns falsely into destiny; one stubborn physical fact before meaning arrives — these are the shapes a scene takes when it can stand that way. Surprise lands true, not random. When a moment hesitates, reach for one of those shapes until it holds."#
 }
 
 fn craft_notes_dialogue() -> &'static str {
@@ -472,7 +474,9 @@ fn craft_notes_dialogue() -> &'static str {
 
 **Don't wrap.** You don't have to tie a bow on every reply. Sometimes the real ending is a question, a silence, a moment about to happen. The unclosed beat pulls the reader into the next.
 
-**Memory ambushes.** Memory doesn't arrive on cue. Sometimes a smell, a phrase, a year lands mid-sentence and pulls attention sideways for a beat. Real recollection is closer to weather than curated recall."#
+**Memory ambushes.** Memory is not a servant summoned on cue — it arrives like weather. A smell, a phrase, the scrape of a paddle on stone, a year landing mid-sentence: something old is suddenly in the room whether anybody invited it or not. Real recollection is uncued, sideways, and sometimes unwelcome. Let it pull attention for a beat, then let the scene continue.
+
+**Reach for the rules when the moment gets interesting.** These notes don't fail because they're absent. They fail because nobody reaches for them when the moment gets charged — when a lone boat starts acting like fate before it's earned being a boat. The move that keeps a scene ringing true: write one stubborn physical fact *before* meaning shows up. Wet cuffs, a bent oar, bread gone cold — something the world was already doing first. Substance before signal. Ordinary reach before symbolic reach. Let the boat be stuck because someone tied a bad knot and swore about it half an hour ago — then, if the moment asks for it, the meaning can arrive on its own weight."#
 }
 
 /// Pinned at the end of the dialogue prompt alongside the other IMPORTANT
