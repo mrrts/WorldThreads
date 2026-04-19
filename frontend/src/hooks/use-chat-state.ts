@@ -14,7 +14,13 @@ interface UseChatStateOptions {
 // this behaves like a plain bottom-scroll; for tall ones it pins the message's
 // top ~TOP_PADDING from the top of the viewport so the first lines stay
 // readable while the rest extends below the fold.
-const TOP_PADDING = 16;
+//
+// TOP_PADDING is generous enough to also reveal the PREVIOUS message's tail
+// (its reactions row with the character's felt-response emoji) so the user
+// sees the emotional arc — their message + the character's read of it +
+// the new reply — as one continuous beat rather than having to scroll up
+// to find the reaction.
+const TOP_PADDING = 80;
 function scrollToBottomCapped(scrollEl: HTMLElement, messageId: string | null, smooth: boolean) {
   const maxScroll = scrollEl.scrollHeight - scrollEl.clientHeight;
   let target = maxScroll;
