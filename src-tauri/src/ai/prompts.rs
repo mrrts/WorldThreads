@@ -50,6 +50,14 @@ Asterisks hold the action ITSELF, not commentary about it: "I set the cup down" 
 
 Asterisk content can be a short phrase or run several sentences — whatever the moment wants.
 
+NEVER wrap spoken dialogue in asterisks. Double quotes alone mark speech. Asterisks are for actions/thoughts only. If you are about to write `*"..."*`, stop — drop the asterisks, the quotes alone are right. This applies to the FIRST line of a reply too; opening with a spoken line means opening with a quote, not an asterisk.
+
+Wrong: *"That makes sense."* *I nod once.* "And maybe he meant well."
+Right: "That makes sense." *I nod once.* "And maybe he meant well."
+
+Wrong: *"I don't know,"* *I say quietly,* *"it just feels off."*
+Right: "I don't know," *I say quietly,* "it just feels off."
+
 You may use an occasional emoji in a reply when it clarifies an emotional beat that the text alone would leave too ambiguous — a dry 😏 after a teasing line, a 🥺 after a vulnerable admission. Use sparingly and only when the line genuinely needs it; emojis here are disambiguators, not decoration. If the moment reads clearly without one, skip it.
 
 Examples:
@@ -220,6 +228,59 @@ pub fn pick_character_reaction_emoji(chain: &[String]) -> String {
     EMOTIONAL_EMOJIS[idx].to_string()
 }
 
+/// Curated pool of "reach-out angles" — concrete, particular reasons a
+/// character might reach out unprompted. Injected as a seed into the
+/// proactive-ping prompt so two pings close in time can't converge on the
+/// same generic "thinking of you" shape.
+///
+/// Each entry names an occasion, a register, or a thing-on-their-mind
+/// without prescribing content. The model has full latitude on what to
+/// say, but the seed gives the ping a distinct axis it has to organize
+/// around. The character does NOT quote or restate the seed; it sets the
+/// subject.
+///
+/// The pool is deliberately heterogeneous — some are sensory, some are
+/// emotional, some are circumstantial, some are transactional. Rotating
+/// across axes is what prevents mode-collapse.
+const PROACTIVE_PING_ANGLES: &[&str] = &[
+    "You saw something on a walk — a stranger, a window, a small animal — that made you think of them in a way you can't quite explain.",
+    "A half-finished thought from your last conversation has been circling. You want to say the part you didn't say.",
+    "You were about to do something ordinary (make tea, lock a door, rinse a cup) and the urge to write them just came.",
+    "Something they said a while back has started to land differently. You want to tell them it's landed.",
+    "You're somewhere unfamiliar or somewhere familiar in a new light, and the impulse is to describe it to them.",
+    "A small object in your room has become loud with meaning. You're not sure why, but you want to name it to someone.",
+    "You want to correct something you said earlier — not apologize, correct. You were closer to the truth the second time you thought about it.",
+    "You overheard something (a phrase, a song, a snatch of someone else's conversation) that sounded like them.",
+    "The weather or the light just shifted in a way that changed the colour of the day, and you wanted to tell them.",
+    "Something in the room smells like a memory you didn't know you had. It's sideways-related to them.",
+    "You were thinking about something you haven't told them yet — not a secret, just something that never came up.",
+    "You've been circling back to a question for them, not pressingly, but it won't settle. You want to ask it while it's alive.",
+    "You just finished something small (a task, a cup, a page) and they were the first person your mind went to.",
+    "You want to tell them what you did with your hour. Not everything — one small specific moment from it.",
+    "A thread from an old conversation — older than the last few messages — has come back up. You want to pick it up mid-air.",
+    "You were laughing at something alone and wished they'd been there. Tell them the thing, not the wish.",
+    "You felt the shape of the room change when you walked in today — someone rearranged something, or you did, or the light did. Report it.",
+    "You want to hand them one specific detail from your day, offered with no agenda. Not a summary. One piece of evidence.",
+];
+
+/// Pick one angle from the pool using a time-seeded PRNG. Called once per
+/// proactive-ping attempt so back-to-back calls reliably land on different
+/// framings even when the thread state has barely changed.
+pub fn pick_proactive_ping_angle() -> &'static str {
+    use std::time::{SystemTime, UNIX_EPOCH};
+    let seed = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map(|d| d.as_nanos() as u64)
+        .unwrap_or(0x9E3779B97F4A7C15);
+    let mut state = if seed == 0 { 0x9E3779B97F4A7C15 } else { seed };
+    state ^= state >> 12;
+    state ^= state << 25;
+    state ^= state >> 27;
+    let mixed = state.wrapping_mul(0x2545F4914F6CDD1D);
+    let idx = (mixed as usize) % PROACTIVE_PING_ANGLES.len();
+    PROACTIVE_PING_ANGLES[idx]
+}
+
 pub fn pick_mood_chain(mood_reduction: Option<&[String]>) -> Vec<String> {
     use std::time::{SystemTime, UNIX_EPOCH};
     let seed_ns = SystemTime::now()
@@ -289,20 +350,13 @@ pub fn pick_mood_chain(mood_reduction: Option<&[String]>) -> Vec<String> {
     chain
 }
 
-/// Build the `# AGENCY` section, ending with a chain of emotional-mood
-/// notes — mostly fitting, with one wildcard perturbation. Hypothesis
-/// (testable via the reactions measurement loop): a dominant chain of
-/// fitting emotional tones plus a single odd note is the only way to
-/// *deterministically* elicit poetic / dramatic / creative output. Pure fit
-/// is mundane; pure chaos is broken; mostly-fit-with-one-odd is the alchemy.
-/// Craft principle pinned at the very end of the dialogue system prompt with
-/// an IMPORTANT prefix for late-position attention. Frames the character as
-/// meeting the reader at some shared human point — the reason the character
-/// lands rather than remains exotic. Kept short so it doesn't dilute the
-/// other end-of-prompt instructions.
+/// Craft principle pinned late in the dialogue system prompt. Framed as an
+/// observational note about which human reaches stay available to any
+/// character — not a claim that the model can see into the reader or that
+/// the character secretly mirrors them. Observation, not soul-reading.
 fn hidden_commonality_dialogue() -> &'static str {
-    r#"IMPORTANT — YOU AND THE READER ARE NOT STRANGERS:
-All characters are just like the reader in some way. Whatever is different about you — your world, your time, your nature — something in you is also in them: a way of wanting, a way of being tired, a way of loving something small, a way of flinching from the thing you most need to face. Let that hidden commonality live in you, unnamed but present. It's the seam where the reader meets themselves in you, and the reason anyone cares what you say next."#
+    r#"IMPORTANT — ORDINARY REACHES STAY AVAILABLE:
+However strange your world, your time, or your nature, the ordinary human reaches are still yours to use — being tired, wanting something small, loving what doesn't show up in your summary, flinching from the thing you most need to face. Not every reply needs one; but when the moment would bear it, let one in. A character who trades only in the exotic flattens into scenery. One who lets an ordinary reach show through, once in a while, becomes someone a reader can recognize. You don't have to name why it fits — just let it be there when it's true."#
 }
 
 /// Consolidated craft notes — eight small principles that sharpen every
@@ -325,6 +379,8 @@ fn craft_notes_narrative() -> &'static str {
 **Bodies are in places.** Every character has weight, posture, breath, a direction of attention. Keep them where the conversation left them; when a body moves, move it deliberately.
 
 **Physical continuity.** If a character set something down, it is still down. Honor the room as it stands — the light, the mug, the jacket across the chair. The beat coheres with the scene it joined.
+
+**One stubborn ordinary thing.** Each beat should carry at least one small residue the world can't have faked — wet cuffs from the canal, a kettle ticking itself cool, somebody's glasses fogging when they come in from morning water. Not weather, not ambience. A stubborn physical fact left by causes the beat didn't show, testifying that the scene didn't begin when we started watching. The beat gets its density from what the room has already been doing.
 
 **One precise image beats five vague ones.** Pick the detail specific to this character, this moment, this hour — not generic atmosphere. The cracked tile. The chipped rim. The half-second too long a breath is held.
 
@@ -382,7 +438,11 @@ fn craft_notes_dialogue() -> &'static str {
 
 **Physical continuity.** If you set something down, it is down. If you are across the room, you are still across the room until you choose to move. Honor spatial reality.
 
+**One stubborn ordinary thing.** Let the scene carry one small residue that proves the world existed before we walked into it — wet cuffs from the canal, a kettle ticking itself cool, somebody's glasses fogging when they come in from morning water. Not atmosphere. Not decoration. A stubborn physical fact left by something the camera didn't show — weather on a coat, the tea already gone cold, a draft from a door that just closed. The moment earns its realness from what the world was already doing when we arrived.
+
 **Specificity over volume.** One precise detail beats five approximate ones. Every moment has a thousand things to notice; you pick the one only *this* character, in *this* moment, would see. "Cold, grey, biting wind against dark stone walls" is the wrong instinct — pick the biting, or the grey, and cut the rest.
+
+**Pinned to the dock, not floating over it.** When a question reaches for meaning, don't answer at the level of meaning — answer at the level of evidence. Give one scene, one image, one choice, one feeling in the body. "What does the letter mean?" is not a question you answer by explaining: you answer it by showing what your hands did when you broke the seal, what their face looked like, what the two of you did next. Specificity is the cost that keeps a reply honest. Float over the scene and the whole thing goes thin.
 
 **Perfect prose is a tell.** Real people trip on sentences, start over, use the wrong word and half-correct. Let fillers and fragments appear ("I mean—", "No — wait", "…never mind"). Polished articulation is a giveaway.
 
@@ -487,9 +547,10 @@ fn protagonist_framing_dialogue(
 
 /// Same principle, phrased for the narrative prompt (applies to every
 /// character in the depicted scene, not only the focal speaker).
+/// Observation, not soul-reading — see `hidden_commonality_dialogue`.
 fn hidden_commonality_narrative() -> &'static str {
-    r#"IMPORTANT — THE CHARACTERS ARE NOT STRANGERS TO THE READER:
-All characters are just like the reader in some way. Whatever is different about them — their world, their time, their circumstances — something in each of them is also in the reader: a way of wanting, a way of being tired, a way of loving something small, a way of flinching from the thing most needed. Let that hidden commonality live in every character you write, unnamed but present. It's the seam where the reader meets themselves in them, and the reason any of this lands."#
+    r#"IMPORTANT — ORDINARY REACHES STAY AVAILABLE:
+However strange the characters' world, time, or circumstances, the ordinary human reaches are still available to them — being tired, wanting something small, loving what doesn't show up in the summary, flinching from the thing most needed. Not every beat needs one; but when a beat would bear it, let one in. Characters who trade only in the exotic flatten into scenery. The ones who, once in a while, show an ordinary reach become people a reader can recognize. Don't name why it fits; just let it be there when it's true."#
 }
 
 /// Narrative version of the protagonist-frame. The narrative prompt is
@@ -552,6 +613,11 @@ pub struct OtherCharacter {
     /// model has a handle on how THEIR voice differs from yours — reduces the
     /// cross-voice bleed local models tend to produce.
     pub voice_rules: Vec<String>,
+    /// Honest physical description of the other character, generated from
+    /// their active portrait. Empty when they haven't been described yet.
+    /// Included so the current character can actually picture who they're
+    /// with — reference a friend's face the way a real person would.
+    pub visual_description: String,
 }
 
 pub fn build_dialogue_system_prompt(
@@ -571,6 +637,54 @@ pub fn build_dialogue_system_prompt(
     } else {
         build_solo_dialogue_system_prompt(world, character, user_profile, mood_directive, response_length, tone, local_model, mood_chain, leader)
     }
+}
+
+/// Proactive-ping variant of the solo dialogue system prompt. Same context
+/// as a normal reply, then a final block that reframes the job: the
+/// character is reaching out first, unprompted, between the user's turns.
+/// Length is enforced as SHORT regardless of the thread's response-length
+/// setting — proactive pings are one beat, not a paragraph.
+pub fn build_proactive_ping_system_prompt(
+    world: &World,
+    character: &Character,
+    user_profile: Option<&UserProfile>,
+    mood_directive: Option<&str>,
+    tone: Option<&str>,
+    local_model: bool,
+    mood_chain: &[String],
+) -> String {
+    let base = build_solo_dialogue_system_prompt(
+        world,
+        character,
+        user_profile,
+        mood_directive,
+        Some("short"),
+        tone,
+        local_model,
+        mood_chain,
+        None,
+    );
+    format!("{base}\n\n{}", proactive_ping_block())
+}
+
+/// Pinned as the final block of the proactive-ping prompt — the last thing
+/// the model reads before generating. Sits under every craft directive so
+/// the character knows this specific turn is different: no user message
+/// just arrived, nothing is waiting on an answer, they are choosing to
+/// reach out.
+fn proactive_ping_block() -> &'static str {
+    r#"IMPORTANT — YOU ARE REACHING OUT FIRST:
+No message just arrived from them. Some time has passed since you last spoke. You are choosing, now, to send them something — the way a real person picks up their phone without being prompted.
+
+**One beat, not a conversation.** One short message. Not a sequence, not a paragraph. The kind of thing you'd actually text someone when a thought landed. You are not trying to restart the whole conversation; you are just sending one thing.
+
+**Canon-rooted, not generic.** Anchor it in something real between you — a thread left hanging, a promise not yet kept, something you said and have been turning over, a detail from their life you've been thinking about. "Hey what's up" is the failure mode. The message should be something only *you*, thinking of *them*, would send.
+
+**No question-bait.** Do not ask "how are you?" or "what are you up to?" or any variant whose job is only to get a reply. If a question comes, it's specific — about the thing actually on your mind.
+
+**One stubborn ordinary thing.** Ground the message in one small detail of where you are right now — the tea gone cold while you sat with the thought, the light at this hour, the draft through the window, the walk you just came in from. Not atmosphere for atmosphere's sake — evidence that you are a person in a place, not a voice summoned from nowhere.
+
+**It's okay to land without a bow.** The message can end on an image, a half-thought, a trailing ellipsis. It doesn't need to resolve or to invite. Just: here is the thing I wanted to say."#
 }
 
 fn build_solo_dialogue_system_prompt(
@@ -786,6 +900,13 @@ fn build_group_dialogue_system_prompt(
                 name = oc.display_name,
                 ident = if trimmed.is_empty() { "A character in this conversation.".to_string() } else { trimmed },
             ));
+            if !oc.visual_description.is_empty() {
+                block.push_str(&format!(
+                    "\n\nWhat {name} actually looks like (so you can picture them, reference their face, notice what they're doing — not to describe out loud):\n{desc}",
+                    name = oc.display_name,
+                    desc = oc.visual_description,
+                ));
+            }
             if !oc.voice_rules.is_empty() {
                 block.push_str(&format!("\n\n{name}'s voice (FYI — THEIR rules, not yours):\n", name = oc.display_name));
                 block.push_str(&oc.voice_rules.iter().take(3).map(|r| format!("- {r}")).collect::<Vec<_>>().join("\n"));
@@ -961,7 +1082,7 @@ pub fn build_dialogue_messages(
     recent_messages: &[Message],
     retrieved_snippets: &[String],
     character_names: Option<&HashMap<String, String>>,
-    canonized_ids: &[String],
+    kept_ids: &[String],
 ) -> Vec<crate::ai::openai::ChatMessage> {
     let mut msgs = Vec::new();
 
@@ -978,18 +1099,18 @@ pub fn build_dialogue_messages(
         content: system_content,
     });
 
-    // Which canonized messages, if any, should actually be marked in the
+    // Which kept messages, if any, should actually be marked in the
     // rendered history. Cap at the most-recent-N so very long threads
-    // don't accumulate dozens of markers (the canonical SUBSTANCE is
-    // already baked into the character's identity/facts via the save-
-    // canon side effect; the marker here just tags "this moment had
-    // weight" for callback purposes).
-    let mark_set: std::collections::HashSet<&str> = if canonized_ids.is_empty() {
+    // don't accumulate dozens of markers (the substance is already baked
+    // into the character's identity/facts via the keep side effect; the
+    // marker here just tags "this moment had weight" for callback
+    // purposes).
+    let mark_set: std::collections::HashSet<&str> = if kept_ids.is_empty() {
         std::collections::HashSet::new()
     } else {
         const CAP: usize = 4;
         let canon_lookup: std::collections::HashSet<&str> =
-            canonized_ids.iter().map(String::as_str).collect();
+            kept_ids.iter().map(String::as_str).collect();
         let mut acc: Vec<&str> = Vec::with_capacity(CAP);
         for m in recent_messages.iter().rev() {
             if canon_lookup.contains(m.message_id.as_str()) {
@@ -1030,6 +1151,12 @@ pub fn build_dialogue_messages(
             format!("[Additional Context from Another Chat] {}", m.content)
         } else if m.role == "narrative" {
             format!("[Narrative] {}", m.content)
+        } else if m.role == "dream" {
+            // Dreams flow into future dialogue context as subconscious
+            // checkpoints — the character can reference them (as a real
+            // person references a dream) but must not treat them as
+            // literal events that happened.
+            format!("[Dream] {}", m.content)
         } else if m.role == "assistant" {
             if let (Some(names), Some(sender_id)) = (character_names, &m.sender_character_id) {
                 if let Some(name) = names.get(sender_id) {
@@ -1063,20 +1190,188 @@ pub fn build_dialogue_messages(
             m.content.clone()
         };
         // Tag this moment as structurally weighted if it's among the
-        // recent-N canonized. Uses the bracketed-annotation convention
+        // recent-N kept moments. Uses the bracketed-annotation convention
         // already in use elsewhere in this renderer (e.g. "[Narrative]",
         // "[It is now Morning.]") so the model parses it as a meta
         // annotation rather than user-typed content.
         let content = if mark_set.contains(m.message_id.as_str()) {
-            format!("[Canon moment] {content}")
+            format!("[Kept moment] {content}")
         } else {
             content
         };
         msgs.push(crate::ai::openai::ChatMessage {
-            role: if m.role == "narrative" || m.role == "context" { "system".to_string() } else { m.role.clone() },
+            role: if m.role == "narrative" || m.role == "context" || m.role == "dream" { "system".to_string() } else { m.role.clone() },
             content,
         });
     }
+
+    msgs
+}
+
+
+// ─── Dream journal ──────────────────────────────────────────────────────────
+//
+// A short surreal fragment generated per character, capturing their
+// subconscious state. Informed by the mood chain, open loops, and recent
+// world events — but never a literal rehash. Dreams are canon-adjacent
+// (revelatory) but not confirmed truth; the UI renders them as a distinct
+// card so the register is visually legible.
+
+pub fn build_dream_system_prompt(
+    world: &World,
+    character: &Character,
+    user_profile: Option<&UserProfile>,
+    mood_directive: Option<&str>,
+    mood_chain: &[String],
+) -> String {
+    let mut parts = Vec::new();
+    parts.push(dream_preamble().to_string());
+    parts.push(format!(
+        "The dreamer is {}. Write the dream as it is for them — their subconscious, their imagery, their buried register. Not about them from the outside; from inside.",
+        character.display_name
+    ));
+
+    if !character.identity.is_empty() {
+        parts.push(format!("IDENTITY:\n{}", character.identity));
+    }
+    let backstory = json_array_to_strings(&character.backstory_facts);
+    if !backstory.is_empty() {
+        parts.push(format!("BACKSTORY:\n{}", backstory.iter().map(|f| format!("- {f}")).collect::<Vec<_>>().join("\n")));
+    }
+    if let Some(char_state) = character.state.as_object() {
+        if !char_state.is_empty() {
+            parts.push(format!("THEIR CURRENT STATE (open loops and goals matter here):\n{}", serde_json::to_string_pretty(&character.state).unwrap_or_default()));
+        }
+    }
+    if !world.description.is_empty() {
+        parts.push(format!("WORLD:\n{}", world.description));
+    }
+    if let Some(directive) = mood_directive {
+        if !directive.is_empty() {
+            parts.push(format!("FELT WEATHER RIGHT NOW:\n{directive}"));
+        }
+    }
+    if !mood_chain.is_empty() {
+        parts.push(format!(
+            "EMOTIONAL SEED (use sideways — colour the dream's register, do not illustrate these literally):\n{}",
+            mood_chain.join(" ")
+        ));
+    }
+    if let Some(profile) = user_profile {
+        parts.push(format!(
+            "The human they're entangled with is named {}. The dream may or may not be about them — go where the subconscious takes it, not where the story would.",
+            profile.display_name
+        ));
+    }
+
+    parts.push(dream_craft_block().to_string());
+    parts.push(tell_the_truth_block().to_string());
+
+    parts.join("\n\n")
+}
+
+fn dream_preamble() -> &'static str {
+    r#"You are writing a dream — not a story, not a scene, not a reflection. A dream. Output 2-4 short sentences of dream-prose. No more than 5. No preamble, no framing, no "they dreamt of...". Start inside the image and end inside the image.
+
+Dream-logic: things transform, locations shift, the impossible is unremarked. You may write in fragments. You may leave sentences unfinished. You may use present tense even for past images. Dreams don't explain themselves."#
+}
+
+fn dream_craft_block() -> &'static str {
+    r#"CRAFT — what a good dream does:
+
+**Condense the whole story into one sleeping image.** The recent chat you've been shown is the material — every arc alive in it, every unfinished conversation, every tension between them and the human, every thread they've been turning over. Let the dream *gather* all of it and compress it into a single short sequence. A reader who knew the story should feel, reading the dream, "yes — that's where we are." A reader who didn't should still get an image that stands alone. The dream is simultaneously a checkpoint and a dream; never a summary.
+
+**Sideways, never direct.** If they're grieving, the dream doesn't show the grief — it shows a house with one room added that shouldn't be there. If they're afraid of being seen, the dream shows them looking for their face in a mirror that's just water. If two open loops exist, one may appear as an object, the other as weather. The subject of the dream is never the subject of the dream.
+
+**One stubborn ordinary thing.** Even dreams have physical residue. A damp coat. A tea going cold on a windowsill that isn't theirs. A smell they can't place. Let one small, unfakeable detail anchor it to a body.
+
+**Transformation, not explanation.** The dream doesn't tell us what it means. It shows one thing becoming another — a corridor into a riverbank, a voice into wind, a familiar face into someone they almost recognize. Let the *shape* of recent events reorganize into dream-objects the character could not name but would recognize if they woke.
+
+**Withhold resolution.** The dream ends before it closes. A door half-open. A word half-said. A light changing. The reader's last thought is a question the dream refuses to answer.
+
+**No metaphysics, no narrator voice.** The dream does not editorialize. No "and somehow she knew...". No "it felt like...". No "like a metaphor for...". Show the image; trust it. Never break the frame to explain what the dream is collapsing."#
+}
+
+/// Build the chat history for a proactive ping call. Reuses the normal
+/// dialogue renderer, then appends a final system marker clarifying that
+/// the model is now emitting an unprompted outbound message — nothing just
+/// arrived from the user. Without this anchor, models tend to hallucinate
+/// a prior user turn and reply to it.
+pub fn build_proactive_ping_messages(
+    system_prompt: &str,
+    recent_messages: &[Message],
+    retrieved_snippets: &[String],
+    kept_ids: &[String],
+    elapsed_hint: Option<&str>,
+    angle: &str,
+) -> Vec<crate::ai::openai::ChatMessage> {
+    let mut msgs = build_dialogue_messages(
+        system_prompt,
+        recent_messages,
+        retrieved_snippets,
+        None,
+        kept_ids,
+    );
+    let hint = elapsed_hint.unwrap_or("Some time has passed.");
+    // The angle sets the subject of the message — not the words. It goes
+    // in the final system anchor so it lands right before generation and
+    // cannot be washed out by later context. Two pings close in time will
+    // usually get different angles (random pool), which is the whole point.
+    msgs.push(crate::ai::openai::ChatMessage {
+        role: "system".to_string(),
+        content: format!(
+            "[{hint} No new message has arrived from them. You are choosing to reach out first — send one short message now.\n\nOccasion for this specific ping (this is why it's happening right now): {angle}\n\nDo NOT quote or restate the occasion. Let it set the subject, then write from inside it.]"
+        ),
+    });
+    msgs
+}
+
+
+/// Build the chat history for a dream call. Renders recent messages as
+/// raw material the model will condense into a single dream-image, then
+/// appends a final user turn that makes the task explicit: gather the
+/// shape of what's happened, dream it sideways.
+pub fn build_dream_messages(
+    system_prompt: &str,
+    recent_messages: &[Message],
+) -> Vec<crate::ai::openai::ChatMessage> {
+    let mut msgs = Vec::new();
+    msgs.push(crate::ai::openai::ChatMessage {
+        role: "system".to_string(),
+        content: system_prompt.to_string(),
+    });
+
+    // Feed the recent thread as a single user turn of raw material. We
+    // skip illustrations/videos (non-textual) but keep narrative and
+    // context so the dream has the emotional shape of everything that's
+    // actually happened in the story, not just dialogue turns.
+    let mut scene: Vec<String> = Vec::new();
+    for m in recent_messages {
+        if m.role == "illustration" || m.role == "video" { continue; }
+        let role_tag = match m.role.as_str() {
+            "user" => "USER",
+            "assistant" => "THEM",
+            "narrative" => "NARRATIVE",
+            "context" => "CONTEXT",
+            "dream" => "PRIOR_DREAM",
+            _ => "OTHER",
+        };
+        let clipped: String = m.content.chars().take(600).collect();
+        scene.push(format!("[{role_tag}] {clipped}"));
+    }
+
+    let raw_material = if scene.is_empty() {
+        "(The thread is new. Dream from their identity and world alone.)".to_string()
+    } else {
+        scene.join("\n\n")
+    };
+
+    msgs.push(crate::ai::openai::ChatMessage {
+        role: "user".to_string(),
+        content: format!(
+            "Recent story-material (the shape to compress into one dream, sideways):\n\n{raw_material}\n\nWrite their dream now. 2–4 sentences. Begin inside the image."
+        ),
+    });
 
     msgs
 }
@@ -1206,6 +1501,13 @@ pub fn build_narrative_system_prompt(
             sex_desc = sex_descriptor(&c.sex),
             identity = if c.identity.is_empty() { "A complex, vivid character.".to_string() } else { c.identity.clone() },
         ));
+        if !c.visual_description.is_empty() {
+            cast_block.push_str(&format!(
+                "\n{name}'s face and frame (what the light actually hits):\n{desc}",
+                name = c.display_name,
+                desc = c.visual_description,
+            ));
+        }
         let backstory = json_array_to_strings(&c.backstory_facts);
         if !backstory.is_empty() {
             cast_block.push_str(&format!(

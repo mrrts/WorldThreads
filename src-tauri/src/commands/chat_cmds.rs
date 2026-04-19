@@ -156,6 +156,7 @@ pub fn save_user_message_cmd(
         world_day: wd_s, world_time: wt_s,
             address_to: None,
         mood_chain: None,
+        is_proactive: false,
         };
     create_message(&conn, &msg).map_err(|e| e.to_string())?;
     increment_message_counter(&conn, &thread.thread_id).map_err(|e| e.to_string())?;
@@ -199,6 +200,7 @@ pub fn create_context_message_cmd(
         world_time: wt,
             address_to: None,
         mood_chain: None,
+        is_proactive: false,
         };
 
     if group_chat_id.is_some() {
@@ -240,6 +242,7 @@ pub async fn send_message_cmd(
             world_day: wd_u, world_time: wt_u,
             address_to: None,
         mood_chain: None,
+        is_proactive: false,
         };
         create_message(&conn, &user_msg).map_err(|e| e.to_string())?;
         increment_message_counter(&conn, &thread.thread_id).map_err(|e| e.to_string())?;
@@ -368,9 +371,9 @@ pub async fn send_message_cmd(
     // reply + reaction — meaningful on local models where each call can
     // run many seconds.
     let base = model_config.chat_api_base();
-    let canonized_ids: Vec<String> = {
+    let kept_ids: Vec<String> = {
         let conn = db.conn.lock().map_err(|e| e.to_string())?;
-        list_canonized_message_ids_for_thread(&conn, &thread.thread_id).unwrap_or_default()
+        list_kept_message_ids_for_thread(&conn, &thread.thread_id).unwrap_or_default()
     };
     let dialogue_fut = orchestrator::run_dialogue_with_base(
         &base, &api_key, &model_config.dialogue_model,
@@ -382,7 +385,7 @@ pub async fn send_message_cmd(
         model_config.is_local(),
         &mood_chain,
     leader.as_deref(),
-    &canonized_ids,
+    &kept_ids,
     );
     // Context for the reaction-emoji pick: the recent messages EXCLUDING
     // the user's brand-new one (which goes in the user-role slot). Gives
@@ -412,6 +415,7 @@ pub async fn send_message_cmd(
             world_day: wd, world_time: wt.clone(),
             address_to: None,
             mood_chain: mood_chain_json.clone(),
+            is_proactive: false,
         };
         create_message(&conn, &msg).map_err(|e| e.to_string())?;
         increment_message_counter(&conn, &thread.thread_id).map_err(|e| e.to_string())?;
@@ -424,6 +428,7 @@ pub async fn send_message_cmd(
             sender_character_id: None,
             address_to: None,
         mood_chain: None,
+        is_proactive: false,
         });
 
         (user_message, msg)
@@ -668,6 +673,7 @@ pub async fn prompt_character_cmd(
             world_day: None, world_time: None,
             address_to: None,
         mood_chain: None,
+        is_proactive: false,
         });
     }
 
@@ -679,9 +685,9 @@ pub async fn prompt_character_cmd(
     let mood_chain = prompts::pick_mood_chain(Some(&mood_reduction));
     let mood_chain_json = serde_json::to_string(&mood_chain).ok();
 
-    let canonized_ids: Vec<String> = {
+    let kept_ids: Vec<String> = {
         let conn = db.conn.lock().map_err(|e| e.to_string())?;
-        list_canonized_message_ids_for_thread(&conn, &thread.thread_id).unwrap_or_default()
+        list_kept_message_ids_for_thread(&conn, &thread.thread_id).unwrap_or_default()
     };
     let (reply_text, dialogue_usage) = orchestrator::run_dialogue_with_base(
         &model_config.chat_api_base(), &api_key, &model_config.dialogue_model,
@@ -693,7 +699,7 @@ pub async fn prompt_character_cmd(
         model_config.is_local(),
         &mood_chain,
         leader.as_deref(),
-        &canonized_ids,
+        &kept_ids,
     ).await?;
 
     let tokens = dialogue_usage.as_ref().map(|u| u.total_tokens).unwrap_or(0);
@@ -711,6 +717,7 @@ pub async fn prompt_character_cmd(
             world_day: wd, world_time: wt.clone(),
             address_to: None,
             mood_chain: mood_chain_json.clone(),
+            is_proactive: false,
         };
         create_message(&conn, &msg).map_err(|e| e.to_string())?;
         increment_message_counter(&conn, &thread.thread_id).map_err(|e| e.to_string())?;
@@ -724,6 +731,388 @@ pub async fn prompt_character_cmd(
         assistant_message: assistant_msg,
         ai_reactions,
     })
+}
+
+// ─── Proactive Pings ────────────────────────────────────────────────────────
+//
+// The character reaches out first — unsolicited — between user turns. Caller
+// invokes this on app focus / a loose background cadence. We evaluate a
+// conservative eligibility gate and either fire a ping or return None.
+//
+// Hard rule: no more than 2 consecutive pings without a user reply. The
+// counter lives on the thread row and resets automatically when any user
+// message is inserted (see create_message).
+//
+// Additional cooldowns kept here rather than in the schema so they stay
+// tunable in one place:
+//   - QUIET_AFTER_USER_MSG_SECS: don't ping right after a user message.
+//     Protects "we just said goodbye" / "you're mid-conversation" cases.
+//   - MIN_GAP_BETWEEN_PINGS_SECS: cooldown between pings themselves, so
+//     even with the counter at 0 we don't stack two in a short window.
+
+const QUIET_AFTER_USER_MSG_SECS: i64 = 45 * 60;
+const MAX_CONSECUTIVE_PROACTIVE_PINGS: i64 = 2;
+
+// Randomized cooldown between pings. The required gap is re-rolled on each
+// check from [HARD_FLOOR, MAX_ROLL]. Because the sweep runs often (focus
+// events + every 60s), the effect is a probabilistic release — the second
+// ping can never land inside HARD_FLOOR, and is increasingly likely to
+// land as elapsed time approaches MAX_ROLL. This prevents the "two nearly
+// identical messages in quick succession" failure mode.
+const PING_COOLDOWN_HARD_FLOOR_SECS: i64 = 4 * 60 * 60;
+const PING_COOLDOWN_MAX_ROLL_SECS: i64 = 14 * 60 * 60;
+
+/// Draw a random required gap (in seconds) for the next proactive ping on
+/// a thread. Uniform over [HARD_FLOOR, MAX_ROLL]. Time-seeded so each
+/// sweep gets a fresh roll.
+fn roll_ping_cooldown_secs() -> i64 {
+    use std::time::{SystemTime, UNIX_EPOCH};
+    let seed = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map(|d| d.as_nanos() as u64)
+        .unwrap_or(0x9E3779B97F4A7C15);
+    let mut state = if seed == 0 { 0x9E3779B97F4A7C15 } else { seed };
+    state ^= state >> 12;
+    state ^= state << 25;
+    state ^= state >> 27;
+    let mixed = state.wrapping_mul(0x2545F4914F6CDD1D);
+    let span = (PING_COOLDOWN_MAX_ROLL_SECS - PING_COOLDOWN_HARD_FLOOR_SECS).max(1) as u64;
+    PING_COOLDOWN_HARD_FLOOR_SECS + (mixed % span) as i64
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ProactivePingResult {
+    pub message: Option<Message>,
+    /// Human-readable reason when no ping was fired (for debugging / UI
+    /// tooltips). Always populated when `message` is None.
+    pub skipped_reason: Option<String>,
+}
+
+#[tauri::command]
+pub async fn try_proactive_ping_cmd(
+    db: State<'_, Database>,
+    api_key: String,
+    character_id: String,
+) -> Result<ProactivePingResult, String> {
+    // ── Eligibility + context load (all under one lock) ─────────────────
+    let loaded = {
+        let conn = db.conn.lock().map_err(|e| e.to_string())?;
+
+        // Solo-only for v1. Group threads have no consecutive-ping counter
+        // semantics and their orchestration path is different.
+        let character = get_character(&conn, &character_id).map_err(|e| e.to_string())?;
+        let world = get_world(&conn, &character.world_id).map_err(|e| e.to_string())?;
+        let thread = get_thread_for_character(&conn, &character_id).map_err(|e| e.to_string())?;
+
+        // Must have a prior user message, or there's nothing to "reach back
+        // about." Prevents cold-ping on a virgin thread.
+        let has_prior_user: bool = conn.query_row(
+            "SELECT COUNT(*) FROM messages WHERE thread_id = ?1 AND role = 'user'",
+            rusqlite::params![thread.thread_id], |r| r.get::<_, i64>(0),
+        ).unwrap_or(0) > 0;
+        if !has_prior_user {
+            return Ok(ProactivePingResult {
+                message: None,
+                skipped_reason: Some("no prior user message in thread".to_string()),
+            });
+        }
+
+        // Hard counter cap (the user's load-bearing "max 2 in a row" rule).
+        let state = get_proactive_ping_state(&conn, &thread.thread_id);
+        if state.consecutive >= MAX_CONSECUTIVE_PROACTIVE_PINGS {
+            return Ok(ProactivePingResult {
+                message: None,
+                skipped_reason: Some("max consecutive pings reached".to_string()),
+            });
+        }
+
+        // Quiet window after the last user message. Don't ping mid-conversation.
+        let last_user_at: Option<String> = conn.query_row(
+            "SELECT MAX(created_at) FROM messages WHERE thread_id = ?1 AND role = 'user'",
+            rusqlite::params![thread.thread_id], |r| r.get(0),
+        ).unwrap_or(None);
+        let now = chrono::Utc::now();
+        if let Some(ts) = last_user_at.as_deref() {
+            if let Ok(dt) = chrono::DateTime::parse_from_rfc3339(ts) {
+                let since = now.signed_duration_since(dt.with_timezone(&chrono::Utc)).num_seconds();
+                if since < QUIET_AFTER_USER_MSG_SECS {
+                    return Ok(ProactivePingResult {
+                        message: None,
+                        skipped_reason: Some(format!("{}s since last user msg (min {}s)", since, QUIET_AFTER_USER_MSG_SECS)),
+                    });
+                }
+            }
+        }
+
+        // Randomized cooldown between pings. Each check rolls a fresh
+        // required gap from [HARD_FLOOR, MAX_ROLL]. Guarantees no two
+        // pings land within HARD_FLOOR, and spreads second-of-two pings
+        // across a window so they can't arrive back-to-back.
+        if let Some(ts) = state.last_at.as_deref() {
+            if let Ok(dt) = chrono::DateTime::parse_from_rfc3339(ts) {
+                let since = now.signed_duration_since(dt.with_timezone(&chrono::Utc)).num_seconds();
+                let required = roll_ping_cooldown_secs();
+                if since < required {
+                    return Ok(ProactivePingResult {
+                        message: None,
+                        skipped_reason: Some(format!("{}s since last ping (rolled min {}s)", since, required)),
+                    });
+                }
+            }
+        }
+
+        // All gates passed — load context for the LLM call.
+        let mut model_config = orchestrator::load_model_config(&conn);
+        model_config.apply_provider_override(&conn, &format!("provider_override.{}", character_id));
+        let recent_msgs = list_messages_within_budget(&conn, &thread.thread_id, model_config.safe_history_budget() as i64, 30)
+            .map_err(|e| e.to_string())?;
+
+        let mut retrieved: Vec<String> = Vec::new();
+        let summary = get_thread_summary(&conn, &thread.thread_id);
+        if !summary.is_empty() {
+            retrieved.push(format!("[Thread summary] {summary}"));
+        }
+
+        let user_profile = get_user_profile(&conn, &character.world_id).ok();
+        let current_mood = get_character_mood(&conn, &character_id);
+        let mood_enabled = get_setting(&conn, "mood_drift_enabled")
+            .ok().flatten().map(|v| v == "true").unwrap_or(true);
+        let narration_tone = get_setting(&conn, &format!("narration_tone.{}", character_id))
+            .ok().flatten();
+        let mood_reduction = get_thread_mood_reduction(&conn, &thread.thread_id);
+        let kept_ids = list_kept_message_ids_for_thread(&conn, &thread.thread_id).unwrap_or_default();
+
+        // Elapsed-hint string is resolved while we still hold last_user_at.
+        let elapsed_hint = last_user_at.as_deref().and_then(|ts| {
+            chrono::DateTime::parse_from_rfc3339(ts).ok().map(|dt| {
+                let mins = now.signed_duration_since(dt.with_timezone(&chrono::Utc)).num_minutes();
+                if mins < 120 {
+                    format!("About {mins} minutes have passed since they last wrote.")
+                } else {
+                    let hours = (mins as f64) / 60.0;
+                    format!("About {hours:.0} hours have passed since they last wrote.")
+                }
+            })
+        });
+
+        Loaded {
+            world, character, thread, recent_msgs, model_config, retrieved,
+            user_profile, current_mood, mood_enabled, narration_tone,
+            mood_reduction, kept_ids, elapsed_hint,
+        }
+    };
+
+    let Loaded {
+        world, character, thread, recent_msgs, model_config, retrieved,
+        user_profile, current_mood, mood_enabled, narration_tone,
+        mood_reduction, kept_ids, elapsed_hint,
+    } = loaded;
+
+    let mood_directive = compute_and_persist_mood(
+        &db, &character_id, &world, &character, &recent_msgs,
+        current_mood.as_ref(), mood_enabled, None,
+    )?;
+
+    let mood_chain = prompts::pick_mood_chain(Some(&mood_reduction));
+    let mood_chain_json = serde_json::to_string(&mood_chain).ok();
+
+    let (reply_text, usage) = orchestrator::run_proactive_ping_with_base(
+        &model_config.chat_api_base(), &api_key, &model_config.dialogue_model,
+        &world, &character, &recent_msgs, &retrieved,
+        user_profile.as_ref(),
+        mood_directive.as_deref(),
+        narration_tone.as_deref(),
+        model_config.is_local(),
+        &mood_chain,
+        &kept_ids,
+        elapsed_hint.as_deref(),
+    ).await?;
+
+    if reply_text.trim().is_empty() {
+        return Ok(ProactivePingResult {
+            message: None,
+            skipped_reason: Some("model returned empty response".to_string()),
+        });
+    }
+
+    let tokens = usage.as_ref().map(|u| u.total_tokens).unwrap_or(0);
+    let (wd, wt) = world_time_fields(&world);
+    let now_iso = Utc::now().to_rfc3339();
+    let msg = Message {
+        message_id: uuid::Uuid::new_v4().to_string(),
+        thread_id: thread.thread_id.clone(),
+        role: "assistant".to_string(),
+        content: reply_text,
+        tokens_estimate: tokens as i64,
+        sender_character_id: None,
+        created_at: now_iso.clone(),
+        world_day: wd, world_time: wt,
+        address_to: None,
+        mood_chain: mood_chain_json,
+        is_proactive: true,
+    };
+    {
+        let conn = db.conn.lock().map_err(|e| e.to_string())?;
+        create_message(&conn, &msg).map_err(|e| e.to_string())?;
+        increment_message_counter(&conn, &thread.thread_id).map_err(|e| e.to_string())?;
+        record_proactive_ping(&conn, &thread.thread_id, &now_iso).map_err(|e| e.to_string())?;
+    }
+
+    Ok(ProactivePingResult {
+        message: Some(msg),
+        skipped_reason: None,
+    })
+}
+
+struct Loaded {
+    world: World,
+    character: Character,
+    thread: Thread,
+    recent_msgs: Vec<Message>,
+    model_config: orchestrator::ModelConfig,
+    retrieved: Vec<String>,
+    user_profile: Option<UserProfile>,
+    current_mood: Option<CharacterMood>,
+    mood_enabled: bool,
+    narration_tone: Option<String>,
+    mood_reduction: Vec<String>,
+    kept_ids: Vec<String>,
+    elapsed_hint: Option<String>,
+}
+
+/// Returns per-character unread-proactive-ping counts (solo threads only,
+/// keyed by character_id). Used by the sidebar to render a small badge on
+/// chats where the character reached out and the user hasn't replied yet.
+/// Group threads are excluded — proactive pings are solo-only for v1.
+#[tauri::command]
+pub async fn get_proactive_unread_counts_cmd(
+    db: State<'_, Database>,
+) -> Result<std::collections::HashMap<String, i64>, String> {
+    let conn = db.conn.lock().map_err(|e| e.to_string())?;
+    let mut stmt = conn
+        .prepare("SELECT thread_id, character_id FROM threads WHERE character_id IS NOT NULL")
+        .map_err(|e| e.to_string())?;
+    let rows: Vec<(String, String)> = stmt
+        .query_map([], |r| Ok((r.get::<_, String>(0)?, r.get::<_, String>(1)?)))
+        .map_err(|e| e.to_string())?
+        .filter_map(|r| r.ok())
+        .collect();
+    let mut out = std::collections::HashMap::new();
+    for (tid, cid) in rows {
+        let c = count_unread_proactive_since_last_user(&conn, &tid);
+        if c > 0 {
+            out.insert(cid, c);
+        }
+    }
+    Ok(out)
+}
+
+// ─── Dream Journal ──────────────────────────────────────────────────────────
+//
+// A character's dream: a dense condensation of recent story-material,
+// rendered sideways as dream-imagery. Persisted as a "dream"-role message
+// in the thread so it flows into future dialogue context as a checkpoint —
+// the shape of where we are, remembered through the subconscious.
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct DreamResult {
+    pub dream_message: Message,
+}
+
+#[tauri::command]
+pub async fn generate_dream_cmd(
+    db: State<'_, Database>,
+    api_key: String,
+    character_id: String,
+) -> Result<DreamResult, String> {
+    let (world, character, thread, recent_msgs, model_config, user_profile,
+         current_mood, mood_enabled, mood_reduction) = {
+        let conn = db.conn.lock().map_err(|e| e.to_string())?;
+        let character = get_character(&conn, &character_id).map_err(|e| e.to_string())?;
+        let world = get_world(&conn, &character.world_id).map_err(|e| e.to_string())?;
+        let thread = get_thread_for_character(&conn, &character_id).map_err(|e| e.to_string())?;
+        let mut model_config = orchestrator::load_model_config(&conn);
+        model_config.apply_provider_override(&conn, &format!("provider_override.{}", character_id));
+
+        // Dreams compress the day they cap. Scope the material to the
+        // current in-world day so a Day 12 dream sees Day 12's scenes —
+        // not whatever happens to fit in the token budget. Falls back to
+        // budget-based slicing if: (a) the world has no clock, or (b) the
+        // current day is too thin to dream from (≤3 messages), in which
+        // case we let the budget path pull in the surrounding context.
+        let (current_wd, _) = world_time_fields(&world);
+        let recent_msgs = match current_wd {
+            Some(day) => {
+                let day_msgs = list_messages_for_world_day(&conn, &thread.thread_id, day)
+                    .map_err(|e| e.to_string())?;
+                if day_msgs.len() >= 4 {
+                    log::info!("[Dream] scoped to world_day={} ({} messages)", day, day_msgs.len());
+                    day_msgs
+                } else {
+                    log::info!("[Dream] world_day={} too thin ({} msgs); falling back to budget window", day, day_msgs.len());
+                    list_messages_within_budget(
+                        &conn, &thread.thread_id, model_config.safe_history_budget() as i64, 30,
+                    ).map_err(|e| e.to_string())?
+                }
+            }
+            None => {
+                log::info!("[Dream] world has no clock; using budget window");
+                list_messages_within_budget(
+                    &conn, &thread.thread_id, model_config.safe_history_budget() as i64, 30,
+                ).map_err(|e| e.to_string())?
+            }
+        };
+
+        let user_profile = get_user_profile(&conn, &character.world_id).ok();
+        let current_mood = get_character_mood(&conn, &character_id);
+        let mood_enabled = get_setting(&conn, "mood_drift_enabled")
+            .ok().flatten().map(|v| v == "true").unwrap_or(true);
+        let mood_reduction = get_thread_mood_reduction(&conn, &thread.thread_id);
+        (world, character, thread, recent_msgs, model_config, user_profile,
+         current_mood, mood_enabled, mood_reduction)
+    };
+
+    let mood_directive = if mood_enabled {
+        let current = current_mood.as_ref()
+            .map(crate::ai::mood::MoodVector::from)
+            .unwrap_or_else(crate::ai::mood::MoodVector::neutral);
+        let directive = crate::ai::mood::mood_to_style_directive(&current);
+        if directive.is_empty() { None } else { Some(directive) }
+    } else { None };
+
+    let mood_chain = prompts::pick_mood_chain(Some(&mood_reduction));
+
+    let (dream_text, usage) = orchestrator::run_dream_with_base(
+        &model_config.chat_api_base(), &api_key, &model_config.dialogue_model,
+        &world, &character, &recent_msgs,
+        user_profile.as_ref(),
+        mood_directive.as_deref(),
+        &mood_chain,
+    ).await?;
+
+    let (wd, wt) = world_time_fields(&world);
+    let tokens = usage.as_ref().map(|u| u.total_tokens).unwrap_or(0);
+    let mood_chain_json = serde_json::to_string(&mood_chain).ok();
+    let msg = Message {
+        message_id: uuid::Uuid::new_v4().to_string(),
+        thread_id: thread.thread_id.clone(),
+        role: "dream".to_string(),
+        content: dream_text,
+        tokens_estimate: tokens as i64,
+        sender_character_id: Some(character_id.clone()),
+        created_at: Utc::now().to_rfc3339(),
+        world_day: wd,
+        world_time: wt,
+        address_to: None,
+        mood_chain: mood_chain_json,
+        is_proactive: false,
+    };
+    {
+        let conn = db.conn.lock().map_err(|e| e.to_string())?;
+        create_message(&conn, &msg).map_err(|e| e.to_string())?;
+    }
+
+    Ok(DreamResult { dream_message: msg })
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -821,6 +1210,7 @@ pub async fn generate_narrative_cmd(
             world_day: wd, world_time: wt.clone(),
             address_to: None,
         mood_chain: None,
+        is_proactive: false,
         };
     {
         let conn = db.conn.lock().map_err(|e| e.to_string())?;
@@ -859,6 +1249,7 @@ pub async fn adjust_message_cmd(
                     world_day: r.get(7).ok(), world_time: r.get(8).ok(),
             address_to: None,
         mood_chain: None,
+        is_proactive: false,
         }),
             ).map_err(|e| format!("Message not found: {e}"))?;
             (m, "group")
@@ -872,6 +1263,7 @@ pub async fn adjust_message_cmd(
                     world_day: r.get(7).ok(), world_time: r.get(8).ok(),
             address_to: None,
         mood_chain: None,
+        is_proactive: false,
         }),
             ).map_err(|e| format!("Message not found: {e}"))?;
             (m, "indiv")
@@ -990,6 +1382,7 @@ pub async fn adjust_message_cmd(
         world_time: original_msg.world_time,
             address_to: None,
         mood_chain: None,
+        is_proactive: false,
         })
 }
 
@@ -1035,6 +1428,7 @@ pub async fn reset_to_message_cmd(
                     world_time: row.get(8).ok(),
             address_to: None,
         mood_chain: None,
+        is_proactive: false,
         })
             }).map_err(|e| e.to_string())?
         };
@@ -1058,6 +1452,7 @@ pub async fn reset_to_message_cmd(
                 relationships: serde_json::json!({}), state: serde_json::json!({}),
                 avatar_color: String::new(), sex: "male".to_string(), is_archived: false,
                 created_at: String::new(), updated_at: String::new(),
+                visual_description: String::new(), visual_description_portrait_id: None,
             };
             (dummy, world, mc)
         } else {
@@ -1181,9 +1576,9 @@ pub async fn reset_to_message_cmd(
 
         // Parallel dialogue + reaction pick (see send_message_cmd for rationale).
         let base = model_config.chat_api_base();
-        let canonized_ids: Vec<String> = {
+        let kept_ids: Vec<String> = {
             let conn = db.conn.lock().map_err(|e| e.to_string())?;
-            list_canonized_message_ids_for_thread(&conn, &thread_id).unwrap_or_default()
+            list_kept_message_ids_for_thread(&conn, &thread_id).unwrap_or_default()
         };
         let dialogue_fut = orchestrator::run_dialogue_with_base(
             &base, &api_key, &model_config.dialogue_model,
@@ -1195,7 +1590,7 @@ pub async fn reset_to_message_cmd(
             model_config.is_local(),
             &mood_chain,
         leader.as_deref(),
-        &canonized_ids,
+        &kept_ids,
         );
         let reaction_context: Vec<Message> = recent_msgs.iter()
             .rev().skip(1).take(4).rev().cloned().collect();
@@ -1226,6 +1621,7 @@ pub async fn reset_to_message_cmd(
             world_day: wd, world_time: wt.clone(),
             address_to: None,
             mood_chain: mood_chain_json.clone(),
+            is_proactive: false,
         };
             create_message(&conn, &msg).map_err(|e| e.to_string())?;
             increment_message_counter(&conn, &thread_id).map_err(|e| e.to_string())?;
@@ -1238,6 +1634,7 @@ pub async fn reset_to_message_cmd(
             sender_character_id: None,
             address_to: None,
         mood_chain: None,
+        is_proactive: false,
         });
 
             (user_message, msg)

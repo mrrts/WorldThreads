@@ -269,6 +269,87 @@ pub fn get_active_portrait_cmd(
     Ok(get_active_portrait(&conn, &character_id).map(|p| portrait_to_info(&p, &portraits_dir.0)))
 }
 
+/// Generate (or refresh) a honest physical description of a character from
+/// their currently-active portrait. Stores the result on the character row
+/// and caches the portrait_id that produced it so repeated calls with the
+/// same active portrait no-op. Returns the updated Character.
+#[tauri::command]
+pub async fn generate_character_visual_description_cmd(
+    db: State<'_, Database>,
+    portraits_dir: State<'_, PortraitsDir>,
+    api_key: String,
+    character_id: String,
+    force: Option<bool>,
+) -> Result<Character, String> {
+    let (character, active_portrait, model_config) = {
+        let conn = db.conn.lock().map_err(|e| e.to_string())?;
+        let ch = get_character(&conn, &character_id).map_err(|e| e.to_string())?;
+        let active = get_active_portrait(&conn, &character_id);
+        let mc = orchestrator::load_model_config(&conn);
+        (ch, active, mc)
+    };
+
+    let Some(portrait) = active_portrait else {
+        return Err("character has no active portrait".to_string());
+    };
+
+    // Cache gate: if the cached description was made from this same
+    // portrait, skip the vision call entirely.
+    if !force.unwrap_or(false)
+        && !character.visual_description.is_empty()
+        && character.visual_description_portrait_id.as_deref() == Some(portrait.portrait_id.as_str())
+    {
+        log::info!("[Vision] {} — description fresh for portrait {}, skipping call", character.display_name, portrait.portrait_id);
+        return Ok(character);
+    }
+
+    let file_path = portraits_dir.0.join(&portrait.file_name);
+    let bytes = std::fs::read(&file_path).map_err(|e| format!("read portrait file: {e}"))?;
+
+    log::info!("[Vision] Describing {} from portrait {} ({} bytes)", character.display_name, portrait.portrait_id, bytes.len());
+
+    let description = orchestrator::describe_character_portrait(
+        &model_config.openai_api_base(),
+        &api_key,
+        &model_config.vision_model,
+        &bytes,
+        &character.display_name,
+    ).await?;
+
+    {
+        let conn = db.conn.lock().map_err(|e| e.to_string())?;
+        set_visual_description(&conn, &character_id, &description, &portrait.portrait_id)
+            .map_err(|e| e.to_string())?;
+    }
+
+    // Re-read so the returned Character has the fresh fields.
+    let conn = db.conn.lock().map_err(|e| e.to_string())?;
+    get_character(&conn, &character_id).map_err(|e| e.to_string())
+}
+
+/// Returns the character_ids in a world that have an active portrait but
+/// either no description or a description made from a different portrait.
+/// Frontend calls this on load so the app can backfill lazily, one call
+/// per stale character, without blocking startup.
+#[tauri::command]
+pub fn list_characters_needing_visual_description_cmd(
+    db: State<Database>,
+    world_id: String,
+) -> Result<Vec<String>, String> {
+    let conn = db.conn.lock().map_err(|e| e.to_string())?;
+    let characters = list_characters(&conn, &world_id).map_err(|e| e.to_string())?;
+    let mut out = Vec::new();
+    for ch in characters {
+        let Some(active) = get_active_portrait(&conn, &ch.character_id) else { continue; };
+        let stale = ch.visual_description.is_empty()
+            || ch.visual_description_portrait_id.as_deref() != Some(active.portrait_id.as_str());
+        if stale {
+            out.push(ch.character_id);
+        }
+    }
+    Ok(out)
+}
+
 /// Generate a variation of the active portrait by sending the reference image directly to the image model.
 #[tauri::command]
 pub async fn generate_portrait_variation_cmd(

@@ -118,6 +118,40 @@ function MainApp() {
   // Check on world change
   useEffect(() => { checkWorldTime(); }, [checkWorldTime]);
 
+  // Proactive pings: characters may reach out between turns. The backend
+  // enforces the eligibility gates (quiet window after the last user
+  // message, cooldown between pings, max 2 consecutive without a reply).
+  // We kick a sweep on mount and whenever the window regains focus — both
+  // natural "returning to the app" moments. Unread counts refresh on the
+  // same cadence so the sidebar badge stays current.
+  const refreshUnread = store.refreshProactiveUnreadCounts;
+  const runSweep = store.runProactivePingSweep;
+  useEffect(() => {
+    if (!store.apiKey) return;
+    refreshUnread();
+    runSweep();
+    const onFocus = () => { refreshUnread(); runSweep(); };
+    window.addEventListener("focus", onFocus);
+    // Periodic refresh of just the badge counts (no LLM call) — catches
+    // pings fired by other windows / sweeps without waiting for focus.
+    const interval = window.setInterval(() => refreshUnread(), 60_000);
+    return () => {
+      window.removeEventListener("focus", onFocus);
+      window.clearInterval(interval);
+    };
+  }, [store.apiKey, refreshUnread, runSweep]);
+
+  // Backfill visual descriptions for portraited characters that don't
+  // have one yet (or whose description is stale relative to the current
+  // active portrait). Runs once per world-change + once on initial load,
+  // paced so we don't stampede the vision endpoint.
+  const backfillVisuals = store.backfillVisualDescriptions;
+  useEffect(() => {
+    if (!store.apiKey || !store.activeWorld) return;
+    const t = window.setTimeout(() => { backfillVisuals(); }, 2000);
+    return () => window.clearTimeout(t);
+  }, [store.apiKey, store.activeWorld?.world_id, backfillVisuals]);
+
   // Re-check on window focus
   useEffect(() => {
     const handler = () => {

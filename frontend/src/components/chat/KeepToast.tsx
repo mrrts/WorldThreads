@@ -1,21 +1,20 @@
 import { useEffect, useState } from "react";
 import { ScrollText, Undo2, X } from "lucide-react";
-import { api, type CanonEntry } from "@/lib/tauri";
+import { api, type KeptRecord } from "@/lib/tauri";
 
-/// Toast that appears after a successful canonization save. Displays the
-/// subject it was added to and offers ~10 seconds to undo. Undo deletes
-/// the canon_entries row via the backend; note that the side effect on
-/// the subject row (e.g. character description update) is NOT rolled
-/// back — the entry's absence just removes the provenance. This is a
-/// deliberate choice: rollbacks would require snapshotting pre-state,
-/// and canon is meant to feel deliberate (the friction is the point).
-export function CanonToast({
+/// Toast that appears after a kept record is saved. Displays the subject
+/// it was added to and offers ~10 seconds to undo. Undo deletes the
+/// kept_records row via the backend; the side effect on the subject
+/// row (e.g. character description update) is NOT rolled back — the
+/// entry's absence just removes the provenance trail. A kept record is
+/// meant to feel deliberate (the friction is the point).
+export function KeepToast({
   entry,
   subjectLabel,
   onDismiss,
   onUndone,
 }: {
-  entry: CanonEntry | null;
+  entry: KeptRecord | null;
   subjectLabel: string;
   onDismiss: () => void;
   onUndone: () => void;
@@ -37,7 +36,7 @@ export function CanonToast({
   if (!entry) return null;
 
   const handleUndo = async () => {
-    try { await api.deleteCanonEntry(entry.canon_id); } catch { /* ignore */ }
+    try { await api.deleteKeptRecord(entry.kept_id); } catch { /* ignore */ }
     onUndone();
     onDismiss();
   };
@@ -47,7 +46,7 @@ export function CanonToast({
       <div className="flex items-center gap-3 bg-card border border-border rounded-full shadow-2xl shadow-black/40 pl-4 pr-2 py-2">
         <ScrollText size={14} className="text-amber-500 flex-shrink-0" />
         <span className="text-sm">
-          Added to <span className="font-medium">{subjectLabel}</span>'s canon
+          Kept to <span className="font-medium">{subjectLabel}</span>'s record
         </span>
         <button
           onClick={handleUndo}

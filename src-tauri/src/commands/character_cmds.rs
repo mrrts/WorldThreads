@@ -57,6 +57,8 @@ pub fn create_character_cmd(db: State<Database>, world_id: String, display_name:
         is_archived: false,
         created_at: now.clone(),
         updated_at: now.clone(),
+        visual_description: String::new(),
+        visual_description_portrait_id: None,
     };
     create_character(&conn, &ch).map_err(|e| e.to_string())?;
     create_thread(&conn, &Thread {

@@ -196,22 +196,33 @@ export function Sidebar({ store, onNavigate }: Props) {
                 {store.characters.map((ch) => {
                   const portrait = store.activePortraits[ch.character_id];
                   const isActive = store.activeCharacter?.character_id === ch.character_id;
+                  const unread = store.proactiveUnreadCounts?.[ch.character_id] ?? 0;
                   return (
                   <div key={ch.character_id} className="relative flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg group"
                     onMouseEnter={() => showCharTooltip(ch.character_id)}
                     onMouseLeave={hideCharTooltip}
                   >
-                    {portrait?.data_url ? (
-                      <img src={portrait.data_url} alt="" className="w-8 h-8 rounded-full object-cover flex-shrink-0 ring-1 ring-border" />
-                    ) : (
-                      <span
-                        className="w-8 h-8 rounded-full flex-shrink-0 ring-1 ring-white/10"
-                        style={{ backgroundColor: ch.avatar_color }}
-                      />
-                    )}
+                    <div className="relative flex-shrink-0">
+                      {portrait?.data_url ? (
+                        <img src={portrait.data_url} alt="" className="w-8 h-8 rounded-full object-cover ring-1 ring-border" />
+                      ) : (
+                        <span
+                          className="w-8 h-8 rounded-full block ring-1 ring-white/10"
+                          style={{ backgroundColor: ch.avatar_color }}
+                        />
+                      )}
+                      {unread > 0 && (
+                        <span
+                          className="absolute -top-1 -right-1 min-w-[16px] h-4 px-1 rounded-full bg-primary text-primary-foreground text-[10px] font-semibold flex items-center justify-center ring-2 ring-card shadow-sm"
+                          title={`${unread} new message${unread === 1 ? "" : "s"} from ${ch.display_name}`}
+                        >
+                          {unread}
+                        </span>
+                      )}
+                    </div>
                     <button
                       onClick={() => { store.selectCharacter(ch); onNavigate?.("chat"); }}
-                      className={`text-sm flex-1 truncate text-left cursor-pointer hover:underline ${isActive && !store.editingUserProfile ? "text-primary font-medium" : "text-muted-foreground"}`}
+                      className={`text-sm flex-1 truncate text-left cursor-pointer hover:underline ${isActive && !store.editingUserProfile ? "text-primary font-medium" : unread > 0 ? "text-foreground font-medium" : "text-muted-foreground"}`}
                     >
                       {ch.display_name}
                     </button>

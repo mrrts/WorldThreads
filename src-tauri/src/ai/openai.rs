@@ -77,6 +77,76 @@ struct ApiErrorDetail {
     message: String,
 }
 
+// ─── Vision (multimodal chat completion) ────────────────────────────────────
+//
+// The normal ChatRequest uses `content: String` on each message, which is the
+// standard shape for text-only calls. Vision needs `content` to be an array
+// of content-parts (text + image_url). Separate request type keeps the
+// common path simple and only pays the array cost for vision calls.
+
+#[derive(Debug, Serialize)]
+pub struct VisionRequest {
+    pub model: String,
+    pub messages: Vec<VisionMessage>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub temperature: Option<f64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub max_completion_tokens: Option<u32>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct VisionMessage {
+    pub role: String,
+    pub content: Vec<VisionContent>,
+}
+
+/// One chunk of a multimodal message. For text chunks, set `text` and leave
+/// `image_url` None. For image chunks, set `image_url` (data-URL or https)
+/// and leave `text` None. The `content_type` field maps to the OpenAI
+/// `"type"` key ("text" or "image_url").
+#[derive(Debug, Serialize)]
+pub struct VisionContent {
+    #[serde(rename = "type")]
+    pub content_type: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub text: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub image_url: Option<VisionImageUrl>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct VisionImageUrl {
+    pub url: String,
+    /// "auto" | "low" | "high". "low" keeps token cost down for small
+    /// portrait-sized images; the detail we need (basic physical
+    /// appearance) is well within low's fidelity.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub detail: Option<String>,
+}
+
+pub async fn vision_completion_with_base(
+    base_url: &str,
+    api_key: &str,
+    request: &VisionRequest,
+) -> Result<ChatResponse, String> {
+    let client = Client::new();
+    let url = format!("{base_url}/chat/completions");
+    let mut builder = client.post(&url).json(request);
+    if !api_key.is_empty() {
+        builder = builder.header("Authorization", format!("Bearer {api_key}"));
+    }
+    let resp = builder.send().await.map_err(|e| format!("Network error: {e}"))?;
+    let status = resp.status();
+    let body = resp.text().await.map_err(|e| format!("Read error: {e}"))?;
+    if !status.is_success() {
+        if let Ok(err) = serde_json::from_str::<ApiError>(&body) {
+            return Err(format!("Vision API error ({}): {}", status, err.error.message));
+        }
+        return Err(format!("Vision API error ({}): {}", status, body));
+    }
+    serde_json::from_str(&body).map_err(|e| format!("Parse error: {e}"))
+}
+
 pub async fn chat_completion_with_base(base_url: &str, api_key: &str, request: &ChatRequest) -> Result<ChatResponse, String> {
     let client = Client::new();
     let url = format!("{base_url}/chat/completions");

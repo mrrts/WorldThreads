@@ -45,6 +45,10 @@ export interface AppState {
   chatError: string | null;
   lastFailedContent: string | null;
   error: string | null;
+  /** Per-thread count of proactive pings the user hasn't replied to yet.
+   *  Populated by `get_proactive_unread_counts_cmd`. Empty map when
+   *  nothing is outstanding. Keyed by thread_id. */
+  proactiveUnreadCounts: Record<string, number>;
 }
 
 const PAGE_SIZE = 20;
@@ -99,6 +103,7 @@ export function useAppStore() {
     chatError: null,
     lastFailedContent: null,
     error: null,
+    proactiveUnreadCounts: {},
   });
 
   const setError = useCallback((error: string | null) => {
@@ -268,6 +273,8 @@ export function useAppStore() {
         editingUserProfile: false,
         chatError: null,
         lastFailedContent: null,
+        adjustingMessageId: null,
+        proactiveUnreadCounts: {},
       });
     } catch (e) {
       setError(String(e));
@@ -847,6 +854,56 @@ export function useAppStore() {
     }
   }, [state.activeCharacter, state.apiKey, state.activeWorld, state.autoRespond, state.notifyOnMessage]);
 
+  // ── Proactive pings ────────────────────────────────────────────────────
+  //
+  // Refresh the per-thread unread badge counts. Cheap single DB call, safe
+  // to run on app focus, on tick, or after any user action that might have
+  // reset a counter.
+  const refreshProactiveUnreadCounts = useCallback(async () => {
+    try {
+      const counts = await api.getProactiveUnreadCounts();
+      setState((s) => ({ ...s, proactiveUnreadCounts: counts }));
+    } catch {
+      // Non-fatal — badge just won't update this tick.
+    }
+  }, []);
+
+  // Sweep all non-archived characters and ask the backend to consider a
+  // proactive ping for each. Backend enforces eligibility gates (quiet
+  // window, cooldown, consecutive-cap); most calls return immediately with
+  // a `skipped_reason`. Messages that DO arrive are appended to the active
+  // chat if that chat is open, otherwise they just show up on next load.
+  const runProactivePingSweep = useCallback(async () => {
+    if (!state.apiKey) return;
+    const characters = state.characters;
+    if (characters.length === 0) return;
+    let anyFired = false;
+    for (const ch of characters) {
+      try {
+        const result = await api.tryProactivePing(state.apiKey, ch.character_id);
+        if (result.message) {
+          anyFired = true;
+          setState((s) => {
+            // Append to the live message list only if this is the chat
+            // the user is currently looking at. Otherwise the message is
+            // already persisted and will load when they open the thread;
+            // the badge is what flags it in the meantime.
+            const inActiveChat = s.activeCharacter?.character_id === ch.character_id;
+            return inActiveChat
+              ? { ...s, messages: [...s.messages, result.message!], totalMessages: s.totalMessages + 1 }
+              : s;
+          });
+        }
+      } catch {
+        // Per-character failure shouldn't stop the sweep.
+      }
+    }
+    if (anyFired) {
+      if (state.notifyOnMessage) playChime();
+      refreshProactiveUnreadCounts();
+    }
+  }, [state.apiKey, state.characters, state.activeCharacter, state.notifyOnMessage, refreshProactiveUnreadCounts]);
+
   const promptCharacter = useCallback(async () => {
     if (!state.activeCharacter || !state.apiKey) return;
     if (state.activeWorld) api.setSetting(`last_chat.${state.activeWorld.world_id}`, `char:${state.activeCharacter.character_id}`).catch(() => {});
@@ -869,6 +926,28 @@ export function useAppStore() {
       }));
     }
   }, [state.activeCharacter, state.apiKey]);
+
+  // Generate a dream-journal entry for the currently-active solo character.
+  // The backend persists it as a "dream"-role message; we append it to the
+  // live message list so it renders immediately in the chat.
+  const generateDream = useCallback(async () => {
+    if (!state.activeCharacter || !state.apiKey) return;
+    const charId = state.activeCharacter.character_id;
+    setState((s) => ({ ...s, sending: charId, generatingNarrative: charId, chatError: null }));
+    try {
+      const result = await api.generateDream(state.apiKey, charId);
+      setState((s) => ({
+        ...s,
+        messages: [...s.messages, result.dream_message],
+        totalMessages: s.totalMessages + 1,
+        sending: null,
+        generatingNarrative: null,
+      }));
+      if (state.notifyOnMessage) playChime();
+    } catch (e) {
+      setState((s) => ({ ...s, sending: null, generatingNarrative: null, chatError: String(e) }));
+    }
+  }, [state.activeCharacter, state.apiKey, state.notifyOnMessage]);
 
   const generateNarrative = useCallback(async (customInstructions?: string) => {
     const isGroup = !!state.activeGroupChat && !state.activeCharacter;
@@ -1284,6 +1363,43 @@ export function useAppStore() {
     }
   }, []);
 
+  // Ask the vision model to (re)describe a character from their current
+  // active portrait. Cached by portrait_id on the backend — repeated
+  // calls with no portrait change are cheap no-ops. Swallows errors so a
+  // bad key or offline run doesn't cascade through the UI.
+  const refreshVisualDescription = useCallback(async (characterId: string) => {
+    if (!state.apiKey) return;
+    try {
+      const updated = await api.generateCharacterVisualDescription(state.apiKey, characterId);
+      setState((s) => ({
+        ...s,
+        characters: s.characters.map((c) =>
+          c.character_id === characterId ? updated : c
+        ),
+        activeCharacter:
+          s.activeCharacter?.character_id === characterId ? updated : s.activeCharacter,
+      }));
+    } catch {
+      // ignore
+    }
+  }, [state.apiKey]);
+
+  // Backfill sweep: one call per character whose description is missing
+  // or out of date versus the active portrait. Spaced out by 500ms so we
+  // don't stampede the vision endpoint on app open.
+  const backfillVisualDescriptions = useCallback(async () => {
+    if (!state.apiKey || !state.activeWorld) return;
+    try {
+      const ids = await api.listCharactersNeedingVisualDescription(state.activeWorld.world_id);
+      for (const id of ids) {
+        await refreshVisualDescription(id);
+        await new Promise((r) => setTimeout(r, 500));
+      }
+    } catch {
+      // ignore
+    }
+  }, [state.apiKey, state.activeWorld, refreshVisualDescription]);
+
   const toggleReaction = useCallback(async (messageId: string, emoji: string) => {
     const existing = state.reactions[messageId] ?? [];
     const alreadyReacted = existing.some((r) => r.emoji === emoji && r.reactor === "user");
@@ -1392,5 +1508,10 @@ export function useAppStore() {
     selectUserProfile,
     clearChatError,
     setError,
+    refreshProactiveUnreadCounts,
+    runProactivePingSweep,
+    generateDream,
+    refreshVisualDescription,
+    backfillVisualDescriptions,
   };
 }

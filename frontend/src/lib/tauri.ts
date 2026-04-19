@@ -34,6 +34,14 @@ export interface Character {
   is_archived: boolean;
   created_at: string;
   updated_at: string;
+  /** Honest physical description generated from the active portrait by
+   *  a vision call. Empty until generated. Shared into group-chat and
+   *  narrative prompts so other characters can picture this person. */
+  visual_description?: string;
+  /** The portrait_id that produced the current visual_description.
+   *  Cache key — if it matches the currently-active portrait, no
+   *  re-generation is needed. */
+  visual_description_portrait_id?: string | null;
 }
 
 export interface CharacterState {
@@ -47,13 +55,21 @@ export interface CharacterState {
 export interface Message {
   message_id: string;
   thread_id: string;
-  role: "user" | "assistant" | "system" | "narrative" | "illustration" | "context";
+  role: "user" | "assistant" | "system" | "narrative" | "illustration" | "context" | "dream";
   content: string;
   tokens_estimate: number;
   sender_character_id: string | null;
   created_at: string;
   world_day: number | null;
   world_time: string | null;
+  /** True when this assistant message was emitted as a proactive ping
+   *  (character reaching out first). Drives distinct styling + unread badge. */
+  is_proactive?: boolean;
+}
+
+export interface ProactivePingResult {
+  message: Message | null;
+  skipped_reason: string | null;
 }
 
 export interface GroupChat {
@@ -120,6 +136,10 @@ export interface NarrativeResult {
   narrative_message: Message;
 }
 
+export interface DreamResult {
+  dream_message: Message;
+}
+
 export interface IllustrationResult {
   illustration_message: Message;
 }
@@ -158,15 +178,15 @@ export interface Reaction {
   sender_character_id?: string | null;
 }
 
-export interface CanonEntry {
-  canon_id: string;
+export interface KeptRecord {
+  kept_id: string;
   source_message_id: string | null;
   source_thread_id: string | null;
   source_world_day: number | null;
   source_created_at: string | null;
   subject_type: "character" | "user" | "world" | "relationship";
   subject_id: string;
-  canon_type: "description_weave" | "known_fact" | "relationship_note" | "world_fact";
+  record_type: "description_weave" | "known_fact" | "relationship_note" | "world_fact";
   content: string;
   user_note: string;
   created_at: string;
@@ -384,6 +404,10 @@ export const api = {
     invoke<SendMessageResult>("send_message_cmd", { apiKey, characterId, content }),
   promptCharacter: (apiKey: string, characterId: string) =>
     invoke<PromptCharacterResult>("prompt_character_cmd", { apiKey, characterId }),
+  tryProactivePing: (apiKey: string, characterId: string) =>
+    invoke<ProactivePingResult>("try_proactive_ping_cmd", { apiKey, characterId }),
+  getProactiveUnreadCounts: () =>
+    invoke<Record<string, number>>("get_proactive_unread_counts_cmd"),
   createContextMessage: (characterId?: string, groupChatId?: string, content?: string) =>
     invoke<Message>("create_context_message_cmd", { characterId: characterId ?? null, groupChatId: groupChatId ?? null, content: content ?? "" }),
   adjustMessage: (apiKey: string, messageId: string, instructions: string, isGroup: boolean) =>
@@ -432,6 +456,8 @@ export const api = {
     invoke<{ message_id: string; role: string; content: string; speaker_name: string; character_id: string | null; avatar_color: string | null; created_at: string } | null>("get_last_seen_message_cmd", { chatId }),
   generateNarrative: (apiKey: string, characterId: string, customInstructions?: string) =>
     invoke<NarrativeResult>("generate_narrative_cmd", { apiKey, characterId, customInstructions: customInstructions ?? null }),
+  generateDream: (apiKey: string, characterId: string) =>
+    invoke<DreamResult>("generate_dream_cmd", { apiKey, characterId }),
   generateIllustration: (apiKey: string, characterId: string, qualityTier?: string, customInstructions?: string, previousIllustrationId?: string, includeSceneSummary?: boolean) =>
     invoke<IllustrationResult>("generate_illustration_cmd", { apiKey, characterId, qualityTier: qualityTier ?? null, customInstructions: customInstructions ?? null, previousIllustrationId: previousIllustrationId ?? null, includeSceneSummary: includeSceneSummary ?? true }),
   deleteIllustration: (messageId: string) =>
@@ -525,6 +551,10 @@ export const api = {
     invoke<PortraitInfo>("set_portrait_from_gallery_cmd", { characterId, sourceFile }),
   getActivePortrait: (characterId: string) =>
     invoke<PortraitInfo | null>("get_active_portrait_cmd", { characterId }),
+  generateCharacterVisualDescription: (apiKey: string, characterId: string, force?: boolean) =>
+    invoke<Character>("generate_character_visual_description_cmd", { apiKey, characterId, force: force ?? null }),
+  listCharactersNeedingVisualDescription: (worldId: string) =>
+    invoke<string[]>("list_characters_needing_visual_description_cmd", { worldId }),
 
   generateWorldImage: (apiKey: string, worldId: string, formHint?: { name?: string; description?: string; tone_tags?: unknown }) =>
     invoke<WorldImageInfo>("generate_world_image_cmd", { apiKey, worldId, formHint: formHint ?? null }),
@@ -573,22 +603,22 @@ export const api = {
     invoke<string[]>("get_mood_reduction_cmd", { characterId: opts.characterId ?? null, groupChatId: opts.groupChatId ?? null }),
 
   // Canon (Promote to Canon flow)
-  canonizeWeaveDescription: (apiKey: string, request: { sourceMessageId: string; subjectType: string; subjectId: string }) =>
-    invoke<{ current_description: string; proposed_description: string }>("canonize_weave_description_cmd", { apiKey, request }),
-  saveCanonEntry: (request: {
+  proposeKeptWeave: (apiKey: string, request: { sourceMessageId: string; subjectType: string; subjectId: string }) =>
+    invoke<{ current_description: string; proposed_description: string }>("propose_kept_weave_cmd", { apiKey, request }),
+  saveKeptRecord: (request: {
     sourceMessageId?: string | null;
     subjectType: string;
     subjectId: string;
-    canonType: string;
+    recordType: string;
     content: string;
     userNote?: string;
-  }) => invoke<CanonEntry>("save_canon_entry_cmd", { request }),
-  listCanonizedMessageIds: (threadId: string) =>
-    invoke<string[]>("list_canonized_message_ids_cmd", { threadId }),
-  listCanonForMessage: (messageId: string) =>
-    invoke<CanonEntry[]>("list_canon_for_message_cmd", { messageId }),
-  deleteCanonEntry: (canonId: string) =>
-    invoke<void>("delete_canon_entry_cmd", { canonId }),
+  }) => invoke<KeptRecord>("save_kept_record_cmd", { request }),
+  listKeptMessageIds: (threadId: string) =>
+    invoke<string[]>("list_kept_message_ids_cmd", { threadId }),
+  listKeptForMessage: (messageId: string) =>
+    invoke<KeptRecord[]>("list_kept_for_message_cmd", { messageId }),
+  deleteKeptRecord: (canonId: string) =>
+    invoke<void>("delete_kept_record_cmd", { canonId }),
 
   // Backup
   getLatestBackup: () =>

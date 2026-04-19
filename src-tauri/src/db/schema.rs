@@ -694,7 +694,7 @@ pub fn run_migrations(conn: &Connection) -> Result<(), rusqlite::Error> {
     //   world     / <world_id>
     //   relationship / "<char_id_a>::<char_id_b or 'user'>"
     //
-    // `canon_type`:
+    // `record_type`:
     //   description_weave  — revised full description (character or user)
     //   known_fact         — appended to backstory_facts / user facts
     //   relationship_note  — appended to a relationship entry
@@ -706,21 +706,21 @@ pub fn run_migrations(conn: &Connection) -> Result<(), rusqlite::Error> {
     // subject. Queryable by source_message_id for "is this message
     // canonized?" indicators.
     conn.execute_batch("
-        CREATE TABLE IF NOT EXISTS canon_entries (
-            canon_id TEXT PRIMARY KEY,
+        CREATE TABLE IF NOT EXISTS kept_records (
+            kept_id TEXT PRIMARY KEY,
             source_message_id TEXT,
             source_thread_id TEXT,
             source_world_day INTEGER,
             source_created_at TEXT,
             subject_type TEXT NOT NULL CHECK(subject_type IN ('character','user','world','relationship')),
             subject_id TEXT NOT NULL,
-            canon_type TEXT NOT NULL CHECK(canon_type IN ('description_weave','known_fact','relationship_note','world_fact')),
+            record_type TEXT NOT NULL CHECK(record_type IN ('description_weave','known_fact','relationship_note','world_fact')),
             content TEXT NOT NULL,
             user_note TEXT NOT NULL DEFAULT '',
             created_at TEXT NOT NULL DEFAULT (datetime('now'))
         );
-        CREATE INDEX IF NOT EXISTS idx_canon_source_message ON canon_entries(source_message_id);
-        CREATE INDEX IF NOT EXISTS idx_canon_subject ON canon_entries(subject_type, subject_id);
+        CREATE INDEX IF NOT EXISTS idx_canon_source_message ON kept_records(source_message_id);
+        CREATE INDEX IF NOT EXISTS idx_canon_subject ON kept_records(subject_type, subject_id);
     ").ok();
 
     // ── Reactions: rebuild without the FK to `messages` ─────────────────
@@ -839,6 +839,168 @@ pub fn run_migrations(conn: &Connection) -> Result<(), rusqlite::Error> {
     if !has_mood_chain_gmsgs {
         conn.execute("ALTER TABLE group_messages ADD COLUMN mood_chain TEXT DEFAULT NULL", []).ok();
     }
+
+    // ── Proactive pings ────────────────────────────────────────────────────
+    //
+    // Characters can reach out first — unsolicited, between user turns. To
+    // keep that from tipping into spam we cap consecutive unanswered pings
+    // per thread (reset on any user message) and track when the last ping
+    // fired so we can rate-limit across the day.
+    //
+    // `threads.consecutive_proactive_pings` — incremented each time a ping is
+    //    emitted; reset to 0 on any inserted user message. Enforces the
+    //    "no more than 2 in a row" rule from the feature spec.
+    // `threads.last_proactive_ping_at` — ISO timestamp of the most recent
+    //    ping; used for per-thread cooldowns.
+    // `messages.is_proactive` — flags a message as a proactive ping so the
+    //    UI can style it distinctly and so counters can be replayed.
+    let has_cons_pings: bool = conn.query_row(
+        "SELECT COUNT(*) FROM pragma_table_info('threads') WHERE name = 'consecutive_proactive_pings'",
+        [], |r| r.get::<_, i64>(0),
+    ).unwrap_or(0) > 0;
+    if !has_cons_pings {
+        conn.execute("ALTER TABLE threads ADD COLUMN consecutive_proactive_pings INTEGER NOT NULL DEFAULT 0", []).ok();
+    }
+    let has_last_ping: bool = conn.query_row(
+        "SELECT COUNT(*) FROM pragma_table_info('threads') WHERE name = 'last_proactive_ping_at'",
+        [], |r| r.get::<_, i64>(0),
+    ).unwrap_or(0) > 0;
+    if !has_last_ping {
+        conn.execute("ALTER TABLE threads ADD COLUMN last_proactive_ping_at TEXT DEFAULT NULL", []).ok();
+    }
+    let has_is_proactive: bool = conn.query_row(
+        "SELECT COUNT(*) FROM pragma_table_info('messages') WHERE name = 'is_proactive'",
+        [], |r| r.get::<_, i64>(0),
+    ).unwrap_or(0) > 0;
+    if !has_is_proactive {
+        conn.execute("ALTER TABLE messages ADD COLUMN is_proactive INTEGER NOT NULL DEFAULT 0", []).ok();
+    }
+    // group_messages shares the Message struct and the MSG_COLS constant,
+    // so the column must exist on both tables even though proactive pings
+    // currently only fire in solo threads. Unused rows stay at default 0.
+    let has_is_proactive_g: bool = conn.query_row(
+        "SELECT COUNT(*) FROM pragma_table_info('group_messages') WHERE name = 'is_proactive'",
+        [], |r| r.get::<_, i64>(0),
+    ).unwrap_or(0) > 0;
+    if !has_is_proactive_g {
+        conn.execute("ALTER TABLE group_messages ADD COLUMN is_proactive INTEGER NOT NULL DEFAULT 0", []).ok();
+    }
+
+    // ── Rename kept_records → kept_records ─────────────────────────────────
+    //
+    // The feature was renamed from "canon" → "kept record" to drop the
+    // oversized religious register. Data is preserved: we use SQLite's
+    // ALTER TABLE RENAME (table + columns) which is atomic and lossless.
+    // CHECK constraints update automatically when columns rename.
+    //
+    // Runs exactly once: skips if the old table is gone AND the new one
+    // already exists. On fresh installs the old table never existed, and
+    // the initial CREATE statement further up already uses the new name
+    // (see below).
+    let has_canon_table: bool = conn.query_row(
+        "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='kept_records'",
+        [], |r| r.get::<_, i64>(0),
+    ).unwrap_or(0) > 0;
+    let has_kept_table: bool = conn.query_row(
+        "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='kept_records'",
+        [], |r| r.get::<_, i64>(0),
+    ).unwrap_or(0) > 0;
+    if has_canon_table && !has_kept_table {
+        let before: i64 = conn.query_row("SELECT COUNT(*) FROM kept_records", [], |r| r.get(0)).unwrap_or(-1);
+        let rename = conn.execute_batch("
+            ALTER TABLE kept_records RENAME TO kept_records;
+            ALTER TABLE kept_records RENAME COLUMN kept_id TO kept_id;
+            ALTER TABLE kept_records RENAME COLUMN record_type TO record_type;
+            DROP INDEX IF EXISTS idx_canon_source_message;
+            DROP INDEX IF EXISTS idx_canon_subject;
+            CREATE INDEX IF NOT EXISTS idx_kept_source_message ON kept_records(source_message_id);
+            CREATE INDEX IF NOT EXISTS idx_kept_subject ON kept_records(subject_type, subject_id);
+        ");
+        match rename {
+            Ok(()) => {
+                let after: i64 = conn.query_row("SELECT COUNT(*) FROM kept_records", [], |r| r.get(0)).unwrap_or(-2);
+                if after == before {
+                    log::warn!("kept_records → kept_records rename succeeded: {} rows preserved", after);
+                } else {
+                    log::error!("kept_records rename produced count mismatch: {} vs {} — data may be at risk, investigate immediately", before, after);
+                }
+            }
+            Err(e) => {
+                log::error!("kept_records → kept_records rename failed: {}. Table is left in its original state; no data lost.", e);
+            }
+        }
+    }
+    // Visual description of a character, generated from their active
+    // portrait by a multimodal vision call. Lets other characters in
+    // the same world know what they look like — used in group-chat and
+    // narrative prompts so a character can reference a friend's face
+    // the way a real person would. Empty by default; populated on
+    // portrait generation/change via an explicit command.
+    //
+    // `visual_description_portrait_id` caches the portrait_id that
+    // generated the current description. When a vision-description
+    // refresh is requested, we compare this against the currently-active
+    // portrait: if they match, we skip the vision call (the image
+    // hasn't changed). Null on legacy rows; set on every successful
+    // refresh.
+    let has_visual_desc: bool = conn.query_row(
+        "SELECT COUNT(*) FROM pragma_table_info('characters') WHERE name = 'visual_description'",
+        [], |r| r.get::<_, i64>(0),
+    ).unwrap_or(0) > 0;
+    if !has_visual_desc {
+        conn.execute("ALTER TABLE characters ADD COLUMN visual_description TEXT NOT NULL DEFAULT ''", []).ok();
+    }
+    let has_visual_desc_src: bool = conn.query_row(
+        "SELECT COUNT(*) FROM pragma_table_info('characters') WHERE name = 'visual_description_portrait_id'",
+        [], |r| r.get::<_, i64>(0),
+    ).unwrap_or(0) > 0;
+    if !has_visual_desc_src {
+        conn.execute("ALTER TABLE characters ADD COLUMN visual_description_portrait_id TEXT DEFAULT NULL", []).ok();
+    }
+
+    // One-time clear of existing visual descriptions so they regenerate
+    // under the tightened vision prompt (no pose/expression/lighting —
+    // enduring features only). Gated by a marker row in `settings` so
+    // this runs exactly once per database. New descriptions will land
+    // via the backfill sweep the next time the app has an API key.
+    let already_cleared: bool = conn.query_row(
+        "SELECT COUNT(*) FROM settings WHERE key = 'schema.visual_description_cleared_v1'",
+        [], |r| r.get::<_, i64>(0),
+    ).unwrap_or(0) > 0;
+    if !already_cleared {
+        let cleared = conn.execute(
+            "UPDATE characters SET visual_description = '', visual_description_portrait_id = NULL WHERE visual_description != '' OR visual_description_portrait_id IS NOT NULL",
+            [],
+        ).unwrap_or(0);
+        conn.execute(
+            "INSERT OR IGNORE INTO settings (key, value) VALUES ('schema.visual_description_cleared_v1', ?1)",
+            [chrono::Utc::now().to_rfc3339()],
+        ).ok();
+        if cleared > 0 {
+            log::warn!("Cleared {} existing visual descriptions for regeneration under the tightened vision prompt", cleared);
+        }
+    }
+
+    // Fresh-install path: create the new table directly. IF NOT EXISTS means
+    // this is a no-op on databases that already came through the rename
+    // branch above.
+    conn.execute_batch("
+        CREATE TABLE IF NOT EXISTS kept_records (
+            kept_id TEXT PRIMARY KEY,
+            source_message_id TEXT,
+            source_thread_id TEXT,
+            source_world_day INTEGER,
+            source_created_at TEXT,
+            subject_type TEXT NOT NULL CHECK(subject_type IN ('character','user','world','relationship')),
+            subject_id TEXT NOT NULL,
+            record_type TEXT NOT NULL CHECK(record_type IN ('description_weave','known_fact','relationship_note','world_fact')),
+            content TEXT NOT NULL,
+            user_note TEXT NOT NULL DEFAULT '',
+            created_at TEXT NOT NULL DEFAULT (datetime('now'))
+        );
+        CREATE INDEX IF NOT EXISTS idx_kept_source_message ON kept_records(source_message_id);
+        CREATE INDEX IF NOT EXISTS idx_kept_subject ON kept_records(subject_type, subject_id);
+    ").ok();
 
     Ok(())
 }

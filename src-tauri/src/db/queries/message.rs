@@ -52,6 +52,11 @@ pub struct Message {
     /// measurement loop (which chains correlate with positive reactions).
     #[serde(default)]
     pub mood_chain: Option<String>,
+    /// Set to true on assistant messages emitted as proactive pings (the
+    /// character reaching out first, unprompted). Used by the UI to style
+    /// them distinctly and by sidebar to surface unread badges.
+    #[serde(default)]
+    pub is_proactive: bool,
 }
 
 pub fn update_message_content(conn: &Connection, message_id: &str, content: &str, tokens_estimate: i64) -> Result<(), rusqlite::Error> {
@@ -83,8 +88,8 @@ pub fn update_group_message_content(conn: &Connection, message_id: &str, content
 
 pub fn create_message(conn: &Connection, m: &Message) -> Result<(), rusqlite::Error> {
     conn.execute(
-        "INSERT INTO messages (message_id, thread_id, role, content, tokens_estimate, sender_character_id, created_at, world_day, world_time, address_to, mood_chain) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)",
-        params![m.message_id, m.thread_id, m.role, m.content, m.tokens_estimate, m.sender_character_id, m.created_at, m.world_day, m.world_time, m.address_to, m.mood_chain],
+        "INSERT INTO messages (message_id, thread_id, role, content, tokens_estimate, sender_character_id, created_at, world_day, world_time, address_to, mood_chain, is_proactive) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12)",
+        params![m.message_id, m.thread_id, m.role, m.content, m.tokens_estimate, m.sender_character_id, m.created_at, m.world_day, m.world_time, m.address_to, m.mood_chain, m.is_proactive as i64],
     )?;
     // Don't index illustration/video content in FTS — they contain binary data (base64)
     if m.role != "illustration" && m.role != "video" {
@@ -93,7 +98,63 @@ pub fn create_message(conn: &Connection, m: &Message) -> Result<(), rusqlite::Er
             params![m.message_id, m.thread_id, m.content],
         ).ok();
     }
+    // A user reply "answers" any outstanding proactive ping, so the
+    // consecutive counter resets. Done here rather than at every call site
+    // so it's impossible to forget.
+    if m.role == "user" {
+        conn.execute(
+            "UPDATE threads SET consecutive_proactive_pings = 0 WHERE thread_id = ?1",
+            params![m.thread_id],
+        ).ok();
+    }
     Ok(())
+}
+
+// ─── Proactive pings ────────────────────────────────────────────────────────
+
+/// Per-thread state used to decide whether a proactive ping is allowed right
+/// now and to enforce the "max 2 consecutive" rule.
+#[derive(Debug, Clone)]
+pub struct ProactivePingState {
+    pub consecutive: i64,
+    pub last_at: Option<String>,
+}
+
+pub fn get_proactive_ping_state(conn: &Connection, thread_id: &str) -> ProactivePingState {
+    conn.query_row(
+        "SELECT consecutive_proactive_pings, last_proactive_ping_at FROM threads WHERE thread_id = ?1",
+        params![thread_id],
+        |r| Ok(ProactivePingState { consecutive: r.get(0)?, last_at: r.get(1).ok() }),
+    ).unwrap_or(ProactivePingState { consecutive: 0, last_at: None })
+}
+
+/// Increment the consecutive counter and stamp the last-ping timestamp.
+/// Called only after a ping has been successfully persisted.
+pub fn record_proactive_ping(conn: &Connection, thread_id: &str, at_iso: &str) -> Result<(), rusqlite::Error> {
+    conn.execute(
+        "UPDATE threads
+           SET consecutive_proactive_pings = consecutive_proactive_pings + 1,
+               last_proactive_ping_at = ?2
+         WHERE thread_id = ?1",
+        params![thread_id, at_iso],
+    )?;
+    Ok(())
+}
+
+/// Counts proactive assistant messages in the thread that are newer than the
+/// most recent user message. Used to surface an unread badge in the sidebar.
+pub fn count_unread_proactive_since_last_user(conn: &Connection, thread_id: &str) -> i64 {
+    conn.query_row(
+        "SELECT COUNT(*) FROM messages
+         WHERE thread_id = ?1
+           AND is_proactive = 1
+           AND created_at > COALESCE(
+             (SELECT MAX(created_at) FROM messages WHERE thread_id = ?1 AND role = 'user'),
+             '0000-00-00'
+           )",
+        params![thread_id],
+        |r| r.get(0),
+    ).unwrap_or(0)
 }
 
 /// Read the per-thread mood-reduction ring buffer (most-recent-first JSON
@@ -171,6 +232,24 @@ pub fn list_messages_within_budget(
     Ok(out)
 }
 
+/// Fetch all messages from a thread tagged with a specific in-world day.
+/// Used by dream generation so the dream compresses *that day's* material,
+/// not whatever happens to fit in the token budget. Returns chronologically
+/// (oldest first). Messages whose `world_day` is NULL are excluded — if
+/// the world has no clock, there's no in-world day to scope to and the
+/// caller should fall back to the budget-based path.
+pub fn list_messages_for_world_day(
+    conn: &Connection,
+    thread_id: &str,
+    world_day: i64,
+) -> Result<Vec<Message>, rusqlite::Error> {
+    let mut stmt = conn.prepare(
+        &format!("SELECT {MSG_COLS} FROM messages WHERE thread_id = ?1 AND world_day = ?2 ORDER BY created_at ASC")
+    )?;
+    let rows = stmt.query_map(params![thread_id, world_day], row_to_message)?;
+    rows.collect()
+}
+
 pub fn get_all_messages(conn: &Connection, thread_id: &str) -> Result<Vec<Message>, rusqlite::Error> {
     let mut stmt = conn.prepare(
         &format!("SELECT {MSG_COLS} FROM messages WHERE thread_id = ?1 ORDER BY created_at ASC")
@@ -234,10 +313,11 @@ pub fn row_to_message(row: &rusqlite::Row) -> Result<Message, rusqlite::Error> {
         world_time: row.get(8).ok(),
         address_to: row.get(9).ok(),
         mood_chain: row.get(10).ok(),
+        is_proactive: row.get::<_, i64>(11).map(|v| v != 0).unwrap_or(false),
     })
 }
 
-pub const MSG_COLS: &str = "message_id, thread_id, role, content, tokens_estimate, sender_character_id, created_at, world_day, world_time, address_to, mood_chain";
+pub const MSG_COLS: &str = "message_id, thread_id, role, content, tokens_estimate, sender_character_id, created_at, world_day, world_time, address_to, mood_chain, is_proactive";
 
 
 // ─── FTS Search ─────────────────────────────────────────────────────────────

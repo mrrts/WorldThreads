@@ -55,6 +55,8 @@ pub fn create_world_cmd(db: State<Database>, name: String) -> Result<World, Stri
             is_archived: false,
             created_at: ch_now.clone(),
             updated_at: ch_now.clone(),
+            visual_description: String::new(),
+            visual_description_portrait_id: None,
         };
         create_character(&conn, &ch).map_err(|e| e.to_string())?;
         create_thread(&conn, &Thread {

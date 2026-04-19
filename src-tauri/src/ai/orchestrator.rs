@@ -215,10 +215,10 @@ pub async fn run_dialogue_with_base(
     local_model: bool,
     mood_chain: &[String],
     leader: Option<&str>,
-    canonized_ids: &[String],
+    kept_ids: &[String],
 ) -> Result<(String, Option<openai::Usage>), String> {
     let system = prompts::build_dialogue_system_prompt(world, character, user_profile, mood_directive, response_length, group_context, tone, local_model, mood_chain, leader);
-    let messages = prompts::build_dialogue_messages(&system, recent_messages, retrieved_snippets, character_names, canonized_ids);
+    let messages = prompts::build_dialogue_messages(&system, recent_messages, retrieved_snippets, character_names, kept_ids);
 
     // Token caps sit ~25% above the sentence counts we instruct (see
     // prompts::response_length_block). Disobedient local models get some
@@ -256,7 +256,67 @@ pub async fn run_dialogue_with_base(
         raw
     };
 
+    // Strip asterisks that wrap a bare quoted phrase (no other content
+    // inside the pair). Models occasionally emit `*"That makes sense."*`
+    // — asterisks are for actions, not speech. The prompt says so, but
+    // this is a defensive net for the times the model slips.
+    let reply = strip_asterisk_wrapped_quotes(&reply);
+
     Ok((reply, response.usage))
+}
+
+/// Remove `*"..."*` patterns where asterisks directly wrap a quoted phrase
+/// with nothing else (only optional whitespace) between them. The interior
+/// quote is preserved. Action beats like `*says "stop"*` are NOT matched —
+/// they contain non-quote content inside the pair.
+pub fn strip_asterisk_wrapped_quotes(s: &str) -> String {
+    let mut out = String::with_capacity(s.len());
+    let bytes = s.as_bytes();
+    let mut i = 0;
+    while i < bytes.len() {
+        if bytes[i] == b'*' {
+            // Look ahead: optional whitespace, then a `"`, then find the
+            // closing `"`, then optional whitespace, then `*`. If the whole
+            // run matches, emit just the quoted substring.
+            let mut j = i + 1;
+            while j < bytes.len() && (bytes[j] == b' ' || bytes[j] == b'\t') { j += 1; }
+            if j < bytes.len() && bytes[j] == b'"' {
+                let q_start = j;
+                let mut k = j + 1;
+                while k < bytes.len() && bytes[k] != b'"' && bytes[k] != b'\n' { k += 1; }
+                if k < bytes.len() && bytes[k] == b'"' {
+                    let q_end = k + 1;
+                    let mut m = q_end;
+                    while m < bytes.len() && (bytes[m] == b' ' || bytes[m] == b'\t') { m += 1; }
+                    if m < bytes.len() && bytes[m] == b'*' {
+                        // Matched: emit just the quote (lossless of its own content).
+                        out.push_str(&s[q_start..q_end]);
+                        i = m + 1;
+                        continue;
+                    }
+                }
+            }
+        }
+        // No match — copy the byte (safe: we never split a UTF-8 codepoint
+        // because we only skip over quoted ASCII runs and whitespace).
+        let ch_end = next_char_end(s, i);
+        out.push_str(&s[i..ch_end]);
+        i = ch_end;
+    }
+    out
+}
+
+fn next_char_end(s: &str, start: usize) -> usize {
+    let bytes = s.as_bytes();
+    if start >= bytes.len() { return start; }
+    // UTF-8 continuation byte count from the leading byte.
+    let b = bytes[start];
+    let len = if b < 0x80 { 1 }
+              else if b < 0xC0 { 1 }  // isolated continuation — shouldn't happen; skip one
+              else if b < 0xE0 { 2 }
+              else if b < 0xF0 { 3 }
+              else { 4 };
+    (start + len).min(bytes.len())
 }
 
 /// Walk backward through `s` and return the substring ending at the last
@@ -322,6 +382,223 @@ pub fn balance_trailing_openers(s: &str) -> String {
     out
 }
 
+/// Generate a proactive (unsolicited) message from the character into their
+/// thread. Uses a dialogue-variant system prompt that tells the character
+/// they're reaching out first, and appends a final system anchor so the
+/// model doesn't hallucinate a prior user turn. Always short: proactive
+/// pings are one beat.
+pub async fn run_proactive_ping_with_base(
+    base_url: &str,
+    api_key: &str,
+    model: &str,
+    world: &World,
+    character: &Character,
+    recent_messages: &[Message],
+    retrieved_snippets: &[String],
+    user_profile: Option<&UserProfile>,
+    mood_directive: Option<&str>,
+    tone: Option<&str>,
+    local_model: bool,
+    mood_chain: &[String],
+    kept_ids: &[String],
+    elapsed_hint: Option<&str>,
+) -> Result<(String, Option<openai::Usage>), String> {
+    let system = prompts::build_proactive_ping_system_prompt(
+        world, character, user_profile, mood_directive, tone, local_model, mood_chain,
+    );
+    // Pick a fresh random angle per call — curated pool keeps framings
+    // heterogeneous so back-to-back pings can't collapse into the same
+    // generic "thinking of you" register.
+    let angle = prompts::pick_proactive_ping_angle();
+    log::info!("[Proactive] angle = {:.80}", angle);
+    let messages = prompts::build_proactive_ping_messages(
+        &system, recent_messages, retrieved_snippets, kept_ids, elapsed_hint, angle,
+    );
+
+    let request = ChatRequest {
+        model: model.to_string(),
+        messages,
+        temperature: Some(0.95),
+        max_completion_tokens: Some(190),
+        response_format: None,
+    };
+
+    let response = openai::chat_completion_with_base(base_url, api_key, &request).await?;
+    let choice = response.choices.first()
+        .ok_or_else(|| "No response from model".to_string())?;
+    let raw = choice.message.content.clone();
+
+    let reply = if choice.finish_reason.as_deref() == Some("length") {
+        let trimmed = trim_to_last_complete_sentence(&raw);
+        let base = if trimmed.is_empty() { raw.as_str() } else { trimmed.as_str() };
+        balance_trailing_openers(base)
+    } else {
+        raw
+    };
+
+    Ok((reply, response.usage))
+}
+
+/// Describe a character's portrait honestly: what the light actually hits,
+/// not what would flatter. Used to populate `characters.visual_description`
+/// so OTHER characters (and the narrator) know what this person looks like
+/// without the original describer having to hallucinate facial details
+/// across group-chat and narrative prompts.
+///
+/// The directive deliberately avoids cosmetic softening ("beautiful",
+/// "attractive") and instead asks for what a stranger on the street
+/// would actually notice: build, face, hair, eyes, posture, clothing,
+/// the tell-tale details that distinguish this person from anyone else
+/// in the room. Honest, not flattering. Observable, not interpretive.
+pub async fn describe_character_portrait(
+    openai_base_url: &str,
+    api_key: &str,
+    vision_model: &str,
+    image_bytes: &[u8],
+    character_display_name: &str,
+) -> Result<String, String> {
+    // Encode as a data URL so the image rides inline with the request.
+    let b64 = base64_encode_bytes(image_bytes);
+    let data_url = format!("data:image/png;base64,{b64}");
+
+    let system_text = format!(
+        r#"You describe how a person actually looks, honestly — not prettified, not interpreted, not made dramatic. A friend pointing them out in a crowd, not a novelist.
+
+Subject: {character_display_name}.
+
+Describe ENDURING features — the things a reader would recognize about this person in any scene, any mood, any moment. NOT the things specific to this one frame.
+
+Include:
+- build and frame (approximate height register if clear; body type, proportions)
+- face shape, skin tone, any distinguishing marks that stay with them (freckles, scars, lines, asymmetries, a crooked nose, a chipped tooth)
+- hair (colour, length, texture, how it's typically worn)
+- eye colour and set
+- what they're wearing — the outfit itself, as if it's their signature look. Garments, fabric, colour, condition, any accessories. Describe the clothes as this-is-what-they-wear, not as what-they-put-on-today.
+
+EXCLUDE (these are frame-specific, not person-specific):
+- Current pose, posture, or body orientation ("leaning forward", "arms crossed")
+- Current facial expression or emotion ("a slight smile", "looking tense")
+- Where the eyes are directed or what they're doing ("gazing off to the side")
+- Lighting, shadow, or mood of the portrait ("lit from the left", "warm glow")
+- What the hands or shoulders seem to suggest in this particular moment
+- How the image is cropped or framed ("from the shoulders up", "close-up", "waist-up shot", "headshot") — describe the person, not the camera
+
+Rules:
+- No cosmetic softening. No "beautiful", "handsome", "striking", "captivating". Don't grade the person.
+- No invented narrative ("there's a gentleness in her eyes that suggests..."). Observe, don't interpret.
+- No flowery register. Plain honest sentences.
+- 4–6 short sentences. Under 110 words total.
+- Start with the body/face/hair, not "This is a portrait of...". Just describe them."#
+    );
+
+    let request = openai::VisionRequest {
+        model: vision_model.to_string(),
+        messages: vec![openai::VisionMessage {
+            role: "user".to_string(),
+            content: vec![
+                openai::VisionContent {
+                    content_type: "text".to_string(),
+                    text: Some(system_text),
+                    image_url: None,
+                },
+                openai::VisionContent {
+                    content_type: "image_url".to_string(),
+                    text: None,
+                    image_url: Some(openai::VisionImageUrl {
+                        url: data_url,
+                        detail: Some("low".to_string()),
+                    }),
+                },
+            ],
+        }],
+        temperature: Some(0.3),
+        max_completion_tokens: Some(220),
+    };
+
+    let response = openai::vision_completion_with_base(openai_base_url, api_key, &request).await?;
+    let text = response.choices.first()
+        .map(|c| c.message.content.trim().to_string())
+        .unwrap_or_default();
+    if text.is_empty() {
+        return Err("empty vision response".to_string());
+    }
+    Ok(text)
+}
+
+/// Tiny standard base64 encoder for inline image data-URLs. Kept local so
+/// vision calls don't pull in a crate we don't otherwise need.
+fn base64_encode_bytes(input: &[u8]) -> String {
+    const CHARS: &[u8] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+    let mut out = String::with_capacity(((input.len() + 2) / 3) * 4);
+    for chunk in input.chunks(3) {
+        let b0 = chunk[0] as u32;
+        let b1 = if chunk.len() > 1 { chunk[1] as u32 } else { 0 };
+        let b2 = if chunk.len() > 2 { chunk[2] as u32 } else { 0 };
+        let triple = (b0 << 16) | (b1 << 8) | b2;
+        out.push(CHARS[((triple >> 18) & 0x3F) as usize] as char);
+        out.push(CHARS[((triple >> 12) & 0x3F) as usize] as char);
+        if chunk.len() > 1 {
+            out.push(CHARS[((triple >> 6) & 0x3F) as usize] as char);
+        } else {
+            out.push('=');
+        }
+        if chunk.len() > 2 {
+            out.push(CHARS[(triple & 0x3F) as usize] as char);
+        } else {
+            out.push('=');
+        }
+    }
+    out
+}
+
+/// Generate a dream-journal entry for a character. Condenses the recent
+/// story-material into a single short dream image — sideways, never
+/// direct. Behaves like a checkpoint in the thread: dense, canon-adjacent,
+/// but still inside the fiction so it doesn't break frame.
+pub async fn run_dream_with_base(
+    base_url: &str,
+    api_key: &str,
+    model: &str,
+    world: &World,
+    character: &Character,
+    recent_messages: &[Message],
+    user_profile: Option<&UserProfile>,
+    mood_directive: Option<&str>,
+    mood_chain: &[String],
+) -> Result<(String, Option<openai::Usage>), String> {
+    let system = prompts::build_dream_system_prompt(
+        world, character, user_profile, mood_directive, mood_chain,
+    );
+    let messages = prompts::build_dream_messages(&system, recent_messages);
+
+    let request = ChatRequest {
+        model: model.to_string(),
+        messages,
+        // Dreams benefit from a bit of extra looseness — the register is
+        // more free-associative than dialogue, and we want the model to
+        // actually take chances with transformation rather than playing it
+        // safe. Temp tops out around 1.0 for most providers.
+        temperature: Some(1.0),
+        max_completion_tokens: Some(260),
+        response_format: None,
+    };
+
+    let response = openai::chat_completion_with_base(base_url, api_key, &request).await?;
+    let choice = response.choices.first()
+        .ok_or_else(|| "No response from model".to_string())?;
+    let raw = choice.message.content.clone();
+
+    let reply = if choice.finish_reason.as_deref() == Some("length") {
+        let trimmed = trim_to_last_complete_sentence(&raw);
+        let base = if trimmed.is_empty() { raw.as_str() } else { trimmed.as_str() };
+        balance_trailing_openers(base)
+    } else {
+        raw
+    };
+
+    Ok((reply, response.usage))
+}
+
 /// Streaming variant of run_dialogue_with_base — emits tokens via Tauri events.
 /// Not currently called by any caller — kept for future reactivation when
 /// dialogue goes streaming end-to-end.
@@ -345,10 +622,10 @@ pub async fn run_dialogue_streaming(
     event_name: &str,
     mood_chain: &[String],
     leader: Option<&str>,
-    canonized_ids: &[String],
+    kept_ids: &[String],
 ) -> Result<String, String> {
     let system = prompts::build_dialogue_system_prompt(world, character, user_profile, mood_directive, response_length, group_context, tone, local_model, mood_chain, leader);
-    let messages = prompts::build_dialogue_messages(&system, recent_messages, retrieved_snippets, character_names, canonized_ids);
+    let messages = prompts::build_dialogue_messages(&system, recent_messages, retrieved_snippets, character_names, kept_ids);
 
     let token_limit = match response_length {
         Some("Short") => Some(150),

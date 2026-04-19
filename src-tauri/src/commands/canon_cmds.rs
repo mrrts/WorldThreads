@@ -125,7 +125,7 @@ pub struct WeaveResponse {
 /// Run the LLM weave call. Returns the current description (so the UI can
 /// diff) plus the proposed revision. Does NOT persist anything.
 #[tauri::command]
-pub async fn canonize_weave_description_cmd(
+pub async fn propose_kept_weave_cmd(
     db: State<'_, Database>,
     api_key: String,
     request: WeaveRequest,
@@ -200,7 +200,7 @@ pub struct SaveCanonRequest {
     pub source_message_id: Option<String>,
     pub subject_type: String,      // "character" | "user" | "world" | "relationship"
     pub subject_id: String,        // character_id | world_id | world_id | "char_a::char_b|user"
-    pub canon_type: String,        // "description_weave" | "known_fact" | "relationship_note" | "world_fact"
+    pub record_type: String,        // "description_weave" | "known_fact" | "relationship_note" | "world_fact"
     pub content: String,
     #[serde(default)]
     pub user_note: String,
@@ -208,10 +208,10 @@ pub struct SaveCanonRequest {
 
 /// Persist a canon entry AND apply its side effect to the target row.
 #[tauri::command]
-pub fn save_canon_entry_cmd(
+pub fn save_kept_record_cmd(
     db: State<Database>,
     request: SaveCanonRequest,
-) -> Result<CanonEntry, String> {
+) -> Result<KeptRecord, String> {
     let conn = db.conn.lock().map_err(|e| e.to_string())?;
 
     // Look up source message metadata for provenance (if provided).
@@ -226,7 +226,7 @@ pub fn save_canon_entry_cmd(
     };
 
     // Apply side effect to the subject row.
-    match (request.subject_type.as_str(), request.canon_type.as_str()) {
+    match (request.subject_type.as_str(), request.record_type.as_str()) {
         ("character", "description_weave") => {
             conn.execute(
                 "UPDATE characters SET identity = ?2, updated_at = datetime('now') WHERE character_id = ?1",
@@ -288,23 +288,23 @@ pub fn save_canon_entry_cmd(
                 params![request.subject_id, Value::Array(invariants).to_string()],
             ).map_err(|e| e.to_string())?;
         }
-        (st, ct) => return Err(format!("unsupported (subject_type, canon_type) = ({st}, {ct})")),
+        (st, ct) => return Err(format!("unsupported (subject_type, record_type) = ({st}, {ct})")),
     }
 
-    let entry = CanonEntry {
-        canon_id: uuid::Uuid::new_v4().to_string(),
+    let entry = KeptRecord {
+        kept_id: uuid::Uuid::new_v4().to_string(),
         source_message_id: request.source_message_id.clone(),
         source_thread_id,
         source_world_day,
         source_created_at,
         subject_type: request.subject_type,
         subject_id: request.subject_id,
-        canon_type: request.canon_type,
+        record_type: request.record_type,
         content: request.content,
         user_note: request.user_note,
         created_at: Utc::now().to_rfc3339(),
     };
-    create_canon_entry(&conn, &entry).map_err(|e| e.to_string())?;
+    create_kept_record(&conn, &entry).map_err(|e| e.to_string())?;
     Ok(entry)
 }
 
@@ -312,22 +312,22 @@ pub fn save_canon_entry_cmd(
 /// been canonized at least once — drives the "this moment is canon"
 /// indicator on messages.
 #[tauri::command]
-pub fn list_canonized_message_ids_cmd(
+pub fn list_kept_message_ids_cmd(
     db: State<Database>,
     thread_id: String,
 ) -> Result<Vec<String>, String> {
     let conn = db.conn.lock().map_err(|e| e.to_string())?;
-    list_canonized_message_ids_for_thread(&conn, &thread_id).map_err(|e| e.to_string())
+    list_kept_message_ids_for_thread(&conn, &thread_id).map_err(|e| e.to_string())
 }
 
 /// All canon entries tied to a given message (for the tooltip + undo list).
 #[tauri::command]
-pub fn list_canon_for_message_cmd(
+pub fn list_kept_for_message_cmd(
     db: State<Database>,
     message_id: String,
-) -> Result<Vec<CanonEntry>, String> {
+) -> Result<Vec<KeptRecord>, String> {
     let conn = db.conn.lock().map_err(|e| e.to_string())?;
-    list_canon_for_message(&conn, &message_id).map_err(|e| e.to_string())
+    list_kept_for_message(&conn, &message_id).map_err(|e| e.to_string())
 }
 
 /// Remove a canon entry. NOTE: this removes the provenance row only; it
@@ -335,10 +335,10 @@ pub fn list_canon_for_message_cmd(
 /// back a character description). Undo of the side effect would need a
 /// separate path that snapshots the pre-state.
 #[tauri::command]
-pub fn delete_canon_entry_cmd(
+pub fn delete_kept_record_cmd(
     db: State<Database>,
-    canon_id: String,
+    kept_id: String,
 ) -> Result<(), String> {
     let conn = db.conn.lock().map_err(|e| e.to_string())?;
-    delete_canon_entry(&conn, &canon_id).map_err(|e| e.to_string())
+    delete_kept_record(&conn, &kept_id).map_err(|e| e.to_string())
 }

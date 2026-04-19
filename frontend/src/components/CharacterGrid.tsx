@@ -108,7 +108,7 @@ export function CharacterGrid({ store, onChat, onSettings }: Props) {
         <DialogContent>
           <DialogHeader onClose={() => setShowNew(false)}>
             <DialogTitle>Add a Character</DialogTitle>
-            <DialogDescription>Name your new character. You can flesh out their canon later.</DialogDescription>
+            <DialogDescription>Name your new character. You can flesh out their details later.</DialogDescription>
           </DialogHeader>
           <DialogBody>
             <Input

@@ -252,7 +252,7 @@ export function SettingsPanel({ store }: Props) {
               <Field label="World Tick" hint="Off-screen simulation — cheaper">
                 {modelSelect(config.tick_model, (v) => setConfig({ ...config, tick_model: v }))}
               </Field>
-              <Field label="Memory" hint="Summaries & canon updates — cheaper">
+              <Field label="Memory" hint="Summaries & record updates — cheaper">
                 {modelSelect(config.memory_model, (v) => setConfig({ ...config, memory_model: v }))}
               </Field>
             </div>

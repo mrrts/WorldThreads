@@ -56,6 +56,7 @@ pub async fn generate_video_cmd(
                 relationships: serde_json::json!({}), state: serde_json::json!({}),
                 avatar_color: String::new(), sex: "male".to_string(), is_archived: false,
                 created_at: String::new(), updated_at: String::new(),
+                visual_description: String::new(), visual_description_portrait_id: None,
             })
         } else {
             get_character(&conn, &character_id).map_err(|e| e.to_string())?
@@ -78,6 +79,7 @@ pub async fn generate_video_cmd(
                 world_day: row.get(7).ok(), world_time: row.get(8).ok(),
             address_to: None,
         mood_chain: None,
+        is_proactive: false,
         })
         }).map_err(|e| e.to_string())?
         .filter_map(|r| r.ok())

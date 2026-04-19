@@ -4,17 +4,18 @@ import { formatMessage, markdownComponents, remarkPlugins, rehypePlugins } from 
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Dialog } from "@/components/ui/dialog";
-import { Send, Loader2, SmilePlus, X, Copy, ExternalLink, BookOpen, RotateCcw, MessageSquare, Compass, Settings, Image, Trash2, SlidersHorizontal, Pencil, Square, Play, Volume2, ChevronDown, ChevronRight, ScrollText } from "lucide-react";
+import { Send, Loader2, SmilePlus, X, Copy, ExternalLink, BookOpen, RotateCcw, MessageSquare, Compass, Settings, Image, Trash2, SlidersHorizontal, Pencil, Square, Play, Volume2, ChevronDown, ChevronRight, ScrollText, Moon } from "lucide-react";
 import { WebviewWindow } from "@tauri-apps/api/webviewWindow";
 import type { useAppStore } from "@/hooks/use-app-store";
 import { api, type Reaction } from "@/lib/tauri";
 import { EmojiPicker } from "@/components/chat/EmojiPicker";
 import { ReactionBubbles } from "@/components/chat/ReactionBubbles";
 import { ReactionPicker } from "@/components/chat/ReactionPicker";
-import { CanonizationModal } from "@/components/chat/CanonizationModal";
-import { CanonToast } from "@/components/chat/CanonToast";
-import type { CanonEntry } from "@/lib/tauri";
+import { KeepRecordModal } from "@/components/chat/KeepRecordModal";
+import { KeepToast } from "@/components/chat/KeepToast";
+import type { KeptRecord } from "@/lib/tauri";
 import { NarrativeMessage } from "@/components/chat/NarrativeMessage";
+import { DreamMessage } from "@/components/chat/DreamMessage";
 import { ChatErrorBar } from "@/components/chat/ChatErrorBar";
 import { AnimationReadyToast } from "@/components/chat/AnimationReadyToast";
 import { ResetConfirmModal } from "@/components/chat/ResetConfirmModal";
@@ -46,8 +47,8 @@ interface Props {
 
 export function ChatView({ store, onNavigateToCharacter }: Props) {
   const [pickerMessageId, setPickerMessageId] = useState<string | null>(null);
-  const [canonMessageId, setCanonMessageId] = useState<string | null>(null);
-  const [canonizedIds, setCanonizedIds] = useState<Set<string>>(new Set());
+  const [keepTargetId, setKeepTargetId] = useState<string | null>(null);
+  const [keptIds, setKeptIds] = useState<Set<string>>(new Set());
   // Captions for illustration messages — loaded once per chat from the
   // world_images.caption column. Empty entries omitted from the map.
   const [illustrationCaptions, setIllustrationCaptions] = useState<Record<string, string>>({});
@@ -60,18 +61,18 @@ export function ChatView({ store, onNavigateToCharacter }: Props) {
     }).catch(() => { if (!cancelled) setIllustrationCaptions({}); });
     return () => { cancelled = true; };
   }, [store.messages]);
-  const [canonToast, setCanonToast] = useState<{ entry: CanonEntry; subjectLabel: string } | null>(null);
-  const canonThreadId = store.messages.find((m) => m.thread_id)?.thread_id ?? null;
-  const reloadCanonized = useCallback(async () => {
-    if (!canonThreadId) { setCanonizedIds(new Set()); return; }
+  const [keepToast, setKeepToast] = useState<{ entry: KeptRecord; subjectLabel: string } | null>(null);
+  const keepThreadId = store.messages.find((m) => m.thread_id)?.thread_id ?? null;
+  const reloadKept = useCallback(async () => {
+    if (!keepThreadId) { setKeptIds(new Set()); return; }
     try {
-      const ids = await api.listCanonizedMessageIds(canonThreadId);
-      setCanonizedIds(new Set(ids));
+      const ids = await api.listKeptMessageIds(keepThreadId);
+      setKeptIds(new Set(ids));
     } catch {
-      setCanonizedIds(new Set());
+      setKeptIds(new Set());
     }
-  }, [canonThreadId]);
-  useEffect(() => { reloadCanonized(); }, [reloadCanonized]);
+  }, [keepThreadId]);
+  useEffect(() => { reloadKept(); }, [reloadKept]);
   const [showPortraitModal, setShowPortraitModal] = useState(false);
   const [showIdentityPopover, setShowIdentityPopover] = useState(false);
   const [showConsultant, setShowConsultant] = useState(false);
@@ -433,8 +434,21 @@ export function ChatView({ store, onNavigateToCharacter }: Props) {
                   toneMenuRef={toneMenuRef}
                   adjustingMessageId={store.adjustingMessageId}
                   onAdjust={(id) => setAdjustMessageId(id)}
-                  onCanonize={(id) => setCanonMessageId(id)}
-                  isCanonized={canonizedIds.has(msg.message_id)}
+                  onKeep={(id) => setKeepTargetId(id)}
+                  isKept={keptIds.has(msg.message_id)}
+                  onDelete={(id) => store.deleteMessage(id)}
+                  chatFontSize={store.chatFontSize}
+                />
+              </React.Fragment>);
+            }
+
+            if (msg.role === "dream") {
+              return (<React.Fragment key={msg.message_id}>
+                <TimeDivider current={msg} previous={prevMsg} />
+                <DreamMessage
+                  message={msg}
+                  dreamerName={store.activeCharacter?.display_name ?? "Dream"}
+                  isPending={isPending}
                   onDelete={(id) => store.deleteMessage(id)}
                   chatFontSize={store.chatFontSize}
                 />
@@ -508,7 +522,7 @@ export function ChatView({ store, onNavigateToCharacter }: Props) {
                         ? "bg-primary text-primary-foreground rounded-br-md max-w-[80%]"
                         : "bg-secondary/40 text-secondary-foreground rounded-bl-md max-w-[80%] border border-border/30"
                     } ${
-                      canonizedIds.has(msg.message_id)
+                      keptIds.has(msg.message_id)
                         ? "ring-2 ring-amber-300 shadow-[0_0_0_4px_rgba(251,191,36,0.45),0_0_32px_10px_rgba(251,191,36,0.75),0_0_80px_20px_rgba(245,158,11,0.55),0_0_160px_40px_rgba(251,191,36,0.30)] [&>*]:relative [&>*]:z-10 before:content-[''] before:absolute before:inset-0 before:rounded-[inherit] before:pointer-events-none before:bg-gradient-to-br before:from-amber-200/50 before:via-amber-300/40 before:to-yellow-300/50 before:mix-blend-overlay before:blur-xl before:bg-[length:200%_200%] before:animate-[canonized-shimmer_9s_ease-in-out_infinite]"
                         : ""
                     }`}
@@ -672,9 +686,9 @@ export function ChatView({ store, onNavigateToCharacter }: Props) {
                         </button>
                         <div className="relative group/mcanon">
                           <button
-                            onClick={() => setCanonMessageId(msg.message_id)}
+                            onClick={() => setKeepTargetId(msg.message_id)}
                             className={`inline-flex items-center justify-center w-6 h-6 rounded-full border transition-colors cursor-pointer ${
-                              canonizedIds.has(msg.message_id)
+                              keptIds.has(msg.message_id)
                                 ? "bg-amber-500/15 border-amber-500/40 text-amber-500 hover:bg-amber-500/25"
                                 : "bg-secondary/50 hover:bg-secondary border-border/60 hover:border-border text-muted-foreground hover:text-foreground"
                             }`}
@@ -682,7 +696,7 @@ export function ChatView({ store, onNavigateToCharacter }: Props) {
                             <ScrollText size={12} />
                           </button>
                           <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-2 py-0.5 text-[10px] font-medium text-white bg-black rounded-md shadow-lg whitespace-nowrap opacity-0 group-hover/mcanon:opacity-100 pointer-events-none transition-opacity z-50">
-                            {canonizedIds.has(msg.message_id) ? "Canonized · promote again" : "Promote to canon"}
+                            {keptIds.has(msg.message_id) ? "Kept · save again" : "Keep to record"}
                           </span>
                         </div>
                       </>
@@ -837,6 +851,20 @@ export function ChatView({ store, onNavigateToCharacter }: Props) {
                 </Button>
                 <span className="absolute bottom-full left-1/2 -translate-x-1/2 -mb-0.5 px-2.5 py-1 text-[11px] font-medium text-white bg-black rounded-lg shadow-lg whitespace-nowrap opacity-0 group-hover/narr:opacity-100 pointer-events-none transition-opacity duration-150">
                   + Narrative
+                </span>
+              </div>
+              <div className="relative group/dream">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="text-indigo-400/70 hover:text-indigo-300 hover:bg-indigo-400/10 h-9 w-9 rounded-lg"
+                  onClick={() => store.generateDream()}
+                  disabled={isSending || !store.apiKey || store.messages.length === 0}
+                >
+                  <Moon size={15} />
+                </Button>
+                <span className="absolute bottom-full left-1/2 -translate-x-1/2 -mb-0.5 px-2.5 py-1 text-[11px] font-medium text-white bg-black rounded-lg shadow-lg whitespace-nowrap opacity-0 group-hover/dream:opacity-100 pointer-events-none transition-opacity duration-150">
+                  Dream
                 </span>
               </div>
               <div className="relative group/talk">
@@ -1127,14 +1155,15 @@ export function ChatView({ store, onNavigateToCharacter }: Props) {
         currentCharacterId={store.activeCharacter?.character_id}
       />
 
-      <CanonizationModal
-        open={!!canonMessageId}
-        onOpenChange={(o) => { if (!o) setCanonMessageId(null); }}
-        sourceMessage={canonMessageId ? store.messages.find((m) => m.message_id === canonMessageId) ?? null : null}
+      <KeepRecordModal
+        open={!!keepTargetId}
+        onOpenChange={(o) => { if (!o) setKeepTargetId(null); }}
+        sourceMessage={keepTargetId ? store.messages.find((m) => m.message_id === keepTargetId) ?? null : null}
         sourceSpeakerLabel={(() => {
-          const m = canonMessageId ? store.messages.find((x) => x.message_id === canonMessageId) : null;
+          const m = keepTargetId ? store.messages.find((x) => x.message_id === keepTargetId) : null;
           if (!m) return "";
           if (m.role === "narrative") return "Narrative";
+          if (m.role === "dream") return `${store.activeCharacter?.display_name ?? "Character"}'s dream`;
           if (m.role === "user") return store.userProfile?.display_name || "You";
           return store.activeCharacter?.display_name || "Character";
         })()}
@@ -1142,14 +1171,14 @@ export function ChatView({ store, onNavigateToCharacter }: Props) {
         userProfile={store.userProfile}
         characters={store.activeCharacter ? [store.activeCharacter] : []}
         apiKey={store.apiKey}
-        onSaved={(r) => { reloadCanonized(); setCanonToast(r); }}
+        onSaved={(r) => { reloadKept(); setKeepToast(r); }}
       />
 
-      <CanonToast
-        entry={canonToast?.entry ?? null}
-        subjectLabel={canonToast?.subjectLabel ?? ""}
-        onDismiss={() => setCanonToast(null)}
-        onUndone={() => { setCanonToast(null); reloadCanonized(); }}
+      <KeepToast
+        entry={keepToast?.entry ?? null}
+        subjectLabel={keepToast?.subjectLabel ?? ""}
+        onDismiss={() => setKeepToast(null)}
+        onUndone={() => { setKeepToast(null); reloadKept(); }}
       />
 
       <AdjustMessageModal

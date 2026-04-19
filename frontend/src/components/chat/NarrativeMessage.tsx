@@ -30,8 +30,8 @@ interface NarrativeMessageProps {
    *  narrative prose so it tracks message bubbles. */
   chatFontSize?: number;
   // Canon
-  onCanonize?: (messageId: string) => void;
-  isCanonized?: boolean;
+  onKeep?: (messageId: string) => void;
+  isKept?: boolean;
 }
 
 export function NarrativeMessage({
@@ -40,7 +40,7 @@ export function NarrativeMessage({
   onSpeak, onStopSpeaking, onDeleteAudio, toneMenuRef,
   adjustingMessageId, onAdjust, onDelete,
   chatFontSize = 2,
-  onCanonize, isCanonized,
+  onKeep, isKept,
 }: NarrativeMessageProps) {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const hasCached = cachedTones && cachedTones.size > 0;
@@ -51,7 +51,7 @@ export function NarrativeMessage({
   return (<>
     <div key={message.message_id} data-message-id={message.message_id} className="flex justify-center my-2">
       <div className={`relative group max-w-[90%] rounded-xl px-5 py-3.5 text-sm leading-relaxed bg-gradient-to-br from-amber-950/40 to-amber-900/20 border border-amber-700/30 text-amber-100/90 italic backdrop-blur-sm ${
-        isCanonized
+        isKept
           ? "ring-2 ring-amber-300 shadow-[0_0_0_4px_rgba(251,191,36,0.45),0_0_32px_10px_rgba(251,191,36,0.75),0_0_80px_20px_rgba(245,158,11,0.55),0_0_160px_40px_rgba(251,191,36,0.30)] [&>*]:relative [&>*]:z-10 before:content-[''] before:absolute before:inset-0 before:rounded-[inherit] before:pointer-events-none before:bg-gradient-to-br before:from-amber-200/50 before:via-amber-300/40 before:to-yellow-300/50 before:mix-blend-overlay before:blur-xl before:bg-[length:200%_200%] before:animate-[canonized-shimmer_9s_ease-in-out_infinite]"
           : ""
       }`}>
@@ -145,12 +145,12 @@ export function NarrativeMessage({
               </button>
               <span className="absolute top-full left-1/2 -translate-x-1/2 mt-1.5 px-2 py-0.5 text-[10px] font-medium text-white bg-black rounded-md shadow-lg whitespace-nowrap opacity-0 group-hover/madj:opacity-100 pointer-events-none transition-opacity not-italic">Adjust</span>
             </div>
-            {onCanonize && (
+            {onKeep && (
               <div className="relative group/mcanon">
                 <button
-                  onClick={() => onCanonize(message.message_id)}
+                  onClick={() => onKeep(message.message_id)}
                   className={`w-7 h-7 rounded-full flex items-center justify-center cursor-pointer backdrop-blur-sm transition-colors ${
-                    isCanonized
+                    isKept
                       ? "bg-amber-500/25 text-amber-200 hover:bg-amber-500/40"
                       : "bg-black/50 text-white hover:bg-black/70"
                   }`}
@@ -158,7 +158,7 @@ export function NarrativeMessage({
                   <ScrollText size={12} />
                 </button>
                 <span className="absolute top-full left-1/2 -translate-x-1/2 mt-1.5 px-2 py-0.5 text-[10px] font-medium text-white bg-black rounded-md shadow-lg whitespace-nowrap opacity-0 group-hover/mcanon:opacity-100 pointer-events-none transition-opacity not-italic">
-                  {isCanonized ? "Canonized · promote again" : "Promote to canon"}
+                  {isKept ? "Kept · save again" : "Keep to record"}
                 </span>
               </div>
             )}

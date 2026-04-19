@@ -23,6 +23,7 @@ export function CharacterEditor({ store }: Props) {
   const [portraits, setPortraits] = useState<PortraitInfo[]>([]);
   const [generatingPortrait, setGeneratingPortrait] = useState(false);
   const [generatingVariation, setGeneratingVariation] = useState(false);
+  const [regeneratingVisualDesc, setRegeneratingVisualDesc] = useState(false);
   const [variationPreview, setVariationPreview] = useState<PortraitInfo | null>(null);
   const [showGallery, setShowGallery] = useState(false);
   const [showWorldGallery, setShowWorldGallery] = useState(false);
@@ -62,6 +63,7 @@ export function CharacterEditor({ store }: Props) {
         avatar_color: ch.avatar_color,
         sex: ch.sex ?? "male",
         state: structuredClone(ch.state),
+        visual_description: ch.visual_description ?? "",
       });
       setDirty(false);
       loadPortraits(ch.character_id);
@@ -75,7 +77,7 @@ export function CharacterEditor({ store }: Props) {
       <div className="flex-1 flex items-center justify-center text-muted-foreground">
         <div className="text-center space-y-2">
           <p className="text-lg">No character selected</p>
-          <p className="text-sm text-muted-foreground/60">Select a character to edit their canon</p>
+          <p className="text-sm text-muted-foreground/60">Select a character to edit their details</p>
         </div>
       </div>
     );
@@ -94,6 +96,9 @@ export function CharacterEditor({ store }: Props) {
       });
       setPortraits((prev) => [portrait, ...prev.map((p) => ({ ...p, is_active: false }))]);
       await store.refreshPortrait(ch.character_id);
+      // Fire and forget — other characters need to know what this one
+      // looks like. Caches on the backend so repeat calls no-op.
+      store.refreshVisualDescription(ch.character_id);
     } catch (e) {
       store.setError?.(String(e));
     } finally {
@@ -132,6 +137,7 @@ export function CharacterEditor({ store }: Props) {
     if (!variationPreview) return;
     setPortraits((prev) => [variationPreview, ...prev]);
     setVariationPreview(null);
+    if (ch) store.refreshVisualDescription(ch.character_id);
   };
 
   const handleDiscardVariation = async () => {
@@ -153,6 +159,7 @@ export function CharacterEditor({ store }: Props) {
       );
       setShowGallery(false);
       await store.refreshPortrait(ch.character_id);
+      store.refreshVisualDescription(ch.character_id);
     } catch (e) {
       store.setError?.(String(e));
     }
@@ -178,6 +185,7 @@ export function CharacterEditor({ store }: Props) {
       setPortraits((prev) => [portrait, ...prev.map((p) => ({ ...p, is_active: false }))]);
       setShowWorldGallery(false);
       await store.refreshPortrait(ch.character_id);
+      store.refreshVisualDescription(ch.character_id);
     } catch (e) {
       store.setError?.(String(e));
     }
@@ -247,7 +255,7 @@ export function CharacterEditor({ store }: Props) {
             )}
             <div>
               <h1 className="font-semibold">{form.display_name ?? ch.display_name}</h1>
-              <span className="text-xs text-muted-foreground/50">Character Canon</span>
+              <span className="text-xs text-muted-foreground/50">Character Details</span>
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -322,11 +330,55 @@ export function CharacterEditor({ store }: Props) {
                     </Button>
                   )}
                   <p className="text-[11px] text-muted-foreground leading-relaxed max-w-[220px]">
-                    Generate a portrait from canon, or create a variation of the current portrait in a different pose. Choose any image from this world's gallery.
+                    Generate a portrait from their description, or create a variation of the current portrait in a different pose. Choose any image from this world's gallery.
                   </p>
                 </div>
               </div>
             </FieldGroup>
+
+            <FieldGroup label="Appearance">
+              <Field
+                label="Visual description"
+                hint="How other characters and the narrator picture them. Describe honestly — observed, not interpreted. Auto-filled from the active portrait; yours to edit freely."
+              >
+                <Textarea
+                  className="min-h-[140px] font-normal"
+                  value={form.visual_description ?? ""}
+                  onChange={(e) => update({ visual_description: e.target.value })}
+                  placeholder="Late-30s build, broad shoulders narrowing to a wiry waist. Close-cropped dark hair going grey at the temples. Light brown eyes set wide. A small scar cutting the left eyebrow..."
+                />
+                <div className="flex items-center justify-between mt-2">
+                  <p className="text-[11px] text-muted-foreground/70">
+                    {activePortrait
+                      ? "Regenerating from the active portrait will overwrite the text above."
+                      : "No active portrait — generate one first to auto-describe."}
+                  </p>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled={!activePortrait || !store.apiKey || regeneratingVisualDesc}
+                    onClick={async () => {
+                      if (!ch) return;
+                      setRegeneratingVisualDesc(true);
+                      try {
+                        const updated = await api.generateCharacterVisualDescription(store.apiKey, ch.character_id, true);
+                        update({ visual_description: updated.visual_description ?? "" });
+                        setDirty(false);
+                      } catch (e) {
+                        store.setError?.(String(e));
+                      } finally {
+                        setRegeneratingVisualDesc(false);
+                      }
+                    }}
+                  >
+                    {regeneratingVisualDesc
+                      ? <><Loader2 size={14} className="mr-1.5 animate-spin" /> Describing...</>
+                      : <><Shuffle size={14} className="mr-1.5" /> Describe from portrait</>}
+                  </Button>
+                </div>
+              </Field>
+            </FieldGroup>
+
             <FieldGroup label="Basics">
               <div className="grid grid-cols-2 gap-4">
                 <Field label="Name">
@@ -564,7 +616,7 @@ export function CharacterEditor({ store }: Props) {
                   <div>
                     <p className="text-sm font-medium">Clear Chat History</p>
                     <p className="text-xs text-muted-foreground mt-0.5">
-                      Delete all messages, memories, and embeddings. The character and their canon are preserved.
+                      Delete all messages, memories, and embeddings. The character and their details are preserved.
                     </p>
                   </div>
                   <Button size="sm" variant="outline" className="border-destructive/40 text-destructive hover:bg-destructive/10 hover:text-destructive flex-shrink-0" onClick={() => setShowClearChat(true)}>
@@ -598,7 +650,7 @@ export function CharacterEditor({ store }: Props) {
           </DialogHeader>
           <DialogBody>
             <p className="text-sm text-muted-foreground">
-              This will permanently delete all messages, memories, and embeddings for <strong>{ch.display_name}</strong>. The character and their canon will be preserved.
+              This will permanently delete all messages, memories, and embeddings for <strong>{ch.display_name}</strong>. The character and their details will be preserved.
             </p>
             <div className="flex items-center gap-3 mt-4">
               <Button variant="outline" className="flex-1" onClick={() => setShowClearChat(false)}>Cancel</Button>

@@ -201,6 +201,7 @@ pub fn save_group_user_message_cmd(
         world_day: wd, world_time: wt,
             address_to: None,
         mood_chain: None,
+        is_proactive: false,
         };
     create_group_message(&conn, &msg).map_err(|e| e.to_string())?;
     Ok(msg)
@@ -246,6 +247,7 @@ pub async fn send_group_message_cmd(
             world_day: wd, world_time: wt.clone(),
             address_to: None,
         mood_chain: None,
+        is_proactive: false,
         };
         create_group_message(&conn, &user_msg).map_err(|e| e.to_string())?;
 
@@ -300,6 +302,7 @@ pub async fn send_group_message_cmd(
                 identity_summary: c.identity.clone(),
                 sex: c.sex.clone(),
                 voice_rules: crate::ai::prompts::json_array_to_strings(&c.voice_rules),
+                visual_description: c.visual_description.clone(),
             })
             .collect();
         let group_context = GroupContext { other_characters: other_chars };
@@ -352,6 +355,7 @@ pub async fn send_group_message_cmd(
             world_time: None,
             address_to: None,
         mood_chain: None,
+        is_proactive: false,
         });
 
         // Generate response — load mood_reduction + pick chain for AGENCY.
@@ -362,9 +366,9 @@ pub async fn send_group_message_cmd(
         let mood_chain = prompts::pick_mood_chain(Some(&mood_reduction));
         let mood_chain_json = serde_json::to_string(&mood_chain).ok();
 
-        let canonized_ids: Vec<String> = {
+        let kept_ids: Vec<String> = {
             let conn = db.conn.lock().map_err(|e| e.to_string())?;
-            list_canonized_message_ids_for_thread(&conn, &gc.thread_id).unwrap_or_default()
+            list_kept_message_ids_for_thread(&conn, &gc.thread_id).unwrap_or_default()
         };
         let (raw_reply, usage) = orchestrator::run_dialogue_with_base(
             &model_config.chat_api_base(), &api_key, &model_config.dialogue_model,
@@ -378,7 +382,7 @@ pub async fn send_group_message_cmd(
             model_config.is_local(),
             &mood_chain,
             leader.as_deref(),
-            &canonized_ids,
+            &kept_ids,
         ).await?;
 
         // Strip own prefix and truncate any other-character dialogue
@@ -406,6 +410,7 @@ pub async fn send_group_message_cmd(
             world_day: wd, world_time: wt.clone(),
             address_to: Some("user".to_string()),
             mood_chain: mood_chain_json.clone(),
+            is_proactive: false,
         };
         {
             let conn = db.conn.lock().map_err(|e| e.to_string())?;
@@ -479,6 +484,7 @@ pub async fn prompt_group_character_cmd(
             identity_summary: c.identity.clone(),
             sex: c.sex.clone(),
             voice_rules: crate::ai::prompts::json_array_to_strings(&c.voice_rules),
+            visual_description: c.visual_description.clone(),
         })
         .collect();
     let group_context = GroupContext { other_characters: other_chars };
@@ -521,6 +527,7 @@ pub async fn prompt_group_character_cmd(
             world_day: None, world_time: None,
             address_to: None,
         mood_chain: None,
+        is_proactive: false,
         });
 
     let (response_length, narration_tone, leader) = {
@@ -552,9 +559,9 @@ pub async fn prompt_group_character_cmd(
         .rev().skip(1).take(4).rev().cloned().collect();
 
     let base = model_config.chat_api_base();
-    let canonized_ids: Vec<String> = {
+    let kept_ids: Vec<String> = {
         let conn = db.conn.lock().map_err(|e| e.to_string())?;
-        list_canonized_message_ids_for_thread(&conn, &gc.thread_id).unwrap_or_default()
+        list_kept_message_ids_for_thread(&conn, &gc.thread_id).unwrap_or_default()
     };
     let dialogue_fut = orchestrator::run_dialogue_with_base(
         &base, &api_key, &model_config.dialogue_model,
@@ -568,7 +575,7 @@ pub async fn prompt_group_character_cmd(
         model_config.is_local(),
         &mood_chain2,
         leader.as_deref(),
-        &canonized_ids,
+        &kept_ids,
     );
     let reaction_fut = orchestrator::pick_character_reaction_via_llm(
         &base, &api_key, &model_config.dialogue_model,
@@ -618,6 +625,7 @@ pub async fn prompt_group_character_cmd(
         world_day: wd_p, world_time: wt_p,
         address_to: canonical_address,
         mood_chain: mood_chain_json2.clone(),
+        is_proactive: false,
     };
     {
         let conn = db.conn.lock().map_err(|e| e.to_string())?;
@@ -827,6 +835,7 @@ pub async fn generate_group_illustration_cmd(
             world_day: wd, world_time: wt,
             address_to: None,
         mood_chain: None,
+        is_proactive: false,
         };
         create_group_message(&conn, &msg).map_err(|e| e.to_string())?;
     }
@@ -841,6 +850,7 @@ pub async fn generate_group_illustration_cmd(
             world_day: row.get(7).ok(), world_time: row.get(8).ok(),
             address_to: None,
         mood_chain: None,
+        is_proactive: false,
         })
     ).map_err(|e| e.to_string())?;
 
@@ -933,6 +943,7 @@ pub async fn generate_group_narrative_cmd(
         world_day: wd, world_time: wt,
             address_to: None,
         mood_chain: None,
+        is_proactive: false,
         };
     {
         let conn = db.conn.lock().map_err(|e| e.to_string())?;
