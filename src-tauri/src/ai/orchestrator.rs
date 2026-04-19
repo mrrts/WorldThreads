@@ -215,9 +215,10 @@ pub async fn run_dialogue_with_base(
     local_model: bool,
     mood_chain: &[String],
     leader: Option<&str>,
+    canonized_ids: &[String],
 ) -> Result<(String, Option<openai::Usage>), String> {
     let system = prompts::build_dialogue_system_prompt(world, character, user_profile, mood_directive, response_length, group_context, tone, local_model, mood_chain, leader);
-    let messages = prompts::build_dialogue_messages(&system, recent_messages, retrieved_snippets, character_names);
+    let messages = prompts::build_dialogue_messages(&system, recent_messages, retrieved_snippets, character_names, canonized_ids);
 
     // Token caps sit ~25% above the sentence counts we instruct (see
     // prompts::response_length_block). Disobedient local models get some
@@ -344,9 +345,10 @@ pub async fn run_dialogue_streaming(
     event_name: &str,
     mood_chain: &[String],
     leader: Option<&str>,
+    canonized_ids: &[String],
 ) -> Result<String, String> {
     let system = prompts::build_dialogue_system_prompt(world, character, user_profile, mood_directive, response_length, group_context, tone, local_model, mood_chain, leader);
-    let messages = prompts::build_dialogue_messages(&system, recent_messages, retrieved_snippets, character_names);
+    let messages = prompts::build_dialogue_messages(&system, recent_messages, retrieved_snippets, character_names, canonized_ids);
 
     let token_limit = match response_length {
         Some("Short") => Some(150),

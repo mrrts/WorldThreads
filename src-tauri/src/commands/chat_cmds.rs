@@ -368,6 +368,10 @@ pub async fn send_message_cmd(
     // reply + reaction — meaningful on local models where each call can
     // run many seconds.
     let base = model_config.chat_api_base();
+    let canonized_ids: Vec<String> = {
+        let conn = db.conn.lock().map_err(|e| e.to_string())?;
+        list_canonized_message_ids_for_thread(&conn, &thread.thread_id).unwrap_or_default()
+    };
     let dialogue_fut = orchestrator::run_dialogue_with_base(
         &base, &api_key, &model_config.dialogue_model,
         &world, &character, &recent_msgs, &full_retrieved,
@@ -378,6 +382,7 @@ pub async fn send_message_cmd(
         model_config.is_local(),
         &mood_chain,
     leader.as_deref(),
+    &canonized_ids,
     );
     // Context for the reaction-emoji pick: the recent messages EXCLUDING
     // the user's brand-new one (which goes in the user-role slot). Gives
@@ -674,6 +679,10 @@ pub async fn prompt_character_cmd(
     let mood_chain = prompts::pick_mood_chain(Some(&mood_reduction));
     let mood_chain_json = serde_json::to_string(&mood_chain).ok();
 
+    let canonized_ids: Vec<String> = {
+        let conn = db.conn.lock().map_err(|e| e.to_string())?;
+        list_canonized_message_ids_for_thread(&conn, &thread.thread_id).unwrap_or_default()
+    };
     let (reply_text, dialogue_usage) = orchestrator::run_dialogue_with_base(
         &model_config.chat_api_base(), &api_key, &model_config.dialogue_model,
         &world, &character, &dialogue_msgs, &retrieved,
@@ -684,6 +693,7 @@ pub async fn prompt_character_cmd(
         model_config.is_local(),
         &mood_chain,
         leader.as_deref(),
+        &canonized_ids,
     ).await?;
 
     let tokens = dialogue_usage.as_ref().map(|u| u.total_tokens).unwrap_or(0);
@@ -1171,6 +1181,10 @@ pub async fn reset_to_message_cmd(
 
         // Parallel dialogue + reaction pick (see send_message_cmd for rationale).
         let base = model_config.chat_api_base();
+        let canonized_ids: Vec<String> = {
+            let conn = db.conn.lock().map_err(|e| e.to_string())?;
+            list_canonized_message_ids_for_thread(&conn, &thread_id).unwrap_or_default()
+        };
         let dialogue_fut = orchestrator::run_dialogue_with_base(
             &base, &api_key, &model_config.dialogue_model,
             &world, &character, &recent_msgs, &retrieved,
@@ -1181,6 +1195,7 @@ pub async fn reset_to_message_cmd(
             model_config.is_local(),
             &mood_chain,
         leader.as_deref(),
+        &canonized_ids,
         );
         let reaction_context: Vec<Message> = recent_msgs.iter()
             .rev().skip(1).take(4).rev().cloned().collect();

@@ -880,6 +880,7 @@ pub fn build_dialogue_messages(
     recent_messages: &[Message],
     retrieved_snippets: &[String],
     character_names: Option<&HashMap<String, String>>,
+    canonized_ids: &[String],
 ) -> Vec<crate::ai::openai::ChatMessage> {
     let mut msgs = Vec::new();
 
@@ -895,6 +896,28 @@ pub fn build_dialogue_messages(
         role: "system".to_string(),
         content: system_content,
     });
+
+    // Which canonized messages, if any, should actually be marked in the
+    // rendered history. Cap at the most-recent-N so very long threads
+    // don't accumulate dozens of markers (the canonical SUBSTANCE is
+    // already baked into the character's identity/facts via the save-
+    // canon side effect; the marker here just tags "this moment had
+    // weight" for callback purposes).
+    let mark_set: std::collections::HashSet<&str> = if canonized_ids.is_empty() {
+        std::collections::HashSet::new()
+    } else {
+        const CAP: usize = 4;
+        let canon_lookup: std::collections::HashSet<&str> =
+            canonized_ids.iter().map(String::as_str).collect();
+        let mut acc: Vec<&str> = Vec::with_capacity(CAP);
+        for m in recent_messages.iter().rev() {
+            if canon_lookup.contains(m.message_id.as_str()) {
+                acc.push(m.message_id.as_str());
+                if acc.len() >= CAP { break; }
+            }
+        }
+        acc.into_iter().collect()
+    };
 
     let mut last_time: Option<String> = None;
     for m in recent_messages {
@@ -957,6 +980,16 @@ pub fn build_dialogue_messages(
             }
         } else {
             m.content.clone()
+        };
+        // Tag this moment as structurally weighted if it's among the
+        // recent-N canonized. Uses the bracketed-annotation convention
+        // already in use elsewhere in this renderer (e.g. "[Narrative]",
+        // "[It is now Morning.]") so the model parses it as a meta
+        // annotation rather than user-typed content.
+        let content = if mark_set.contains(m.message_id.as_str()) {
+            format!("[Canon moment] {content}")
+        } else {
+            content
         };
         msgs.push(crate::ai::openai::ChatMessage {
             role: if m.role == "narrative" || m.role == "context" { "system".to_string() } else { m.role.clone() },

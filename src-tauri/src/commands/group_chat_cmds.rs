@@ -362,6 +362,10 @@ pub async fn send_group_message_cmd(
         let mood_chain = prompts::pick_mood_chain(Some(&mood_reduction));
         let mood_chain_json = serde_json::to_string(&mood_chain).ok();
 
+        let canonized_ids: Vec<String> = {
+            let conn = db.conn.lock().map_err(|e| e.to_string())?;
+            list_canonized_message_ids_for_thread(&conn, &gc.thread_id).unwrap_or_default()
+        };
         let (raw_reply, usage) = orchestrator::run_dialogue_with_base(
             &model_config.chat_api_base(), &api_key, &model_config.dialogue_model,
             &world, character, &dialogue_msgs, &retrieved,
@@ -374,6 +378,7 @@ pub async fn send_group_message_cmd(
             model_config.is_local(),
             &mood_chain,
             leader.as_deref(),
+            &canonized_ids,
         ).await?;
 
         // Strip own prefix and truncate any other-character dialogue
@@ -547,6 +552,10 @@ pub async fn prompt_group_character_cmd(
         .rev().skip(1).take(4).rev().cloned().collect();
 
     let base = model_config.chat_api_base();
+    let canonized_ids: Vec<String> = {
+        let conn = db.conn.lock().map_err(|e| e.to_string())?;
+        list_canonized_message_ids_for_thread(&conn, &gc.thread_id).unwrap_or_default()
+    };
     let dialogue_fut = orchestrator::run_dialogue_with_base(
         &base, &api_key, &model_config.dialogue_model,
         &world, &character, &dialogue_msgs, &retrieved,
@@ -559,6 +568,7 @@ pub async fn prompt_group_character_cmd(
         model_config.is_local(),
         &mood_chain2,
         leader.as_deref(),
+        &canonized_ids,
     );
     let reaction_fut = orchestrator::pick_character_reaction_via_llm(
         &base, &api_key, &model_config.dialogue_model,
