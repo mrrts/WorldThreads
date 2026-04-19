@@ -417,10 +417,14 @@ pub async fn send_group_message_cmd(
             prompts::pick_character_reaction_emoji(&chain)
         }
     };
+    // Batch flow (unused by current frontend but kept for completeness) —
+    // attribute to None since we don't know which specific character
+    // produced the single reaction here.
     let _ = chat_cmds::emit_character_reaction(
         &db,
         &user_msg.message_id,
         &reaction_emoji,
+        None,
     );
 
     Ok(SendGroupMessageResult {
@@ -617,7 +621,7 @@ pub async fn prompt_group_character_cmd(
         Some(target_id) => {
             let reaction_emoji = reaction_res
                 .unwrap_or_else(|_| prompts::pick_character_reaction_emoji(&mood_chain2));
-            chat_cmds::emit_character_reaction(&db, &target_id, &reaction_emoji)
+            chat_cmds::emit_character_reaction(&db, &target_id, &reaction_emoji, Some(&character.character_id))
         }
         None => Vec::new(),
     };

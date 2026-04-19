@@ -148,6 +148,9 @@ export interface Reaction {
   emoji: string;
   reactor: "user" | "assistant";
   created_at: string;
+  /** Which character authored this reaction. Null for user reactions and
+   *  for legacy character reactions pre-dating the attribution column. */
+  sender_character_id?: string | null;
 }
 
 export interface CanonEntry {

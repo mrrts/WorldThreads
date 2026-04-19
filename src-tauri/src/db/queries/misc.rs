@@ -45,12 +45,18 @@ pub struct Reaction {
     pub emoji: String,
     pub reactor: String,
     pub created_at: String,
+    /// Which specific character authored this reaction. NULL for user
+    /// reactions and for legacy character reactions pre-dating the
+    /// attribution column. Drives the per-emoji tooltip that shows who
+    /// reacted.
+    #[serde(default)]
+    pub sender_character_id: Option<String>,
 }
 
 pub fn add_reaction(conn: &Connection, r: &Reaction) -> Result<(), rusqlite::Error> {
     conn.execute(
-        "INSERT INTO reactions (reaction_id, message_id, emoji, reactor, created_at) VALUES (?1, ?2, ?3, ?4, ?5)",
-        params![r.reaction_id, r.message_id, r.emoji, r.reactor, r.created_at],
+        "INSERT INTO reactions (reaction_id, message_id, emoji, reactor, created_at, sender_character_id) VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+        params![r.reaction_id, r.message_id, r.emoji, r.reactor, r.created_at, r.sender_character_id],
     )?;
     Ok(())
 }
@@ -136,7 +142,7 @@ pub fn get_reactions_for_messages(conn: &Connection, message_ids: &[String]) -> 
     }
     let placeholders: Vec<String> = (1..=message_ids.len()).map(|i| format!("?{i}")).collect();
     let sql = format!(
-        "SELECT reaction_id, message_id, emoji, reactor, created_at FROM reactions WHERE message_id IN ({}) ORDER BY created_at",
+        "SELECT reaction_id, message_id, emoji, reactor, created_at, sender_character_id FROM reactions WHERE message_id IN ({}) ORDER BY created_at",
         placeholders.join(", ")
     );
     let mut stmt = conn.prepare(&sql)?;
@@ -145,6 +151,7 @@ pub fn get_reactions_for_messages(conn: &Connection, message_ids: &[String]) -> 
         Ok(Reaction {
             reaction_id: row.get(0)?, message_id: row.get(1)?, emoji: row.get(2)?,
             reactor: row.get(3)?, created_at: row.get(4)?,
+            sender_character_id: row.get(5).ok(),
         })
     })?;
     rows.collect()

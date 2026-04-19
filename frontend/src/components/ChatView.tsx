@@ -639,20 +639,29 @@ export function ChatView({ store, onNavigateToCharacter }: Props) {
                         >
                           <SmilePlus size={12} />
                         </button>
-                        <button
-                          onClick={() => setCanonMessageId(msg.message_id)}
-                          className={`inline-flex items-center justify-center w-6 h-6 rounded-full border transition-colors cursor-pointer ${
-                            canonizedIds.has(msg.message_id)
-                              ? "bg-amber-500/15 border-amber-500/40 text-amber-500 hover:bg-amber-500/25"
-                              : "bg-secondary/50 hover:bg-secondary border-border/60 hover:border-border text-muted-foreground hover:text-foreground"
-                          }`}
-                          title={canonizedIds.has(msg.message_id) ? "Already canonized — promote again" : "Promote to canon"}
-                        >
-                          <ScrollText size={12} />
-                        </button>
+                        <div className="relative group/mcanon">
+                          <button
+                            onClick={() => setCanonMessageId(msg.message_id)}
+                            className={`inline-flex items-center justify-center w-6 h-6 rounded-full border transition-colors cursor-pointer ${
+                              canonizedIds.has(msg.message_id)
+                                ? "bg-amber-500/15 border-amber-500/40 text-amber-500 hover:bg-amber-500/25"
+                                : "bg-secondary/50 hover:bg-secondary border-border/60 hover:border-border text-muted-foreground hover:text-foreground"
+                            }`}
+                          >
+                            <ScrollText size={12} />
+                          </button>
+                          <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-2 py-0.5 text-[10px] font-medium text-white bg-black rounded-md shadow-lg whitespace-nowrap opacity-0 group-hover/mcanon:opacity-100 pointer-events-none transition-opacity z-50">
+                            {canonizedIds.has(msg.message_id) ? "Canonized · promote again" : "Promote to canon"}
+                          </span>
+                        </div>
                       </>
                     )}
-                    <ReactionBubbles reactions={reactions} isUser={isUser} />
+                    <ReactionBubbles
+                      reactions={reactions}
+                      isUser={isUser}
+                      characterNameById={store.activeCharacter ? { [store.activeCharacter.character_id]: store.activeCharacter.display_name } : {}}
+                      userDisplayName={store.userProfile?.display_name || "You"}
+                    />
                     {/* Character-is-reacting placeholder — shown on the user's most recent
                         message while sendMessage is in flight (covers both reply generation
                         and the emoji-pick LLM call). Disappears when the real reaction lands. */}

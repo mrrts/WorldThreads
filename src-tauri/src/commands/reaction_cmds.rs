@@ -50,6 +50,7 @@ pub fn add_reaction_cmd(
             emoji: emoji.clone(),
             reactor: reactor.clone(),
             created_at: created_at.clone(),
+            sender_character_id: None,
         };
         add_reaction(&conn, &r).map_err(|e| e.to_string())?;
         if primary.is_none() && mid == &message_id {
@@ -73,6 +74,7 @@ pub fn add_reaction_cmd(
         emoji,
         reactor,
         created_at,
+        sender_character_id: None,
     }))
 }
 

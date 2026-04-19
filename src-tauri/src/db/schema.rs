@@ -781,6 +781,18 @@ pub fn run_migrations(conn: &Connection) -> Result<(), rusqlite::Error> {
         conn.execute_batch("PRAGMA foreign_keys=ON;").ok();
     }
 
+    // Reactions: add sender_character_id for per-character attribution.
+    // User reactions keep this as NULL; character-emitted reactions record
+    // which character authored them so the UI can surface "Alice reacted
+    // 🥺" vs "Bob reacted 🔥" in tooltips.
+    let has_sender_char_on_reactions: bool = conn.query_row(
+        "SELECT COUNT(*) FROM pragma_table_info('reactions') WHERE name = 'sender_character_id'",
+        [], |r| r.get::<_, i64>(0),
+    ).unwrap_or(0) > 0;
+    if !has_sender_char_on_reactions {
+        conn.execute("ALTER TABLE reactions ADD COLUMN sender_character_id TEXT DEFAULT NULL", []).ok();
+    }
+
     // ── Mood reduction (per-thread reaction-emoji ring buffer) ─────────────
     //
     // Feeds back into the AGENCY section: each reaction pushes its emoji

@@ -76,6 +76,7 @@ pub fn emit_character_reaction(
     db: &Database,
     target_message_id: &str,
     emoji: &str,
+    sender_character_id: Option<&str>,
 ) -> Vec<Reaction> {
     if target_message_id.is_empty() {
         log::warn!("[CharReact] skip: target_message_id is empty");
@@ -89,11 +90,21 @@ pub fn emit_character_reaction(
         log::warn!("[CharReact] skip: db lock poisoned");
         return Vec::new();
     };
-    let dup: Option<String> = conn.query_row(
-        "SELECT reaction_id FROM reactions WHERE message_id = ?1 AND emoji = ?2 AND reactor = 'assistant'",
-        rusqlite::params![target_message_id, emoji],
-        |r| r.get(0),
-    ).ok();
+    // Dedupe per-character so Alice's 🥺 and Bob's 🥺 on the same message
+    // are both preserved. Rows with NULL sender still dedupe amongst
+    // themselves to keep solo/legacy idempotency intact.
+    let dup: Option<String> = match sender_character_id {
+        Some(cid) => conn.query_row(
+            "SELECT reaction_id FROM reactions WHERE message_id = ?1 AND emoji = ?2 AND reactor = 'assistant' AND sender_character_id = ?3",
+            rusqlite::params![target_message_id, emoji, cid],
+            |r| r.get(0),
+        ).ok(),
+        None => conn.query_row(
+            "SELECT reaction_id FROM reactions WHERE message_id = ?1 AND emoji = ?2 AND reactor = 'assistant' AND sender_character_id IS NULL",
+            rusqlite::params![target_message_id, emoji],
+            |r| r.get(0),
+        ).ok(),
+    };
     if dup.is_some() {
         return Vec::new();
     }
@@ -103,6 +114,7 @@ pub fn emit_character_reaction(
         emoji: emoji.to_string(),
         reactor: "assistant".to_string(),
         created_at: Utc::now().to_rfc3339(),
+        sender_character_id: sender_character_id.map(|s| s.to_string()),
     };
     match add_reaction(&conn, &r) {
         Ok(()) => vec![r],
@@ -419,6 +431,7 @@ pub async fn send_message_cmd(
         &db,
         &user_message.message_id,
         &reaction_emoji,
+        Some(&character.character_id),
     );
 
     // Phase 7: Generate embeddings for new messages — requires OpenAI, skip for LM Studio
@@ -1219,6 +1232,7 @@ pub async fn reset_to_message_cmd(
             &db,
             &user_message.message_id,
             &reaction_emoji,
+            Some(&character.character_id),
         );
 
         return Ok(ResetToMessageResult {
