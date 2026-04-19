@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogBody } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Loader2, Send, Check } from "lucide-react";
@@ -70,6 +70,17 @@ export function SummaryModal({
   const [selectedTargets, setSelectedTargets] = useState<Set<string>>(new Set());
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState(false);
+
+  // Keep the streaming body scrolled to the bottom as tokens land, unless
+  // the user has deliberately scrolled up to re-read.
+  const streamRef = useRef<HTMLDivElement | null>(null);
+  const userScrolledUpRef = useRef(false);
+  useEffect(() => {
+    const el = streamRef.current;
+    if (!el) return;
+    if (userScrolledUpRef.current) return;
+    el.scrollTop = el.scrollHeight;
+  }, [summary]);
 
   useEffect(() => {
     if (!open) return;
@@ -186,7 +197,20 @@ export function SummaryModal({
             </div>
           ) : summary ? (
             <>
-              <p className="text-sm text-foreground leading-relaxed whitespace-pre-wrap">{summary}{loading ? <span className="inline-block w-1.5 h-4 bg-primary/60 animate-pulse ml-0.5 align-text-bottom" /> : null}</p>
+              <div
+                ref={streamRef}
+                onScroll={(e) => {
+                  const el = e.currentTarget;
+                  // If the user pulls away from the bottom (>40px slack),
+                  // stop auto-scrolling so they can re-read. Sticking back to
+                  // the bottom re-engages auto-scroll.
+                  const atBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 40;
+                  userScrolledUpRef.current = !atBottom;
+                }}
+                className="text-sm text-foreground leading-relaxed whitespace-pre-wrap max-h-[50vh] overflow-y-auto pr-2"
+              >
+                {summary}{loading ? <span className="inline-block w-1.5 h-4 bg-primary/60 animate-pulse ml-0.5 align-text-bottom" /> : null}
+              </div>
 
               {targets.length > 0 && (
                 <div className="mt-4 pt-4 border-t border-border">
