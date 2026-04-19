@@ -53,19 +53,29 @@ export function ReactionBubbles({
           </span>
         </div>
       ))}
-      {Array.from(charGroups.values()).map(({ emoji, senderId, count }) => (
-        <div key={`a-${emoji}-${senderId ?? "_"}`} className="relative group/rxn">
-          <span className="inline-flex items-center gap-1 bg-secondary/80 border border-border rounded-full px-2.5 py-1 backdrop-blur-sm shadow-sm">
-            <span className="text-2xl leading-none">{emoji}</span>
-            {count > 1 && (
-              <span className="text-xs text-muted-foreground">{count}</span>
-            )}
-          </span>
-          <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-2 py-0.5 text-[10px] font-medium text-white bg-black rounded-md shadow-lg whitespace-nowrap opacity-0 group-hover/rxn:opacity-100 pointer-events-none transition-opacity z-50">
-            {charName(senderId)}
-          </span>
-        </div>
-      ))}
+      {Array.from(charGroups.values()).map(({ emoji, senderId, count }) => {
+        const name = charName(senderId);
+        return (
+          <div key={`a-${emoji}-${senderId ?? "_"}`} className="relative group/rxn">
+            <span className="inline-flex items-center gap-1.5 bg-secondary/80 border border-border rounded-full pl-2.5 pr-3 py-1 backdrop-blur-sm shadow-sm">
+              <span className="text-2xl leading-none">{emoji}</span>
+              {/* Inline attributor: truncates past ~12ch so a line of
+                  reactions doesn't sprawl; tooltip below still carries
+                  the full name, and can later carry "Alice, Bob, …" when
+                  multiple reactors are merged into one bubble. */}
+              <span className="text-[11px] font-medium text-muted-foreground max-w-[12ch] truncate">
+                {name}
+              </span>
+              {count > 1 && (
+                <span className="text-xs text-muted-foreground">{count}</span>
+              )}
+            </span>
+            <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-2 py-0.5 text-[10px] font-medium text-white bg-black rounded-md shadow-lg whitespace-nowrap opacity-0 group-hover/rxn:opacity-100 pointer-events-none transition-opacity z-50">
+              {name}
+            </span>
+          </div>
+        );
+      })}
     </>
   );
 }
