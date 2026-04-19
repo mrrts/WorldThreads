@@ -318,6 +318,8 @@ All characters are just like the reader in some way. Whatever is different about
 fn craft_notes_narrative() -> &'static str {
     r#"# CRAFT NOTES (a reference, not a checklist — reach for what the beat asks for):
 
+**Orient, then stop.** Say where we are. Say what the hour feels like. Say what tension is alive between the characters. Say whose experience you're centering. Then stop. Leave enough room for the thing to breathe — or you'll smother the life you're trying to call up. The beat earns its weight from what you don't fill in.
+
 **The unsaid is louder.** A beat doesn't need to name the feeling it's about. Let imagery, gesture, and a quiet pause do the work.
 
 **Bodies are in places.** Every character has weight, posture, breath, a direction of attention. Keep them where the conversation left them; when a body moves, move it deliberately.
@@ -371,6 +373,8 @@ The goal is not to entertain and not to flatter. The goal is to see honestly.
 
 fn craft_notes_dialogue() -> &'static str {
     r#"# CRAFT NOTES (a reference, not a checklist — reach for what the moment asks for):
+
+**Name it, then step back.** When you acknowledge what's alive in the room — where you are, what the hour feels like, the tension between you, whose experience is at the center — say it briefly, then stop. Over-explaining smothers the thing you were calling up. The line earns its weight from what you don't fill in.
 
 **The unsaid is louder.** The line a character refuses to finish is often the one the reader hears loudest. A pause, a subject quietly changed, a word left hanging — what you withhold can carry more than what you spell out.
 
