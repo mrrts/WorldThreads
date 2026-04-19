@@ -145,6 +145,20 @@ export interface Reaction {
   created_at: string;
 }
 
+export interface CanonEntry {
+  canon_id: string;
+  source_message_id: string | null;
+  source_thread_id: string | null;
+  source_world_day: number | null;
+  source_created_at: string | null;
+  subject_type: "character" | "user" | "world" | "relationship";
+  subject_id: string;
+  canon_type: "description_weave" | "known_fact" | "relationship_note" | "world_fact";
+  content: string;
+  user_note: string;
+  created_at: string;
+}
+
 export interface UserProfile {
   world_id: string;
   display_name: string;
@@ -542,6 +556,24 @@ export const api = {
     invoke<Reaction[]>("get_reactions_cmd", { messageIds }),
   getMoodReduction: (opts: { characterId?: string; groupChatId?: string }) =>
     invoke<string[]>("get_mood_reduction_cmd", { characterId: opts.characterId ?? null, groupChatId: opts.groupChatId ?? null }),
+
+  // Canon (Promote to Canon flow)
+  canonizeWeaveDescription: (apiKey: string, request: { sourceMessageId: string; subjectType: string; subjectId: string }) =>
+    invoke<{ current_description: string; proposed_description: string }>("canonize_weave_description_cmd", { apiKey, request }),
+  saveCanonEntry: (request: {
+    sourceMessageId?: string | null;
+    subjectType: string;
+    subjectId: string;
+    canonType: string;
+    content: string;
+    userNote?: string;
+  }) => invoke<CanonEntry>("save_canon_entry_cmd", { request }),
+  listCanonizedMessageIds: (threadId: string) =>
+    invoke<string[]>("list_canonized_message_ids_cmd", { threadId }),
+  listCanonForMessage: (messageId: string) =>
+    invoke<CanonEntry[]>("list_canon_for_message_cmd", { messageId }),
+  deleteCanonEntry: (canonId: string) =>
+    invoke<void>("delete_canon_entry_cmd", { canonId }),
 
   // Backup
   getLatestBackup: () =>

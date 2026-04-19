@@ -208,7 +208,7 @@ pub async fn send_message_cmd(
     // Phase 1: Read everything from DB, persist user message, build retrieval context
     let (world, character, thread, recent_msgs, model_config,
          retrieved, should_run_maintenance, user_profile,
-         current_mood, mood_enabled, mood_drift_rate, response_length, narration_tone) = {
+         current_mood, mood_enabled, mood_drift_rate, response_length, narration_tone, leader) = {
         let conn = db.conn.lock().map_err(|e| e.to_string())?;
         let character = get_character(&conn, &character_id).map_err(|e| e.to_string())?;
         let world = get_world(&conn, &character.world_id).map_err(|e| e.to_string())?;
@@ -277,10 +277,11 @@ pub async fn send_message_cmd(
             .ok().flatten();
         let narration_tone = get_setting(&conn, &format!("narration_tone.{}", character_id))
             .ok().flatten();
+        let leader = get_setting(&conn, &format!("leader.{}", character_id)).ok().flatten();
 
         (world, character, thread, recent_msgs, model_config,
          retrieved, should_run_maintenance, user_profile,
-         current_mood, mood_enabled, mood_drift_rate, response_length, narration_tone)
+         current_mood, mood_enabled, mood_drift_rate, response_length, narration_tone, leader)
     };
 
     let (wd, wt) = world_time_fields(&world);
@@ -363,6 +364,7 @@ pub async fn send_message_cmd(
         None, None, narration_tone.as_deref(),
         model_config.is_local(),
         &mood_chain,
+    leader.as_deref(),
     );
     // Context for the reaction-emoji pick: the recent messages EXCLUDING
     // the user's brand-new one (which goes in the user-role slot). Gives
@@ -597,7 +599,7 @@ pub async fn prompt_character_cmd(
     character_id: String,
 ) -> Result<PromptCharacterResult, String> {
     let (world, character, thread, recent_msgs, model_config, retrieved,
-         user_profile, current_mood, mood_enabled, response_length, narration_tone) = {
+         user_profile, current_mood, mood_enabled, response_length, narration_tone, leader) = {
         let conn = db.conn.lock().map_err(|e| e.to_string())?;
         let character = get_character(&conn, &character_id).map_err(|e| e.to_string())?;
         let world = get_world(&conn, &character.world_id).map_err(|e| e.to_string())?;
@@ -619,9 +621,10 @@ pub async fn prompt_character_cmd(
             .ok().flatten();
         let narration_tone = get_setting(&conn, &format!("narration_tone.{}", character_id))
             .ok().flatten();
+        let leader = get_setting(&conn, &format!("leader.{}", character_id)).ok().flatten();
 
         (world, character, thread, recent_msgs, model_config, retrieved,
-         user_profile, current_mood, mood_enabled, response_length, narration_tone)
+         user_profile, current_mood, mood_enabled, response_length, narration_tone, leader)
     };
 
     // Mood
@@ -665,6 +668,7 @@ pub async fn prompt_character_cmd(
         None, None, narration_tone.as_deref(),
         model_config.is_local(),
         &mood_chain,
+        leader.as_deref(),
     ).await?;
 
     let tokens = dialogue_usage.as_ref().map(|u| u.total_tokens).unwrap_or(0);
@@ -1103,7 +1107,7 @@ pub async fn reset_to_message_cmd(
     // Phase 3: If the anchor is a user message in a 1-on-1 chat, generate a new character response
     // (Skip for group chats — no automatic re-generation)
     if anchor_role == "user" && !is_group {
-        let (recent_msgs, retrieved, user_profile, current_mood, mood_enabled, response_length, narration_tone) = {
+        let (recent_msgs, retrieved, user_profile, current_mood, mood_enabled, response_length, narration_tone, leader) = {
             let conn = db.conn.lock().map_err(|e| e.to_string())?;
             let recent_msgs = list_messages_within_budget(&conn, &thread_id, model_config.safe_history_budget() as i64, 30).map_err(|e| e.to_string())?;
 
@@ -1130,8 +1134,9 @@ pub async fn reset_to_message_cmd(
                 .ok().flatten();
             let narration_tone = get_setting(&conn, &format!("narration_tone.{}", character_id))
                 .ok().flatten();
+        let leader = get_setting(&conn, &format!("leader.{}", character_id)).ok().flatten();
 
-            (recent_msgs, retrieved, user_profile, current_mood, mood_enabled, response_length, narration_tone)
+            (recent_msgs, retrieved, user_profile, current_mood, mood_enabled, response_length, narration_tone, leader)
         };
 
         // Mood directive
@@ -1159,6 +1164,7 @@ pub async fn reset_to_message_cmd(
             None, None, narration_tone.as_deref(),
             model_config.is_local(),
             &mood_chain,
+        leader.as_deref(),
         );
         let reaction_context: Vec<Message> = recent_msgs.iter()
             .rev().skip(1).take(4).rev().cloned().collect();

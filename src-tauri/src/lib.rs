@@ -15,6 +15,7 @@ use commands::mood_cmds::*;
 use commands::novel_cmds::*;
 use commands::portrait_cmds::*;
 use commands::reaction_cmds::*;
+use commands::canon_cmds::*;
 use commands::settings_cmds::*;
 use commands::usage_cmds::*;
 use commands::user_profile_cmds::*;
@@ -165,6 +166,11 @@ pub fn run() {
             remove_reaction_cmd,
             get_reactions_cmd,
             get_mood_reduction_cmd,
+            canonize_weave_description_cmd,
+            save_canon_entry_cmd,
+            list_canonized_message_ids_cmd,
+            list_canon_for_message_cmd,
+            delete_canon_entry_cmd,
             generate_portrait_cmd,
             generate_portrait_variation_cmd,
             generate_portrait_with_pose_cmd,

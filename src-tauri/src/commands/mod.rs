@@ -1,5 +1,6 @@
 pub mod audio_cmds;
 pub mod backup_cmds;
+pub mod canon_cmds;
 pub mod world_cmds;
 pub mod world_image_cmds;
 pub mod character_cmds;

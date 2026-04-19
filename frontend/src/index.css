@@ -80,3 +80,13 @@ body {
   background: transparent;
   padding: 0;
 }
+
+/* Canonized bubble shimmer keyframe. Everything else — gradient,
+   blend mode, ring, shadow — is applied via Tailwind classes at the
+   call site (ChatView / GroupChatView). Tailwind v4 can't declare new
+   keyframes inline without config changes, so the keyframe lives here. */
+@keyframes canonized-shimmer {
+  0%   { background-position:   0%   0%; }
+  50%  { background-position: 100% 100%; }
+  100% { background-position:   0%   0%; }
+}

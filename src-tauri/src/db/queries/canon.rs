@@ -1,0 +1,76 @@
+use rusqlite::{params, Connection};
+use serde::{Deserialize, Serialize};
+
+/// A persisted canonization event. See schema comments for field semantics.
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct CanonEntry {
+    pub canon_id: String,
+    pub source_message_id: Option<String>,
+    pub source_thread_id: Option<String>,
+    pub source_world_day: Option<i64>,
+    pub source_created_at: Option<String>,
+    pub subject_type: String,
+    pub subject_id: String,
+    pub canon_type: String,
+    pub content: String,
+    #[serde(default)]
+    pub user_note: String,
+    pub created_at: String,
+}
+
+pub fn create_canon_entry(conn: &Connection, e: &CanonEntry) -> Result<(), rusqlite::Error> {
+    conn.execute(
+        "INSERT INTO canon_entries (canon_id, source_message_id, source_thread_id, source_world_day, source_created_at, subject_type, subject_id, canon_type, content, user_note, created_at)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)",
+        params![
+            e.canon_id, e.source_message_id, e.source_thread_id, e.source_world_day, e.source_created_at,
+            e.subject_type, e.subject_id, e.canon_type, e.content, e.user_note, e.created_at,
+        ],
+    )?;
+    Ok(())
+}
+
+/// Fetch the distinct message IDs in a thread that have been canonized at
+/// least once. Drives the per-message "this moment is canon" indicator.
+pub fn list_canonized_message_ids_for_thread(
+    conn: &Connection,
+    thread_id: &str,
+) -> Result<Vec<String>, rusqlite::Error> {
+    let mut stmt = conn.prepare(
+        "SELECT DISTINCT source_message_id FROM canon_entries WHERE source_thread_id = ?1 AND source_message_id IS NOT NULL"
+    )?;
+    let rows = stmt.query_map(params![thread_id], |r| r.get::<_, String>(0))?;
+    rows.collect()
+}
+
+/// All canon entries tied to a specific source message. Used when hovering
+/// a canonized indicator to show what the message was promoted to.
+pub fn list_canon_for_message(
+    conn: &Connection,
+    message_id: &str,
+) -> Result<Vec<CanonEntry>, rusqlite::Error> {
+    let mut stmt = conn.prepare(
+        "SELECT canon_id, source_message_id, source_thread_id, source_world_day, source_created_at,
+                subject_type, subject_id, canon_type, content, user_note, created_at
+         FROM canon_entries WHERE source_message_id = ?1 ORDER BY created_at DESC"
+    )?;
+    let rows = stmt.query_map(params![message_id], |r| Ok(CanonEntry {
+        canon_id: r.get(0)?,
+        source_message_id: r.get(1)?,
+        source_thread_id: r.get(2)?,
+        source_world_day: r.get(3)?,
+        source_created_at: r.get(4)?,
+        subject_type: r.get(5)?,
+        subject_id: r.get(6)?,
+        canon_type: r.get(7)?,
+        content: r.get(8)?,
+        user_note: r.get(9)?,
+        created_at: r.get(10)?,
+    }))?;
+    rows.collect()
+}
+
+pub fn delete_canon_entry(conn: &Connection, canon_id: &str) -> Result<(), rusqlite::Error> {
+    conn.execute("DELETE FROM canon_entries WHERE canon_id = ?1", params![canon_id])?;
+    Ok(())
+}

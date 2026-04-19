@@ -4,13 +4,16 @@ import { formatMessage, markdownComponents, remarkPlugins, rehypePlugins } from 
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Dialog } from "@/components/ui/dialog";
-import { Send, Loader2, SmilePlus, X, Copy, ExternalLink, BookOpen, RotateCcw, MessageSquare, Compass, Settings, Image, Trash2, SlidersHorizontal, Pencil, Square, Play, Volume2, ChevronDown, ChevronRight } from "lucide-react";
+import { Send, Loader2, SmilePlus, X, Copy, ExternalLink, BookOpen, RotateCcw, MessageSquare, Compass, Settings, Image, Trash2, SlidersHorizontal, Pencil, Square, Play, Volume2, ChevronDown, ChevronRight, ScrollText } from "lucide-react";
 import { WebviewWindow } from "@tauri-apps/api/webviewWindow";
 import type { useAppStore } from "@/hooks/use-app-store";
 import { api, type Reaction } from "@/lib/tauri";
 import { EmojiPicker } from "@/components/chat/EmojiPicker";
 import { ReactionBubbles } from "@/components/chat/ReactionBubbles";
 import { ReactionPicker } from "@/components/chat/ReactionPicker";
+import { CanonizationModal } from "@/components/chat/CanonizationModal";
+import { CanonToast } from "@/components/chat/CanonToast";
+import type { CanonEntry } from "@/lib/tauri";
 import { NarrativeMessage } from "@/components/chat/NarrativeMessage";
 import { ChatErrorBar } from "@/components/chat/ChatErrorBar";
 import { AnimationReadyToast } from "@/components/chat/AnimationReadyToast";
@@ -43,6 +46,20 @@ interface Props {
 
 export function ChatView({ store, onNavigateToCharacter }: Props) {
   const [pickerMessageId, setPickerMessageId] = useState<string | null>(null);
+  const [canonMessageId, setCanonMessageId] = useState<string | null>(null);
+  const [canonizedIds, setCanonizedIds] = useState<Set<string>>(new Set());
+  const [canonToast, setCanonToast] = useState<{ entry: CanonEntry; subjectLabel: string } | null>(null);
+  const canonThreadId = store.messages.find((m) => m.thread_id)?.thread_id ?? null;
+  const reloadCanonized = useCallback(async () => {
+    if (!canonThreadId) { setCanonizedIds(new Set()); return; }
+    try {
+      const ids = await api.listCanonizedMessageIds(canonThreadId);
+      setCanonizedIds(new Set(ids));
+    } catch {
+      setCanonizedIds(new Set());
+    }
+  }, [canonThreadId]);
+  useEffect(() => { reloadCanonized(); }, [reloadCanonized]);
   const [showPortraitModal, setShowPortraitModal] = useState(false);
   const [showIdentityPopover, setShowIdentityPopover] = useState(false);
   const [showConsultant, setShowConsultant] = useState(false);
@@ -148,6 +165,24 @@ export function ChatView({ store, onNavigateToCharacter }: Props) {
     });
     return () => { cancelled = true; };
   }, [showSettingsPopover, charId, store.messages.length]);
+
+  // Leader setting: "user" (default) or the character_id. Controls whose
+  // story the scene is framed around in the dialogue prompt.
+  const [leader, setLeader] = useState<string>("user");
+  useEffect(() => {
+    if (!charId) return;
+    let cancelled = false;
+    api.getSetting(`leader.${charId}`).then((v) => {
+      if (!cancelled) setLeader(v && v !== "" ? v : "user");
+    }).catch(() => {
+      if (!cancelled) setLeader("user");
+    });
+    return () => { cancelled = true; };
+  }, [charId]);
+  const setLeaderPersist = useCallback((next: string) => {
+    setLeader(next);
+    if (charId) api.setSetting(`leader.${charId}`, next).catch(() => {});
+  }, [charId]);
 
   // Auto-save chat settings
   useEffect(() => {
@@ -439,6 +474,10 @@ export function ChatView({ store, onNavigateToCharacter }: Props) {
                       isUser
                         ? "bg-primary text-primary-foreground rounded-br-md max-w-[80%]"
                         : "bg-secondary/40 text-secondary-foreground rounded-bl-md max-w-[80%] border border-border/30"
+                    } ${
+                      canonizedIds.has(msg.message_id)
+                        ? "ring-1 ring-amber-400/60 shadow-[0_0_24px_rgba(251,191,36,0.22)] before:content-[''] before:absolute before:inset-0 before:rounded-[inherit] before:pointer-events-none before:bg-gradient-to-br before:from-amber-100/40 before:via-amber-400/20 before:to-yellow-200/40 before:mix-blend-overlay before:blur-md before:bg-[length:200%_200%] before:animate-[canonized-shimmer_9s_ease-in-out_infinite]"
+                        : ""
                     }`}
                   >
                     {/* Top corner button — speak (character messages only) */}
@@ -590,13 +629,26 @@ export function ChatView({ store, onNavigateToCharacter }: Props) {
                 <div className={`relative ${!isUser ? "pl-24" : userAvatarUrl ? "pr-24" : ""}`}>
                   <div className={`flex items-center gap-1.5 mt-1 ${isUser ? "justify-end" : "justify-start"}`}>
                     {!isPending && (
-                      <button
-                        onClick={() => setPickerMessageId(showPicker ? null : msg.message_id)}
-                        className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-secondary/50 hover:bg-secondary border border-border/60 hover:border-border text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
-                        title="Add reaction"
-                      >
-                        <SmilePlus size={12} />
-                      </button>
+                      <>
+                        <button
+                          onClick={() => setPickerMessageId(showPicker ? null : msg.message_id)}
+                          className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-secondary/50 hover:bg-secondary border border-border/60 hover:border-border text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+                          title="Add reaction"
+                        >
+                          <SmilePlus size={12} />
+                        </button>
+                        <button
+                          onClick={() => setCanonMessageId(msg.message_id)}
+                          className={`inline-flex items-center justify-center w-6 h-6 rounded-full border transition-colors cursor-pointer ${
+                            canonizedIds.has(msg.message_id)
+                              ? "bg-amber-500/15 border-amber-500/40 text-amber-500 hover:bg-amber-500/25"
+                              : "bg-secondary/50 hover:bg-secondary border-border/60 hover:border-border text-muted-foreground hover:text-foreground"
+                          }`}
+                          title={canonizedIds.has(msg.message_id) ? "Already canonized — promote again" : "Promote to canon"}
+                        >
+                          <ScrollText size={12} />
+                        </button>
+                      </>
                     )}
                     <ReactionBubbles reactions={reactions} isUser={isUser} />
                     {/* Character-is-reacting placeholder — shown on the user's most recent
@@ -800,6 +852,20 @@ export function ChatView({ store, onNavigateToCharacter }: Props) {
             {showSettingsPopover && (
               <div className="absolute bottom-full right-0 mb-2 w-80 bg-card border border-border rounded-xl shadow-2xl shadow-black/40 p-4 space-y-3 z-50 animate-in fade-in zoom-in-95 duration-150">
                 <div>
+                  <label className="text-xs font-medium text-muted-foreground block mb-1.5">Who is leading</label>
+                  <div className="flex rounded-lg overflow-hidden border border-input">
+                    {[{ id: "user", label: "Me" }, { id: store.activeCharacter?.character_id ?? "", label: store.activeCharacter?.display_name ?? "" }].map((opt) => (
+                      <button
+                        key={opt.id}
+                        onClick={() => setLeaderPersist(opt.id)}
+                        className={`flex-1 px-2 py-1.5 text-xs font-medium transition-colors cursor-pointer ${
+                          leader === opt.id ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground hover:bg-accent/50"
+                        }`}
+                      >{opt.label}</button>
+                    ))}
+                  </div>
+                </div>
+                <div>
                   <label className="text-xs font-medium text-muted-foreground block mb-1.5">Thread mood</label>
                   {moodReduction.length > 0 ? (
                     <div className="flex items-center gap-1 text-base" title="Most recent reaction emojis on this thread — seeds the next reply's emotional weather.">
@@ -999,6 +1065,30 @@ export function ChatView({ store, onNavigateToCharacter }: Props) {
         groupChats={store.groupChats}
         activePortraits={store.activePortraits}
         currentCharacterId={store.activeCharacter?.character_id}
+      />
+
+      <CanonizationModal
+        open={!!canonMessageId}
+        onOpenChange={(o) => { if (!o) setCanonMessageId(null); }}
+        sourceMessage={canonMessageId ? store.messages.find((m) => m.message_id === canonMessageId) ?? null : null}
+        sourceSpeakerLabel={(() => {
+          const m = canonMessageId ? store.messages.find((x) => x.message_id === canonMessageId) : null;
+          if (!m) return "";
+          if (m.role === "user") return store.userProfile?.display_name || "You";
+          return store.activeCharacter?.display_name || "Character";
+        })()}
+        world={store.activeWorld}
+        userProfile={store.userProfile}
+        characters={store.activeCharacter ? [store.activeCharacter] : []}
+        apiKey={store.apiKey}
+        onSaved={(r) => { reloadCanonized(); setCanonToast(r); }}
+      />
+
+      <CanonToast
+        entry={canonToast?.entry ?? null}
+        subjectLabel={canonToast?.subjectLabel ?? ""}
+        onDismiss={() => setCanonToast(null)}
+        onUndone={() => { setCanonToast(null); reloadCanonized(); }}
       />
 
       <AdjustMessageModal

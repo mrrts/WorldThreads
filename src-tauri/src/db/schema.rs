@@ -669,6 +669,47 @@ pub fn run_migrations(conn: &Connection) -> Result<(), rusqlite::Error> {
         conn.execute("ALTER TABLE consultant_chats ADD COLUMN last_seen_message_id TEXT DEFAULT NULL", []).ok();
     }
 
+    // ── Canon entries ─────────────────────────────────────────────────────
+    //
+    // Records the user's deliberate promotion of a specific message moment
+    // into canon. Each row is a historical event: "on date X, message Y was
+    // promoted to target Z as canon-type T, with content C."
+    //
+    // `subject_type` + `subject_id` identify the canon target:
+    //   character / <character_id>
+    //   user      / <world_id>
+    //   world     / <world_id>
+    //   relationship / "<char_id_a>::<char_id_b or 'user'>"
+    //
+    // `canon_type`:
+    //   description_weave  — revised full description (character or user)
+    //   known_fact         — appended to backstory_facts / user facts
+    //   relationship_note  — appended to a relationship entry
+    //   world_fact         — appended to world.invariants
+    //
+    // Actual application to the subject row (character.identity updated,
+    // fact appended, etc) happens at the same time; this table is the
+    // audit trail + provenance ledger, not the source of truth for the
+    // subject. Queryable by source_message_id for "is this message
+    // canonized?" indicators.
+    conn.execute_batch("
+        CREATE TABLE IF NOT EXISTS canon_entries (
+            canon_id TEXT PRIMARY KEY,
+            source_message_id TEXT,
+            source_thread_id TEXT,
+            source_world_day INTEGER,
+            source_created_at TEXT,
+            subject_type TEXT NOT NULL CHECK(subject_type IN ('character','user','world','relationship')),
+            subject_id TEXT NOT NULL,
+            canon_type TEXT NOT NULL CHECK(canon_type IN ('description_weave','known_fact','relationship_note','world_fact')),
+            content TEXT NOT NULL,
+            user_note TEXT NOT NULL DEFAULT '',
+            created_at TEXT NOT NULL DEFAULT (datetime('now'))
+        );
+        CREATE INDEX IF NOT EXISTS idx_canon_source_message ON canon_entries(source_message_id);
+        CREATE INDEX IF NOT EXISTS idx_canon_subject ON canon_entries(subject_type, subject_id);
+    ").ok();
+
     // ── Reactions: rebuild without the FK to `messages` ─────────────────
     //
     // Original schema declared `message_id TEXT NOT NULL REFERENCES

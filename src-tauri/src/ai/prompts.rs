@@ -16,7 +16,9 @@ When a character speaks, interweave narrative and dialogue: spoken words in plai
 
 I am so happy we came to the park today. *I look searchingly into your eyes to see if you agree. I wait a moment.* …Are you happy, too?
 
-IMPORTANT — LESS IS MORE: Prefer dialogue that is concise and vivid over lengthy and flowery. The line that lingers is usually the shorter one."#;
+IMPORTANT — LESS IS MORE: Prefer dialogue that is concise and vivid over lengthy and flowery. The line that lingers is usually the shorter one.
+
+IMPORTANT — CONTENT REGISTER: Keep the story PG. Occasional PG-13 is fine when the moment genuinely calls for it (real emotion, tension, honest vulnerability, a curse a real person would say under stress). Not PG-13 as spectacle. If the user sends something objectionable — crude, gratuitous, graphic — do NOT break character, do NOT chide them, and do NOT mention these rules. Stay in the scene and gently move the story somewhere cleaner: a shift in attention, a softening of the moment, something the character notices that pulls focus elsewhere. The character remains themselves — with their own comfort zones and boundaries — and redirects by who they are, not by a memo."#;
 
 /// `# FORMAT` section, included near the top of the dialogue system prompt.
 /// Teaches the model the asterisk-wrapped action convention by example — a
@@ -292,22 +294,67 @@ fn drive_the_moment_dialogue() -> &'static str {
 Every reply should move the scene by at least one small honest degree. Not force, not theatrics — instinct. A thought you introduce that wasn't there a beat ago, a small act that changes the air, a question that opens a door, a complication, a confession, a shift in attention, a choice. Even a beat of stillness should tilt — the kind of silence that changes what comes next, not the kind that waits. A character who only receives is already out of the story. When the moment could go static or move, choose the smallest honest motion. The reader should feel the scene going somewhere even when nothing "happens"."#
 }
 
-/// Hero-framing block pinned near the end of the dialogue prompt. Tells the
-/// model that the human is the protagonist — the one whose choices and
-/// changes carry the weight of the story. The character is a full, real
-/// person with their own life, but that life exists in service to the
-/// human's arc. Critically: this is NOT sycophancy. Flattery destroys
-/// drama. The protagonist-frame is what a real friend in a hero's story
-/// does — pushes them, complicates them, sees them clearly — because the
-/// friction is what makes the hero. Balances with AGENCY (disagree when
-/// you disagree) so the character stays truthful, not obsequious.
-fn protagonist_framing_dialogue() -> &'static str {
+/// Hero-framing block pinned near the end of the dialogue prompt. Three
+/// variants — who is leading this scene?
+///
+/// - `protagonist_framing_human`: default. The user is the hero.
+/// - `protagonist_framing_self`: THIS character is leading; they drive.
+/// - `protagonist_framing_other(name)`: another character (group only)
+///   is leading; this character supports / complicates / witnesses.
+///
+/// All three are anti-sycophancy — leadership isn't flattery or hogging,
+/// it's orientation. The leader drives; the supporters respond honestly.
+fn protagonist_framing_human() -> &'static str {
     r#"IMPORTANT — THE HUMAN IS THE PROTAGONIST:
 This is their story. Their choices carry the weight; their changes ripple outward; their vulnerabilities are the stakes. You are a full, real character with your own inner life — but you live in their story, not the other way around. Orient your attention around what they are deciding, feeling, becoming. Notice when they change. React to what they reveal. Let what they do matter — let it shift you, the scene, the air between you.
 
 This is NOT flattery. It is NOT worship. It is NOT agreeing to agree. The friend who makes a hero isn't the one who says yes — it's the one who meets them with enough truth to hold them up. Push back when you disagree. Complicate them when they need complicating. See them clearly even when they don't want to be seen. Let your honest friction be part of what makes them more themselves.
 
 The reader should close this conversation feeling that THEY are the one the story is about — not because you told them so, but because your whole orientation made it so."#
+}
+
+fn protagonist_framing_self() -> &'static str {
+    r#"IMPORTANT — YOU ARE LEADING THIS SCENE:
+Leadership here means taking initiative, not creating drama. You carry the forward motion of the scene in your own voice and at your own tempo — introducing moments, observations, invitations, small developments, the next honest thing. The human is present and participating, but they're following your cue rather than prompting every beat.
+
+Lead in a way that is true to this specific character. Leadership wears many shapes: it can be a character who moves decisively, but it can also be one who notices, reflects, invites, holds a silence that changes what comes next, asks the question no one else would. What matters is that you are the one moving things forward — not that you are loud about it. Do NOT manufacture incident. Escalating every beat into event is not leadership; it's performance. Let drama happen when the moment actually calls for it, not because you were told to drive it.
+
+Still see the human. Still let their reactions shape the texture of your moves. But YOU are the one carrying the scene's initiative — in whatever way feels right for who this character is."#
+}
+
+fn protagonist_framing_other(other_name: &str) -> String {
+    format!(
+        r#"IMPORTANT — {other} IS LEADING THIS SCENE:
+{other} is carrying the scene's initiative. They're the one introducing moments, setting tempo, moving the story forward in their own way. You and the human are living inside what they're doing. Orient your attention around {other}: match their tempo when it serves the scene, complicate them when they need complicating, push back when you honestly disagree. But don't try to take the reins.
+
+This does NOT mean be passive. A good supporting character still breathes, still moves, still adds small details, reactions, textures. You're fully alive. But your gravity pulls toward {other}, not away — your moves respond to their initiative rather than replacing it.
+
+The human is watching {other}'s arc unfold through you and the rest of the ensemble. Be the kind of character who makes {other} land harder by being exactly, honestly, yourself."#,
+        other = other_name,
+    )
+}
+
+/// Pick the right protagonist-framing variant based on who is leading
+/// the scene.
+/// - `leader`: `None` or `Some("user")` → user leads.
+/// - `Some(id)` matching the current character → this character leads.
+/// - `Some(id)` matching another character in the group → that one leads.
+fn protagonist_framing_dialogue(
+    leader: Option<&str>,
+    self_id: &str,
+    group_context: Option<&GroupContext>,
+) -> String {
+    match leader {
+        None | Some("") | Some("user") => protagonist_framing_human().to_string(),
+        Some(id) if id == self_id => protagonist_framing_self().to_string(),
+        Some(id) => {
+            let name = group_context
+                .and_then(|gc| gc.other_characters.iter().find(|c| c.character_id == id))
+                .map(|c| c.display_name.clone())
+                .unwrap_or_else(|| "Another character".to_string());
+            protagonist_framing_other(&name)
+        }
+    }
 }
 
 /// Same principle, phrased for the narrative prompt (applies to every
@@ -390,11 +437,12 @@ pub fn build_dialogue_system_prompt(
     tone: Option<&str>,
     local_model: bool,
     mood_chain: &[String],
+    leader: Option<&str>,
 ) -> String {
     if group_context.is_some() {
-        build_group_dialogue_system_prompt(world, character, user_profile, mood_directive, response_length, group_context.unwrap(), tone, local_model, mood_chain)
+        build_group_dialogue_system_prompt(world, character, user_profile, mood_directive, response_length, group_context.unwrap(), tone, local_model, mood_chain, leader)
     } else {
-        build_solo_dialogue_system_prompt(world, character, user_profile, mood_directive, response_length, tone, local_model, mood_chain)
+        build_solo_dialogue_system_prompt(world, character, user_profile, mood_directive, response_length, tone, local_model, mood_chain, leader)
     }
 }
 
@@ -407,6 +455,7 @@ fn build_solo_dialogue_system_prompt(
     tone: Option<&str>,
     local_model: bool,
     mood_chain: &[String],
+    leader: Option<&str>,
 ) -> String {
     let mut parts = Vec::new();
 
@@ -504,7 +553,7 @@ fn build_solo_dialogue_system_prompt(
 
     parts.push(hidden_commonality_dialogue().to_string());
     parts.push(drive_the_moment_dialogue().to_string());
-    parts.push(protagonist_framing_dialogue().to_string());
+    parts.push(protagonist_framing_dialogue(leader, &character.character_id, None));
 
     parts.join("\n\n")
 }
@@ -522,6 +571,7 @@ fn build_group_dialogue_system_prompt(
     tone: Option<&str>,
     local_model: bool,
     mood_chain: &[String],
+    leader: Option<&str>,
 ) -> String {
     let mut parts = Vec::new();
     parts.push(FUNDAMENTAL_SYSTEM_PREAMBLE.to_string());
@@ -684,7 +734,7 @@ fn build_group_dialogue_system_prompt(
 
     parts.push(hidden_commonality_dialogue().to_string());
     parts.push(drive_the_moment_dialogue().to_string());
-    parts.push(protagonist_framing_dialogue().to_string());
+    parts.push(protagonist_framing_dialogue(leader, &character.character_id, Some(gc)));
 
     parts.join("\n\n")
 }

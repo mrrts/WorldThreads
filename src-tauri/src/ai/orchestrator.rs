@@ -169,8 +169,9 @@ pub async fn run_dialogue_with_base(
     tone: Option<&str>,
     local_model: bool,
     mood_chain: &[String],
+    leader: Option<&str>,
 ) -> Result<(String, Option<openai::Usage>), String> {
-    let system = prompts::build_dialogue_system_prompt(world, character, user_profile, mood_directive, response_length, group_context, tone, local_model, mood_chain);
+    let system = prompts::build_dialogue_system_prompt(world, character, user_profile, mood_directive, response_length, group_context, tone, local_model, mood_chain, leader);
     let messages = prompts::build_dialogue_messages(&system, recent_messages, retrieved_snippets, character_names);
 
     // Token caps sit ~25% above the sentence counts we instruct (see
@@ -297,8 +298,9 @@ pub async fn run_dialogue_streaming(
     app_handle: &tauri::AppHandle,
     event_name: &str,
     mood_chain: &[String],
+    leader: Option<&str>,
 ) -> Result<String, String> {
-    let system = prompts::build_dialogue_system_prompt(world, character, user_profile, mood_directive, response_length, group_context, tone, local_model, mood_chain);
+    let system = prompts::build_dialogue_system_prompt(world, character, user_profile, mood_directive, response_length, group_context, tone, local_model, mood_chain, leader);
     let messages = prompts::build_dialogue_messages(&system, recent_messages, retrieved_snippets, character_names);
 
     let token_limit = match response_length {
@@ -562,6 +564,74 @@ Guidelines (tendencies, not walls — the goal is the truest single-emoji read o
     }
 
     Ok(cleaned)
+}
+
+/// Weave a deeper-truth moment from a conversation into a subject's
+/// existing description. Used by the Promote-to-Canon flow: the user
+/// decides a specific message reveals something about a character (or
+/// themselves) that their description should now reflect. The model
+/// revises the description to integrate the truth organically rather
+/// than appending a sentence.
+pub async fn generate_canon_weave_description(
+    base_url: &str,
+    api_key: &str,
+    model: &str,
+    subject_label: &str,
+    current_description: &str,
+    context_messages: &[Message],
+    source_message: &Message,
+    source_speaker_label: &str,
+) -> Result<(String, Option<openai::Usage>), String> {
+    let rendered_context: Vec<String> = context_messages.iter()
+        .map(|m| {
+            let role = if m.message_id == source_message.message_id { "★ SOURCE" }
+                else if m.role == "user" { "USER" }
+                else { "CHARACTER" };
+            let clipped: String = m.content.chars().take(600).collect();
+            format!("[{role}] {clipped}")
+        })
+        .collect();
+    let context_block = rendered_context.join("\n\n");
+
+    let system = r#"You revise a subject's prose description to integrate a specific moment of deeper truth that has come up in a conversation. You are NOT appending a sentence. You are NOT summarizing. You are rewriting the description so that the truth revealed in the moment is now quietly present in the portrait — deeper, refined, more exactly what this subject is.
+
+Preserve the voice, length, and overall structure of the original description. Keep anything that was already true. The revision should feel like the same description, but wiser — as if the writer now knows something they didn't before, and that knowledge has colored the whole portrait.
+
+Do NOT reference the moment directly in the revised text. Do NOT name the conversation. The moment informs the revision; it does not appear in it.
+
+Return ONLY the revised description prose. No preamble, no quotes, no commentary."#.to_string();
+
+    let user = format!(
+        "SUBJECT: {subject_label}\n\nCURRENT DESCRIPTION:\n{current_description}\n\nTHE REVEALING MOMENT (with surrounding context; ★ marks the source line):\n{context_block}\n\nSOURCE LINE:\n{source_speaker_label}: {source_content}\n\nWrite the revised description.",
+        subject_label = subject_label,
+        current_description = current_description,
+        context_block = context_block,
+        source_speaker_label = source_speaker_label,
+        source_content = source_message.content,
+    );
+
+    let request = ChatRequest {
+        model: model.to_string(),
+        messages: vec![
+            openai::ChatMessage { role: "system".to_string(), content: system },
+            openai::ChatMessage { role: "user".to_string(), content: user },
+        ],
+        temperature: Some(0.7),
+        max_completion_tokens: Some(2000),
+        response_format: None,
+    };
+
+    let response = openai::chat_completion_with_base(base_url, api_key, &request).await?;
+    let usage = response.usage;
+    let text = response.choices.first()
+        .map(|c| c.message.content.trim().to_string())
+        .unwrap_or_default();
+
+    if text.is_empty() {
+        return Err("empty weave response".to_string());
+    }
+
+    Ok((text, usage))
 }
 
 /// chat_cmds to keep cost down. Kept for future reactivation.

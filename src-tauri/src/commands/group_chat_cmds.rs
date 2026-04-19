@@ -294,11 +294,12 @@ pub async fn send_group_message_cmd(
         let group_context = GroupContext { other_characters: other_chars };
 
         // Load settings scoped to the group chat
-        let (response_length, narration_tone) = {
+        let (response_length, narration_tone, leader) = {
             let conn = db.conn.lock().map_err(|e| e.to_string())?;
             let rl = get_setting(&conn, &format!("response_length.{}", gc.group_chat_id)).ok().flatten();
             let nt = get_setting(&conn, &format!("narration_tone.{}", gc.group_chat_id)).ok().flatten();
-            (rl, nt)
+            let leader = get_setting(&conn, &format!("leader.{}", gc.group_chat_id)).ok().flatten();
+            (rl, nt, leader)
         };
 
         // Re-fetch recent messages (includes previous characters' responses)
@@ -361,6 +362,7 @@ pub async fn send_group_message_cmd(
             narration_tone.as_deref(),
             model_config.is_local(),
             &mood_chain,
+            leader.as_deref(),
         ).await?;
 
         // Strip own prefix and truncate any other-character dialogue
@@ -500,11 +502,12 @@ pub async fn prompt_group_character_cmd(
         mood_chain: None,
         });
 
-    let (response_length, narration_tone) = {
+    let (response_length, narration_tone, leader) = {
         let conn = db.conn.lock().map_err(|e| e.to_string())?;
         let rl = get_setting(&conn, &format!("response_length.{}", gc.group_chat_id)).ok().flatten();
         let nt = get_setting(&conn, &format!("narration_tone.{}", gc.group_chat_id)).ok().flatten();
-        (rl, nt)
+        let leader = get_setting(&conn, &format!("leader.{}", gc.group_chat_id)).ok().flatten();
+        (rl, nt, leader)
     };
 
     let mood_reduction2 = {
@@ -525,6 +528,7 @@ pub async fn prompt_group_character_cmd(
         narration_tone.as_deref(),
         model_config.is_local(),
         &mood_chain2,
+        leader.as_deref(),
     ).await?;
 
     let other_names: Vec<&str> = characters.iter()
