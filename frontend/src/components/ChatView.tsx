@@ -10,6 +10,7 @@ import type { useAppStore } from "@/hooks/use-app-store";
 import { api, type Reaction } from "@/lib/tauri";
 import { EmojiPicker } from "@/components/chat/EmojiPicker";
 import { ReactionBubbles } from "@/components/chat/ReactionBubbles";
+import { ReactionPicker } from "@/components/chat/ReactionPicker";
 import { NarrativeMessage } from "@/components/chat/NarrativeMessage";
 import { ChatErrorBar } from "@/components/chat/ChatErrorBar";
 import { AnimationReadyToast } from "@/components/chat/AnimationReadyToast";
@@ -133,6 +134,20 @@ export function ChatView({ store, onNavigateToCharacter }: Props) {
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
   }, [showSettingsPopover]);
+
+  // Fetch the thread's mood-reduction ring when the settings popover opens —
+  // observable state for the feedback-loop hypothesis.
+  const [moodReduction, setMoodReduction] = useState<string[]>([]);
+  useEffect(() => {
+    if (!showSettingsPopover || !charId) return;
+    let cancelled = false;
+    api.getMoodReduction({ characterId: charId }).then((r) => {
+      if (!cancelled) setMoodReduction(r);
+    }).catch(() => {
+      if (!cancelled) setMoodReduction([]);
+    });
+    return () => { cancelled = true; };
+  }, [showSettingsPopover, charId, store.messages.length]);
 
   // Auto-save chat settings
   useEffect(() => {
@@ -572,8 +587,39 @@ export function ChatView({ store, onNavigateToCharacter }: Props) {
                   )}
                 </div>
 
-                <div className={!isUser ? "pl-20" : userAvatarUrl ? "pr-20" : ""}>
-                  <ReactionBubbles reactions={reactions} isUser={isUser} />
+                <div className={`relative ${!isUser ? "pl-24" : userAvatarUrl ? "pr-24" : ""}`}>
+                  <div className={`flex items-center gap-1.5 mt-1 ${isUser ? "justify-end" : "justify-start"}`}>
+                    {!isPending && (
+                      <button
+                        onClick={() => setPickerMessageId(showPicker ? null : msg.message_id)}
+                        className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-secondary/50 hover:bg-secondary border border-border/60 hover:border-border text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+                        title="Add reaction"
+                      >
+                        <SmilePlus size={12} />
+                      </button>
+                    )}
+                    <ReactionBubbles reactions={reactions} isUser={isUser} />
+                    {/* Character-is-reacting placeholder — shown on the user's most recent
+                        message while sendMessage is in flight (covers both reply generation
+                        and the emoji-pick LLM call). Disappears when the real reaction lands. */}
+                    {isUser && isSending && msgIdx === filteredMsgs.length - 1 && (
+                      <span
+                        className="inline-flex items-center gap-1.5 text-sm rounded-full px-3 py-1.5 animate-pulse text-white shadow-md"
+                        style={{ background: "linear-gradient(90deg, #f472b6 0%, #a78bfa 50%, #60a5fa 100%)" }}
+                        title="Character is reacting..."
+                      >
+                        <SmilePlus size={16} />
+                        <span className="w-1.5 h-1.5 rounded-full bg-white/90" />
+                      </span>
+                    )}
+                  </div>
+                  {showPicker && (
+                    <ReactionPicker
+                      onPick={(emoji) => store.toggleReaction(msg.message_id, emoji)}
+                      onClose={() => setPickerMessageId(null)}
+                      anchorRight={isUser}
+                    />
+                  )}
                 </div>
               </div>
               </React.Fragment>
@@ -753,6 +799,18 @@ export function ChatView({ store, onNavigateToCharacter }: Props) {
             </Button>
             {showSettingsPopover && (
               <div className="absolute bottom-full right-0 mb-2 w-80 bg-card border border-border rounded-xl shadow-2xl shadow-black/40 p-4 space-y-3 z-50 animate-in fade-in zoom-in-95 duration-150">
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground block mb-1.5">Thread mood</label>
+                  {moodReduction.length > 0 ? (
+                    <div className="flex items-center gap-1 text-base" title="Most recent reaction emojis on this thread — seeds the next reply's emotional weather.">
+                      {moodReduction.slice(0, 8).map((e, i) => (
+                        <span key={i} style={{ opacity: Math.max(0.35, 1 - i * 0.1) }}>{e}</span>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-xs text-muted-foreground/70 italic">No reactions yet — the character will start the loop.</div>
+                  )}
+                </div>
                 <div>
                   <label className="text-xs font-medium text-muted-foreground block mb-1.5">Tone</label>
                   <select

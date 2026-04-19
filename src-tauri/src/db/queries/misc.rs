@@ -63,6 +63,73 @@ pub fn remove_reaction(conn: &Connection, message_id: &str, emoji: &str, reactor
     Ok(())
 }
 
+/// Given a target message, return the set of message IDs that semantically
+/// belong to the same "reaction unit" — the target itself plus any preceding
+/// assistant messages in the same burst, plus the user message that triggered
+/// the burst. When a user reacts to a reply, they're judging the exchange,
+/// not the single bubble, so the reaction propagates to every message that
+/// contributed to it.
+///
+/// Looks in both `messages` and `group_messages`. Returns just the target
+/// if it can't be located.
+pub fn get_contributing_message_ids(conn: &Connection, target_id: &str) -> Vec<String> {
+    let mut result = vec![target_id.to_string()];
+
+    let from_messages: Option<(String, String)> = conn.query_row(
+        "SELECT thread_id, created_at FROM messages WHERE message_id = ?1",
+        params![target_id],
+        |r| Ok((r.get::<_, String>(0)?, r.get::<_, String>(1)?)),
+    ).ok();
+    let (table, thread_id, created_at) = match from_messages {
+        Some((t, c)) => ("messages", t, c),
+        None => {
+            let from_group: Option<(String, String)> = conn.query_row(
+                "SELECT thread_id, created_at FROM group_messages WHERE message_id = ?1",
+                params![target_id],
+                |r| Ok((r.get::<_, String>(0)?, r.get::<_, String>(1)?)),
+            ).ok();
+            match from_group {
+                Some((t, c)) => ("group_messages", t, c),
+                None => return result,
+            }
+        }
+    };
+
+    let sql = format!(
+        "SELECT message_id, role FROM {} WHERE thread_id = ?1 AND created_at < ?2 ORDER BY created_at DESC LIMIT 20",
+        table
+    );
+    if let Ok(mut stmt) = conn.prepare(&sql) {
+        if let Ok(rows) = stmt.query_map(params![thread_id, created_at], |r| {
+            Ok((r.get::<_, String>(0)?, r.get::<_, String>(1)?))
+        }) {
+            for row in rows.flatten() {
+                let (mid, role) = row;
+                result.push(mid);
+                // Stop at the first user message walking backward — that's
+                // the prompt the burst was answering.
+                if role == "user" { break; }
+            }
+        }
+    }
+    result
+}
+
+/// Get the thread_id for a message, checking both message tables.
+pub fn get_thread_id_for_message(conn: &Connection, message_id: &str) -> Option<String> {
+    conn.query_row(
+        "SELECT thread_id FROM messages WHERE message_id = ?1",
+        params![message_id],
+        |r| r.get::<_, String>(0),
+    ).ok().or_else(|| {
+        conn.query_row(
+            "SELECT thread_id FROM group_messages WHERE message_id = ?1",
+            params![message_id],
+            |r| r.get::<_, String>(0),
+        ).ok()
+    })
+}
+
 pub fn get_reactions_for_messages(conn: &Connection, message_ids: &[String]) -> Result<Vec<Reaction>, rusqlite::Error> {
     if message_ids.is_empty() {
         return Ok(Vec::new());

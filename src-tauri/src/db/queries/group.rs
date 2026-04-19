@@ -124,6 +124,34 @@ pub fn list_group_messages(conn: &Connection, thread_id: &str, limit: i64) -> Re
     Ok(msgs)
 }
 
+/// Mirror of `list_messages_within_budget` for group threads. Fetches as
+/// many recent group messages as fit in `token_budget`, with a minimum
+/// floor and safety cap.
+pub fn list_group_messages_within_budget(
+    conn: &Connection,
+    thread_id: &str,
+    token_budget: i64,
+    min_messages: i64,
+) -> Result<Vec<Message>, rusqlite::Error> {
+    const SAFETY_MAX: i64 = 500;
+    let mut stmt = conn.prepare(
+        &format!("SELECT {MSG_COLS} FROM group_messages WHERE thread_id = ?1 ORDER BY created_at DESC LIMIT ?2")
+    )?;
+    let mut rows = stmt.query(params![thread_id, SAFETY_MAX])?;
+    let mut out: Vec<Message> = Vec::new();
+    let mut accumulated: i64 = 0;
+    while let Some(row) = rows.next()? {
+        let msg = row_to_message(row)?;
+        accumulated += msg.tokens_estimate.max(0);
+        out.push(msg);
+        if (out.len() as i64) >= min_messages && accumulated >= token_budget {
+            break;
+        }
+    }
+    out.reverse();
+    Ok(out)
+}
+
 pub fn get_all_group_messages(conn: &Connection, thread_id: &str) -> Result<Vec<Message>, rusqlite::Error> {
     let mut stmt = conn.prepare(
         &format!("SELECT {MSG_COLS} FROM group_messages WHERE thread_id = ?1 ORDER BY created_at ASC")

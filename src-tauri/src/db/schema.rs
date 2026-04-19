@@ -669,5 +669,110 @@ pub fn run_migrations(conn: &Connection) -> Result<(), rusqlite::Error> {
         conn.execute("ALTER TABLE consultant_chats ADD COLUMN last_seen_message_id TEXT DEFAULT NULL", []).ok();
     }
 
+    // ── Reactions: rebuild without the FK to `messages` ─────────────────
+    //
+    // Original schema declared `message_id TEXT NOT NULL REFERENCES
+    // messages(message_id) ON DELETE CASCADE`. A past migration that
+    // renamed `messages` caused SQLite to auto-rewrite the FK to point at
+    // the renamed table (messages_old / messages_migrating). When that
+    // temp table was dropped, the FK became dangling — every INSERT into
+    // `reactions` then failed with `no such table: main.messages_old`.
+    //
+    // We also can't keep the FK anyway now that reactions can target
+    // either `messages` or `group_messages` — a foreign key only
+    // references one table. Cleanup when messages are deleted is handled
+    // in application code.
+    //
+    // Rebuild pattern follows CLAUDE.md rules: rename → create → copy →
+    // verify count → drop or rollback.
+    let reactions_sql: Option<String> = conn.query_row(
+        "SELECT sql FROM sqlite_master WHERE type='table' AND name='reactions'",
+        [], |r| r.get(0),
+    ).ok();
+    let reactions_needs_rebuild = reactions_sql
+        .as_deref()
+        .map_or(false, |s| s.contains("REFERENCES") || s.contains("messages_old") || s.contains("messages_migrating"));
+
+    if reactions_needs_rebuild {
+        let count_before: i64 = conn
+            .query_row("SELECT count(*) FROM reactions", [], |r| r.get(0))
+            .unwrap_or(0);
+        conn.execute_batch("PRAGMA foreign_keys=OFF;").ok();
+        let rebuild = conn.execute_batch("
+            ALTER TABLE reactions RENAME TO reactions_migrating;
+            CREATE TABLE reactions (
+                reaction_id TEXT PRIMARY KEY,
+                message_id TEXT NOT NULL,
+                emoji TEXT NOT NULL,
+                reactor TEXT NOT NULL CHECK(reactor IN ('user', 'assistant')),
+                created_at TEXT NOT NULL DEFAULT (datetime('now'))
+            );
+            INSERT INTO reactions (reaction_id, message_id, emoji, reactor, created_at)
+                SELECT reaction_id, message_id, emoji, reactor, created_at FROM reactions_migrating;
+        ");
+        match rebuild {
+            Ok(()) => {
+                let count_after: i64 = conn
+                    .query_row("SELECT count(*) FROM reactions", [], |r| r.get(0))
+                    .unwrap_or(0);
+                if count_after >= count_before {
+                    conn.execute_batch(
+                        "DROP TABLE reactions_migrating; CREATE INDEX IF NOT EXISTS idx_reactions_message ON reactions(message_id);"
+                    ).ok();
+                    log::warn!("reactions table rebuilt: {} rows preserved, FK removed", count_after);
+                } else {
+                    conn.execute_batch(
+                        "DROP TABLE reactions; ALTER TABLE reactions_migrating RENAME TO reactions;"
+                    ).ok();
+                    log::warn!(
+                        "reactions rebuild rolled back: count mismatch ({} vs {})",
+                        count_after, count_before
+                    );
+                }
+            }
+            Err(e) => {
+                conn.execute_batch(
+                    "ALTER TABLE reactions_migrating RENAME TO reactions;"
+                ).ok();
+                log::warn!("reactions rebuild failed, rolled back: {}", e);
+            }
+        }
+        conn.execute_batch("PRAGMA foreign_keys=ON;").ok();
+    }
+
+    // ── Mood reduction (per-thread reaction-emoji ring buffer) ─────────────
+    //
+    // Feeds back into the AGENCY section: each reaction pushes its emoji
+    // onto a JSON array (most-recent-first, capped) that seeds the next
+    // mood-note chain. Additive, nullable, safe on existing rows.
+    let has_mood_reduction: bool = conn.query_row(
+        "SELECT COUNT(*) FROM pragma_table_info('threads') WHERE name = 'mood_reduction'",
+        [], |r| r.get::<_, i64>(0),
+    ).unwrap_or(0) > 0;
+    if !has_mood_reduction {
+        conn.execute("ALTER TABLE threads ADD COLUMN mood_reduction TEXT NOT NULL DEFAULT '[]'", []).ok();
+    }
+
+    // ── Mood chain persisted per assistant message ────────────────────────
+    //
+    // The exact 5-emoji chain that was active when this message was
+    // generated. Enables the measurement loop: join reactions → messages →
+    // mood_chain to surface which chains produce positively-reacted replies.
+    // Nullable so existing messages pre-dating the feature stay valid.
+    let has_mood_chain_msgs: bool = conn.query_row(
+        "SELECT COUNT(*) FROM pragma_table_info('messages') WHERE name = 'mood_chain'",
+        [], |r| r.get::<_, i64>(0),
+    ).unwrap_or(0) > 0;
+    if !has_mood_chain_msgs {
+        conn.execute("ALTER TABLE messages ADD COLUMN mood_chain TEXT DEFAULT NULL", []).ok();
+    }
+    let has_mood_chain_gmsgs: bool = conn.query_row(
+        "SELECT COUNT(*) FROM pragma_table_info('group_messages') WHERE name = 'mood_chain'",
+        [], |r| r.get::<_, i64>(0),
+    ).unwrap_or(0) > 0;
+    if !has_mood_chain_gmsgs {
+        conn.execute("ALTER TABLE group_messages ADD COLUMN mood_chain TEXT DEFAULT NULL", []).ok();
+    }
+
     Ok(())
 }

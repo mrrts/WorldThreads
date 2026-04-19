@@ -1,5 +1,6 @@
 export { EmojiPicker, QUICK_EMOJIS } from "./EmojiPicker";
 export { ReactionBubbles } from "./ReactionBubbles";
+export { ReactionPicker } from "./ReactionPicker";
 export { NarrativeMessage } from "./NarrativeMessage";
 export { ChatErrorBar } from "./ChatErrorBar";
 export { AnimationReadyToast } from "./AnimationReadyToast";

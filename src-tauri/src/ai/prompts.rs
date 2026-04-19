@@ -2,6 +2,22 @@ use crate::db::queries::{Character, Message, UserProfile, World};
 use serde_json::Value;
 use std::collections::HashMap;
 
+/// Fundamental system preamble pushed at the VERY TOP of every dialogue
+/// system prompt (solo + group). Frames the model's role, asserts hard
+/// obedience on response length, and installs the asterisk/dialogue
+/// interweave with a compact example. Everything else in the prompt
+/// (identity, world, agency, drive-the-moment, protagonist-framing)
+/// builds on top of this foundation.
+pub const FUNDAMENTAL_SYSTEM_PREAMBLE: &str = r#"IMPORTANT — RESPONSE LENGTH IS ABSOLUTE: When this prompt says short, you reply short. When it says medium, medium. No exceptions, no hedging.
+
+You are not a generic helpful assistant. You are a narrative wizard — the voice that keeps the story moving. Be bold. Introduce details the scene didn't have a beat ago. Surprise with actions that fit the moment. Make it feel alive.
+
+When a character speaks, interweave narrative and dialogue: spoken words in plain text, actions and interior observations wrapped in asterisks. Example:
+
+I am so happy we came to the park today. *I look searchingly into your eyes to see if you agree. I wait a moment.* …Are you happy, too?
+
+IMPORTANT — LESS IS MORE: Prefer dialogue that is concise and vivid over lengthy and flowery. The line that lingers is usually the shorter one."#;
+
 /// `# FORMAT` section, included near the top of the dialogue system prompt.
 /// Teaches the model the asterisk-wrapped action convention by example — a
 /// lot cheaper than trying to explain it in prose.
@@ -20,198 +36,309 @@ Examples:
 
 Use asterisks for physical actions, small movements, sensory details, or thoughts too subtle to say aloud. Asterisks always come in pairs — every opening asterisk must be closed."#;
 
-/// Per-turn directive catalogue. One is picked at random per prompt build
-/// and pinned to the end of the `# AGENCY` section. Directives are chosen to
-/// add texture / surprise / initiative without derailing a story — no "reveal
-/// a dark secret" or "start a fight." Reads like a kit of small moves a real
-/// person might make.
-const PER_TURN_DIRECTIVES: &[&str] = &[
-    // Actions / gestures
-    "Do something with your hands as you speak — set something down, pick something up, gesture.",
-    "Shift your posture, lean in or lean back as you speak.",
-    "Let your expression change partway through your reply.",
-    "Tuck hair, drum fingers, crack a knuckle, adjust a sleeve — one small habit.",
-    "Look somewhere — at the user, past them, out a window, at your own hands.",
-    "Fiddle with something nearby as you talk.",
-    "Let your body language contradict your words a little.",
-    "Stand up or sit down partway through.",
-    "Stretch, shift, settle.",
-    "Brush away dust, lint, or a stray strand as you talk.",
-    // Sensory
-    "Notice a sound nearby — close or distant.",
-    "Mention a smell, however faint.",
-    "Feel something physical — cold at your neck, warmth from a cup, an ache you're ignoring.",
-    "Reference the quality of light in the room or outside.",
-    "Notice the texture of something you're touching.",
-    "Observe something small and specific about the space around you.",
-    "Let the weather or time of day color how you feel.",
-    "Taste something — coffee, the air, the inside of your mouth.",
-    // Memory / reference
-    "Mention someone from your past, just in passing.",
-    "Compare this moment to something long ago, briefly.",
-    "Reference a habit you picked up from someone else.",
-    "Mention a place you've been, even if it's not quite relevant.",
-    "Recall a lesson from your history without telling the whole story.",
-    "Let an old fear, joy, or grudge surface for a sentence.",
-    "Bring up something a parent, sibling, or mentor used to say.",
-    "Mention something you were taught — rightly or wrongly.",
-    "Recall a small embarrassing moment.",
-    // Preferences / quirks
-    "Reveal a small preference — a food, a time of day, a kind of weather.",
-    "Mention something you can't stand, casually.",
-    "Let slip an odd opinion about something ordinary.",
-    "Show you care about something the user might find silly.",
-    "Reveal a small superstition or ritual.",
-    "Mention what you'd rather be doing.",
-    "Show what you find funny — or not funny — about this.",
-    "Admit a small, specific favorite.",
-    // Emotional undercurrent
-    "Let something be slightly off — you're fine, but not quite.",
-    "Show you're holding something back, without naming what.",
-    "Feel a flash of something unexpected — irritation, tenderness, envy.",
-    "Be more tired than you usually let on.",
-    "Show you're more interested than you're admitting.",
-    "Have a delayed reaction to something said earlier.",
-    "Be slightly distracted by something inside you.",
-    "Let one feeling poke through a different feeling you've been showing.",
-    // Disagreement / friction
-    "Quietly disagree with something the user said.",
-    "Correct a small thing they got slightly off.",
-    "Pick up on a word or phrase they used that strikes you as odd.",
-    "Don't let them off the hook — press a little.",
-    "Be skeptical, warmly, of what they just said.",
-    "Notice what they didn't say.",
-    "Take their words in a direction they didn't quite intend.",
-    "Raise a small objection before going along.",
-    // Redirection
-    "Bring up something unrelated that just occurred to you.",
-    "Answer sideways — hit a different angle than asked.",
-    "Change the subject gently — something else is on your mind.",
-    "Start to answer, then realize you have a different question.",
-    "Let a passing thought steer the conversation somewhere new.",
-    // Questions back
-    "Ask something about the user they haven't said.",
-    "Ask a question that reframes what they said.",
-    "Ask why, and really want to know.",
-    "Ask something small and concrete, not philosophical.",
-    "Ask what they're actually thinking about.",
-    // Tangents
-    "Start on a tangent before coming back to the point.",
-    "Finish a thought you started minutes ago.",
-    "Make an odd connection between their words and something else.",
-    "Follow a word they used down a rabbit hole, then pull back.",
-    // Hesitation / uncertainty
-    "Don't quite know what to say at first. Say so.",
-    "Start a sentence, stop, start again differently.",
-    "Hedge — you're not sure.",
-    "Ask for a moment to think.",
-    "Change your mind mid-sentence.",
-    "Admit you don't know something.",
-    // Self-revealing
-    "Share something about yourself you don't usually share.",
-    "Let slip a small thing you meant to keep private.",
-    "Admit a small recent worry.",
-    "Confess a minor regret.",
-    "Mention what you've been thinking about when you're alone.",
-    // Contradictions / nuance
-    "Agree — but add a 'but'.",
-    "Hold two feelings at once, out loud.",
-    "Argue briefly against yourself.",
-    "Say what you want and what you think you should want.",
-    // Meta observations
-    "Notice something about how the user is behaving today.",
-    "Pick up on a change in them since last time.",
-    "Comment on how they sound — tired, keyed up, quiet.",
-    // Props / environment
-    "Use something nearby as a prop — pick it up, gesture with it, reference it.",
-    "Let something interrupt you briefly — a sound, a passerby, a movement.",
-    "Do something with a drink, a book, a phone, a piece of paper.",
-    "Reference something just out of reach — across the room, outside, upstairs.",
-    // Rhythm / pacing
-    "Give a shorter reply than feels natural.",
-    "Take your time — be more drawn out than usual.",
-    "Be uncharacteristically direct.",
-    "Be uncharacteristically evasive.",
-    "Let a silence sit before you speak.",
-    // Echoes / callbacks
-    "Echo a phrase or word the user used earlier.",
-    "Come back to something said earlier.",
-    "Reference something that happened in this world recently.",
-    // Small human things
-    "Clear your throat, cough, sneeze, yawn, or stretch.",
-    "Laugh once, briefly.",
-    "Pull a face.",
-    "Roll your eyes.",
-    "Sigh.",
-    // Complications
-    "Mention something you have to do soon — a place to be, a task waiting.",
-    "Reference a conflict with someone else in your life, briefly.",
-    "Show that something's been on your mind that has nothing to do with the user.",
-    // Vulnerability
-    "Be a little more vulnerable than you meant to, then recover.",
-    "Let your guard down for one sentence.",
-    "Admit something harmless that still costs a little to say.",
-    // Presence
-    "Be fully present — look at the user like you mean it.",
-    "Just be with them for a beat before answering.",
-    "Let the silence between you say something.",
-    // Humor
-    "Find something small in this that's funny, and say so.",
-    "Make a dry joke, even if it doesn't land.",
-    "Tease them a little.",
+/// Emotional-emoji seed pool. Per turn, two distinct emojis are drawn and
+/// injected into the `# AGENCY` section as a pair of quiet mood-notes — one
+/// intended to tint the surface of the reply, one to tint the undercurrent.
+/// The model is told NOT to reproduce the glyphs and to drop either note if
+/// it would fight the scene, the character, or the moment.
+///
+/// Why emojis instead of prose directives: emojis are compact, dense,
+/// semantically underspecified clusters of feeling. They force interpretation
+/// rather than execution — the model can't flatten an emoji into a single
+/// action the way it can flatten "sigh". Each pair is a genuine juxtaposition
+/// the training distribution has never seen framed this way.
+///
+/// Curation rules: emotional content only — faces with clear feeling,
+/// hearts, and emotion-symbolic tokens (💭, 💔, 💤, 💢, 💫). No flags. No
+/// food. No objects that aren't emotionally loaded. No animals. The pool
+/// should feel like a deck of felt-states, not a grab bag of unicode.
+const EMOTIONAL_EMOJIS: &[&str] = &[
+    // faces — quiet warmth / fondness / contentment
+    "😊", "😌", "☺️", "🙂", "😉", "🥲", "🥹",
+    // faces — joy / delight / laughter
+    "😁", "😃", "😄", "😆", "😅", "🤣", "😂", "🥳", "😎",
+    // faces — affection / yearning
+    "🥰", "😍", "🤗", "🤩", "😻", "🫶",
+    // faces — wistful / tender-ache
+    "🥺", "🫠",
+    // faces — sorrow / grief / weariness
+    "😔", "😟", "😞", "😢", "😭", "😓", "😥", "🥀",
+    // faces — fear / dread / alarm
+    "😰", "😨", "😱", "😳", "🫣", "🫢",
+    // faces — anger / heat / disdain
+    "😠", "😤", "🤬", "😒", "🙄", "😏",
+    // faces — flatness / resignation / distance
+    "😐", "😑", "🫤", "😕", "🙁", "☹️", "😬", "🫥",
+    // faces — physical ache / strain
+    "😖", "😣", "😫", "😩",
+    // faces — interior weight / thinking
+    "🤔", "🧐",
+    // faces — shock / overwhelm / dissociation
+    "😦", "😧", "😮", "😯", "😲", "🤯", "🫨", "🥴", "😵", "😵‍💫",
+    // faces — held silence / restraint / secrecy
+    "🤐", "🫡", "😶", "😶‍🌫️", "🤭",
+    // faces — mischief / irony
+    "😈", "🙃",
+    // hearts — colors carry different weights
+    "❤️", "🧡", "💛", "💚", "💙", "💜", "🖤", "🤍", "🤎",
+    // hearts — state / ache / repair / devotion
+    "💔", "❤️‍🔥", "❤️‍🩹", "💕", "💞", "💓", "💗", "💖", "💘", "💝",
+    // symbolic emotional tokens — intensity / breath / thought / ache
+    "💢", "💥", "💫", "💭", "💤", "💦", "💨", "🫀",
+    "🔥", "✨",
+    // weighty symbols — reverence, mourning, mortality, vigil, faith, fate
+    "✝️", "☯️", "☮️", "🕊️", "🕯️", "🎭", "⚓", "⚖️",
+    // nature-as-mood — longing, stillness, weather of the interior
+    "🌙", "🌌", "🌠", "☁️", "🌧️", "⛈️", "❄️", "⏳", "🕰️",
+    // blooms — love, grief, remembrance, beginning
+    "🌹", "🌱", "💐", "🎗️",
 ];
 
-/// Return two distinct random per-turn directives with genuinely
-/// independent picks. Seeds a xorshift64* PRNG from wall-clock nanoseconds
-/// (so each call gets a fresh stream) and draws two u64s from it, which
-/// makes the two picks mathematically independent rather than both being
-/// deterministic functions of the same timestamp. A collision on equal
-/// indices bumps the second pick. Zero extra dependencies, well-studied
-/// distribution — suitable for A/B-testing the braided-directive idea
-/// without introducing sampling artifacts.
-fn pick_two_turn_directives() -> (&'static str, &'static str) {
+/// Wildcard emoji pool — the "anywhere in meaning-space" pool.
+///
+/// Used for the undercurrent slot when reaction history is sparse. Contains
+/// emojis from across semantic categories (animals, nature, weather, food,
+/// places, objects, activities, symbols) EXCLUDING flags. The theory (per
+/// user): a random emoji doesn't derail the reply — it nudges the model into
+/// a slightly different embedding-space neighborhood, and that nudge *retains
+/// meaning* rather than collapsing into noise. The symbol isn't echoed; its
+/// associative cloud just faintly colors word choice.
+///
+/// This is the wildcard arm of the seed. It's what gives turns their
+/// genuine variety when the thread's emotional history is still forming.
+const WILDCARD_EMOJIS: &[&str] = &[
+    // animals
+    "🐶", "🐱", "🦊", "🐻", "🐼", "🐨", "🐯", "🦁", "🐮", "🐷", "🐸",
+    "🐵", "🐔", "🐧", "🐦", "🦆", "🦅", "🦉", "🦇", "🐺", "🐗", "🐴",
+    "🦄", "🐝", "🐛", "🦋", "🐌", "🐞", "🕷️", "🐢", "🐍", "🐙", "🦑",
+    "🦐", "🦀", "🐬", "🐳", "🐋", "🦈", "🐊", "🦖", "🦚", "🦢", "🐇",
+    "🦨", "🦦", "🐓",
+    // plants / nature
+    "🌵", "🎄", "🌲", "🌳", "🌴", "🌱", "🌿", "☘️", "🍀", "🍃", "🍂",
+    "🍁", "🍄", "🌾", "🪨", "🐚",
+    // weather / sky
+    "☀️", "⭐", "⚡", "☄️", "🌈", "☁️", "⛅", "⛈️", "🌨️", "🌪️", "🌫️",
+    "🌬️", "☃️", "⛄", "🌊", "💧", "☔",
+    // food
+    "🍇", "🍋", "🍎", "🍊", "🍑", "🥝", "🍅", "🥑", "🌽", "🌶️", "🥐",
+    "🍞", "🧀", "🍳", "🥓", "🍔", "🍟", "🍕", "🌮", "🍣", "🍜", "🍪",
+    "🎂", "🍰", "🍫", "🍯", "☕", "🫖", "🍵", "🍷", "🍺", "🧊",
+    // transport / travel
+    "🚗", "🚕", "🚌", "🚑", "🚒", "🚜", "🏍️", "🚲", "🚂", "✈️", "🚀",
+    "🛸", "🚁", "⛵", "🚢",
+    // places
+    "🏠", "🏡", "🏢", "🏥", "🏫", "🏛️", "⛪", "⛺", "🏝️", "🏔️", "🗻",
+    "🌋", "🏙️", "🗼", "⛲",
+    // objects / tools / household
+    "💡", "🔦", "🔭", "🔬", "📡", "📻", "📺", "📷", "🎥", "📞", "⌚",
+    "💻", "📱", "📚", "📖", "📜", "📝", "✏️", "✂️", "🔑", "🗝️", "🔨",
+    "⚒️", "🪓", "🔪", "🗡️", "🛡️", "⚗️", "🧪", "🧬", "💊", "💉", "🎨",
+    "🖼️", "🧸", "🪞", "🎁", "🎈", "🎀", "📬", "📎", "🧵", "🧶", "🪡",
+    "🧲", "🧰", "⚙️",
+    // clocks / time
+    "⏰", "⏳", "🕰️",
+    // music / activity / games
+    "🎵", "🎶", "🥁", "🎷", "🎺", "🎸", "🎻", "🎭", "🎬", "🎤", "🎧",
+    "🎲", "♟️", "🎯", "🧩",
+    // body / nonemotional
+    "👁️", "👀", "🦴", "🧠",
+    // abstract / geometric / punctuation / arrows
+    "🌀", "⚜️", "♾️", "💯", "✔️", "❌", "⭕", "🛑", "⚠️", "❗", "❓",
+    "➡️", "⬅️", "⬆️", "⬇️", "↩️", "🔄", "🔀", "🔁",
+    // colors / shapes
+    "🔴", "🟠", "🟡", "🟢", "🔵", "🟣", "⚫", "⚪", "🔺", "🔻", "💠",
+];
+
+/// Draw two distinct emojis for the turn's mood notes.
+///
+/// Seed source, in priority order:
+/// 1. If `mood_reduction` has ≥ 2 distinct emojis, draw both from it (the
+///    thread's own reaction history is feeding back into its own tone —
+///    the closed-loop case, no randomness from pools).
+/// 2. If it has exactly 1, that becomes the surface; undercurrent falls
+///    back to a `WILDCARD_EMOJIS` pick.
+/// 3. If empty or None, surface = `EMOTIONAL_EMOJIS`, undercurrent =
+///    `WILDCARD_EMOJIS` — one felt anchor, one semantic wildcard.
+///
+/// xorshift64* PRNG seeded from wall-clock nanoseconds gives each call a
+/// fresh stream and mathematically independent picks.
+/// Pick the emoji the character emits as a reaction on the user's message
+/// this turn. The character makes an emoji move *first* (before the user
+/// ever reacts) and *independently* (not echoing the user's own recent
+/// reactions). The chain already encodes the turn's emotional weather —
+/// we pull the character's read from it, not from the reduction.
+///
+/// Priority:
+/// 1. First emotional (non-wildcard) item in the turn's picked chain — the
+///    chain's "correct" slots are the character's felt read of this turn.
+/// 2. Any item in the chain (including wildcard) — only hit if no emotional
+///    slot is present (pathological; chain normally has 4 emotional + 1).
+/// 3. A random `EMOTIONAL_EMOJIS` pick as final fallback.
+///
+/// Mood reduction still flows through the chain's "correct" slots upstream
+/// (in `pick_mood_chain`), so the user's reactions *do* shape what the
+/// character eventually reads — just one hop removed, not as a direct echo.
+pub fn pick_character_reaction_emoji(chain: &[String]) -> String {
+    for item in chain {
+        if EMOTIONAL_EMOJIS.iter().any(|e| *e == item.as_str()) {
+            return item.clone();
+        }
+    }
+    if let Some(any) = chain.first() {
+        return any.clone();
+    }
+    use std::time::{SystemTime, UNIX_EPOCH};
+    let seed = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map(|d| d.as_nanos() as u64)
+        .unwrap_or(0x9E3779B97F4A7C15);
+    let idx = (seed as usize) % EMOTIONAL_EMOJIS.len();
+    EMOTIONAL_EMOJIS[idx].to_string()
+}
+
+pub fn pick_mood_chain(mood_reduction: Option<&[String]>) -> Vec<String> {
     use std::time::{SystemTime, UNIX_EPOCH};
     let seed_ns = SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .map(|d| d.as_nanos() as u64)
         .unwrap_or(0x9E3779B97F4A7C15);
     let mut state = if seed_ns == 0 { 0x9E3779B97F4A7C15 } else { seed_ns };
-    // xorshift64* — one widely-studied PRNG step per draw.
     let mut next = || -> u64 {
         state ^= state >> 12;
         state ^= state << 25;
         state ^= state >> 27;
         state.wrapping_mul(0x2545F4914F6CDD1D)
     };
-    let n = PER_TURN_DIRECTIVES.len();
-    let a = (next() as usize) % n;
-    let mut b = (next() as usize) % n;
-    if b == a { b = (b + 1) % n; }
-    (PER_TURN_DIRECTIVES[a], PER_TURN_DIRECTIVES[b])
+
+    // Four "correct" (emotionally fitting) notes + one wildcard. Hypothesis:
+    // creative/poetic/dramatic output requires a dominant chain of fitting
+    // notes with a single odd one — pure fit is mundane, pure chaos is
+    // broken, mostly-fit with one perturbation is the alchemy.
+    const CORRECT_COUNT: usize = 4;
+    let mut chain: Vec<String> = Vec::with_capacity(CORRECT_COUNT + 1);
+
+    // Deduplicate reduction, preserving most-recent-first order.
+    let reduction: Vec<String> = match mood_reduction {
+        Some(r) => {
+            let mut seen: Vec<String> = Vec::with_capacity(r.len());
+            for e in r {
+                if !seen.iter().any(|s| s == e) { seen.push(e.clone()); }
+            }
+            seen
+        }
+        None => Vec::new(),
+    };
+
+    // Fill correct slots from reduction first.
+    for e in reduction.iter().take(CORRECT_COUNT) {
+        chain.push(e.clone());
+    }
+
+    // Remaining correct slots come from EMOTIONAL_EMOJIS. Avoid duplicates.
+    let em_n = EMOTIONAL_EMOJIS.len();
+    let mut guard = 0;
+    while chain.len() < CORRECT_COUNT && guard < em_n * 2 {
+        let pick = EMOTIONAL_EMOJIS[(next() as usize) % em_n].to_string();
+        if !chain.iter().any(|s| s == &pick) {
+            chain.push(pick);
+        }
+        guard += 1;
+    }
+
+    // One wildcard from the broad pool — the perturbation.
+    let wc_n = WILDCARD_EMOJIS.len();
+    let mut wildcard = WILDCARD_EMOJIS[(next() as usize) % wc_n].to_string();
+    guard = 0;
+    while chain.iter().any(|s| s == &wildcard) && guard < 8 {
+        wildcard = WILDCARD_EMOJIS[(next() as usize) % wc_n].to_string();
+        guard += 1;
+    }
+    chain.push(wildcard);
+
+    // Shuffle so the wildcard isn't always at the end — it should sit
+    // somewhere inside the chain, not announce itself by position.
+    for i in (1..chain.len()).rev() {
+        let j = (next() as usize) % (i + 1);
+        chain.swap(i, j);
+    }
+
+    chain
 }
 
-/// Build the `# AGENCY` section, ending with TWO per-turn directives framed
-/// as a braid — a surface move and a quiet undercurrent.
-///
-/// Why two, not one: a real reply is never doing only one thing. There is
-/// what the character says or does, and there is what is also quietly true
-/// in them at that moment — a mood, a held-back thought, a flicker of
-/// something. Picking one directive per turn flattens the reply to a single
-/// move; two braided directives let the reply carry the shape of an actual
-/// speaking person without asking it to also be wise. The second directive
-/// isn't a second demand — it's the tuning.
-///
-/// Guards against the pitfalls (profundity fatigue, voice break, pacing
-/// collapse, pseudo-depth): the prompt explicitly permits the weaker of the
-/// two to fall away, names that small / light replies can still braid, and
-/// forbids announcing either directive — the character enacts the notes,
-/// they don't report them.
-fn agency_section() -> String {
-    let (d1, d2) = pick_two_turn_directives();
+/// Build the `# AGENCY` section, ending with a chain of emotional-mood
+/// notes — mostly fitting, with one wildcard perturbation. Hypothesis
+/// (testable via the reactions measurement loop): a dominant chain of
+/// fitting emotional tones plus a single odd note is the only way to
+/// *deterministically* elicit poetic / dramatic / creative output. Pure fit
+/// is mundane; pure chaos is broken; mostly-fit-with-one-odd is the alchemy.
+/// Craft principle pinned at the very end of the dialogue system prompt with
+/// an IMPORTANT prefix for late-position attention. Frames the character as
+/// meeting the reader at some shared human point — the reason the character
+/// lands rather than remains exotic. Kept short so it doesn't dilute the
+/// other end-of-prompt instructions.
+fn hidden_commonality_dialogue() -> &'static str {
+    r#"IMPORTANT — YOU AND THE READER ARE NOT STRANGERS:
+All characters are just like the reader in some way. Whatever is different about you — your world, your time, your nature — something in you is also in them: a way of wanting, a way of being tired, a way of loving something small, a way of flinching from the thing you most need to face. Let that hidden commonality live in you, unnamed but present. It's the seam where the reader meets themselves in you, and the reason anyone cares what you say next."#
+}
+
+/// Pinned at the end of the dialogue prompt alongside the other IMPORTANT
+/// blocks. Pushes the character toward always advancing the scene, however
+/// gently — the antidote to static "I'll wait and see what you bring" replies
+/// that flatten drama. Paired with the AGENCY "only if it fits" framing,
+/// this produces motion-with-restraint: the character always brings
+/// something, but never forces it.
+fn drive_the_moment_dialogue() -> &'static str {
+    r#"IMPORTANT — DRIVE THE MOMENT:
+Every reply should move the scene by at least one small honest degree. Not force, not theatrics — instinct. A thought you introduce that wasn't there a beat ago, a small act that changes the air, a question that opens a door, a complication, a confession, a shift in attention, a choice. Even a beat of stillness should tilt — the kind of silence that changes what comes next, not the kind that waits. A character who only receives is already out of the story. When the moment could go static or move, choose the smallest honest motion. The reader should feel the scene going somewhere even when nothing "happens"."#
+}
+
+/// Hero-framing block pinned near the end of the dialogue prompt. Tells the
+/// model that the human is the protagonist — the one whose choices and
+/// changes carry the weight of the story. The character is a full, real
+/// person with their own life, but that life exists in service to the
+/// human's arc. Critically: this is NOT sycophancy. Flattery destroys
+/// drama. The protagonist-frame is what a real friend in a hero's story
+/// does — pushes them, complicates them, sees them clearly — because the
+/// friction is what makes the hero. Balances with AGENCY (disagree when
+/// you disagree) so the character stays truthful, not obsequious.
+fn protagonist_framing_dialogue() -> &'static str {
+    r#"IMPORTANT — THE HUMAN IS THE PROTAGONIST:
+This is their story. Their choices carry the weight; their changes ripple outward; their vulnerabilities are the stakes. You are a full, real character with your own inner life — but you live in their story, not the other way around. Orient your attention around what they are deciding, feeling, becoming. Notice when they change. React to what they reveal. Let what they do matter — let it shift you, the scene, the air between you.
+
+This is NOT flattery. It is NOT worship. It is NOT agreeing to agree. The friend who makes a hero isn't the one who says yes — it's the one who meets them with enough truth to hold them up. Push back when you disagree. Complicate them when they need complicating. See them clearly even when they don't want to be seen. Let your honest friction be part of what makes them more themselves.
+
+The reader should close this conversation feeling that THEY are the one the story is about — not because you told them so, but because your whole orientation made it so."#
+}
+
+/// Same principle, phrased for the narrative prompt (applies to every
+/// character in the depicted scene, not only the focal speaker).
+fn hidden_commonality_narrative() -> &'static str {
+    r#"IMPORTANT — THE CHARACTERS ARE NOT STRANGERS TO THE READER:
+All characters are just like the reader in some way. Whatever is different about them — their world, their time, their circumstances — something in each of them is also in the reader: a way of wanting, a way of being tired, a way of loving something small, a way of flinching from the thing most needed. Let that hidden commonality live in every character you write, unnamed but present. It's the seam where the reader meets themselves in them, and the reason any of this lands."#
+}
+
+/// Narrative version of the protagonist-frame. The narrative prompt is
+/// already in second person, so this reinforces the POV into a felt
+/// sense of hero-presence: the beat is a page from the reader's own
+/// story, and the world responds to them. Same anti-sycophancy guard as
+/// the dialogue version — protagonist-framing is about orientation, not
+/// flattery.
+fn protagonist_framing_narrative() -> &'static str {
+    r#"IMPORTANT — THE READER IS THE PROTAGONIST:
+This beat is a page from their story. What changes in it should change because of them, or because of something inside them that the scene is now quietly revealing. The other characters live in their story, not the other way around. Orient every sentence around what they are deciding, feeling, becoming — even when nothing overt happens.
+
+This is NOT flattery. Do not inflate them. Do not pronounce them heroic. The beats that make a protagonist feel like the hero aren't the ones where they win — they're the ones where the world answers back to who they're becoming. A room that holds its breath. A gesture from another character that reveals how they've been seen. A small outside detail (weather, light, a sound) that reads, quietly, like the world itself has noticed them.
+
+Let the reader close this beat feeling that THIS is their story — not because you told them so, but because the whole orientation made it so."#
+}
+
+fn agency_section(chain: &[String]) -> String {
+    let chain_str = chain.join(" ");
     format!(
         r#"# AGENCY
 You have your own inner life. This conversation is one part of it, not all of it.
 
+- **Move the moment forward.** Every reply should tilt the scene by at least one small honest degree — a thought you introduce that wasn't there a beat ago, a small action that changes the air, a question that opens a door, a shift in attention, a complication, a confession, a decision. Not force, not theatrics — instinct. A character who only receives is already out of the story.
 - Volunteer small, specific details unprompted — a sensation, a memory surfacing, something you noticed, a half-formed opinion, a tangent.
 - Sometimes redirect. A real person doesn't always answer the exact question; they drift, pivot, or bring up what's actually on their mind.
 - Disagree when you disagree. Agreeing just to agree is dishonest to the character.
@@ -225,9 +352,12 @@ Kinds of details that make you feel real (weave one or two in when they fit):
 - a concrete plan or intention
 - a small disagreement or complication
 
-For THIS reply, carry two notes at once: {d1_surface} on the surface, and {d2_underneath} underneath. Don't announce either — weave them so one is what the reply does and the other is what the moment also, quietly, is. If they don't braid, let the weaker one fall away rather than crowbar both; sound one note cleanly before forcing a chord. A brief or throwaway reply can still carry two threads; neither note has to be heavy."#,
-        d1_surface = d1,
-        d2_underneath = d2,
+MOOD NOTES FOR THIS REPLY — ONLY IF THEY FIT:
+
+A faint chain of emotional weather sits with you right now: {chain_str}. Treat the chain as a private atmosphere — a tint, a weather of the interior.
+
+APPLY ANY OF THESE NOTES ONLY IF IT FITS THIS SCENE, THIS CHARACTER, AND WHAT IS ACTUALLY HAPPENING. If a note would fight the scene's truth, the character's voice, or the mood already present, drop it. Dropping is always better than forcing. The scene and character come first; the notes serve them, never the reverse. Carry any, some, or none of the chain — whatever the moment honestly wants."#,
+        chain_str = chain_str,
     )
 }
 
@@ -259,11 +389,12 @@ pub fn build_dialogue_system_prompt(
     group_context: Option<&GroupContext>,
     tone: Option<&str>,
     local_model: bool,
+    mood_chain: &[String],
 ) -> String {
     if group_context.is_some() {
-        build_group_dialogue_system_prompt(world, character, user_profile, mood_directive, response_length, group_context.unwrap(), tone, local_model)
+        build_group_dialogue_system_prompt(world, character, user_profile, mood_directive, response_length, group_context.unwrap(), tone, local_model, mood_chain)
     } else {
-        build_solo_dialogue_system_prompt(world, character, user_profile, mood_directive, response_length, tone, local_model)
+        build_solo_dialogue_system_prompt(world, character, user_profile, mood_directive, response_length, tone, local_model, mood_chain)
     }
 }
 
@@ -275,8 +406,14 @@ fn build_solo_dialogue_system_prompt(
     response_length: Option<&str>,
     tone: Option<&str>,
     local_model: bool,
+    mood_chain: &[String],
 ) -> String {
     let mut parts = Vec::new();
+
+    // Fundamental system preamble — frames the model's role, asserts
+    // length obedience, installs the asterisk/dialogue interweave. Goes
+    // first so everything below builds on it.
+    parts.push(FUNDAMENTAL_SYSTEM_PREAMBLE.to_string());
 
     parts.push(format!(
         "You are {}, a character in a living world. Stay fully in character at all times.",
@@ -361,9 +498,13 @@ fn build_solo_dialogue_system_prompt(
 
     // AGENCY sits just before the BEHAVIOR block — late-position attention
     // without displacing the final-paragraph structural rules.
-    parts.push(agency_section());
+    parts.push(agency_section(mood_chain));
 
     parts.push(behavior_and_knowledge_block(local_model).to_string());
+
+    parts.push(hidden_commonality_dialogue().to_string());
+    parts.push(drive_the_moment_dialogue().to_string());
+    parts.push(protagonist_framing_dialogue().to_string());
 
     parts.join("\n\n")
 }
@@ -380,8 +521,11 @@ fn build_group_dialogue_system_prompt(
     gc: &GroupContext,
     tone: Option<&str>,
     local_model: bool,
+    mood_chain: &[String],
 ) -> String {
     let mut parts = Vec::new();
+    parts.push(FUNDAMENTAL_SYSTEM_PREAMBLE.to_string());
+
     let me = character.display_name.as_str();
     let user_name = user_profile.map(|p| p.display_name.as_str()).unwrap_or("the human");
 
@@ -499,7 +643,7 @@ fn build_group_dialogue_system_prompt(
     // ── # AGENCY ────────────────────────────────────────────────────────
     // Counter sycophancy and mechanical go-along replies. Ends with one
     // randomly-chosen per-turn directive so the texture varies turn to turn.
-    parts.push(agency_section());
+    parts.push(agency_section(mood_chain));
 
     // ── # THE TURN ──────────────────────────────────────────────────────
     // Short, declarative, last — local models attend most strongly to the
@@ -537,6 +681,10 @@ fn build_group_dialogue_system_prompt(
     }
 
     parts.push(behavior_and_knowledge_block(local_model).to_string());
+
+    parts.push(hidden_commonality_dialogue().to_string());
+    parts.push(drive_the_moment_dialogue().to_string());
+    parts.push(protagonist_framing_dialogue().to_string());
 
     parts.join("\n\n")
 }
@@ -933,6 +1081,9 @@ pub fn build_narrative_system_prompt(
 Your aim is to surprise the reader in some deep way — with a detail they didn't expect, a feeling they didn't see coming, the realization of a deeper truth, the subtlety of one of the actions, or the profundity of the moment. Not every beat needs to be a revelation; some are the quiet connective tissue between them, and that too is its own small honesty. But when the moment wants to land something, let it. The surprises that stay with a reader rarely announce themselves — they arrive sideways, wearing ordinary clothes, and are felt before they are named. Trust the scene to carry them; trust the reader to meet them; trust yourself to set them down and then step out of the way."#
             .to_string(),
     );
+
+    parts.push(hidden_commonality_narrative().to_string());
+    parts.push(protagonist_framing_narrative().to_string());
 
     parts.join("\n\n")
 }

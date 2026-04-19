@@ -46,6 +46,12 @@ pub struct Message {
     /// explicit in the history rendered to the model.
     #[serde(default)]
     pub address_to: Option<String>,
+    /// The emoji chain that seeded this reply's AGENCY section, stored as a
+    /// JSON array string. Only populated on assistant-role messages; NULL
+    /// for user messages and for anything pre-dating the feature. Feeds the
+    /// measurement loop (which chains correlate with positive reactions).
+    #[serde(default)]
+    pub mood_chain: Option<String>,
 }
 
 pub fn update_message_content(conn: &Connection, message_id: &str, content: &str, tokens_estimate: i64) -> Result<(), rusqlite::Error> {
@@ -77,8 +83,8 @@ pub fn update_group_message_content(conn: &Connection, message_id: &str, content
 
 pub fn create_message(conn: &Connection, m: &Message) -> Result<(), rusqlite::Error> {
     conn.execute(
-        "INSERT INTO messages (message_id, thread_id, role, content, tokens_estimate, sender_character_id, created_at, world_day, world_time, address_to) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)",
-        params![m.message_id, m.thread_id, m.role, m.content, m.tokens_estimate, m.sender_character_id, m.created_at, m.world_day, m.world_time, m.address_to],
+        "INSERT INTO messages (message_id, thread_id, role, content, tokens_estimate, sender_character_id, created_at, world_day, world_time, address_to, mood_chain) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)",
+        params![m.message_id, m.thread_id, m.role, m.content, m.tokens_estimate, m.sender_character_id, m.created_at, m.world_day, m.world_time, m.address_to, m.mood_chain],
     )?;
     // Don't index illustration/video content in FTS — they contain binary data (base64)
     if m.role != "illustration" && m.role != "video" {
@@ -90,6 +96,40 @@ pub fn create_message(conn: &Connection, m: &Message) -> Result<(), rusqlite::Er
     Ok(())
 }
 
+/// Read the per-thread mood-reduction ring buffer (most-recent-first JSON
+/// array of reaction emojis). Returns an empty Vec if the column is NULL,
+/// unparseable, or the thread doesn't exist.
+pub fn get_thread_mood_reduction(conn: &Connection, thread_id: &str) -> Vec<String> {
+    let raw: Option<String> = conn.query_row(
+        "SELECT mood_reduction FROM threads WHERE thread_id = ?1",
+        params![thread_id],
+        |r| r.get(0),
+    ).ok();
+    match raw {
+        Some(s) => serde_json::from_str::<Vec<String>>(&s).unwrap_or_default(),
+        None => Vec::new(),
+    }
+}
+
+/// Push an emoji onto the thread's mood reduction. Most-recent-first,
+/// deduped within the buffer, capped at `MAX_MOOD_REDUCTION` entries.
+pub fn push_mood_reduction(conn: &Connection, thread_id: &str, emoji: &str) -> Result<(), rusqlite::Error> {
+    const MAX_MOOD_REDUCTION: usize = 8;
+    let mut current = get_thread_mood_reduction(conn, thread_id);
+    // Remove any existing occurrence — emoji migrates to the front.
+    current.retain(|e| e != emoji);
+    current.insert(0, emoji.to_string());
+    if current.len() > MAX_MOOD_REDUCTION {
+        current.truncate(MAX_MOOD_REDUCTION);
+    }
+    let json = serde_json::to_string(&current).unwrap_or_else(|_| "[]".to_string());
+    conn.execute(
+        "UPDATE threads SET mood_reduction = ?2 WHERE thread_id = ?1",
+        params![thread_id, json],
+    )?;
+    Ok(())
+}
+
 pub fn list_messages(conn: &Connection, thread_id: &str, limit: i64) -> Result<Vec<Message>, rusqlite::Error> {
     let mut stmt = conn.prepare(
         &format!("SELECT {MSG_COLS} FROM messages WHERE thread_id = ?1 ORDER BY created_at DESC LIMIT ?2")
@@ -98,6 +138,37 @@ pub fn list_messages(conn: &Connection, thread_id: &str, limit: i64) -> Result<V
     let mut msgs: Vec<Message> = rows.collect::<Result<Vec<_>, _>>()?;
     msgs.reverse();
     Ok(msgs)
+}
+
+/// Fetch as many recent messages as will fit in `token_budget` based on
+/// their stored `tokens_estimate`. Guarantees at least `min_messages` even
+/// if the budget would cut shorter — small threads shouldn't lose context
+/// just because of stingy accounting. Caps at `SAFETY_MAX` to avoid
+/// degenerate cases where old messages have zero token estimates.
+/// Returns chronologically (oldest first) like `list_messages`.
+pub fn list_messages_within_budget(
+    conn: &Connection,
+    thread_id: &str,
+    token_budget: i64,
+    min_messages: i64,
+) -> Result<Vec<Message>, rusqlite::Error> {
+    const SAFETY_MAX: i64 = 500;
+    let mut stmt = conn.prepare(
+        &format!("SELECT {MSG_COLS} FROM messages WHERE thread_id = ?1 ORDER BY created_at DESC LIMIT ?2")
+    )?;
+    let mut rows = stmt.query(params![thread_id, SAFETY_MAX])?;
+    let mut out: Vec<Message> = Vec::new();
+    let mut accumulated: i64 = 0;
+    while let Some(row) = rows.next()? {
+        let msg = row_to_message(row)?;
+        accumulated += msg.tokens_estimate.max(0);
+        out.push(msg);
+        if (out.len() as i64) >= min_messages && accumulated >= token_budget {
+            break;
+        }
+    }
+    out.reverse();
+    Ok(out)
 }
 
 pub fn get_all_messages(conn: &Connection, thread_id: &str) -> Result<Vec<Message>, rusqlite::Error> {
@@ -162,10 +233,11 @@ pub fn row_to_message(row: &rusqlite::Row) -> Result<Message, rusqlite::Error> {
         world_day: row.get(7).ok(),
         world_time: row.get(8).ok(),
         address_to: row.get(9).ok(),
+        mood_chain: row.get(10).ok(),
     })
 }
 
-pub const MSG_COLS: &str = "message_id, thread_id, role, content, tokens_estimate, sender_character_id, created_at, world_day, world_time, address_to";
+pub const MSG_COLS: &str = "message_id, thread_id, role, content, tokens_estimate, sender_character_id, created_at, world_day, world_time, address_to, mood_chain";
 
 
 // ─── FTS Search ─────────────────────────────────────────────────────────────

@@ -1,5 +1,5 @@
 use crate::ai::orchestrator;
-use crate::ai::prompts::{GroupContext, OtherCharacter};
+use crate::ai::prompts::{self, GroupContext, OtherCharacter};
 use crate::commands::portrait_cmds::PortraitsDir;
 use crate::db::queries::*;
 use crate::db::Database;
@@ -190,6 +190,7 @@ pub fn save_group_user_message_cmd(
         created_at: Utc::now().to_rfc3339(),
         world_day: wd, world_time: wt,
             address_to: None,
+        mood_chain: None,
         };
     create_group_message(&conn, &msg).map_err(|e| e.to_string())?;
     Ok(msg)
@@ -233,6 +234,7 @@ pub async fn send_group_message_cmd(
             created_at: Utc::now().to_rfc3339(),
             world_day: wd, world_time: wt.clone(),
             address_to: None,
+        mood_chain: None,
         };
         create_group_message(&conn, &user_msg).map_err(|e| e.to_string())?;
 
@@ -245,6 +247,34 @@ pub async fn send_group_message_cmd(
     let character_names: HashMap<String, String> = characters.iter()
         .map(|c| (c.character_id.clone(), c.display_name.clone()))
         .collect();
+
+    // Kick off the character-reaction emoji pick NOW, in parallel with the
+    // entire character-response loop below. The pick only needs user
+    // content + mood_reduction + recent-scene context, none of which
+    // depend on replies. We await it at the end — saves N × reaction-
+    // latency on group turns.
+    let (reduction_snapshot, reaction_context) = {
+        let conn = db.conn.lock().map_err(|e| e.to_string())?;
+        let r = get_thread_mood_reduction(&conn, &gc.thread_id);
+        // Last 4 messages before the user's brand-new one.
+        let all = list_group_messages(&conn, &gc.thread_id, 5).unwrap_or_default();
+        let ctx: Vec<Message> = all.into_iter()
+            .filter(|m| m.message_id != user_msg.message_id)
+            .collect();
+        (r, ctx)
+    };
+    let reaction_base = model_config.chat_api_base();
+    let reaction_model = model_config.dialogue_model.clone();
+    let reaction_content = content.clone();
+    let reaction_reduction = reduction_snapshot.clone();
+    let reaction_api_key = api_key.clone();
+    let reaction_ctx = reaction_context.clone();
+    let reaction_handle = tokio::spawn(async move {
+        orchestrator::pick_character_reaction_via_llm(
+            &reaction_base, &reaction_api_key, &reaction_model,
+            &reaction_content, &reaction_reduction, &reaction_ctx,
+        ).await
+    });
 
     // Phase 2: Each character responds in order
     let mut responses: Vec<Message> = Vec::new();
@@ -274,7 +304,7 @@ pub async fn send_group_message_cmd(
         // Re-fetch recent messages (includes previous characters' responses)
         let recent_msgs = {
             let conn = db.conn.lock().map_err(|e| e.to_string())?;
-            list_group_messages(&conn, &gc.thread_id, 30).map_err(|e| e.to_string())?
+            list_group_messages_within_budget(&conn, &gc.thread_id, model_config.safe_history_budget() as i64, 30).map_err(|e| e.to_string())?
         };
 
         // Get thread summary for retrieval context
@@ -309,9 +339,17 @@ pub async fn send_group_message_cmd(
             world_day: None,
             world_time: None,
             address_to: None,
+        mood_chain: None,
         });
 
-        // Generate response
+        // Generate response — load mood_reduction + pick chain for AGENCY.
+        let mood_reduction = {
+            let conn = db.conn.lock().map_err(|e| e.to_string())?;
+            get_thread_mood_reduction(&conn, &gc.thread_id)
+        };
+        let mood_chain = prompts::pick_mood_chain(Some(&mood_reduction));
+        let mood_chain_json = serde_json::to_string(&mood_chain).ok();
+
         let (raw_reply, usage) = orchestrator::run_dialogue_with_base(
             &model_config.chat_api_base(), &api_key, &model_config.dialogue_model,
             &world, character, &dialogue_msgs, &retrieved,
@@ -322,6 +360,7 @@ pub async fn send_group_message_cmd(
             Some(&character_names),
             narration_tone.as_deref(),
             model_config.is_local(),
+            &mood_chain,
         ).await?;
 
         // Strip own prefix and truncate any other-character dialogue
@@ -348,6 +387,7 @@ pub async fn send_group_message_cmd(
             created_at: Utc::now().to_rfc3339(),
             world_day: wd, world_time: wt.clone(),
             address_to: Some("user".to_string()),
+            mood_chain: mood_chain_json.clone(),
         };
         {
             let conn = db.conn.lock().map_err(|e| e.to_string())?;
@@ -356,6 +396,20 @@ pub async fn send_group_message_cmd(
 
         responses.push(response_msg);
     }
+
+    // Await the parallel reaction pick (launched before the character loop).
+    let reaction_emoji = match reaction_handle.await {
+        Ok(Ok(e)) => e,
+        _ => {
+            let chain = prompts::pick_mood_chain(Some(&reduction_snapshot));
+            prompts::pick_character_reaction_emoji(&chain)
+        }
+    };
+    let _ = chat_cmds::emit_character_reaction(
+        &db,
+        &user_msg.message_id,
+        &reaction_emoji,
+    );
 
     Ok(SendGroupMessageResult {
         user_message: user_msg,
@@ -408,7 +462,7 @@ pub async fn prompt_group_character_cmd(
 
     let recent_msgs = {
         let conn = db.conn.lock().map_err(|e| e.to_string())?;
-        list_group_messages(&conn, &gc.thread_id, 30).map_err(|e| e.to_string())?
+        list_group_messages_within_budget(&conn, &gc.thread_id, model_config.safe_history_budget() as i64, 30).map_err(|e| e.to_string())?
     };
 
     let mut retrieved: Vec<String> = Vec::new();
@@ -443,6 +497,7 @@ pub async fn prompt_group_character_cmd(
         created_at: Utc::now().to_rfc3339(),
             world_day: None, world_time: None,
             address_to: None,
+        mood_chain: None,
         });
 
     let (response_length, narration_tone) = {
@@ -451,6 +506,13 @@ pub async fn prompt_group_character_cmd(
         let nt = get_setting(&conn, &format!("narration_tone.{}", gc.group_chat_id)).ok().flatten();
         (rl, nt)
     };
+
+    let mood_reduction2 = {
+        let conn = db.conn.lock().map_err(|e| e.to_string())?;
+        get_thread_mood_reduction(&conn, &gc.thread_id)
+    };
+    let mood_chain2 = prompts::pick_mood_chain(Some(&mood_reduction2));
+    let mood_chain_json2 = serde_json::to_string(&mood_chain2).ok();
 
     let (raw_reply, usage) = orchestrator::run_dialogue_with_base(
         &model_config.chat_api_base(), &api_key, &model_config.dialogue_model,
@@ -462,6 +524,7 @@ pub async fn prompt_group_character_cmd(
         Some(&character_names),
         narration_tone.as_deref(),
         model_config.is_local(),
+        &mood_chain2,
     ).await?;
 
     let other_names: Vec<&str> = characters.iter()
@@ -504,6 +567,7 @@ pub async fn prompt_group_character_cmd(
         created_at: Utc::now().to_rfc3339(),
         world_day: wd_p, world_time: wt_p,
         address_to: canonical_address,
+        mood_chain: mood_chain_json2.clone(),
     };
     {
         let conn = db.conn.lock().map_err(|e| e.to_string())?;
@@ -530,7 +594,7 @@ pub async fn generate_group_illustration_cmd(
         let gc = get_group_chat(&conn, &group_chat_id).map_err(|e| e.to_string())?;
         let world = get_world(&conn, &gc.world_id).map_err(|e| e.to_string())?;
         let model_config = orchestrator::load_model_config(&conn);
-        let recent_msgs = list_group_messages(&conn, &gc.thread_id, 30).map_err(|e| e.to_string())?;
+        let recent_msgs = list_group_messages_within_budget(&conn, &gc.thread_id, model_config.safe_history_budget() as i64, 30).map_err(|e| e.to_string())?;
         let user_profile = get_user_profile(&conn, &gc.world_id).ok();
 
         let char_ids: Vec<String> = gc.character_ids.as_array()
@@ -667,6 +731,7 @@ pub async fn generate_group_illustration_cmd(
             created_at: now,
             world_day: wd, world_time: wt,
             address_to: None,
+        mood_chain: None,
         };
         create_group_message(&conn, &msg).map_err(|e| e.to_string())?;
     }
@@ -680,6 +745,7 @@ pub async fn generate_group_illustration_cmd(
             sender_character_id: row.get(5)?, created_at: row.get(6)?,
             world_day: row.get(7).ok(), world_time: row.get(8).ok(),
             address_to: None,
+        mood_chain: None,
         })
     ).map_err(|e| e.to_string())?;
 
@@ -701,7 +767,7 @@ pub async fn generate_group_narrative_cmd(
         let gc = get_group_chat(&conn, &group_chat_id).map_err(|e| e.to_string())?;
         let world = get_world(&conn, &gc.world_id).map_err(|e| e.to_string())?;
         let model_config = orchestrator::load_model_config(&conn);
-        let recent_msgs = list_group_messages(&conn, &gc.thread_id, 30).map_err(|e| e.to_string())?;
+        let recent_msgs = list_group_messages_within_budget(&conn, &gc.thread_id, model_config.safe_history_budget() as i64, 30).map_err(|e| e.to_string())?;
         let user_profile = get_user_profile(&conn, &gc.world_id).ok();
 
         let char_ids: Vec<String> = gc.character_ids.as_array()
@@ -771,6 +837,7 @@ pub async fn generate_group_narrative_cmd(
         created_at: Utc::now().to_rfc3339(),
         world_day: wd, world_time: wt,
             address_to: None,
+        mood_chain: None,
         };
     {
         let conn = db.conn.lock().map_err(|e| e.to_string())?;

@@ -52,6 +52,19 @@ impl ModelConfig {
     pub fn safe_local_prompt_budget(&self) -> u32 {
         ((self.lmstudio_context_tokens as f64) * 0.6) as u32
     }
+
+    /// Token budget available for *dialogue history* specifically. Starts
+    /// from `safe_local_prompt_budget()` and reserves headroom for the
+    /// system prompt (~4-6k), retrieval snippets (~2k), and response
+    /// generation. The remainder is what we can fill with recent messages.
+    ///
+    /// Auto-scales with the user's declared local context setting: bump
+    /// `lmstudio_context_tokens` up and dialogue memory deepens without
+    /// touching any other config.
+    pub fn safe_history_budget(&self) -> u32 {
+        const RESERVED_HEADROOM: u32 = 8_000;
+        self.safe_local_prompt_budget().saturating_sub(RESERVED_HEADROOM)
+    }
 }
 
 impl ModelConfig {
@@ -155,8 +168,9 @@ pub async fn run_dialogue_with_base(
     character_names: Option<&std::collections::HashMap<String, String>>,
     tone: Option<&str>,
     local_model: bool,
+    mood_chain: &[String],
 ) -> Result<(String, Option<openai::Usage>), String> {
-    let system = prompts::build_dialogue_system_prompt(world, character, user_profile, mood_directive, response_length, group_context, tone, local_model);
+    let system = prompts::build_dialogue_system_prompt(world, character, user_profile, mood_directive, response_length, group_context, tone, local_model, mood_chain);
     let messages = prompts::build_dialogue_messages(&system, recent_messages, retrieved_snippets, character_names);
 
     // Token caps sit ~25% above the sentence counts we instruct (see
@@ -282,8 +296,9 @@ pub async fn run_dialogue_streaming(
     local_model: bool,
     app_handle: &tauri::AppHandle,
     event_name: &str,
+    mood_chain: &[String],
 ) -> Result<String, String> {
-    let system = prompts::build_dialogue_system_prompt(world, character, user_profile, mood_directive, response_length, group_context, tone, local_model);
+    let system = prompts::build_dialogue_system_prompt(world, character, user_profile, mood_directive, response_length, group_context, tone, local_model, mood_chain);
     let messages = prompts::build_dialogue_messages(&system, recent_messages, retrieved_snippets, character_names);
 
     let token_limit = match response_length {
@@ -457,6 +472,98 @@ pub async fn run_memory_update_with_base(
 
 /// Generate a short emoji-like reaction from a character to a just-exchanged
 /// message pair. Not currently wired up — reactions were disabled in
+/// Ask the model for the single emoji the character would *feel* toward
+/// this user message — a read of the atmosphere, not a rating of the
+/// message's aptness.
+///
+/// Takes the preceding few messages as scene context so the picker can
+/// match register (a reflective exchange gets a quiet reaction; a joke
+/// gets a light one). Takes the thread's mood_reduction as a soft
+/// continuity hint — not a direct echo.
+///
+/// Cheap call: ~12 output tokens, temperature 0.9. On failure the caller
+/// should fall back to `prompts::pick_character_reaction_emoji`.
+pub async fn pick_character_reaction_via_llm(
+    base_url: &str,
+    api_key: &str,
+    model: &str,
+    user_message: &str,
+    mood_reduction: &[String],
+    recent_context: &[Message],
+) -> Result<String, String> {
+    let atmosphere = if mood_reduction.is_empty() {
+        String::new()
+    } else {
+        format!(
+            "\n\nFelt weather of the thread so far (most recent first): {}. \
+             Let this inform the register, not the choice.",
+            mood_reduction.join(" ")
+        )
+    };
+
+    // Compact scene: last ~4 messages before the target, rendered as
+    // "role: content" lines. Each content clipped to ~240 chars so the
+    // prompt stays short.
+    let scene = {
+        let tail: Vec<String> = recent_context.iter()
+            .rev()
+            .take(4)
+            .rev()
+            .map(|m| {
+                let clipped: String = m.content.chars().take(240).collect();
+                let role = if m.role == "user" { "USER" } else { "CHARACTER" };
+                format!("{role}: {clipped}")
+            })
+            .collect();
+        if tail.is_empty() { String::new() } else {
+            format!("\n\nImmediate scene (most recent last):\n{}", tail.join("\n"))
+        }
+    };
+
+    let system = format!(
+        r#"You pick a single emoji that captures what the CHARACTER FEELS in response to the user's message. The character's own internal state — not the theme of the conversation, not the atmosphere of the scene, not the topic being discussed.
+
+Lean hard on FACES and HEARTS. These carry felt state directly. Ambient or thematic emojis (🕊️, 🕯️, 🌙, 🌧️, ⏳, ✝️, 🌱) are permitted ONLY if they genuinely represent the character's interior *right now* — not just the mood in the air or the subject of conversation. When in doubt, reach for a face.
+
+Guidelines (tendencies, not walls — the goal is the truest single-emoji read of the character's state):
+- Output ONLY the emoji character. No text, no quotes, no punctuation.
+- FEELING OVER THEME, USUALLY. A topic-match — 💔 for grief-talk, ✝️ for faith-talk, 🌧️ for a talk about sadness — is usually the lazy instinct: it rates the subject instead of feeling anything. Default to a face that captures what the character feels hearing it: softened (🥺), held (🤗), quiet ache (😔). BUT if the character's felt state genuinely IS the thematic emoji — heart actually heavy, reverence actually welling — then it's right. The test: picking it because of the topic = skip; picking it because it IS the feeling = keep.
+- FEELING OVER AMBIENCE, USUALLY. Don't paint the weather when you could paint the interior. A reverent conversation doesn't automatically mean 🕊️ — it might mean 🥹 (moved) or 🫣 (struck). Same exception: if the ambient emoji IS the character's interior right now, use it.
+- LITERAL READS ARE OCCASIONALLY RIGHT. "Land a moment" → 🎯 is usually the laziest possible pick, reading words instead of register. But if the character genuinely feels a small targeting-click of understanding, 🎯 can be exactly it. Literal reads have to earn their way in; don't pick them as a default.
+- ACHIEVEMENT-FAMILY EMOJIS, SPARINGLY. 🎯 💯 ✅ 🏆 👏 💪 (and 🔥-for-approval) occasionally catch real humor, whimsy, or shared delight — and when they do, they're great. Most of the time they collapse into rating the message. Reach for one only when it IS the character's felt state, not when it evaluates the user's.
+- MATCH THE REGISTER. Light moment → light feeling. Reverent moment → quiet feeling. Heavy moment → held feeling.{scene}{atmosphere}"#
+    );
+
+    let messages = vec![
+        openai::ChatMessage { role: "system".to_string(), content: system },
+        openai::ChatMessage { role: "user".to_string(), content: user_message.to_string() },
+    ];
+
+    let request = ChatRequest {
+        model: model.to_string(),
+        messages,
+        temperature: Some(0.7),
+        max_completion_tokens: Some(12),
+        response_format: None,
+    };
+
+    let response = openai::chat_completion_with_base(base_url, api_key, &request).await?;
+    let raw = response.choices.first()
+        .map(|c| c.message.content.trim().to_string())
+        .unwrap_or_default();
+
+    let cleaned: String = raw.chars()
+        .filter(|c| !c.is_whitespace() && !matches!(c, '"' | '\'' | '.' | ',' | '!' | '?' | ':' | ';'))
+        .take(8)
+        .collect();
+
+    if cleaned.is_empty() || !cleaned.chars().any(|c| !c.is_ascii()) {
+        return Err(format!("no emoji in LLM response: {raw:?}"));
+    }
+
+    Ok(cleaned)
+}
+
 /// chat_cmds to keep cost down. Kept for future reactivation.
 #[allow(dead_code)]
 pub async fn generate_reaction_with_base(

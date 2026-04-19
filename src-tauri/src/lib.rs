@@ -72,7 +72,7 @@ pub fn run() {
             if cfg!(debug_assertions) {
                 app.handle().plugin(
                     tauri_plugin_log::Builder::default()
-                        .level(log::LevelFilter::Error)
+                        .level(log::LevelFilter::Warn)
                         .build(),
                 )?;
             }
@@ -164,6 +164,7 @@ pub fn run() {
             add_reaction_cmd,
             remove_reaction_cmd,
             get_reactions_cmd,
+            get_mood_reduction_cmd,
             generate_portrait_cmd,
             generate_portrait_variation_cmd,
             generate_portrait_with_pose_cmd,

@@ -4,7 +4,9 @@ import { formatMessage, markdownComponents, remarkPlugins, rehypePlugins } from 
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Dialog } from "@/components/ui/dialog";
-import { Send, Loader2, X, BookOpen, MessageSquare, Compass, Settings, Image, Trash2, SlidersHorizontal, Pencil, Square, Crosshair, ChevronLeft, ChevronRight, ChevronDown, Play, Pause, Volume2, ArrowRight } from "lucide-react";
+import { Send, Loader2, X, BookOpen, MessageSquare, Compass, Settings, Image, Trash2, SlidersHorizontal, Pencil, Square, Crosshair, ChevronLeft, ChevronRight, ChevronDown, Play, Pause, Volume2, ArrowRight, SmilePlus } from "lucide-react";
+import { ReactionBubbles } from "@/components/chat/ReactionBubbles";
+import { ReactionPicker } from "@/components/chat/ReactionPicker";
 import type { useAppStore } from "@/hooks/use-app-store";
 import { api } from "@/lib/tauri";
 import { NarrativeMessage } from "@/components/chat/NarrativeMessage";
@@ -38,6 +40,7 @@ interface Props {
 
 export function GroupChatView({ store, onNavigateToCharacter }: Props) {
   // ── Group-specific state ─────────────────────────────────────────────
+  const [pickerMessageId, setPickerMessageId] = useState<string | null>(null);
   const [showGroupTalkPicker, setShowGroupTalkPicker] = useState(false);
   const talkPickerRef = useRef<HTMLDivElement>(null);
   const [portraitModalCharId, setPortraitModalCharId] = useState<string | null>(null);
@@ -135,6 +138,19 @@ export function GroupChatView({ store, onNavigateToCharacter }: Props) {
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
   }, [showSettingsPopover]);
+
+  // Fetch the thread's mood-reduction ring when the settings popover opens.
+  const [moodReduction, setMoodReduction] = useState<string[]>([]);
+  useEffect(() => {
+    if (!showSettingsPopover || !chatId) return;
+    let cancelled = false;
+    api.getMoodReduction({ groupChatId: chatId }).then((r) => {
+      if (!cancelled) setMoodReduction(r);
+    }).catch(() => {
+      if (!cancelled) setMoodReduction([]);
+    });
+    return () => { cancelled = true; };
+  }, [showSettingsPopover, chatId, store.messages.length]);
 
   // Auto-save chat settings
   useEffect(() => {
@@ -332,6 +348,8 @@ export function GroupChatView({ store, onNavigateToCharacter }: Props) {
             const isNarrative = msg.role === "narrative";
             const isPending = msg.message_id.startsWith("pending-");
             const prevMsg = msgIdx > 0 ? filteredMsgs[msgIdx - 1] : undefined;
+            const reactions = store.reactions[msg.message_id] ?? [];
+            const showPicker = pickerMessageId === msg.message_id;
 
             if (isNarrative) {
               return (<React.Fragment key={msg.message_id}>
@@ -585,6 +603,38 @@ export function GroupChatView({ store, onNavigateToCharacter }: Props) {
                     </button>
                   )}
                 </div>
+
+                <div className={`relative ${!isUser ? "pl-24" : userAvatarUrl ? "pr-24" : ""}`}>
+                  <div className={`flex items-center gap-1.5 mt-1 ${isUser ? "justify-end" : "justify-start"}`}>
+                    {!isPending && (
+                      <button
+                        onClick={() => setPickerMessageId(showPicker ? null : msg.message_id)}
+                        className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-secondary/50 hover:bg-secondary border border-border/60 hover:border-border text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+                        title="Add reaction"
+                      >
+                        <SmilePlus size={12} />
+                      </button>
+                    )}
+                    <ReactionBubbles reactions={reactions} isUser={isUser} />
+                    {isUser && isSending && msgIdx === filteredMsgs.length - 1 && (
+                      <span
+                        className="inline-flex items-center gap-1.5 text-sm rounded-full px-3 py-1.5 animate-pulse text-white shadow-md"
+                        style={{ background: "linear-gradient(90deg, #f472b6 0%, #a78bfa 50%, #60a5fa 100%)" }}
+                        title="Character is reacting..."
+                      >
+                        <SmilePlus size={16} />
+                        <span className="w-1.5 h-1.5 rounded-full bg-white/90" />
+                      </span>
+                    )}
+                  </div>
+                  {showPicker && (
+                    <ReactionPicker
+                      onPick={(emoji) => store.toggleReaction(msg.message_id, emoji)}
+                      onClose={() => setPickerMessageId(null)}
+                      anchorRight={isUser}
+                    />
+                  )}
+                </div>
               </div>
               </React.Fragment>
             );
@@ -824,6 +874,18 @@ export function GroupChatView({ store, onNavigateToCharacter }: Props) {
             </Button>
             {showSettingsPopover && (
               <div className="absolute bottom-full right-0 mb-2 w-80 bg-card border border-border rounded-xl shadow-2xl shadow-black/40 p-4 space-y-3 z-50 animate-in fade-in zoom-in-95 duration-150">
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground block mb-1.5">Thread mood</label>
+                  {moodReduction.length > 0 ? (
+                    <div className="flex items-center gap-1 text-base" title="Most recent reaction emojis on this thread — seeds the next reply's emotional weather.">
+                      {moodReduction.slice(0, 8).map((e, i) => (
+                        <span key={i} style={{ opacity: Math.max(0.35, 1 - i * 0.1) }}>{e}</span>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-xs text-muted-foreground/70 italic">No reactions yet — the characters will start the loop.</div>
+                  )}
+                </div>
                 <div>
                   <label className="text-xs font-medium text-muted-foreground block mb-1.5">Tone</label>
                   <select

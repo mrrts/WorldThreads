@@ -540,6 +540,8 @@ export const api = {
     invoke<void>("remove_reaction_cmd", { messageId, emoji, reactor }),
   getReactions: (messageIds: string[]) =>
     invoke<Reaction[]>("get_reactions_cmd", { messageIds }),
+  getMoodReduction: (opts: { characterId?: string; groupChatId?: string }) =>
+    invoke<string[]>("get_mood_reduction_cmd", { characterId: opts.characterId ?? null, groupChatId: opts.groupChatId ?? null }),
 
   // Backup
   getLatestBackup: () =>

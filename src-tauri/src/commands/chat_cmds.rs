@@ -1,6 +1,7 @@
 use crate::ai::mood;
 use crate::ai::openai;
 use crate::ai::orchestrator;
+use crate::ai::prompts;
 use crate::commands::portrait_cmds::PortraitsDir;
 use crate::db::queries::*;
 use crate::db::Database;
@@ -65,6 +66,54 @@ pub fn world_time_fields(world: &World) -> (Option<i64>, Option<String>) {
     (day, tod)
 }
 
+/// Emit a character-side reaction on the user's message. The character
+/// always makes the first emoji move — the user never has to bootstrap the
+/// loop. The emoji is chosen via `pick_character_reaction_emoji`, which
+/// prefers the thread's reduction headline (closing the feedback loop)
+/// and falls back through the turn's chain to a random emotional pick.
+/// Idempotent on (message, emoji, 'assistant') — safe to call repeatedly.
+pub fn emit_character_reaction(
+    db: &Database,
+    target_message_id: &str,
+    emoji: &str,
+) -> Vec<Reaction> {
+    if target_message_id.is_empty() {
+        log::warn!("[CharReact] skip: target_message_id is empty");
+        return Vec::new();
+    }
+    if emoji.is_empty() {
+        log::warn!("[CharReact] skip: emoji is empty (LLM returned nothing and fallback was empty)");
+        return Vec::new();
+    }
+    let Ok(conn) = db.conn.lock() else {
+        log::warn!("[CharReact] skip: db lock poisoned");
+        return Vec::new();
+    };
+    let dup: Option<String> = conn.query_row(
+        "SELECT reaction_id FROM reactions WHERE message_id = ?1 AND emoji = ?2 AND reactor = 'assistant'",
+        rusqlite::params![target_message_id, emoji],
+        |r| r.get(0),
+    ).ok();
+    if dup.is_some() {
+        return Vec::new();
+    }
+    let r = Reaction {
+        reaction_id: uuid::Uuid::new_v4().to_string(),
+        message_id: target_message_id.to_string(),
+        emoji: emoji.to_string(),
+        reactor: "assistant".to_string(),
+        created_at: Utc::now().to_rfc3339(),
+    };
+    match add_reaction(&conn, &r) {
+        Ok(()) => vec![r],
+        Err(e) => {
+            log::warn!("[CharReact] add_reaction failed for ({}, {}, 'assistant'): {}",
+                target_message_id, emoji, e);
+            Vec::new()
+        }
+    }
+}
+
 #[derive(Debug, Serialize, Deserialize)]
 pub struct SendMessageResult {
     pub user_message: Message,
@@ -94,6 +143,7 @@ pub fn save_user_message_cmd(
         created_at: Utc::now().to_rfc3339(),
         world_day: wd_s, world_time: wt_s,
             address_to: None,
+        mood_chain: None,
         };
     create_message(&conn, &msg).map_err(|e| e.to_string())?;
     increment_message_counter(&conn, &thread.thread_id).map_err(|e| e.to_string())?;
@@ -136,6 +186,7 @@ pub fn create_context_message_cmd(
         world_day: wd,
         world_time: wt,
             address_to: None,
+        mood_chain: None,
         };
 
     if group_chat_id.is_some() {
@@ -175,11 +226,12 @@ pub async fn send_message_cmd(
             created_at: Utc::now().to_rfc3339(),
             world_day: wd_u, world_time: wt_u,
             address_to: None,
+        mood_chain: None,
         };
         create_message(&conn, &user_msg).map_err(|e| e.to_string())?;
         increment_message_counter(&conn, &thread.thread_id).map_err(|e| e.to_string())?;
 
-        let recent_msgs = list_messages(&conn, &thread.thread_id, 30).map_err(|e| e.to_string())?;
+        let recent_msgs = list_messages_within_budget(&conn, &thread.thread_id, model_config.safe_history_budget() as i64, 30).map_err(|e| e.to_string())?;
 
         // Hybrid retrieval: FTS messages + thread summary
         let mut retrieved: Vec<String> = Vec::new();
@@ -285,16 +337,45 @@ pub async fn send_message_cmd(
         current_mood.as_ref(), mood_enabled, mood_drift_rate,
     )?;
 
-    // Phase 4: Run dialogue
-    let (reply_text, dialogue_usage) = orchestrator::run_dialogue_with_base(
-        &model_config.chat_api_base(), &api_key, &model_config.dialogue_model,
+    // Phase 4: Run dialogue. Load the thread's mood_reduction and pick the
+    // 5-emoji chain up front so we can both seed AGENCY and persist it on
+    // the resulting assistant message for the measurement loop.
+    let mood_reduction = {
+        let conn = db.conn.lock().map_err(|e| e.to_string())?;
+        get_thread_mood_reduction(&conn, &thread.thread_id)
+    };
+    let mood_chain = prompts::pick_mood_chain(Some(&mood_reduction));
+    let mood_chain_json = serde_json::to_string(&mood_chain).ok();
+
+    // Phase 4a+b: Run dialogue generation and the character's emoji-reaction
+    // pick CONCURRENTLY. They're independent (both just need the user's
+    // content + mood state), so serial awaiting doubles latency for no
+    // reason. tokio::join! gives max(reply, reaction) instead of
+    // reply + reaction — meaningful on local models where each call can
+    // run many seconds.
+    let base = model_config.chat_api_base();
+    let dialogue_fut = orchestrator::run_dialogue_with_base(
+        &base, &api_key, &model_config.dialogue_model,
         &world, &character, &recent_msgs, &full_retrieved,
         user_profile.as_ref(),
         mood_directive.as_deref(),
         response_length.as_deref(),
         None, None, narration_tone.as_deref(),
         model_config.is_local(),
-    ).await?;
+        &mood_chain,
+    );
+    // Context for the reaction-emoji pick: the recent messages EXCLUDING
+    // the user's brand-new one (which goes in the user-role slot). Gives
+    // the picker scene register so it doesn't read the latest message in
+    // isolation.
+    let reaction_context: Vec<Message> = recent_msgs.iter()
+        .rev().skip(1).take(4).rev().cloned().collect();
+    let reaction_fut = orchestrator::pick_character_reaction_via_llm(
+        &base, &api_key, &model_config.dialogue_model,
+        &content, &mood_reduction, &reaction_context,
+    );
+    let (dialogue_res, reaction_res) = tokio::join!(dialogue_fut, reaction_fut);
+    let (reply_text, dialogue_usage) = dialogue_res?;
     let tokens = dialogue_usage.as_ref().map(|u| u.total_tokens).unwrap_or(0);
 
     // Phase 5: Store assistant message
@@ -310,6 +391,7 @@ pub async fn send_message_cmd(
             created_at: Utc::now().to_rfc3339(),
             world_day: wd, world_time: wt.clone(),
             address_to: None,
+            mood_chain: mood_chain_json.clone(),
         };
         create_message(&conn, &msg).map_err(|e| e.to_string())?;
         increment_message_counter(&conn, &thread.thread_id).map_err(|e| e.to_string())?;
@@ -321,17 +403,21 @@ pub async fn send_message_cmd(
             world_day: None, world_time: None,
             sender_character_id: None,
             address_to: None,
+        mood_chain: None,
         });
 
         (user_message, msg)
     };
 
-    // Phase 6: AI reaction to user's message (disabled — re-enable by uncommenting)
-    let ai_reactions: Vec<Reaction> = Vec::new();
-    // match orchestrator::generate_reaction_with_base(
-    //     &model_config.chat_api_base(), &api_key, &model_config.dialogue_model,
-    //     &character, &content, &assistant_msg.content,
-    // ).await { ... }
+    // Phase 6: Character-side reaction (from the parallel pick above, with
+    // chain-based fallback if the LLM call failed).
+    let reaction_emoji = reaction_res
+        .unwrap_or_else(|_| prompts::pick_character_reaction_emoji(&mood_chain));
+    let ai_reactions: Vec<Reaction> = emit_character_reaction(
+        &db,
+        &user_message.message_id,
+        &reaction_emoji,
+    );
 
     // Phase 7: Generate embeddings for new messages — requires OpenAI, skip for LM Studio
     if !is_local {
@@ -517,7 +603,7 @@ pub async fn prompt_character_cmd(
         let world = get_world(&conn, &character.world_id).map_err(|e| e.to_string())?;
         let thread = get_thread_for_character(&conn, &character_id).map_err(|e| e.to_string())?;
         let model_config = orchestrator::load_model_config(&conn);
-        let recent_msgs = list_messages(&conn, &thread.thread_id, 30).map_err(|e| e.to_string())?;
+        let recent_msgs = list_messages_within_budget(&conn, &thread.thread_id, model_config.safe_history_budget() as i64, 30).map_err(|e| e.to_string())?;
 
         let mut retrieved: Vec<String> = Vec::new();
         let summary = get_thread_summary(&conn, &thread.thread_id);
@@ -558,10 +644,18 @@ pub async fn prompt_character_cmd(
             created_at: Utc::now().to_rfc3339(),
             world_day: None, world_time: None,
             address_to: None,
+        mood_chain: None,
         });
     }
 
-    // Dialogue
+    // Dialogue — load mood_reduction + pick chain for AGENCY seed.
+    let mood_reduction = {
+        let conn = db.conn.lock().map_err(|e| e.to_string())?;
+        get_thread_mood_reduction(&conn, &thread.thread_id)
+    };
+    let mood_chain = prompts::pick_mood_chain(Some(&mood_reduction));
+    let mood_chain_json = serde_json::to_string(&mood_chain).ok();
+
     let (reply_text, dialogue_usage) = orchestrator::run_dialogue_with_base(
         &model_config.chat_api_base(), &api_key, &model_config.dialogue_model,
         &world, &character, &dialogue_msgs, &retrieved,
@@ -570,6 +664,7 @@ pub async fn prompt_character_cmd(
         response_length.as_deref(),
         None, None, narration_tone.as_deref(),
         model_config.is_local(),
+        &mood_chain,
     ).await?;
 
     let tokens = dialogue_usage.as_ref().map(|u| u.total_tokens).unwrap_or(0);
@@ -586,6 +681,7 @@ pub async fn prompt_character_cmd(
             created_at: Utc::now().to_rfc3339(),
             world_day: wd, world_time: wt.clone(),
             address_to: None,
+            mood_chain: mood_chain_json.clone(),
         };
         create_message(&conn, &msg).map_err(|e| e.to_string())?;
         increment_message_counter(&conn, &thread.thread_id).map_err(|e| e.to_string())?;
@@ -622,7 +718,7 @@ pub async fn generate_narrative_cmd(
         let thread = get_thread_for_character(&conn, &character_id).map_err(|e| e.to_string())?;
         let model_config = orchestrator::load_model_config(&conn);
 
-        let recent_msgs = list_messages(&conn, &thread.thread_id, 30).map_err(|e| e.to_string())?;
+        let recent_msgs = list_messages_within_budget(&conn, &thread.thread_id, model_config.safe_history_budget() as i64, 30).map_err(|e| e.to_string())?;
 
         let mut retrieved: Vec<String> = Vec::new();
         let summary = get_thread_summary(&conn, &thread.thread_id);
@@ -694,6 +790,7 @@ pub async fn generate_narrative_cmd(
         created_at: Utc::now().to_rfc3339(),
             world_day: wd, world_time: wt.clone(),
             address_to: None,
+        mood_chain: None,
         };
     {
         let conn = db.conn.lock().map_err(|e| e.to_string())?;
@@ -731,6 +828,7 @@ pub async fn adjust_message_cmd(
                     sender_character_id: r.get(5)?, created_at: r.get(6)?,
                     world_day: r.get(7).ok(), world_time: r.get(8).ok(),
             address_to: None,
+        mood_chain: None,
         }),
             ).map_err(|e| format!("Message not found: {e}"))?;
             (m, "group")
@@ -743,6 +841,7 @@ pub async fn adjust_message_cmd(
                     sender_character_id: r.get(5)?, created_at: r.get(6)?,
                     world_day: r.get(7).ok(), world_time: r.get(8).ok(),
             address_to: None,
+        mood_chain: None,
         }),
             ).map_err(|e| format!("Message not found: {e}"))?;
             (m, "indiv")
@@ -860,6 +959,7 @@ pub async fn adjust_message_cmd(
         world_day: original_msg.world_day,
         world_time: original_msg.world_time,
             address_to: None,
+        mood_chain: None,
         })
 }
 
@@ -904,6 +1004,7 @@ pub async fn reset_to_message_cmd(
                     world_day: row.get(7).ok(),
                     world_time: row.get(8).ok(),
             address_to: None,
+        mood_chain: None,
         })
             }).map_err(|e| e.to_string())?
         };
@@ -963,9 +1064,9 @@ pub async fn reset_to_message_cmd(
         let recent_msgs = {
             let conn = db.conn.lock().map_err(|e| e.to_string())?;
             if is_group {
-                list_group_messages(&conn, &thread_id, 30).map_err(|e| e.to_string())?
+                list_group_messages_within_budget(&conn, &thread_id, model_config.safe_history_budget() as i64, 30).map_err(|e| e.to_string())?
             } else {
-                list_messages(&conn, &thread_id, 30).map_err(|e| e.to_string())?
+                list_messages_within_budget(&conn, &thread_id, model_config.safe_history_budget() as i64, 30).map_err(|e| e.to_string())?
             }
         };
         if recent_msgs.len() >= 4 {
@@ -1004,7 +1105,7 @@ pub async fn reset_to_message_cmd(
     if anchor_role == "user" && !is_group {
         let (recent_msgs, retrieved, user_profile, current_mood, mood_enabled, response_length, narration_tone) = {
             let conn = db.conn.lock().map_err(|e| e.to_string())?;
-            let recent_msgs = list_messages(&conn, &thread_id, 30).map_err(|e| e.to_string())?;
+            let recent_msgs = list_messages_within_budget(&conn, &thread_id, model_config.safe_history_budget() as i64, 30).map_err(|e| e.to_string())?;
 
             let mut retrieved: Vec<String> = Vec::new();
             let summary = get_thread_summary(&conn, &thread_id);
@@ -1039,16 +1140,34 @@ pub async fn reset_to_message_cmd(
             current_mood.as_ref(), mood_enabled, None,
         )?;
 
-        // Generate dialogue
-        let (reply_text, dialogue_usage) = orchestrator::run_dialogue_with_base(
-            &model_config.chat_api_base(), &api_key, &model_config.dialogue_model,
+        // Generate dialogue — load mood_reduction + pick chain.
+        let mood_reduction = {
+            let conn = db.conn.lock().map_err(|e| e.to_string())?;
+            get_thread_mood_reduction(&conn, &thread_id)
+        };
+        let mood_chain = prompts::pick_mood_chain(Some(&mood_reduction));
+        let mood_chain_json = serde_json::to_string(&mood_chain).ok();
+
+        // Parallel dialogue + reaction pick (see send_message_cmd for rationale).
+        let base = model_config.chat_api_base();
+        let dialogue_fut = orchestrator::run_dialogue_with_base(
+            &base, &api_key, &model_config.dialogue_model,
             &world, &character, &recent_msgs, &retrieved,
             user_profile.as_ref(),
             mood_directive.as_deref(),
             response_length.as_deref(),
             None, None, narration_tone.as_deref(),
             model_config.is_local(),
-        ).await?;
+            &mood_chain,
+        );
+        let reaction_context: Vec<Message> = recent_msgs.iter()
+            .rev().skip(1).take(4).rev().cloned().collect();
+        let reaction_fut = orchestrator::pick_character_reaction_via_llm(
+            &base, &api_key, &model_config.dialogue_model,
+            &anchor_content, &mood_reduction, &reaction_context,
+        );
+        let (dialogue_res, reaction_res) = tokio::join!(dialogue_fut, reaction_fut);
+        let (reply_text, dialogue_usage) = dialogue_res?;
 
         if let Some(u) = &dialogue_usage {
             let conn = db.conn.lock().map_err(|e| e.to_string())?;
@@ -1069,6 +1188,7 @@ pub async fn reset_to_message_cmd(
                 created_at: Utc::now().to_rfc3339(),
             world_day: wd, world_time: wt.clone(),
             address_to: None,
+            mood_chain: mood_chain_json.clone(),
         };
             create_message(&conn, &msg).map_err(|e| e.to_string())?;
             increment_message_counter(&conn, &thread_id).map_err(|e| e.to_string())?;
@@ -1080,13 +1200,20 @@ pub async fn reset_to_message_cmd(
             world_day: None, world_time: None,
             sender_character_id: None,
             address_to: None,
+        mood_chain: None,
         });
 
             (user_message, msg)
         };
 
-        // Reaction (disabled — re-enable by uncommenting)
-        let ai_reactions: Vec<Reaction> = Vec::new();
+        // Character-side reaction (from the parallel pick above).
+        let reaction_emoji = reaction_res
+            .unwrap_or_else(|_| prompts::pick_character_reaction_emoji(&mood_chain));
+        let ai_reactions: Vec<Reaction> = emit_character_reaction(
+            &db,
+            &user_message.message_id,
+            &reaction_emoji,
+        );
 
         return Ok(ResetToMessageResult {
             deleted_count,

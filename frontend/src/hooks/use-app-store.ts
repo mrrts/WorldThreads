@@ -1299,17 +1299,26 @@ export function useAppStore() {
         setError(String(e));
       }
     }
-    // Reload actual reactions from DB to get correct state
+    // Reload reactions for the full visible message set — the backend
+    // propagates a reaction to every message in the same "reaction unit"
+    // (target + preceding burst + user turn), so we can't assume only
+    // `messageId` changed.
     try {
-      const fresh = await api.getReactions([messageId]);
+      const ids = state.messages.map((m) => m.message_id);
+      const fresh = await api.getReactions(ids);
+      const grouped: Record<string, Reaction[]> = {};
+      for (const r of fresh) {
+        if (!grouped[r.message_id]) grouped[r.message_id] = [];
+        grouped[r.message_id].push(r);
+      }
       setState((s) => ({
         ...s,
-        reactions: { ...s.reactions, [messageId]: fresh },
+        reactions: { ...s.reactions, ...grouped },
       }));
     } catch {
       // keep optimistic state
     }
-  }, [state.reactions, setError]);
+  }, [state.reactions, state.messages, setError]);
 
   return {
     ...state,

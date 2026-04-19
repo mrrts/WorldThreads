@@ -230,6 +230,7 @@ pub async fn generate_illustration_cmd(
             created_at: now,
             world_day: wd_ill, world_time: wt_ill,
             address_to: None,
+        mood_chain: None,
         };
         create_message(&conn, &msg).map_err(|e| e.to_string())?;
     }
@@ -241,6 +242,7 @@ pub async fn generate_illustration_cmd(
             message_id: row.get(0)?, thread_id: row.get(1)?, role: row.get(2)?,
             content: row.get(3)?, tokens_estimate: row.get(4)?, sender_character_id: row.get(5)?, created_at: row.get(6)?, world_day: row.get(7).ok(), world_time: row.get(8).ok(),
             address_to: None,
+        mood_chain: None,
         })
     ).map_err(|e| e.to_string())?;
 
@@ -454,6 +456,7 @@ pub async fn adjust_illustration_cmd(
             created_at: now,
             world_day: wd_adj, world_time: wt_adj,
             address_to: None,
+        mood_chain: None,
         };
         create_message(&conn, &msg).map_err(|e| e.to_string())?;
     }
@@ -465,6 +468,7 @@ pub async fn adjust_illustration_cmd(
             message_id: row.get(0)?, thread_id: row.get(1)?, role: row.get(2)?,
             content: row.get(3)?, tokens_estimate: row.get(4)?, sender_character_id: row.get(5)?, created_at: row.get(6)?, world_day: row.get(7).ok(), world_time: row.get(8).ok(),
             address_to: None,
+        mood_chain: None,
         })
     ).map_err(|e| e.to_string())?;
 
