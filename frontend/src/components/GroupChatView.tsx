@@ -483,7 +483,7 @@ export function GroupChatView({ store, onNavigateToCharacter }: Props) {
                     )
                   )}
                   <div
-                    className={`relative group rounded-2xl px-4 py-2.5 leading-relaxed ${canonizedIds.has(msg.message_id) ? "ring-1 ring-amber-400/60 shadow-[0_0_24px_rgba(251,191,36,0.22)] before:content-[''] before:absolute before:inset-0 before:rounded-[inherit] before:pointer-events-none before:bg-gradient-to-br before:from-amber-100/40 before:via-amber-400/20 before:to-yellow-200/40 before:mix-blend-overlay before:blur-md before:bg-[length:200%_200%] before:animate-[canonized-shimmer_9s_ease-in-out_infinite]" : ""} ${
+                    className={`relative group rounded-2xl px-4 py-2.5 leading-relaxed ${canonizedIds.has(msg.message_id) ? "ring-1 ring-amber-400/60 shadow-[0_0_24px_rgba(251,191,36,0.22)] [&>*]:relative [&>*]:z-10 before:content-[''] before:absolute before:inset-0 before:rounded-[inherit] before:pointer-events-none before:bg-gradient-to-br before:from-amber-200/30 before:via-amber-400/20 before:to-yellow-300/30 before:mix-blend-overlay before:blur-xl before:bg-[length:200%_200%] before:animate-[canonized-shimmer_9s_ease-in-out_infinite]" : ""} ${
                       isUser
                         ? "bg-primary text-primary-foreground rounded-br-md max-w-[80%]"
                         : senderBubbleColor
