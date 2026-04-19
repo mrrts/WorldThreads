@@ -59,6 +59,28 @@ pub fn compute_and_persist_mood(
     Ok(if directive.is_empty() { None } else { Some(directive) })
 }
 
+/// Collect caption text for any illustration messages present in the slice.
+/// Used at the top of every orchestrator-calling command so the dialogue /
+/// narrative / dream / proactive-ping builders can render illustration
+/// turns as `[Illustration — caption]` system notes instead of dropping
+/// them. Empty map is fine — builders fall back to `[Illustration shown]`.
+pub fn collect_illustration_captions(
+    db: &Database,
+    messages: &[Message],
+) -> std::collections::HashMap<String, String> {
+    let ids: Vec<String> = messages.iter()
+        .filter(|m| m.role == "illustration")
+        .map(|m| m.message_id.clone())
+        .collect();
+    if ids.is_empty() {
+        return std::collections::HashMap::new();
+    }
+    match db.conn.lock() {
+        Ok(conn) => fetch_illustration_captions(&conn, &ids),
+        Err(_) => std::collections::HashMap::new(),
+    }
+}
+
 pub fn world_time_fields(world: &World) -> (Option<i64>, Option<String>) {
     let time = world.state.get("time");
     let day = time.and_then(|t| t.get("day_index")).and_then(|v| v.as_i64());
@@ -375,6 +397,7 @@ pub async fn send_message_cmd(
         let conn = db.conn.lock().map_err(|e| e.to_string())?;
         list_kept_message_ids_for_thread(&conn, &thread.thread_id).unwrap_or_default()
     };
+    let illustration_captions = collect_illustration_captions(&db, &recent_msgs);
     let dialogue_fut = orchestrator::run_dialogue_with_base(
         &base, &api_key, &model_config.dialogue_model,
         &world, &character, &recent_msgs, &full_retrieved,
@@ -386,6 +409,7 @@ pub async fn send_message_cmd(
         &mood_chain,
     leader.as_deref(),
     &kept_ids,
+    &illustration_captions,
     );
     // Context for the reaction-emoji pick: the recent messages EXCLUDING
     // the user's brand-new one (which goes in the user-role slot). Gives
@@ -689,6 +713,7 @@ pub async fn prompt_character_cmd(
         let conn = db.conn.lock().map_err(|e| e.to_string())?;
         list_kept_message_ids_for_thread(&conn, &thread.thread_id).unwrap_or_default()
     };
+    let illustration_captions = collect_illustration_captions(&db, &dialogue_msgs);
     let (reply_text, dialogue_usage) = orchestrator::run_dialogue_with_base(
         &model_config.chat_api_base(), &api_key, &model_config.dialogue_model,
         &world, &character, &dialogue_msgs, &retrieved,
@@ -700,6 +725,7 @@ pub async fn prompt_character_cmd(
         &mood_chain,
         leader.as_deref(),
         &kept_ids,
+        &illustration_captions,
     ).await?;
 
     let tokens = dialogue_usage.as_ref().map(|u| u.total_tokens).unwrap_or(0);
@@ -916,6 +942,7 @@ pub async fn try_proactive_ping_cmd(
     let mood_chain = prompts::pick_mood_chain(Some(&mood_reduction));
     let mood_chain_json = serde_json::to_string(&mood_chain).ok();
 
+    let illustration_captions = collect_illustration_captions(&db, &recent_msgs);
     let (reply_text, usage) = orchestrator::run_proactive_ping_with_base(
         &model_config.chat_api_base(), &api_key, &model_config.dialogue_model,
         &world, &character, &recent_msgs, &retrieved,
@@ -926,6 +953,7 @@ pub async fn try_proactive_ping_cmd(
         &mood_chain,
         &kept_ids,
         elapsed_hint.as_deref(),
+        &illustration_captions,
     ).await?;
 
     if reply_text.trim().is_empty() {
@@ -1082,12 +1110,14 @@ pub async fn generate_dream_cmd(
 
     let mood_chain = prompts::pick_mood_chain(Some(&mood_reduction));
 
+    let illustration_captions = collect_illustration_captions(&db, &recent_msgs);
     let (dream_text, usage) = orchestrator::run_dream_with_base(
         &model_config.chat_api_base(), &api_key, &model_config.dialogue_model,
         &world, &character, &recent_msgs,
         user_profile.as_ref(),
         mood_directive.as_deref(),
         &mood_chain,
+        &illustration_captions,
     ).await?;
 
     let (wd, wt) = world_time_fields(&world);
@@ -1187,6 +1217,7 @@ pub async fn generate_narrative_cmd(
     let merged_instructions = if all_instructions.is_empty() { None } else { Some(all_instructions.join("\n")) };
 
     // Generate narrative (solo chat — no additional cast)
+    let illustration_captions = collect_illustration_captions(&db, &recent_msgs);
     let (narrative_text, usage) = orchestrator::run_narrative_with_base(
         &model_config.chat_api_base(), &api_key, &model_config.dialogue_model,
         &world, &character, None, &recent_msgs, &retrieved,
@@ -1194,6 +1225,7 @@ pub async fn generate_narrative_cmd(
         mood_directive.as_deref(),
         narration_tone.as_deref(),
         merged_instructions.as_deref(),
+        &illustration_captions,
     ).await?;
 
     // Store as a "narrative" role message
@@ -1580,6 +1612,7 @@ pub async fn reset_to_message_cmd(
             let conn = db.conn.lock().map_err(|e| e.to_string())?;
             list_kept_message_ids_for_thread(&conn, &thread_id).unwrap_or_default()
         };
+        let illustration_captions = collect_illustration_captions(&db, &recent_msgs);
         let dialogue_fut = orchestrator::run_dialogue_with_base(
             &base, &api_key, &model_config.dialogue_model,
             &world, &character, &recent_msgs, &retrieved,
@@ -1591,6 +1624,7 @@ pub async fn reset_to_message_cmd(
             &mood_chain,
         leader.as_deref(),
         &kept_ids,
+        &illustration_captions,
         );
         let reaction_context: Vec<Message> = recent_msgs.iter()
             .rev().skip(1).take(4).rev().cloned().collect();

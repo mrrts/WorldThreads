@@ -79,7 +79,7 @@ export function useChatState({ store, chatId, chatType }: UseChatStateOptions) {
   const [showIllustrationPicker, setShowIllustrationPicker] = useState(false);
   const [illustrationInstructions, setIllustrationInstructions] = useState("");
   const [usePreviousScene, setUsePreviousScene] = useState(false);
-  const [includeSceneSummary, setIncludeSceneSummary] = useState(false);
+  const [includeSceneSummary, setIncludeSceneSummary] = useState(true);
   const [narrationTone, setNarrationTone] = useState("Cinematic");
   const [narrationInstructions, setNarrationInstructions] = useState("");
   const [responseLength, setResponseLength] = useState("Short");

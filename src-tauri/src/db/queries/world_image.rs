@@ -57,6 +57,39 @@ pub fn get_active_world_image(conn: &Connection, world_id: &str) -> Option<World
     ).ok()
 }
 
+/// Look up caption text for a batch of illustration message_ids (which are
+/// the same as `world_images.image_id` for messages of role='illustration').
+/// Returns a map; image_ids without a stored caption are simply absent.
+/// Used when building dialogue / narrative / dream history so illustration
+/// turns render with their alt-text instead of being dropped — the model
+/// can reference "the illustration of you at the pier" the way a real
+/// person references a shared photo.
+pub fn fetch_illustration_captions(
+    conn: &Connection,
+    message_ids: &[String],
+) -> std::collections::HashMap<String, String> {
+    let mut out = std::collections::HashMap::new();
+    if message_ids.is_empty() {
+        return out;
+    }
+    let placeholders: Vec<String> = (1..=message_ids.len()).map(|i| format!("?{i}")).collect();
+    let sql = format!(
+        "SELECT image_id, caption FROM world_images WHERE image_id IN ({}) AND caption != ''",
+        placeholders.join(", ")
+    );
+    let Ok(mut stmt) = conn.prepare(&sql) else { return out; };
+    let params_vec: Vec<&dyn rusqlite::types::ToSql> = message_ids.iter()
+        .map(|id| id as &dyn rusqlite::types::ToSql)
+        .collect();
+    let Ok(rows) = stmt.query_map(params_vec.as_slice(), |row| {
+        Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?))
+    }) else { return out; };
+    for r in rows.flatten() {
+        out.insert(r.0, r.1);
+    }
+    out
+}
+
 
 pub fn set_active_world_image(conn: &Connection, world_id: &str, image_id: &str) -> Result<(), rusqlite::Error> {
     conn.execute("UPDATE world_images SET is_active = 0 WHERE world_id = ?1", params![world_id])?;

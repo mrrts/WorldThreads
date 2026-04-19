@@ -216,9 +216,10 @@ pub async fn run_dialogue_with_base(
     mood_chain: &[String],
     leader: Option<&str>,
     kept_ids: &[String],
+    illustration_captions: &std::collections::HashMap<String, String>,
 ) -> Result<(String, Option<openai::Usage>), String> {
     let system = prompts::build_dialogue_system_prompt(world, character, user_profile, mood_directive, response_length, group_context, tone, local_model, mood_chain, leader);
-    let messages = prompts::build_dialogue_messages(&system, recent_messages, retrieved_snippets, character_names, kept_ids);
+    let messages = prompts::build_dialogue_messages(&system, recent_messages, retrieved_snippets, character_names, kept_ids, illustration_captions);
 
     // Token caps sit ~25% above the sentence counts we instruct (see
     // prompts::response_length_block). Disobedient local models get some
@@ -402,6 +403,7 @@ pub async fn run_proactive_ping_with_base(
     mood_chain: &[String],
     kept_ids: &[String],
     elapsed_hint: Option<&str>,
+    illustration_captions: &std::collections::HashMap<String, String>,
 ) -> Result<(String, Option<openai::Usage>), String> {
     let system = prompts::build_proactive_ping_system_prompt(
         world, character, user_profile, mood_directive, tone, local_model, mood_chain,
@@ -412,7 +414,7 @@ pub async fn run_proactive_ping_with_base(
     let angle = prompts::pick_proactive_ping_angle();
     log::info!("[Proactive] angle = {:.80}", angle);
     let messages = prompts::build_proactive_ping_messages(
-        &system, recent_messages, retrieved_snippets, kept_ids, elapsed_hint, angle,
+        &system, recent_messages, retrieved_snippets, kept_ids, elapsed_hint, angle, illustration_captions,
     );
 
     let request = ChatRequest {
@@ -565,11 +567,12 @@ pub async fn run_dream_with_base(
     user_profile: Option<&UserProfile>,
     mood_directive: Option<&str>,
     mood_chain: &[String],
+    illustration_captions: &std::collections::HashMap<String, String>,
 ) -> Result<(String, Option<openai::Usage>), String> {
     let system = prompts::build_dream_system_prompt(
         world, character, user_profile, mood_directive, mood_chain,
     );
-    let messages = prompts::build_dream_messages(&system, recent_messages);
+    let messages = prompts::build_dream_messages(&system, recent_messages, illustration_captions);
 
     let request = ChatRequest {
         model: model.to_string(),
@@ -623,9 +626,10 @@ pub async fn run_dialogue_streaming(
     mood_chain: &[String],
     leader: Option<&str>,
     kept_ids: &[String],
+    illustration_captions: &std::collections::HashMap<String, String>,
 ) -> Result<String, String> {
     let system = prompts::build_dialogue_system_prompt(world, character, user_profile, mood_directive, response_length, group_context, tone, local_model, mood_chain, leader);
-    let messages = prompts::build_dialogue_messages(&system, recent_messages, retrieved_snippets, character_names, kept_ids);
+    let messages = prompts::build_dialogue_messages(&system, recent_messages, retrieved_snippets, character_names, kept_ids, illustration_captions);
 
     let token_limit = match response_length {
         Some("Short") => Some(150),
@@ -1102,6 +1106,7 @@ pub async fn run_narrative_with_base(
     mood_directive: Option<&str>,
     narration_tone: Option<&str>,
     narration_instructions: Option<&str>,
+    illustration_captions: &std::collections::HashMap<String, String>,
 ) -> Result<(String, Option<openai::Usage>), String> {
     let system = prompts::build_narrative_system_prompt(world, character, additional_cast, user_profile, mood_directive, narration_tone, narration_instructions);
 
@@ -1122,7 +1127,19 @@ pub async fn run_narrative_with_base(
 
     let mut last_time: Option<String> = None;
     for m in recent_messages {
-        if m.role == "illustration" || m.role == "video" {
+        if m.role == "video" {
+            continue;
+        }
+        // Illustrations render as a short system note with their caption so
+        // the narrator knows a visual beat occurred and what it showed.
+        if m.role == "illustration" {
+            let caption = illustration_captions.get(&m.message_id).map(|s| s.as_str()).unwrap_or("");
+            let content = if caption.is_empty() {
+                "[Illustration shown at this moment.]".to_string()
+            } else {
+                format!("[Illustration shown — {caption}]")
+            };
+            msgs.push(openai::ChatMessage { role: "system".to_string(), content });
             continue;
         }
         if let Some(ref wt) = m.world_time {

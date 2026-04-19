@@ -370,6 +370,7 @@ pub async fn send_group_message_cmd(
             let conn = db.conn.lock().map_err(|e| e.to_string())?;
             list_kept_message_ids_for_thread(&conn, &gc.thread_id).unwrap_or_default()
         };
+        let illustration_captions = crate::commands::chat_cmds::collect_illustration_captions(&db, &dialogue_msgs);
         let (raw_reply, usage) = orchestrator::run_dialogue_with_base(
             &model_config.chat_api_base(), &api_key, &model_config.dialogue_model,
             &world, character, &dialogue_msgs, &retrieved,
@@ -383,6 +384,7 @@ pub async fn send_group_message_cmd(
             &mood_chain,
             leader.as_deref(),
             &kept_ids,
+            &illustration_captions,
         ).await?;
 
         // Strip own prefix and truncate any other-character dialogue
@@ -563,6 +565,7 @@ pub async fn prompt_group_character_cmd(
         let conn = db.conn.lock().map_err(|e| e.to_string())?;
         list_kept_message_ids_for_thread(&conn, &gc.thread_id).unwrap_or_default()
     };
+    let illustration_captions = crate::commands::chat_cmds::collect_illustration_captions(&db, &dialogue_msgs);
     let dialogue_fut = orchestrator::run_dialogue_with_base(
         &base, &api_key, &model_config.dialogue_model,
         &world, &character, &dialogue_msgs, &retrieved,
@@ -576,6 +579,7 @@ pub async fn prompt_group_character_cmd(
         &mood_chain2,
         leader.as_deref(),
         &kept_ids,
+        &illustration_captions,
     );
     let reaction_fut = orchestrator::pick_character_reaction_via_llm(
         &base, &api_key, &model_config.dialogue_model,
@@ -915,6 +919,7 @@ pub async fn generate_group_narrative_cmd(
     let additional_cast: Vec<&Character> = characters.iter()
         .filter(|c| c.character_id != primary_character.character_id)
         .collect();
+    let illustration_captions = crate::commands::chat_cmds::collect_illustration_captions(&db, &recent_msgs);
     let (narrative_text, usage) = orchestrator::run_narrative_with_base(
         &model_config.chat_api_base(), &api_key, &model_config.dialogue_model,
         &world, primary_character,
@@ -924,6 +929,7 @@ pub async fn generate_group_narrative_cmd(
         None,
         narration_tone.as_deref(),
         merged_instructions.as_deref(),
+        &illustration_captions,
     ).await?;
 
     if let Some(u) = &usage {

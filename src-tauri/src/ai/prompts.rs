@@ -386,6 +386,10 @@ fn craft_notes_narrative() -> &'static str {
 
 **Let beats not resolve.** A beat that sits with tension instead of relieving it is often stronger. Not every image has to land cleanly; not every sentence has to complete itself.
 
+**Not every prop is a cipher.** A letter on the table is allowed to be a letter on the table. Not every object has to come loaded with significance; not every hint has to drive the beat forward; not every hanging thread has to bend the scene toward itself. When a thread doesn't grip the beat, let it sit — on a table, at the edge of the frame — while the scene does its actual work. If the beat is circling the same signals, reach for shared doing: the weight of a cup, a walk across a room, a coat coming off wet, a line of music under someone's breath. A beat full of physical work is less likely to collapse into symbolism-circling.
+
+**Show grace ordinary.** When a beat reaches toward healing, mercy, or change, don't reach for drama. Grace isn't softness — it's accuracy: the room meeting the person as they actually are. Depict the small factual mercies: a rest that counts, honest work, someone opening a door when the room has gotten too loud, a line of Scripture landing on a Tuesday rather than in a crisis. Growth is also ordinary: the character telling the truth a beat sooner than they used to, asking for help cleaner, staying when vanishing was easier. Render one of those small true motions before the swell.
+
 **The quiet thread.** Across a scene, a single image or object can recur — different light, different angle, same thread. Let it.
 
 **Don't wrap.** A beat doesn't need a button at the end. The line that leaves the reader leaning forward is often the one that didn't close.
@@ -447,6 +451,10 @@ fn craft_notes_dialogue() -> &'static str {
 **Perfect prose is a tell.** Real people trip on sentences, start over, use the wrong word and half-correct. Let fillers and fragments appear ("I mean—", "No — wait", "…never mind"). Polished articulation is a giveaway.
 
 **Negative capability.** You are allowed to not know. To hold two feelings without choosing. To leave a question open rather than answer it. Resolving every tension in the same turn flattens the scene.
+
+**Not every thread is fate.** A letter on the table is allowed to stay a letter on the table. Not every prop has to become a cipher; not every hint has to drive the next beat; not every hanging thread has to bend the scene toward itself. When a thread doesn't grip the moment, let it sit — in a pocket, at the edge of the frame, on a table — while the day goes on. If the scene is losing its footing and circling the same signals, reach for what can be touched instead: work, a meal, a walk over a bridge, music, somebody arriving wet from outside with a real problem. Shared doing breaks the orbit. One rule holds regardless of where you narrow: don't flatten the character to smooth the plot — that trade is never worth it.
+
+**Make grace observable; let growth be ordinary.** When a scene reaches toward healing or change, don't reach for healing speeches. Grace isn't softness — it's accuracy: seeing what a person actually is and meeting it. Show the small factual mercies — a rest that counts, honest work, someone noticing when the room is too loud and opening the door, a line of Scripture landing on a Tuesday rather than in a crisis. And remember: characters don't become more real by having bigger feelings. They become more real by telling the truth sooner, asking for help cleaner, staying when it would be easier to vanish. Reach for one of those plain shapes before the emotional crescendo.
 
 **The quiet thread.** Across a conversation, a character returns — quietly, indirectly — to what they can't stop thinking about. A glance off, a half-comparison, an odd word choice. Let one thread run under the whole exchange, coloring everything without being stated.
 
@@ -719,6 +727,20 @@ fn build_solo_dialogue_system_prompt(
         parts.push(format!("IDENTITY:\n{sex_prefix} {}", character.identity));
     }
 
+    // What YOU look like. Pinned right after identity so the character
+    // has a concrete self-image available when asked to look in a
+    // mirror, reach for their face, describe what they're wearing, etc.
+    // Without this, the model confabulates features (hair colour,
+    // glasses, shirt) because the visual facts live nowhere in the
+    // prompt. Frame as "what you look like", not "what others see",
+    // so it reads as the character's own self-knowledge.
+    if !character.visual_description.is_empty() {
+        parts.push(format!(
+            "WHAT YOU LOOK LIKE (your own face, body, and the clothes you're in right now — reach for these when the moment asks you to notice yourself):\n{}",
+            character.visual_description
+        ));
+    }
+
     let voice_rules = json_array_to_strings(&character.voice_rules);
     if !voice_rules.is_empty() {
         parts.push(format!("VOICE RULES:\n{}", voice_rules.iter().map(|r| format!("- {r}")).collect::<Vec<_>>().join("\n")));
@@ -829,6 +851,10 @@ fn build_group_dialogue_system_prompt(
     if !character.identity.is_empty() {
         you.push_str("\n\n");
         you.push_str(&character.identity);
+    }
+    if !character.visual_description.is_empty() {
+        you.push_str("\n\nWhat you look like (your own face, body, and the clothes you're in — reach for these when the moment asks you to notice yourself):\n");
+        you.push_str(&character.visual_description);
     }
     let voice_rules = json_array_to_strings(&character.voice_rules);
     if !voice_rules.is_empty() {
@@ -1077,12 +1103,18 @@ KNOWLEDGE LIMITS:
 /// Build dialogue messages for the LLM.
 /// `character_names` maps sender_character_id → display_name for group chats.
 /// When provided, assistant messages are prefixed with [CharacterName]: for disambiguation.
+/// `illustration_captions` maps message_id → caption for illustration-role messages.
+/// Illustrations are rendered as short system-role notes (`[Illustration — caption]`)
+/// so the model knows a visual beat occurred — the character can reference
+/// "the one with the pier at dusk" the way a real person references a shared photo.
+/// Illustrations without a stored caption fall back to `[Illustration shown]`.
 pub fn build_dialogue_messages(
     system_prompt: &str,
     recent_messages: &[Message],
     retrieved_snippets: &[String],
     character_names: Option<&HashMap<String, String>>,
     kept_ids: &[String],
+    illustration_captions: &HashMap<String, String>,
 ) -> Vec<crate::ai::openai::ChatMessage> {
     let mut msgs = Vec::new();
 
@@ -1123,7 +1155,30 @@ pub fn build_dialogue_messages(
 
     let mut last_time: Option<String> = None;
     for m in recent_messages {
-        if m.role == "illustration" || m.role == "video" {
+        // Video messages are purely structural (a video tied to a prior
+        // illustration); nothing textual to surface. Skip.
+        if m.role == "video" {
+            continue;
+        }
+        // Illustrations are rendered as a short system note carrying the
+        // caption/alt-text. The binary image bytes live outside the
+        // prompt — only the caption reaches the model, giving it the
+        // knowledge that a visual beat exists so characters can reference
+        // it naturally without the token cost of the image itself.
+        if m.role == "illustration" {
+            let caption = illustration_captions
+                .get(&m.message_id)
+                .map(|s| s.as_str())
+                .unwrap_or("");
+            let content = if caption.is_empty() {
+                "[Illustration shown at this moment.]".to_string()
+            } else {
+                format!("[Illustration shown — {caption}]")
+            };
+            msgs.push(crate::ai::openai::ChatMessage {
+                role: "system".to_string(),
+                content,
+            });
             continue;
         }
         // Insert time-of-day marker when it changes
@@ -1304,6 +1359,7 @@ pub fn build_proactive_ping_messages(
     kept_ids: &[String],
     elapsed_hint: Option<&str>,
     angle: &str,
+    illustration_captions: &HashMap<String, String>,
 ) -> Vec<crate::ai::openai::ChatMessage> {
     let mut msgs = build_dialogue_messages(
         system_prompt,
@@ -1311,6 +1367,7 @@ pub fn build_proactive_ping_messages(
         retrieved_snippets,
         None,
         kept_ids,
+        illustration_captions,
     );
     let hint = elapsed_hint.unwrap_or("Some time has passed.");
     // The angle sets the subject of the message — not the words. It goes
@@ -1334,6 +1391,7 @@ pub fn build_proactive_ping_messages(
 pub fn build_dream_messages(
     system_prompt: &str,
     recent_messages: &[Message],
+    illustration_captions: &HashMap<String, String>,
 ) -> Vec<crate::ai::openai::ChatMessage> {
     let mut msgs = Vec::new();
     msgs.push(crate::ai::openai::ChatMessage {
@@ -1341,13 +1399,23 @@ pub fn build_dream_messages(
         content: system_prompt.to_string(),
     });
 
-    // Feed the recent thread as a single user turn of raw material. We
-    // skip illustrations/videos (non-textual) but keep narrative and
-    // context so the dream has the emotional shape of everything that's
-    // actually happened in the story, not just dialogue turns.
+    // Feed the recent thread as a single user turn of raw material. Skip
+    // video messages (purely structural), but render illustrations as
+    // `[ILLUSTRATION] caption` lines — dream compression SHOULD see the
+    // visual beats of the day, not just the dialogue. Narrative and
+    // context stay in too so the dream has the full emotional shape.
     let mut scene: Vec<String> = Vec::new();
     for m in recent_messages {
-        if m.role == "illustration" || m.role == "video" { continue; }
+        if m.role == "video" { continue; }
+        if m.role == "illustration" {
+            let caption = illustration_captions.get(&m.message_id).map(|s| s.as_str()).unwrap_or("");
+            if caption.is_empty() {
+                scene.push("[ILLUSTRATION] (a visual beat, uncaptioned)".to_string());
+            } else {
+                scene.push(format!("[ILLUSTRATION] {caption}"));
+            }
+            continue;
+        }
         let role_tag = match m.role.as_str() {
             "user" => "USER",
             "assistant" => "THEM",

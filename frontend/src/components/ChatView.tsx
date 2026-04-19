@@ -1209,7 +1209,7 @@ export function ChatView({ store, onNavigateToCharacter }: Props) {
           store.generateIllustration(tier, instructions.trim() || undefined, selectedId, includeSceneSummary);
           setIllustrationInstructions("");
           setUsePreviousScene(false);
-          setIncludeSceneSummary(false);
+          setIncludeSceneSummary(true);
         }}
         illustrationInstructions={illustrationInstructions}
         setIllustrationInstructions={setIllustrationInstructions}
