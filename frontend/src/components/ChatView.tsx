@@ -403,6 +403,8 @@ export function ChatView({ store, onNavigateToCharacter }: Props) {
                   toneMenuRef={toneMenuRef}
                   adjustingMessageId={store.adjustingMessageId}
                   onAdjust={(id) => setAdjustMessageId(id)}
+                  onCanonize={(id) => setCanonMessageId(id)}
+                  isCanonized={canonizedIds.has(msg.message_id)}
                   onDelete={(id) => store.deleteMessage(id)}
                   chatFontSize={store.chatFontSize}
                 />
@@ -1074,6 +1076,7 @@ export function ChatView({ store, onNavigateToCharacter }: Props) {
         sourceSpeakerLabel={(() => {
           const m = canonMessageId ? store.messages.find((x) => x.message_id === canonMessageId) : null;
           if (!m) return "";
+          if (m.role === "narrative") return "Narrative";
           if (m.role === "user") return store.userProfile?.display_name || "You";
           return store.activeCharacter?.display_name || "Character";
         })()}
