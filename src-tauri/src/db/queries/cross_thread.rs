@@ -145,9 +145,9 @@ fn render_solo_block(
 
     let label = format!("your one-on-one chat with {user_name}");
     let rendered = format!(
-        "[From {label}, {time}]\n{body}",
+        "[From {label} — {weather}]\n{body}",
         label = label,
-        time = relative_time(&newest_at),
+        weather = super::weathering::weathering_label(&newest_at),
         body = lines.join("\n"),
     );
     Some(CrossThreadBlock { label, newest_at, rendered })
@@ -236,9 +236,9 @@ fn render_group_block(
         format!("the group chat with {}", join_names(&other_names))
     };
     let rendered = format!(
-        "[From {label}, {time}]\n{body}",
+        "[From {label} — {weather}]\n{body}",
         label = label,
-        time = relative_time(&newest_at),
+        weather = super::weathering::weathering_label(&newest_at),
         body = lines.join("\n"),
     );
     Some(CrossThreadBlock { label, newest_at, rendered })
@@ -281,44 +281,3 @@ fn join_names(names: &[String]) -> String {
     }
 }
 
-/// Rough relative time ("just now", "about 2 hours ago", "yesterday",
-/// "3 days ago") from an ISO-8601 timestamp. Falls back to "recently"
-/// on parse failure.
-fn relative_time(iso: &str) -> String {
-    let Ok(dt) = chrono::DateTime::parse_from_rfc3339(iso) else {
-        return "recently".to_string();
-    };
-    let now = chrono::Utc::now();
-    let mins = now
-        .signed_duration_since(dt.with_timezone(&chrono::Utc))
-        .num_minutes();
-    if mins < 0 {
-        return "just now".to_string();
-    }
-    if mins < 2 {
-        return "just now".to_string();
-    }
-    if mins < 60 {
-        return format!("about {mins} minutes ago");
-    }
-    let hours = mins / 60;
-    if hours < 24 {
-        return if hours == 1 {
-            "about an hour ago".to_string()
-        } else {
-            format!("about {hours} hours ago")
-        };
-    }
-    let days = hours / 24;
-    if days == 1 {
-        return "yesterday".to_string();
-    }
-    if days < 14 {
-        return format!("{days} days ago");
-    }
-    let weeks = days / 7;
-    if weeks < 8 {
-        return format!("{weeks} weeks ago");
-    }
-    format!("about {} months ago", days / 30)
-}

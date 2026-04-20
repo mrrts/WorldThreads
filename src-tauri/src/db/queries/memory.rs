@@ -69,10 +69,22 @@ pub fn insert_vector_chunk(conn: &Connection, chunk_id: &str, source_type: &str,
     Ok(())
 }
 
-pub fn search_vectors(conn: &Connection, world_id: &str, character_id: &str, embedding: &[f32], limit: i64) -> Result<Vec<(String, f64)>, rusqlite::Error> {
+/// A semantic-search hit. `content` is the speaker-prefixed text that
+/// was embedded; `distance` is the vector distance (smaller = closer);
+/// `created_at` is when the underlying message was originally stored
+/// (used to weather the retrieved snippet with a recency / decay
+/// descriptor when it's rendered into the prompt).
+#[derive(Debug, Clone)]
+pub struct VectorHit {
+    pub content: String,
+    pub distance: f64,
+    pub created_at: String,
+}
+
+pub fn search_vectors(conn: &Connection, world_id: &str, character_id: &str, embedding: &[f32], limit: i64) -> Result<Vec<VectorHit>, rusqlite::Error> {
     let blob: Vec<u8> = embedding.iter().flat_map(|f| f.to_le_bytes()).collect();
     let mut stmt = conn.prepare(
-        "SELECT cm.content, v.distance
+        "SELECT cm.content, v.distance, cm.created_at
          FROM vec_chunks v
          JOIN chunk_metadata cm ON cm.rowid = v.rowid
          WHERE v.embedding MATCH ?1 AND k = ?2
@@ -81,7 +93,11 @@ pub fn search_vectors(conn: &Connection, world_id: &str, character_id: &str, emb
          ORDER BY v.distance"
     )?;
     let rows = stmt.query_map(params![blob, limit, world_id, character_id], |row| {
-        Ok((row.get::<_, String>(0)?, row.get::<_, f64>(1)?))
+        Ok(VectorHit {
+            content: row.get::<_, String>(0)?,
+            distance: row.get::<_, f64>(1)?,
+            created_at: row.get::<_, String>(2)?,
+        })
     })?;
     rows.collect()
 }

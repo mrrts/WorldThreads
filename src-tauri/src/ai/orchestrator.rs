@@ -202,6 +202,8 @@ pub async fn run_dialogue_with_base(
     base_url: &str,
     api_key: &str,
     model: &str,
+    memory_model: Option<&str>,
+    send_history: bool,
     world: &World,
     character: &Character,
     recent_messages: &[Message],
@@ -217,20 +219,69 @@ pub async fn run_dialogue_with_base(
     leader: Option<&str>,
     kept_ids: &[String],
     illustration_captions: &std::collections::HashMap<String, String>,
+    reactions_by_msg: &std::collections::HashMap<String, Vec<crate::db::queries::Reaction>>,
 ) -> Result<(String, Option<openai::Usage>), String> {
-    let system = prompts::build_dialogue_system_prompt(world, character, user_profile, mood_directive, response_length, group_context, tone, local_model, mood_chain, leader);
-    let messages = prompts::build_dialogue_messages(&system, recent_messages, retrieved_snippets, character_names, kept_ids, illustration_captions);
+    // When the user has disabled conversation history for this chat, strip
+    // prior turns, semantic memories, and moment markers — the character
+    // sees only the system prompt plus the triggering message (the most
+    // recent turn). Gives the user a clean "blank slate" pass without
+    // having to reset the thread.
+    let empty_snippets: Vec<String> = Vec::new();
+    let empty_kept: Vec<String> = Vec::new();
+    let empty_captions: std::collections::HashMap<String, String> = std::collections::HashMap::new();
+    let empty_reactions: std::collections::HashMap<String, Vec<crate::db::queries::Reaction>> = std::collections::HashMap::new();
+    let tail_slice: Vec<Message>;
+    let effective_msgs: &[Message] = if send_history {
+        recent_messages
+    } else if let Some(last) = recent_messages.last() {
+        tail_slice = vec![last.clone()];
+        &tail_slice
+    } else {
+        &[]
+    };
+    let effective_snippets: &[String] = if send_history { retrieved_snippets } else { &empty_snippets };
+    let effective_kept: &[String] = if send_history { kept_ids } else { &empty_kept };
+    let effective_captions = if send_history { illustration_captions } else { &empty_captions };
+    let effective_reactions = if send_history { reactions_by_msg } else { &empty_reactions };
+    let user_display_name = user_profile.map(|p| p.display_name.as_str());
 
-    // Token caps sit ~25% above the sentence counts we instruct (see
-    // prompts::response_length_block). Disobedient local models get some
-    // extra room before they trip the cap, and trim_to_last_complete_sentence
-    // cleans up anything that still runs over.
-    let token_limit = match response_length {
-        Some("Short") => Some(190),
-        Some("Medium") => Some(320),
-        Some("Long") => Some(1300),
+    let system = prompts::build_dialogue_system_prompt(world, character, user_profile, mood_directive, response_length, group_context, tone, local_model, mood_chain, leader);
+    let messages = prompts::build_dialogue_messages(&system, effective_msgs, effective_snippets, character_names, effective_kept, effective_captions, effective_reactions, user_display_name);
+
+    // Unsent-draft pre-pass — DISABLED 2026-04-20. The extra call produced
+    // an undercurrent-carrying reply, but even casual greetings ended up
+    // feeling over-weighted because the pre-pass invents subtext when the
+    // scene doesn't have any. Kept in source (pick_unsent_draft /
+    // append_unsent_draft_note) for easy reactivation. To re-enable:
+    // restore the `if send_history { if let Some(mem_model) = memory_model
+    // { ... } }` block here; change `let messages` above back to `let mut
+    // messages`; and revisit the "invented subtext on light scenes" issue
+    // before shipping.
+    let _ = memory_model;
+
+    // Token caps — tight enough that the trim-to-last-complete-sentence
+    // salvage below actually lands at the sentence target, not 2x over.
+    // Group chats get harder caps because they drift long: multiple
+    // characters each hitting a loose cap adds up to a wall of text per
+    // turn, even when each individual reply is "only" 3-4 sentences.
+    // The group-specific values force 1-2 sentences at Short.
+    let is_group = group_context.is_some();
+    let token_limit = match (response_length, is_group) {
+        (Some("Short"), true) => Some(50),
+        (Some("Short"), false) => Some(80),
+        (Some("Medium"), true) => Some(140),
+        (Some("Medium"), false) => Some(220),
+        (Some("Long"), true) => Some(900),
+        (Some("Long"), false) => Some(1300),
         _ => None, // Auto — no limit, let the model decide
     };
+    log::info!(
+        "[Dialogue] {} response_length={:?} → token_limit={:?}",
+        if is_group { "group" } else { "solo" },
+        response_length,
+        token_limit,
+    );
+
     let request = ChatRequest {
         model: model.to_string(),
         messages,
@@ -404,10 +455,12 @@ pub async fn run_proactive_ping_with_base(
     kept_ids: &[String],
     elapsed_hint: Option<&str>,
     illustration_captions: &std::collections::HashMap<String, String>,
+    reactions_by_msg: &std::collections::HashMap<String, Vec<crate::db::queries::Reaction>>,
 ) -> Result<(String, Option<openai::Usage>), String> {
     let system = prompts::build_proactive_ping_system_prompt(
         world, character, user_profile, mood_directive, tone, local_model, mood_chain,
     );
+    let user_display_name = user_profile.map(|p| p.display_name.as_str());
     // Pick a fresh random angle per call — curated pool keeps framings
     // heterogeneous so back-to-back pings can't collapse into the same
     // generic "thinking of you" register.
@@ -415,6 +468,7 @@ pub async fn run_proactive_ping_with_base(
     log::info!("[Proactive] angle = {:.80}", angle);
     let messages = prompts::build_proactive_ping_messages(
         &system, recent_messages, retrieved_snippets, kept_ids, elapsed_hint, angle, illustration_captions,
+        reactions_by_msg, user_display_name,
     );
 
     let request = ChatRequest {
@@ -629,7 +683,9 @@ pub async fn run_dialogue_streaming(
     illustration_captions: &std::collections::HashMap<String, String>,
 ) -> Result<String, String> {
     let system = prompts::build_dialogue_system_prompt(world, character, user_profile, mood_directive, response_length, group_context, tone, local_model, mood_chain, leader);
-    let messages = prompts::build_dialogue_messages(&system, recent_messages, retrieved_snippets, character_names, kept_ids, illustration_captions);
+    let empty_reactions: std::collections::HashMap<String, Vec<crate::db::queries::Reaction>> = std::collections::HashMap::new();
+    let user_display_name = user_profile.map(|p| p.display_name.as_str());
+    let messages = prompts::build_dialogue_messages(&system, recent_messages, retrieved_snippets, character_names, kept_ids, illustration_captions, &empty_reactions, user_display_name);
 
     let token_limit = match response_length {
         Some("Short") => Some(150),
@@ -700,11 +756,19 @@ pub async fn run_narrative_streaming(
             }
         }
         msgs.push(openai::ChatMessage {
-            role: if m.role == "narrative" || m.role == "context" { "assistant".to_string() } else { m.role.clone() },
+            role: if m.role == "narrative" || m.role == "context" {
+                "assistant".to_string()
+            } else if m.role == "dream" {
+                "system".to_string()
+            } else {
+                m.role.clone()
+            },
             content: if m.role == "context" {
                 format!("[Additional Context from Another Chat] {}", m.content)
             } else if m.role == "narrative" {
                 format!("[Narrative] {}", m.content)
+            } else if m.role == "dream" {
+                format!("[Dream] {}", m.content)
             } else {
                 m.content.clone()
             },
@@ -870,6 +934,102 @@ Rules:
     // Strip enclosing quotes if the model added them.
     let text = text.trim_matches('"').trim_matches('\'').trim().to_string();
     Ok(text)
+}
+
+
+/// Two-pass character generation: before producing the visible reply,
+/// produce the "thing the character almost said but chose not to" — the
+/// rawer or sharper or more afraid version — so the visible reply can
+/// be generated with that undercurrent in mind.
+///
+/// Returns a 1-2 sentence draft text on success, or None if the call
+/// fails or returns empty. Caller pins the draft into the main dialogue
+/// pass as a final system note so the visible reply is "different from
+/// it, but colored by it."
+///
+/// Runs on the cheap memory-tier model (it's a short micro-generation,
+/// not performance). Skipped by callers in local-provider mode.
+///
+/// Currently not called — the pre-pass was removed from
+/// `run_dialogue_with_base` (2026-04-20) because invented subtext made
+/// casual scenes feel over-weighted. Kept for easy reactivation.
+#[allow(dead_code)]
+pub async fn pick_unsent_draft(
+    base_url: &str,
+    api_key: &str,
+    model: &str,
+    character_display_name: &str,
+    character_identity: &str,
+    user_display_name: &str,
+    user_message: &str,
+    recent_scene: &[Message],
+) -> Option<String> {
+    // Compact recent scene — last ~3 message lines for context. Skip
+    // non-textual.
+    let scene: Vec<String> = recent_scene.iter()
+        .rev().take(3).rev()
+        .filter(|m| m.role == "user" || m.role == "assistant" || m.role == "narrative")
+        .map(|m| {
+            let speaker = match m.role.as_str() {
+                "user" => user_display_name.to_string(),
+                "assistant" => character_display_name.to_string(),
+                "narrative" => "Narrator".to_string(),
+                _ => "Someone".to_string(),
+            };
+            let clipped: String = m.content.chars().take(240).collect();
+            format!("{speaker}: {clipped}")
+        })
+        .collect();
+    let scene_block = if scene.is_empty() { String::new() } else { format!("\n\nRecent scene:\n{}", scene.join("\n")) };
+    let identity_block = if character_identity.is_empty() {
+        String::new()
+    } else {
+        let clipped: String = character_identity.chars().take(400).collect();
+        format!("\n\nYour identity: {clipped}")
+    };
+
+    let system = format!(
+        r#"You are {name}. Before you reply visibly, write what you ALMOST said but chose not to — the rawer version. The sharper one. The angrier or more afraid or more longing version. The one you held back because it would have cost too much.
+
+This is not the reply itself. This is the line that nearly came out of your mouth first — the impulse before the edit.
+
+Rules:
+- 1–2 sentences. Short.
+- First person, present tense, as {name}.
+- No preamble. No quotes. No labels. Just the unsaid line as if you'd opened your mouth.
+- It should be HONEST in a way the visible reply probably won't be — closer to the bone, less polished, more exposed.
+- If nothing under the surface actually exists for this moment, output exactly: (nothing underneath)"#,
+        name = character_display_name,
+    );
+
+    let user = format!(
+        "They just said to you: \"{user_message}\"{identity}{scene}\n\nWhat did you almost say?",
+        user_message = user_message,
+        identity = identity_block,
+        scene = scene_block,
+    );
+
+    let request = ChatRequest {
+        model: model.to_string(),
+        messages: vec![
+            openai::ChatMessage { role: "system".to_string(), content: system },
+            openai::ChatMessage { role: "user".to_string(), content: user },
+        ],
+        temperature: Some(0.95),
+        max_completion_tokens: Some(80),
+        response_format: None,
+    };
+
+    let response = openai::chat_completion_with_base(base_url, api_key, &request).await.ok()?;
+    let raw = response.choices.first()?.message.content.trim().to_string();
+    if raw.is_empty() { return None; }
+    // Strip enclosing quotes the model might add.
+    let cleaned = raw.trim_matches('"').trim_matches('\'').trim().to_string();
+    // Empty-signal: character has nothing under the surface right now.
+    if cleaned.eq_ignore_ascii_case("(nothing underneath)") || cleaned == "—" {
+        return None;
+    }
+    Some(cleaned)
 }
 
 /// Ask the model for the single emoji the character would *feel* toward
@@ -1159,11 +1319,19 @@ pub async fn run_narrative_with_base(
             }
         }
         msgs.push(openai::ChatMessage {
-            role: if m.role == "narrative" || m.role == "context" { "assistant".to_string() } else { m.role.clone() },
+            role: if m.role == "narrative" || m.role == "context" {
+                "assistant".to_string()
+            } else if m.role == "dream" {
+                "system".to_string()
+            } else {
+                m.role.clone()
+            },
             content: if m.role == "context" {
                 format!("[Additional Context from Another Chat] {}", m.content)
             } else if m.role == "narrative" {
                 format!("[Narrative] {}", m.content)
+            } else if m.role == "dream" {
+                format!("[Dream] {}", m.content)
             } else {
                 m.content.clone()
             },

@@ -4,7 +4,7 @@ import { formatMessage, markdownComponents, remarkPlugins, rehypePlugins } from 
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Dialog } from "@/components/ui/dialog";
-import { Send, Loader2, SmilePlus, X, Copy, ExternalLink, BookOpen, RotateCcw, MessageSquare, Compass, Settings, Image, Trash2, SlidersHorizontal, Pencil, Square, Play, Volume2, ChevronDown, ChevronRight, ScrollText, Moon } from "lucide-react";
+import { Send, Loader2, Smile, SmilePlus, X, Copy, ExternalLink, BookOpen, RotateCcw, MessageSquare, Compass, Settings, Image, Trash2, SlidersHorizontal, Pencil, Square, Play, Volume2, ChevronDown, ChevronRight, ScrollText, Moon } from "lucide-react";
 import { WebviewWindow } from "@tauri-apps/api/webviewWindow";
 import type { useAppStore } from "@/hooks/use-app-store";
 import { api, type Reaction } from "@/lib/tauri";
@@ -80,6 +80,7 @@ export function ChatView({ store, onNavigateToCharacter }: Props) {
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [showClearConfirm, setShowClearConfirm] = useState(false);
   const [clearKeepMedia, setClearKeepMedia] = useState(true);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const settingsPopoverRef = useRef<HTMLDivElement>(null);
 
   const charId = store.activeCharacter?.character_id;
@@ -197,6 +198,24 @@ export function ChatView({ store, onNavigateToCharacter }: Props) {
     if (charId) api.setSetting(`provider_override.${charId}`, next).catch(() => {});
   }, [charId]);
 
+  // Send conversation history: default ON. When OFF, the character sees
+  // only the system prompt + the triggering message — prior turns, semantic
+  // memories, kept moments, and illustration captions are withheld. Lets
+  // the user get a clean pass without resetting the thread.
+  const [sendHistory, setSendHistory] = useState<boolean>(true);
+  useEffect(() => {
+    if (!charId) return;
+    let cancelled = false;
+    api.getSetting(`send_history.${charId}`).then((v) => {
+      if (!cancelled) setSendHistory(v !== "off" && v !== "false");
+    }).catch(() => { if (!cancelled) setSendHistory(true); });
+    return () => { cancelled = true; };
+  }, [charId]);
+  const setSendHistoryPersist = useCallback((next: boolean) => {
+    setSendHistory(next);
+    if (charId) api.setSetting(`send_history.${charId}`, next ? "on" : "off").catch(() => {});
+  }, [charId]);
+
   // Leader setting: "user" (default) or the character_id. Controls whose
   // story the scene is framed around in the dialogue prompt.
   const [leader, setLeader] = useState<string>("user");
@@ -228,6 +247,28 @@ export function ChatView({ store, onNavigateToCharacter }: Props) {
     }, 600);
     return () => clearTimeout(timer);
   }, [narrationTone, narrationInstructions, responseLength, narrationDirty, charId]);
+
+  const insertEmojiAtCursor = useCallback((emoji: string) => {
+    const ta = inputRef.current;
+    if (!ta) return;
+    // When the textarea isn't the active element, its selection range is
+    // stale (browsers retain the last focused position). Treat unfocused
+    // as "append to end" — matches how users expect a picker button to
+    // behave when they haven't placed a caret yet.
+    const isFocused = document.activeElement === ta;
+    const start = isFocused ? (ta.selectionStart ?? ta.value.length) : ta.value.length;
+    const end = isFocused ? (ta.selectionEnd ?? ta.value.length) : ta.value.length;
+    const next = ta.value.slice(0, start) + emoji + ta.value.slice(end);
+    ta.value = next;
+    inputValueRef.current = next;
+    const caret = start + emoji.length;
+    ta.focus();
+    ta.setSelectionRange(caret, caret);
+    ta.style.height = "auto";
+    ta.style.height = `${ta.scrollHeight}px`;
+    const empty = !next.trim();
+    if (hasInput === empty) setHasInput(!empty);
+  }, [inputRef, inputValueRef, hasInput, setHasInput]);
 
   const openGallery = useCallback(async () => {
     const lastIllus = store.messages.filter((m) => m.role === "illustration").at(-1);
@@ -274,16 +315,30 @@ export function ChatView({ store, onNavigateToCharacter }: Props) {
 
   return (
     <div className="flex-1 flex flex-col min-h-0 relative">
-      {charPortrait?.data_url ? (
-        <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
+      <div
+        className="absolute inset-0 z-0 pointer-events-none overflow-hidden"
+        style={{ backgroundColor: store.activeCharacter?.avatar_color ?? undefined }}
+      >
+        {store.activeWorldImage?.data_url ? (
+          <img
+            src={store.activeWorldImage.data_url}
+            alt=""
+            className="absolute inset-0 w-full h-full object-cover"
+          />
+        ) : null}
+        {charPortrait?.data_url ? (
           <img
             src={charPortrait.data_url}
             alt=""
-            className="w-full h-full object-cover"
+            className="absolute inset-y-0 left-0 w-1/2 h-full object-cover"
+            style={{
+              maskImage: "linear-gradient(to right, black 70%, transparent 100%)",
+              WebkitMaskImage: "linear-gradient(to right, black 70%, transparent 100%)",
+            }}
           />
-          <div className="absolute inset-0 bg-background/60" />
-        </div>
-      ) : null}
+        ) : null}
+        <div className="absolute inset-0 bg-background/60" />
+      </div>
       <div className="px-4 py-3 border-b border-border flex items-center gap-3 relative z-30 bg-background">
         {charPortrait?.data_url ? (
           <div className="relative group flex-shrink-0">
@@ -914,6 +969,25 @@ export function ChatView({ store, onNavigateToCharacter }: Props) {
               >
                 {isSending ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
               </Button>
+              <div className="relative flex-shrink-0">
+                <Button
+                  size="icon"
+                  variant="secondary"
+                  className="rounded-xl self-stretch w-10 flex-shrink-0 hover:bg-secondary/70"
+                  onClick={() => setShowEmojiPicker((v) => !v)}
+                  disabled={isSending || (store.autoRespond && !store.apiKey)}
+                  title="Insert emoji"
+                >
+                  <Smile size={16} />
+                </Button>
+                {showEmojiPicker && (
+                  <ReactionPicker
+                    anchorRight
+                    onPick={(emoji) => insertEmojiAtCursor(emoji)}
+                    onClose={() => setShowEmojiPicker(false)}
+                  />
+                )}
+              </div>
               <div className="relative flex-shrink-0" ref={settingsPopoverRef}>
             <Button
               size="icon"
@@ -956,6 +1030,17 @@ export function ChatView({ store, onNavigateToCharacter }: Props) {
                       >{opt.label}</button>
                     ))}
                   </div>
+                </div>
+                <div>
+                  <label className="flex items-center gap-2 cursor-pointer select-none">
+                    <input
+                      type="checkbox"
+                      checked={sendHistory}
+                      onChange={(e) => setSendHistoryPersist(e.target.checked)}
+                      className="h-4 w-4 rounded border-input accent-primary cursor-pointer"
+                    />
+                    <span className="text-xs font-medium text-muted-foreground">Send conversation history</span>
+                  </label>
                 </div>
                 <div>
                   <label className="text-xs font-medium text-muted-foreground block mb-1.5">Thread mood</label>
@@ -1111,6 +1196,7 @@ export function ChatView({ store, onNavigateToCharacter }: Props) {
         )}
         userAvatarUrl={userAvatarUrl}
         notifyOnMessage={store.notifyOnMessage}
+        chatFontSize={store.chatFontSize}
       />
 
       {userAvatarUrl && (

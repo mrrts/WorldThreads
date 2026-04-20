@@ -4,7 +4,7 @@ import { formatMessage, markdownComponents, remarkPlugins, rehypePlugins } from 
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Dialog } from "@/components/ui/dialog";
-import { Send, Loader2, X, BookOpen, MessageSquare, Compass, Settings, Image, Trash2, SlidersHorizontal, Pencil, Square, Crosshair, ChevronLeft, ChevronRight, ChevronDown, Play, Pause, Volume2, ArrowRight, SmilePlus, ScrollText } from "lucide-react";
+import { Send, Loader2, X, BookOpen, MessageSquare, Compass, Settings, Image, Trash2, SlidersHorizontal, Pencil, Square, Crosshair, ChevronLeft, ChevronRight, ChevronDown, Play, Pause, Volume2, ArrowRight, Smile, SmilePlus, ScrollText } from "lucide-react";
 import { ReactionBubbles } from "@/components/chat/ReactionBubbles";
 import { ReactionPicker } from "@/components/chat/ReactionPicker";
 import { KeepRecordModal } from "@/components/chat/KeepRecordModal";
@@ -66,6 +66,7 @@ export function GroupChatView({ store, onNavigateToCharacter }: Props) {
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [showClearConfirm, setShowClearConfirm] = useState(false);
   const [clearKeepMedia, setClearKeepMedia] = useState(true);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const settingsPopoverRef = useRef<HTMLDivElement>(null);
   const [showGroupPopover, setShowGroupPopover] = useState(false);
   const groupPopoverTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -215,6 +216,41 @@ export function GroupChatView({ store, onNavigateToCharacter }: Props) {
     if (chatId) api.setSetting(`leader.${chatId}`, next).catch(() => {});
   }, [chatId]);
 
+  // First-speaker setting: which character replies first in auto-respond
+  // mode. Empty string = use the group's natural order (first character
+  // in character_ids). Group-chat-only setting; ignored in solo chats.
+  const [firstSpeaker, setFirstSpeaker] = useState<string>("");
+  useEffect(() => {
+    if (!chatId) return;
+    let cancelled = false;
+    api.getSetting(`first_speaker.${chatId}`).then((v) => {
+      if (!cancelled) setFirstSpeaker(v ?? "");
+    }).catch(() => {
+      if (!cancelled) setFirstSpeaker("");
+    });
+    return () => { cancelled = true; };
+  }, [chatId]);
+  const setFirstSpeakerPersist = useCallback((next: string) => {
+    setFirstSpeaker(next);
+    if (chatId) api.setSetting(`first_speaker.${chatId}`, next).catch(() => {});
+  }, [chatId]);
+
+  // Send conversation history: default ON. When OFF, each responding
+  // character sees only the system prompt + the triggering message.
+  const [sendHistory, setSendHistory] = useState<boolean>(true);
+  useEffect(() => {
+    if (!chatId) return;
+    let cancelled = false;
+    api.getSetting(`send_history.${chatId}`).then((v) => {
+      if (!cancelled) setSendHistory(v !== "off" && v !== "false");
+    }).catch(() => { if (!cancelled) setSendHistory(true); });
+    return () => { cancelled = true; };
+  }, [chatId]);
+  const setSendHistoryPersist = useCallback((next: boolean) => {
+    setSendHistory(next);
+    if (chatId) api.setSetting(`send_history.${chatId}`, next ? "on" : "off").catch(() => {});
+  }, [chatId]);
+
   // Auto-save chat settings
   useEffect(() => {
     if (!chatId || !narrationDirty) return;
@@ -228,6 +264,27 @@ export function GroupChatView({ store, onNavigateToCharacter }: Props) {
     }, 600);
     return () => clearTimeout(timer);
   }, [narrationTone, narrationInstructions, responseLength, narrationDirty, chatId]);
+
+  const insertEmojiAtCursor = useCallback((emoji: string) => {
+    const ta = inputRef.current;
+    if (!ta) return;
+    // When the textarea isn't the active element, its selection range is
+    // stale — treat unfocused as "append to end" so the button works
+    // before the user has placed a caret.
+    const isFocused = document.activeElement === ta;
+    const start = isFocused ? (ta.selectionStart ?? ta.value.length) : ta.value.length;
+    const end = isFocused ? (ta.selectionEnd ?? ta.value.length) : ta.value.length;
+    const next = ta.value.slice(0, start) + emoji + ta.value.slice(end);
+    ta.value = next;
+    inputValueRef.current = next;
+    const caret = start + emoji.length;
+    ta.focus();
+    ta.setSelectionRange(caret, caret);
+    ta.style.height = "auto";
+    ta.style.height = `${ta.scrollHeight}px`;
+    const empty = !next.trim();
+    if (hasInput === empty) setHasInput(!empty);
+  }, [inputRef, inputValueRef, hasInput, setHasInput]);
 
   const openGallery = useCallback(async () => {
     const lastIllus = store.messages.filter((m) => m.role === "illustration").at(-1);
@@ -286,15 +343,66 @@ export function GroupChatView({ store, onNavigateToCharacter }: Props) {
 
   return (
     <div className="flex-1 flex flex-col min-h-0 relative">
-      <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden flex">
-        {groupCharacters.map((ch) => {
-          const p = store.activePortraits[ch.character_id];
-          return p?.data_url ? (
-            <div key={ch.character_id} className="flex-1 relative">
-              <img src={p.data_url} alt="" className="w-full h-full object-cover" />
-            </div>
-          ) : <div key={ch.character_id} className="flex-1" />;
-        })}
+      <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
+        {(() => {
+          const n = groupCharacters.length;
+          if (n === 0) return null;
+          const slotWidth = 100 / n;
+          // Overlap zone (% of container width) that each neighboring pair
+          // cross-fades through. Wider overlap = softer seam; narrower =
+          // crisper separation. 12% of container total feels balanced for
+          // two portraits — neither bleeds into the center, neither has a
+          // hard edge.
+          const overlap = Math.min(slotWidth * 0.4, 12);
+          return groupCharacters.map((ch, i) => {
+            const p = store.activePortraits[ch.character_id];
+            if (!p?.data_url) {
+              return (
+                <div
+                  key={ch.character_id}
+                  className="absolute inset-y-0"
+                  style={{
+                    left: `${i * slotWidth}%`,
+                    width: `${slotWidth}%`,
+                    backgroundColor: ch.avatar_color,
+                  }}
+                />
+              );
+            }
+            const isFirst = i === 0;
+            const isLast = i === n - 1;
+            // Extend each image into neighbor slots by `overlap/2` on the
+            // sides that have a neighbor, so the two neighboring images
+            // share an `overlap`-wide cross-fade zone.
+            const bleedL = isFirst ? 0 : overlap / 2;
+            const bleedR = isLast ? 0 : overlap / 2;
+            const leftPct = i * slotWidth - bleedL;
+            const widthPct = slotWidth + bleedL + bleedR;
+            // Fade zones as % of the image itself (not the container).
+            const leftFadePct = (overlap / widthPct) * 100;
+            const rightFadePct = 100 - (overlap / widthPct) * 100;
+            const stops: string[] = [];
+            if (isFirst) stops.push("black 0%");
+            else { stops.push("transparent 0%"); stops.push(`black ${leftFadePct}%`); }
+            if (isLast) stops.push("black 100%");
+            else { stops.push(`black ${rightFadePct}%`); stops.push("transparent 100%"); }
+            const mask = `linear-gradient(to right, ${stops.join(", ")})`;
+            return (
+              <img
+                key={ch.character_id}
+                src={p.data_url}
+                alt=""
+                className="absolute inset-y-0 h-full object-cover"
+                style={{
+                  left: `${leftPct}%`,
+                  width: `${widthPct}%`,
+                  maskImage: mask,
+                  WebkitMaskImage: mask,
+                }}
+              />
+            );
+          });
+        })()}
         <div className="absolute inset-0 bg-background/65" />
       </div>
       <div className="px-4 py-3 border-b border-border flex items-center gap-3 relative z-30 bg-background">
@@ -955,6 +1063,25 @@ export function GroupChatView({ store, onNavigateToCharacter }: Props) {
               >
                 {isSending ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
               </Button>
+              <div className="relative flex-shrink-0">
+                <Button
+                  size="icon"
+                  variant="secondary"
+                  className="rounded-xl self-stretch w-10 flex-shrink-0 hover:bg-secondary/70"
+                  onClick={() => setShowEmojiPicker((v) => !v)}
+                  disabled={isSending || (store.autoRespond && !store.apiKey)}
+                  title="Insert emoji"
+                >
+                  <Smile size={16} />
+                </Button>
+                {showEmojiPicker && (
+                  <ReactionPicker
+                    anchorRight
+                    onPick={(emoji) => insertEmojiAtCursor(emoji)}
+                    onClose={() => setShowEmojiPicker(false)}
+                  />
+                )}
+              </div>
               <div className="relative flex-shrink-0" ref={settingsPopoverRef}>
             <Button
               size="icon"
@@ -997,6 +1124,34 @@ export function GroupChatView({ store, onNavigateToCharacter }: Props) {
                       >{opt.label}</button>
                     ))}
                   </div>
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground block mb-1.5">
+                    Who speaks first
+                    <span className="text-muted-foreground/50 font-normal ml-1.5">(auto-respond order)</span>
+                  </label>
+                  <div className="flex rounded-lg overflow-hidden border border-input">
+                    {[{ id: "", label: "Default" }, ...groupCharacters.map((c) => ({ id: c.character_id, label: c.display_name }))].map((opt) => (
+                      <button
+                        key={opt.id || "default"}
+                        onClick={() => setFirstSpeakerPersist(opt.id)}
+                        className={`flex-1 px-2 py-1.5 text-xs font-medium transition-colors cursor-pointer ${
+                          firstSpeaker === opt.id ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground hover:bg-accent/50"
+                        }`}
+                      >{opt.label}</button>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <label className="flex items-center gap-2 cursor-pointer select-none">
+                    <input
+                      type="checkbox"
+                      checked={sendHistory}
+                      onChange={(e) => setSendHistoryPersist(e.target.checked)}
+                      className="h-4 w-4 rounded border-input accent-primary cursor-pointer"
+                    />
+                    <span className="text-xs font-medium text-muted-foreground">Send conversation history</span>
+                  </label>
                 </div>
                 <div>
                   <label className="text-xs font-medium text-muted-foreground block mb-1.5">Thread mood</label>
@@ -1155,6 +1310,7 @@ export function GroupChatView({ store, onNavigateToCharacter }: Props) {
         )}
         userAvatarUrl={userAvatarUrl}
         notifyOnMessage={store.notifyOnMessage}
+        chatFontSize={store.chatFontSize}
       />
 
       {userAvatarUrl && (

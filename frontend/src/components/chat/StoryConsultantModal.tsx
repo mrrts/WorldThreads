@@ -7,6 +7,7 @@ import { listen } from "@tauri-apps/api/event";
 import { api, type ConsultantChat } from "@/lib/tauri";
 import { playChime } from "@/lib/chime";
 import { Button } from "@/components/ui/button";
+import { chatFontPx } from "@/lib/chat-font";
 
 interface ConsultantMessage {
   // "import" is a marker role used when the user pulls in recent thread
@@ -30,6 +31,8 @@ interface Props {
   userAvatarUrl: string;
   /** Whether to play a chime on first token */
   notifyOnMessage: boolean;
+  /** Chat font size ("sm" | "md" | "lg" etc.) — shared with ChatView/GroupChatView */
+  chatFontSize: string;
 }
 
 interface PromptCategory {
@@ -81,7 +84,7 @@ function buildCategories(names: string[]): PromptCategory[] {
   ];
 }
 
-export function StoryConsultantModal({ open, onClose, apiKey, characterId, groupChatId, threadId, characterNames, worldImageUrl, portraits, userAvatarUrl, notifyOnMessage }: Props) {
+export function StoryConsultantModal({ open, onClose, apiKey, characterId, groupChatId, threadId, characterNames, worldImageUrl, portraits, userAvatarUrl, notifyOnMessage, chatFontSize }: Props) {
   const [chats, setChats] = useState<ConsultantChat[]>([]);
   const [activeChatId, setActiveChatId] = useState<string | null>(null);
   const [messages, setMessages] = useState<ConsultantMessage[]>([]);
@@ -457,7 +460,8 @@ export function StoryConsultantModal({ open, onClose, apiKey, characterId, group
                   <div key={i} className={`group flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
                     <div
                       ref={isStreamingAssistant ? lastAssistantRef : undefined}
-                      className={`relative max-w-[85%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed ${
+                      style={{ fontSize: `${chatFontPx(chatFontSize)}px` }}
+                      className={`relative max-w-[85%] rounded-2xl px-4 py-2.5 leading-relaxed ${
                       msg.role === "user"
                         ? "bg-primary text-primary-foreground rounded-br-md"
                         : "bg-secondary/60 text-secondary-foreground rounded-bl-md border border-border/30 backdrop-blur-sm"
@@ -565,7 +569,8 @@ export function StoryConsultantModal({ open, onClose, apiKey, characterId, group
                   }
                 }}
                 placeholder="Ask about your story..."
-                className="flex-1 max-h-[120px] resize-none rounded-lg border border-input bg-transparent px-3 py-2 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+                style={{ fontSize: `${chatFontPx(chatFontSize)}px` }}
+                className="flex-1 max-h-[120px] resize-none rounded-lg border border-input bg-transparent px-3 py-2 placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring"
                 rows={1}
                 disabled={loading}
               />

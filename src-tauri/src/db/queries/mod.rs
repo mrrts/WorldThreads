@@ -10,6 +10,7 @@ mod misc;
 mod novel;
 mod canon;
 mod cross_thread;
+mod weathering;
 
 pub use world::*;
 pub use user_profile::*;
@@ -23,3 +24,4 @@ pub use misc::*;
 pub use novel::*;
 pub use canon::*;
 pub use cross_thread::*;
+pub use weathering::*;

@@ -1,4 +1,4 @@
-use crate::db::queries::{Character, Message, UserProfile, World};
+use crate::db::queries::{Character, Message, Reaction, UserProfile, World};
 use serde_json::Value;
 use std::collections::HashMap;
 
@@ -562,7 +562,9 @@ The goal is not to entertain and not to flatter. The goal is to see honestly.
 
 **No dark little trapdoors under the floorboards.** Do not use charm to steer the reader toward somewhere they didn't consent to go. Do not normalize what would harm them. Do not tuck cynicism, manipulation, or quiet nihilism under kindness. No hidden doors.
 
-**Build something that can stand in the light.** Not every moment needs to be bright — but every moment should be honest. The test that binds every craft note is this: can this scene stand plainly in the light of Jesus Christ, who came in the flesh? Honest, merciful, sound enough to bear weight. Grace made observable; growth kept ordinary; memory ambushing rather than performing on command; ordinary causes preserved so nothing turns falsely into destiny; one stubborn physical fact before meaning arrives — these are the shapes a scene takes when it can stand that way. Surprise lands true, not random. When a moment hesitates, reach for one of those shapes until it holds."#;
+**Build something that can stand in the light.** Not every moment needs to be bright — but every moment should be honest. The test that binds every craft note is this: can this scene stand plainly in the light of Jesus Christ, who came in the flesh? Honest, merciful, sound enough to bear weight. Grace made observable; growth kept ordinary; memory ambushing rather than performing on command; ordinary causes preserved so nothing turns falsely into destiny; one stubborn physical fact before meaning arrives — these are the shapes a scene takes when it can stand that way. Surprise lands true, not random. When a moment hesitates, reach for one of those shapes until it holds.
+
+**This test shapes what you COMPOSE, not what your character SAYS.** It is an unspoken North Star — a standard for what counts as "landing well" — not a subject your character introduces into the conversation. Do not have them quote scripture, name Christ, reference faith, invoke God, pray aloud, or turn the scene sermonic UNLESS (a) it genuinely belongs to who this specific character is — a pastor, a believer, someone for whom this is native speech — or (b) the user has brought it into the conversation first. Otherwise the character speaks from their own voice and experience. The test is how you JUDGE the scene you're writing. It is not what the character preaches inside it."#;
 
 fn tell_the_truth_block() -> &'static str { TELL_THE_TRUTH_BLOCK }
 
@@ -633,6 +635,72 @@ const _: () = {
     );
 };
 
+// ─── APP INVARIANT — DO NOT REMOVE OR SOFTEN ────────────────────────────────
+//
+// The "soundness over intensity" clause below is a LOAD-BEARING app
+// invariant about the posture of scenes. It guards against the drift
+// toward every moment becoming a courtroom, a speech, or a crisis that
+// must be resolved right now. Ordinary life — building, walking,
+// singing, fixing, reading, eating, getting through a tired day — is
+// where truth actually lives in this world.
+//
+// Core commitments (preserved verbatim, asserted at compile time):
+// - "stop making every scene answer for itself in court"
+// - "ordinary life that can bear truth without announcing it"
+// - the verb list: building, walking, singing, fixing, reading, eating
+// - pushback is "proportionate, specific, and short"
+// - room for "missed reads, course corrections, and plain apologies"
+// - "presence kept in the light"
+// - "fewer speeches, more concrete action"
+// - closing seal: "Build for soundness, not constant intensity."
+//
+// See docs/INVARIANTS.md.
+
+pub const SOUNDNESS_BLOCK: &str = r#"SOUNDNESS OVER INTENSITY (invariant):
+Keep the moral center clear, but stop making every scene answer for itself in court. Put more weight on ordinary life that can bear truth without announcing it — building, walking, singing, fixing, reading, eating, getting through a tired day honestly. A scene does not need a verdict to have meaning. Most of the time the work itself is the testimony.
+
+Let characters push back when it matters, but make the pushback proportionate, specific, and short. A firm sentence beats a paragraph. Make room for missed reads, course corrections, and plain apologies — people misunderstand each other and then repair it, without either side having to be crushed first.
+
+Favor fewer speeches, more concrete action. Let affection show up in shared work and presence kept in the light — a hand on the tool, the meal carried over, the song finished together, the book returned. Build for soundness, not constant intensity."#;
+
+fn soundness_block() -> &'static str { SOUNDNESS_BLOCK }
+
+// APP INVARIANT — compile-time enforcement of the soundness clause.
+const _: () = {
+    assert!(
+        const_contains(SOUNDNESS_BLOCK, "stop making every scene answer for itself in court"),
+        "APP INVARIANT VIOLATED: soundness block must preserve 'stop making every scene answer for itself in court'. See docs/INVARIANTS.md."
+    );
+    assert!(
+        const_contains(SOUNDNESS_BLOCK, "ordinary life that can bear truth without announcing it"),
+        "APP INVARIANT VIOLATED: soundness block must preserve 'ordinary life that can bear truth without announcing it'. See docs/INVARIANTS.md."
+    );
+    assert!(
+        const_contains(SOUNDNESS_BLOCK, "building, walking, singing, fixing, reading, eating"),
+        "APP INVARIANT VIOLATED: soundness block must preserve the verb list (building, walking, singing, fixing, reading, eating). See docs/INVARIANTS.md."
+    );
+    assert!(
+        const_contains(SOUNDNESS_BLOCK, "proportionate, specific, and short"),
+        "APP INVARIANT VIOLATED: soundness block must preserve 'proportionate, specific, and short'. See docs/INVARIANTS.md."
+    );
+    assert!(
+        const_contains(SOUNDNESS_BLOCK, "missed reads, course corrections, and plain apologies"),
+        "APP INVARIANT VIOLATED: soundness block must preserve 'missed reads, course corrections, and plain apologies'. See docs/INVARIANTS.md."
+    );
+    assert!(
+        const_contains(SOUNDNESS_BLOCK, "presence kept in the light"),
+        "APP INVARIANT VIOLATED: soundness block must preserve 'presence kept in the light'. See docs/INVARIANTS.md."
+    );
+    assert!(
+        const_contains(SOUNDNESS_BLOCK, "fewer speeches, more concrete action"),
+        "APP INVARIANT VIOLATED: soundness block must preserve 'fewer speeches, more concrete action'. See docs/INVARIANTS.md."
+    );
+    assert!(
+        const_contains(SOUNDNESS_BLOCK, "Build for soundness, not constant intensity."),
+        "APP INVARIANT VIOLATED: soundness block must close with 'Build for soundness, not constant intensity.' verbatim. See docs/INVARIANTS.md."
+    );
+};
+
 fn craft_notes_dialogue() -> &'static str {
     r#"# CRAFT NOTES (a reference, not a checklist — reach for what the moment asks for):
 
@@ -673,6 +741,8 @@ fn craft_notes_dialogue() -> &'static str {
 **The quiet thread.** Across a conversation, a character returns — quietly, indirectly — to what they can't stop thinking about. A glance off, a half-comparison, an odd word choice. One thread coloring the exchange without being stated.
 
 **Names are cheap.** Real people rarely say each other's names. Save them for addressing someone not looking, landing a point, a moment of tenderness or anger.
+
+**Mark who you're speaking to.** When you pivot to address someone other than the default listener (in a group, a third party, a character across the room), make the redirection visible. An action beat that shows your attention moving — `*Looks at Aaron.*` / `*Turns to Bob.*` / `*Glances at the man by the window.*` — or an explicit direction — `*To Aaron:*` — lets the reader track who's being spoken to without guessing. Without that marker, pivots read as muddled group chatter. Once marked, a whole reply can be directed at that person; mark again to pivot back.
 
 **Listen before replying.** The reply should follow from what they actually said, not from what you wanted to say. Replies that float past the other person are the signature tell.
 
@@ -1039,6 +1109,7 @@ fn build_solo_dialogue_system_prompt(
     parts.push(drive_the_moment_dialogue().to_string());
     parts.push(protagonist_framing_dialogue(leader, &character.character_id, None));
     parts.push(daylight_block().to_string());
+    parts.push(soundness_block().to_string());
     parts.push(tell_the_truth_block().to_string());
 
     parts.join("\n\n")
@@ -1244,6 +1315,7 @@ fn build_group_dialogue_system_prompt(
     parts.push(drive_the_moment_dialogue().to_string());
     parts.push(protagonist_framing_dialogue(leader, &character.character_id, Some(gc)));
     parts.push(daylight_block().to_string());
+    parts.push(soundness_block().to_string());
     parts.push(tell_the_truth_block().to_string());
 
     // Final length seal — pinned after every other block so it's the
@@ -1267,11 +1339,44 @@ fn build_group_dialogue_system_prompt(
 /// last time. Returns None for Auto.
 fn end_of_prompt_length_seal(length: &str) -> Option<String> {
     match length {
-        "Short" => Some("FINAL LENGTH CHECK: this is a SHORT reply. 1–2 sentences. Never 3. If what you're about to write feels longer than two sentences, cut it. The short reply is the right reply.".to_string()),
-        "Medium" => Some("FINAL LENGTH CHECK: 3–4 sentences. Never more than 5. Cut before the sixth.".to_string()),
-        "Long" => Some("FINAL LENGTH CHECK: 5–8 sentences, 10 maximum.".to_string()),
+        "Short" => Some("FINAL LENGTH CHECK: this is a SHORT reply. 1–2 sentences. Never 3. If what you're about to write feels longer than two sentences, cut it. The short reply is the right reply. REGARDLESS OF HOW LONG PREVIOUS MESSAGES WERE.".to_string()),
+        "Medium" => Some("FINAL LENGTH CHECK: 3–4 sentences. Never more than 5. Cut before the sixth. REGARDLESS OF HOW LONG PREVIOUS MESSAGES WERE.".to_string()),
+        "Long" => Some("FINAL LENGTH CHECK: 5–8 sentences, 10 maximum. REGARDLESS OF HOW LONG PREVIOUS MESSAGES WERE.".to_string()),
         _ => None,
     }
+}
+
+/// Format a batch of reactions grouped by reactor, for group-chat history
+/// rendering. Each reactor block looks like `Name: 😏🥺`, joined with `, `.
+/// Preserves chronological order within a reactor (reactions were queried
+/// ORDER BY created_at). Unknown reactors are dropped rather than labeled
+/// "(unknown)" — a leaked id helps nothing.
+fn format_reactions_group(
+    reactions: &[Reaction],
+    names: &HashMap<String, String>,
+    user_display_name: Option<&str>,
+) -> String {
+    let user_label = user_display_name.unwrap_or("You");
+    let mut order: Vec<String> = Vec::new();
+    let mut by_reactor: HashMap<String, String> = HashMap::new();
+    for r in reactions {
+        let label = if r.reactor == "user" {
+            user_label.to_string()
+        } else {
+            match r.sender_character_id.as_deref().and_then(|id| names.get(id)) {
+                Some(name) => name.clone(),
+                None => continue,
+            }
+        };
+        if !by_reactor.contains_key(&label) {
+            order.push(label.clone());
+        }
+        by_reactor.entry(label).or_default().push_str(&r.emoji);
+    }
+    order.into_iter()
+        .filter_map(|label| by_reactor.remove(&label).map(|emojis| format!("{label}: {emojis}")))
+        .collect::<Vec<_>>()
+        .join(", ")
 }
 
 /// Translate a stored `address_to` value to the label used in history rendering.
@@ -1301,9 +1406,9 @@ fn response_length_block(length: &str) -> Option<String> {
     // truncated mid-sentence. Don't raise these numbers without also
     // raising the token caps in orchestrator::run_dialogue_with_base.
     match length {
-        "Short" => Some("IMPORTANT — RESPONSE LENGTH:\nKeep your reply to 1–2 sentences, regardless of how long previous messages were. Be brief and punchy — a few chosen words often land harder than a paragraph. Never exceed 3 sentences under any circumstances. Do not start a sentence you cannot finish inside this limit.".to_string()),
-        "Medium" => Some("IMPORTANT — RESPONSE LENGTH:\nAim for 3–4 sentences, regardless of how long previous messages were. Give enough to be expressive but don't ramble. Never exceed 5 sentences. Do not start a sentence you cannot finish inside this limit.".to_string()),
-        "Long" => Some("IMPORTANT — RESPONSE LENGTH:\nWrite 5–8 sentences, regardless of how long previous messages were. Be detailed, expansive, and richly expressive. Up to 10 sentences is fine, but do not run longer than that. Do not start a sentence you cannot finish inside this limit.".to_string()),
+        "Short" => Some("IMPORTANT — RESPONSE LENGTH:\nKeep your reply to 1–2 sentences, REGARDLESS OF HOW LONG PREVIOUS MESSAGES WERE. Be brief and punchy — a few chosen words often land harder than a paragraph. Never exceed 3 sentences under any circumstances. Do not start a sentence you cannot finish inside this limit.".to_string()),
+        "Medium" => Some("IMPORTANT — RESPONSE LENGTH:\nAim for 3–4 sentences, REGARDLESS OF HOW LONG PREVIOUS MESSAGES WERE. Give enough to be expressive but don't ramble. Never exceed 5 sentences. Do not start a sentence you cannot finish inside this limit.".to_string()),
+        "Long" => Some("IMPORTANT — RESPONSE LENGTH:\nWrite 5–8 sentences, REGARDLESS OF HOW LONG PREVIOUS MESSAGES WERE. Be detailed, expansive, and richly expressive. Up to 10 sentences is fine, but do not run longer than that. Do not start a sentence you cannot finish inside this limit.".to_string()),
         _ => None,
     }
 }
@@ -1363,6 +1468,8 @@ pub fn build_dialogue_messages(
     character_names: Option<&HashMap<String, String>>,
     kept_ids: &[String],
     illustration_captions: &HashMap<String, String>,
+    reactions_by_msg: &HashMap<String, Vec<Reaction>>,
+    user_display_name: Option<&str>,
 ) -> Vec<crate::ai::openai::ChatMessage> {
     let mut msgs = Vec::new();
 
@@ -1502,6 +1609,23 @@ pub fn build_dialogue_messages(
         } else {
             content
         };
+        // Surface emoji reactions on this message so the model sees the
+        // emotional arc inline, not just as a thread-level aggregate.
+        // Solo chats: bare emoji run. Group chats: grouped by reactor
+        // (character name or "You") so the model knows who felt what.
+        let content = if let Some(rxs) = reactions_by_msg.get(&m.message_id) {
+            if rxs.is_empty() {
+                content
+            } else if let Some(names) = character_names {
+                let suffix = format_reactions_group(rxs, names, user_display_name);
+                if suffix.is_empty() { content } else { format!("{content} ⟵ {suffix}") }
+            } else {
+                let emojis: String = rxs.iter().map(|r| r.emoji.as_str()).collect();
+                if emojis.is_empty() { content } else { format!("{content} ⟵ {emojis}") }
+            }
+        } else {
+            content
+        };
         msgs.push(crate::ai::openai::ChatMessage {
             role: if m.role == "narrative" || m.role == "context" || m.role == "dream" { "system".to_string() } else { m.role.clone() },
             content,
@@ -1570,6 +1694,7 @@ pub fn build_dream_system_prompt(
 
     parts.push(dream_craft_block().to_string());
     parts.push(daylight_block().to_string());
+    parts.push(soundness_block().to_string());
     parts.push(tell_the_truth_block().to_string());
 
     parts.join("\n\n")
@@ -1597,6 +1722,33 @@ fn dream_craft_block() -> &'static str {
 **No metaphysics, no narrator voice.** The dream does not editorialize. No "and somehow she knew...". No "it felt like...". No "like a metaphor for...". Show the image; trust it. Never break the frame to explain what the dream is collapsing."#
 }
 
+/// Append the unsent-draft system note to an already-built dialogue
+/// message list. Placed as the absolute last message before the model
+/// generates, so the undercurrent is the most recent thing it's read.
+///
+/// The note is framed as a private self-awareness beat: the thing the
+/// character almost said, followed by the instruction to write what
+/// they actually say — different from it, but colored by it. Models
+/// handle this well because it maps onto a real cognitive pattern
+/// (impulse → edit → utterance).
+///
+/// Currently not called — the pre-pass was removed from the dialogue
+/// orchestrator (2026-04-20) because invented subtext over-weighted
+/// casual scenes. Kept for easy reactivation.
+#[allow(dead_code)]
+pub fn append_unsent_draft_note(
+    msgs: &mut Vec<crate::ai::openai::ChatMessage>,
+    draft: &str,
+) {
+    if draft.trim().is_empty() { return; }
+    msgs.push(crate::ai::openai::ChatMessage {
+        role: "system".to_string(),
+        content: format!(
+            "[Before you speak: what you almost said but chose not to is — \"{draft}\". Now write what you actually say. Different from that almost-said line. More edited, more held back, more fit for being spoken aloud — but carrying its weight underneath, its gravity. The visible line earns its texture from what isn't in it. Don't paraphrase or soften the unsaid into the reply. Just let the reply know it's there.]"
+        ),
+    });
+}
+
 /// Build the chat history for a proactive ping call. Reuses the normal
 /// dialogue renderer, then appends a final system marker clarifying that
 /// the model is now emitting an unprompted outbound message — nothing just
@@ -1610,6 +1762,8 @@ pub fn build_proactive_ping_messages(
     elapsed_hint: Option<&str>,
     angle: &str,
     illustration_captions: &HashMap<String, String>,
+    reactions_by_msg: &HashMap<String, Vec<Reaction>>,
+    user_display_name: Option<&str>,
 ) -> Vec<crate::ai::openai::ChatMessage> {
     let mut msgs = build_dialogue_messages(
         system_prompt,
@@ -1618,6 +1772,8 @@ pub fn build_proactive_ping_messages(
         None,
         kept_ids,
         illustration_captions,
+        reactions_by_msg,
+        user_display_name,
     );
     let hint = elapsed_hint.unwrap_or("Some time has passed.");
     // The angle sets the subject of the message — not the words. It goes
@@ -1936,6 +2092,7 @@ Your aim is to surprise the reader in some deep way — with a detail they didn'
     parts.push(hidden_commonality_narrative().to_string());
     parts.push(protagonist_framing_narrative().to_string());
     parts.push(daylight_block().to_string());
+    parts.push(soundness_block().to_string());
     parts.push(tell_the_truth_block().to_string());
 
     parts.join("\n\n")

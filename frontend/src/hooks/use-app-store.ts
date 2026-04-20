@@ -503,8 +503,20 @@ export function useAppStore() {
         totalMessages: s.totalMessages + 1,
       }));
 
-      // Then prompt each character sequentially
-      const charIds: string[] = Array.isArray(state.activeGroupChat.character_ids) ? state.activeGroupChat.character_ids : [];
+      // Ask the backend which characters should respond and in what
+      // order. Hybrid policy inside: name-mention → one specific
+      // character; otherwise an LLM pick (with first_speaker promotion);
+      // falls back to all-respond in character_ids order. The memberIds
+      // list is the unconditional safety net if the call fails.
+      const memberIds: string[] = Array.isArray(state.activeGroupChat.character_ids) ? state.activeGroupChat.character_ids : [];
+      let charIds: string[];
+      try {
+        const picked = await api.pickGroupResponders(state.apiKey, state.activeGroupChat.group_chat_id, content);
+        charIds = picked.filter((id) => memberIds.includes(id));
+        if (charIds.length === 0) charIds = memberIds;
+      } catch {
+        charIds = memberIds;
+      }
       for (const cid of charIds) {
         setState((s) => ({ ...s, sending: state.activeGroupChat!.group_chat_id, sendingCharacterId: cid }));
         const res = await api.promptGroupCharacter(state.apiKey, state.activeGroupChat!.group_chat_id, cid);

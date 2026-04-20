@@ -649,6 +649,8 @@ export const api = {
     invoke<Message>("save_group_user_message_cmd", { groupChatId, content }),
   sendGroupMessage: (apiKey: string, groupChatId: string, content: string) =>
     invoke<SendGroupMessageResult>("send_group_message_cmd", { apiKey, groupChatId, content }),
+  pickGroupResponders: (apiKey: string, groupChatId: string, content: string) =>
+    invoke<string[]>("pick_group_responders_cmd", { apiKey, groupChatId, content }),
   promptGroupCharacter: (apiKey: string, groupChatId: string, characterId: string, addressTo?: string) =>
     invoke<PromptGroupCharacterResult>("prompt_group_character_cmd", { apiKey, groupChatId, characterId, addressTo: addressTo ?? null }),
   generateGroupNarrative: (apiKey: string, groupChatId: string, customInstructions?: string) =>

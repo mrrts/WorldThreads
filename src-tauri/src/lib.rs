@@ -225,6 +225,7 @@ pub fn run() {
             get_group_messages_cmd,
             save_group_user_message_cmd,
             send_group_message_cmd,
+            pick_group_responders_cmd,
             prompt_group_character_cmd,
             generate_group_illustration_cmd,
             generate_group_narrative_cmd,

@@ -1,3 +1,4 @@
+import { useState } from "react";
 import Markdown from "react-markdown";
 import { Link2, SlidersHorizontal, Loader2 } from "lucide-react";
 import { formatMessage, markdownComponents, remarkPlugins, rehypePlugins } from "./formatMessage";
@@ -11,7 +12,16 @@ interface Props {
   onAdjust: (id: string) => void;
 }
 
+// Cross-chat context snippets are generated from another thread's history
+// and can run several paragraphs. Collapse by default above this length so
+// they don't dominate scroll; user expands when they actually want to read.
+const COLLAPSE_THRESHOLD = 400;
+
 export function ContextMessage({ message, isPending, onResetToHere, adjustingMessageId, onAdjust }: Props) {
+  const isLong = message.content.length > COLLAPSE_THRESHOLD;
+  const [expanded, setExpanded] = useState(false);
+  const showCollapsed = isLong && !expanded;
+
   return (
     <div key={message.message_id} data-message-id={message.message_id} className="flex justify-center my-2">
       <div className="relative group max-w-[90%] rounded-xl px-5 py-3.5 text-sm leading-relaxed bg-gradient-to-br from-sky-950/40 to-sky-900/20 border border-sky-700/30 text-sky-100/90 backdrop-blur-sm">
@@ -43,9 +53,24 @@ export function ContextMessage({ message, isPending, onResetToHere, adjustingMes
           </div>
         )}
 
-        <div className="prose prose-sm max-w-none prose-p:my-1 [&>*:first-child]:mt-0 [&>*:last-child]:mb-0 [--tw-prose-body:var(--color-sky-100)] [--tw-prose-bold:rgb(125,211,252)]">
-          <Markdown components={markdownComponents} remarkPlugins={remarkPlugins} rehypePlugins={rehypePlugins}>{formatMessage(message.content)}</Markdown>
+        <div className="relative">
+          <div
+            className={`prose prose-sm max-w-none prose-p:my-1 [&>*:first-child]:mt-0 [&>*:last-child]:mb-0 [--tw-prose-body:var(--color-sky-100)] [--tw-prose-bold:rgb(125,211,252)] ${showCollapsed ? "max-h-24 overflow-hidden" : ""}`}
+          >
+            <Markdown components={markdownComponents} remarkPlugins={remarkPlugins} rehypePlugins={rehypePlugins}>{formatMessage(message.content)}</Markdown>
+          </div>
+          {showCollapsed && (
+            <div className="pointer-events-none absolute inset-x-0 bottom-0 h-10 bg-gradient-to-t from-sky-950/80 to-transparent" />
+          )}
         </div>
+        {isLong && (
+          <button
+            onClick={() => setExpanded((v) => !v)}
+            className="mt-1.5 text-[11px] font-medium text-sky-300/70 hover:text-sky-200 cursor-pointer"
+          >
+            {expanded ? "Show less" : "Show more"}
+          </button>
+        )}
         <p className="text-[10px] mt-1.5 text-sky-500/50 flex items-center gap-2">
           {new Date(message.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
           {!isPending && (

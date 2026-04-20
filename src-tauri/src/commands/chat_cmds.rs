@@ -106,8 +106,11 @@ pub async fn embed_and_store_for_members(
 }
 
 /// Run a vector search against an already-computed embedding and return
-/// formatted `[Memory]` snippets ready to push into a retrieval list.
-/// Helper used by both solo and group dialogue paths.
+/// formatted memory snippets ready to push into a retrieval list.
+/// Helper used by both solo and group dialogue paths. Retrieved snippets
+/// carry a weathering label (vivid / softened / mostly-the-feeling /
+/// almost-a-rumor) so the model reads older memories with hedged grain
+/// rather than perfect recall.
 pub fn vector_search_memories(
     db: &Database,
     world_id: &str,
@@ -119,9 +122,10 @@ pub fn vector_search_memories(
     match search_vectors(&conn, world_id, character_id, embedding, k) {
         Ok(results) => {
             let mut out = Vec::with_capacity(results.len());
-            for (chunk_content, distance) in results {
-                log::info!("[Memory]   - dist={:.3}: {:.80}", distance, chunk_content);
-                out.push(format!("[Memory] {chunk_content}"));
+            for hit in results {
+                let weather = weathering_label(&hit.created_at);
+                log::info!("[Memory]   - dist={:.3} ({weather}): {:.80}", hit.distance, hit.content);
+                out.push(format!("[Memory, {weather}] {}", hit.content));
             }
             out
         }
@@ -183,6 +187,33 @@ pub fn collect_illustration_captions(
         Ok(conn) => fetch_illustration_captions(&conn, &ids),
         Err(_) => std::collections::HashMap::new(),
     }
+}
+
+/// Bucket the emoji reactions on a slice of messages into a map keyed by
+/// message_id. Reactions are returned chronologically (query is ORDER BY
+/// created_at). Used by dialogue builders to surface each beat's reactions
+/// inline so the model sees the emotional arc, not just the thread-level
+/// mood aggregate.
+pub fn collect_reactions_by_message(
+    db: &Database,
+    messages: &[Message],
+) -> std::collections::HashMap<String, Vec<Reaction>> {
+    let ids: Vec<String> = messages.iter()
+        .filter(|m| m.role == "user" || m.role == "assistant")
+        .map(|m| m.message_id.clone())
+        .collect();
+    if ids.is_empty() {
+        return std::collections::HashMap::new();
+    }
+    let reactions = match db.conn.lock() {
+        Ok(conn) => get_reactions_for_messages(&conn, &ids).unwrap_or_default(),
+        Err(_) => return std::collections::HashMap::new(),
+    };
+    let mut by_msg: std::collections::HashMap<String, Vec<Reaction>> = std::collections::HashMap::new();
+    for r in reactions {
+        by_msg.entry(r.message_id.clone()).or_default().push(r);
+    }
+    by_msg
 }
 
 pub fn world_time_fields(world: &World) -> (Option<i64>, Option<String>) {
@@ -456,9 +487,10 @@ pub async fn send_message_cmd(
                     match search_vectors(&conn, &world.world_id, &character_id, &embeddings[0], 4) {
                         Ok(results) => {
                             log::info!("[Memory] Vector search: {} results", results.len());
-                            for (chunk_content, distance) in results {
-                                log::info!("[Memory]   - dist={:.3}: {:.80}", distance, chunk_content);
-                                full_retrieved.push(format!("[Memory] {chunk_content}"));
+                            for hit in results {
+                                let weather = weathering_label(&hit.created_at);
+                                log::info!("[Memory]   - dist={:.3} ({weather}): {:.80}", hit.distance, hit.content);
+                                full_retrieved.push(format!("[Memory, {weather}] {}", hit.content));
                             }
                         }
                         Err(e) => log::warn!("[Memory] Vector search failed: {e}"),
@@ -506,8 +538,18 @@ pub async fn send_message_cmd(
         list_kept_message_ids_for_thread(&conn, &thread.thread_id).unwrap_or_default()
     };
     let illustration_captions = collect_illustration_captions(&db, &recent_msgs);
+    let reactions_by_msg = collect_reactions_by_message(&db, &recent_msgs);
+    let send_history = {
+        let conn = db.conn.lock().map_err(|e| e.to_string())?;
+        get_setting(&conn, &format!("send_history.{}", character_id))
+            .ok().flatten()
+            .map(|v| v != "off" && v != "false")
+            .unwrap_or(true)
+    };
     let dialogue_fut = orchestrator::run_dialogue_with_base(
         &base, &api_key, &model_config.dialogue_model,
+        if !model_config.is_local() { Some(&model_config.memory_model) } else { None },
+        send_history,
         &world, &character, &recent_msgs, &full_retrieved,
         user_profile.as_ref(),
         mood_directive.as_deref(),
@@ -518,6 +560,7 @@ pub async fn send_message_cmd(
     leader.as_deref(),
     &kept_ids,
     &illustration_captions,
+    &reactions_by_msg,
     );
     // Context for the reaction-emoji pick: the recent messages EXCLUDING
     // the user's brand-new one (which goes in the user-role slot). Gives
@@ -826,8 +869,18 @@ pub async fn prompt_character_cmd(
         retrieved.push(ct);
     }
     let illustration_captions = collect_illustration_captions(&db, &dialogue_msgs);
+    let reactions_by_msg = collect_reactions_by_message(&db, &dialogue_msgs);
+    let send_history = {
+        let conn = db.conn.lock().map_err(|e| e.to_string())?;
+        get_setting(&conn, &format!("send_history.{}", character_id))
+            .ok().flatten()
+            .map(|v| v != "off" && v != "false")
+            .unwrap_or(true)
+    };
     let (reply_text, dialogue_usage) = orchestrator::run_dialogue_with_base(
         &model_config.chat_api_base(), &api_key, &model_config.dialogue_model,
+        if !model_config.is_local() { Some(&model_config.memory_model) } else { None },
+        send_history,
         &world, &character, &dialogue_msgs, &retrieved,
         user_profile.as_ref(),
         mood_directive.as_deref(),
@@ -838,6 +891,7 @@ pub async fn prompt_character_cmd(
         leader.as_deref(),
         &kept_ids,
         &illustration_captions,
+        &reactions_by_msg,
     ).await?;
 
     let tokens = dialogue_usage.as_ref().map(|u| u.total_tokens).unwrap_or(0);
@@ -1055,6 +1109,7 @@ pub async fn try_proactive_ping_cmd(
     let mood_chain_json = serde_json::to_string(&mood_chain).ok();
 
     let illustration_captions = collect_illustration_captions(&db, &recent_msgs);
+    let reactions_by_msg = collect_reactions_by_message(&db, &recent_msgs);
     let (reply_text, usage) = orchestrator::run_proactive_ping_with_base(
         &model_config.chat_api_base(), &api_key, &model_config.dialogue_model,
         &world, &character, &recent_msgs, &retrieved,
@@ -1066,6 +1121,7 @@ pub async fn try_proactive_ping_cmd(
         &kept_ids,
         elapsed_hint.as_deref(),
         &illustration_captions,
+        &reactions_by_msg,
     ).await?;
 
     if reply_text.trim().is_empty() {
@@ -1725,12 +1781,22 @@ pub async fn reset_to_message_cmd(
             list_kept_message_ids_for_thread(&conn, &thread_id).unwrap_or_default()
         };
         let illustration_captions = collect_illustration_captions(&db, &recent_msgs);
+        let reactions_by_msg = collect_reactions_by_message(&db, &recent_msgs);
         let mut retrieved = retrieved;
         if let Some(ct) = build_cross_thread_snippet(&db, &character.character_id, &thread_id, user_profile.as_ref()) {
             retrieved.push(ct);
         }
+        let send_history = {
+            let conn = db.conn.lock().map_err(|e| e.to_string())?;
+            get_setting(&conn, &format!("send_history.{}", character.character_id))
+                .ok().flatten()
+                .map(|v| v != "off" && v != "false")
+                .unwrap_or(true)
+        };
         let dialogue_fut = orchestrator::run_dialogue_with_base(
             &base, &api_key, &model_config.dialogue_model,
+            if !model_config.is_local() { Some(&model_config.memory_model) } else { None },
+            send_history,
             &world, &character, &recent_msgs, &retrieved,
             user_profile.as_ref(),
             mood_directive.as_deref(),
@@ -1741,6 +1807,7 @@ pub async fn reset_to_message_cmd(
         leader.as_deref(),
         &kept_ids,
         &illustration_captions,
+        &reactions_by_msg,
         );
         let reaction_context: Vec<Message> = recent_msgs.iter()
             .rev().skip(1).take(4).rev().cloned().collect();

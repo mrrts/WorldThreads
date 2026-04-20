@@ -7,6 +7,156 @@ use chrono::Utc;
 use rusqlite::params;
 use serde::{Deserialize, Serialize};
 
+/// Word-boundary substring check (case-sensitive; callers lowercase both sides).
+/// A word boundary is any non-alphanumeric byte or the start/end of the string.
+/// Used by name-mention detection so "Darren" matches "Hey Darren, ..." but
+/// not "Darrening" or a stray substring.
+fn contains_word(haystack: &str, needle: &str) -> bool {
+    let h = haystack.as_bytes();
+    let n = needle.as_bytes();
+    if n.is_empty() || n.len() > h.len() { return false; }
+    let mut i = 0;
+    while i + n.len() <= h.len() {
+        if &h[i..i + n.len()] == n {
+            let before_ok = i == 0 || !h[i - 1].is_ascii_alphanumeric();
+            let after_ok = i + n.len() == h.len() || !h[i + n.len()].is_ascii_alphanumeric();
+            if before_ok && after_ok { return true; }
+        }
+        i += 1;
+    }
+    false
+}
+
+/// Return the character_ids whose display_name appears as a word in `content`.
+/// Case-insensitive; order preserved per the characters slice.
+fn detect_named_characters(content: &str, characters: &[Character]) -> Vec<String> {
+    let lower = content.to_lowercase();
+    characters.iter()
+        .filter(|ch| {
+            let name = ch.display_name.to_lowercase();
+            !name.is_empty() && contains_word(&lower, &name)
+        })
+        .map(|ch| ch.character_id.clone())
+        .collect()
+}
+
+/// Ask the model which characters should respond to the user's latest
+/// message, in what order. Returns a JSON-array of character_ids.
+/// Empty array means nobody speaks (silence makes sense). Unknown ids are
+/// filtered out by the caller.
+///
+/// Uses the memory_model (cheaper tier) — this is classification, not
+/// performance. Short context: identity summaries + last ~4 messages +
+/// the user's new line.
+async fn llm_pick_responders(
+    api_key: &str,
+    model_config: &orchestrator::ModelConfig,
+    content: &str,
+    characters: &[Character],
+    recent_context: &[Message],
+    user_name: &str,
+) -> Result<Vec<String>, String> {
+    let cast: String = characters.iter()
+        .map(|c| {
+            let id_line = format!("- id=\"{}\" name=\"{}\"", c.character_id, c.display_name);
+            let ident = if c.identity.is_empty() {
+                String::new()
+            } else {
+                let clipped: String = c.identity.chars().take(160).collect();
+                format!("\n  identity: {clipped}")
+            };
+            format!("{id_line}{ident}")
+        })
+        .collect::<Vec<_>>()
+        .join("\n");
+
+    let scene: String = recent_context.iter()
+        .rev().take(4).rev()
+        .filter(|m| m.role == "user" || m.role == "assistant" || m.role == "narrative")
+        .map(|m| {
+            let speaker = match m.role.as_str() {
+                "user" => user_name.to_string(),
+                "assistant" => m.sender_character_id.as_ref()
+                    .and_then(|id| characters.iter().find(|c| &c.character_id == id).map(|c| c.display_name.clone()))
+                    .unwrap_or_else(|| "Character".to_string()),
+                "narrative" => "Narrator".to_string(),
+                _ => "Someone".to_string(),
+            };
+            let clipped: String = m.content.chars().take(240).collect();
+            format!("{speaker}: {clipped}")
+        })
+        .collect::<Vec<_>>()
+        .join("\n");
+
+    let system = r#"You decide which characters in a group chat should respond to the user's latest message.
+
+STRONG DEFAULT: return exactly ONE character. In real group conversation, one person typically picks up a thread — the rest listen, nod, keep doing what they were doing. Multiple-character responses should feel like the exception, not the norm.
+
+Return exactly ONE when ANY of these is true (most cases):
+- The user addresses someone by name.
+- The user's message continues a thread one character was already carrying.
+- The message is a question or comment that doesn't obviously belong to everyone.
+- The character who most recently spoke would naturally keep going.
+- The register is quiet, intimate, or one-on-one.
+
+Return MULTIPLE only when ALL of these hold:
+- The message genuinely invites more than one voice (disagreement surfacing, a question everyone has a stake in, a shift where each character would have a visible reaction they can't hide).
+- A single responder would feel like someone visibly holding back an answer they clearly have.
+- The multiple voices would say different things, not echo each other.
+
+Return an empty array [] only if silence is genuinely the right move — the user's line doesn't call for a response at all (rare).
+
+When you do return multiple, order them by who'd actually speak first — not by who's listed first in the cast.
+
+Output: raw JSON array of character ids, e.g. ["char_abc"] or ["char_abc","char_def"] or []. No commentary, no markdown, no code fences."#.to_string();
+
+    let user = format!(
+        "Group cast:\n{cast}\n\nRecent conversation (last ~4 lines):\n{scene}\n\nUser just said: \"{content}\"\n\nWhich character ids should respond, in order?"
+    );
+
+    let request = crate::ai::openai::ChatRequest {
+        model: model_config.memory_model.clone(),
+        messages: vec![
+            crate::ai::openai::ChatMessage { role: "system".to_string(), content: system },
+            crate::ai::openai::ChatMessage { role: "user".to_string(), content: user },
+        ],
+        temperature: Some(0.3),
+        max_completion_tokens: Some(80),
+        response_format: None,
+    };
+
+    let response = crate::ai::openai::chat_completion_with_base(
+        &model_config.chat_api_base(), api_key, &request
+    ).await?;
+    let raw = response.choices.first()
+        .map(|c| c.message.content.trim().to_string())
+        .unwrap_or_default();
+
+    // Tolerate markdown code fences / surrounding text by extracting the
+    // first `[...]` substring.
+    let body = if let (Some(start), Some(end)) = (raw.find('['), raw.rfind(']')) {
+        if end > start { &raw[start..=end] } else { raw.as_str() }
+    } else {
+        raw.as_str()
+    };
+    serde_json::from_str::<Vec<String>>(body)
+        .map_err(|e| format!("llm_pick_responders parse error: {e} — raw: {raw:?}"))
+}
+
+/// Render a list of names as "A", "A and B", or "A, B, and C".
+fn join_names_english(names: &[String]) -> String {
+    match names.len() {
+        0 => String::new(),
+        1 => names[0].clone(),
+        2 => format!("{} and {}", names[0], names[1]),
+        _ => {
+            let head = &names[..names.len() - 1];
+            let tail = &names[names.len() - 1];
+            format!("{}, and {tail}", head.join(", "))
+        }
+    }
+}
+
 /// Append a length reminder to just-before-turn system hints in group
 /// chats. Group prompts are long (many characters, scene context, craft
 /// notes, invariants), and the mid-prompt response-length block loses
@@ -229,6 +379,136 @@ use crate::commands::chat_cmds;
 
 /// Send a message in a group chat. The user's message is saved, then each character
 /// responds in order. Returns the user message and all character responses.
+/// Pick which group characters should respond to a just-saved user message,
+/// and in what order. Deterministic hybrid policy:
+///
+///   1. Name-mention. If the user's message calls out exactly one
+///      character by name, only that character responds. Covers `*To
+///      Darren* hey man` and similar direct-address patterns.
+///   2. Locked-in exchange. If the recent assistant messages have all
+///      been from one specific character, the user is visibly in a
+///      two-way thread with them — default to that character. Most of
+///      the time reply solo; an occasional (~20%) interjection adds the
+///      other members so the room doesn't feel like it disappeared.
+///   3. No signals. Everyone responds, first_speaker-reordered — this
+///      is the "all pile on" default for topics that belong to the
+///      whole room.
+///
+/// No LLM call. The previous LLM-pick defaulted to "one responder" and
+/// routinely dropped members the user wanted included; the locked-in
+/// heuristic captures the legitimate "just us two" case without needing
+/// the model to make that judgment. The frontend iterates the returned
+/// ids through `prompt_group_character_cmd` so the UI streams one
+/// character reply at a time.
+#[tauri::command]
+pub async fn pick_group_responders_cmd(
+    db: State<'_, Database>,
+    _api_key: String,
+    group_chat_id: String,
+    content: String,
+) -> Result<Vec<String>, String> {
+    let (gc, characters, recent_msgs) = {
+        let conn = db.conn.lock().map_err(|e| e.to_string())?;
+        let gc = get_group_chat(&conn, &group_chat_id).map_err(|e| e.to_string())?;
+
+        let char_ids: Vec<String> = gc.character_ids.as_array()
+            .map(|a| a.iter().filter_map(|v| v.as_str().map(|s| s.to_string())).collect())
+            .unwrap_or_default();
+        let characters: Vec<Character> = char_ids.iter()
+            .filter_map(|id| get_character(&conn, id).ok())
+            .collect();
+
+        // Window for the locked-in check. 12 is enough to catch a few
+        // back-and-forth exchanges without letting ancient history
+        // outvote the recent pattern.
+        let recent = list_group_messages(&conn, &gc.thread_id, 12).unwrap_or_default();
+
+        (gc, characters, recent)
+    };
+
+    // Respect the per-group "first speaker" setting. Reorder the cast up
+    // front so every downstream branch that returns "all respond" gets
+    // the right order.
+    let first_speaker: Option<String> = {
+        let conn = db.conn.lock().map_err(|e| e.to_string())?;
+        get_setting(&conn, &format!("first_speaker.{}", gc.group_chat_id)).ok().flatten()
+    };
+    let mut characters = characters;
+    if let Some(fs_id) = first_speaker.as_deref().filter(|s| !s.is_empty()) {
+        if let Some(pos) = characters.iter().position(|c| c.character_id == fs_id) {
+            if pos != 0 {
+                let picked = characters.remove(pos);
+                characters.insert(0, picked);
+                log::info!("[GroupPick] first_speaker={} — reordered cast", fs_id);
+            }
+        }
+    }
+
+    // 1. Name-mention short-circuit. Exactly-one match wins.
+    let named = detect_named_characters(&content, &characters);
+    if named.len() == 1 {
+        log::info!("[GroupPick] name-mention matched: {:?}", named);
+        return Ok(named);
+    }
+
+    // 2. Locked-in exchange detection. Look at the last two assistant
+    //    messages. If both came from the same member of this group, we're
+    //    inside a two-way thread with them. Two is the minimum signal:
+    //    one message is ambient, two in a row says the thread has a
+    //    current partner.
+    let locked_in: Option<String> = {
+        let recent_assistants: Vec<&Message> = recent_msgs.iter()
+            .rev()
+            .filter(|m| m.role == "assistant" && m.sender_character_id.is_some())
+            .take(2)
+            .collect();
+        if recent_assistants.len() >= 2 {
+            let first_sender = recent_assistants[0].sender_character_id.as_deref();
+            let all_same = recent_assistants.iter()
+                .all(|m| m.sender_character_id.as_deref() == first_sender);
+            if all_same {
+                first_sender
+                    .filter(|id| characters.iter().any(|c| c.character_id == *id))
+                    .map(String::from)
+            } else {
+                None
+            }
+        } else {
+            None
+        }
+    };
+
+    if let Some(partner_id) = locked_in {
+        // Cheap pseudo-random: 20% of the time add an interjection from
+        // another member so the room doesn't vanish from the scene.
+        // Uses nanosecond wall clock — sufficient for "occasional" and
+        // avoids pulling in rand as a dependency.
+        let nanos = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map(|d| d.subsec_nanos())
+            .unwrap_or(0);
+        let interject = nanos % 5 == 0; // ~20%
+        if interject {
+            let mut ordered: Vec<String> = vec![partner_id.clone()];
+            ordered.extend(
+                characters.iter()
+                    .map(|c| c.character_id.clone())
+                    .filter(|id| id != &partner_id)
+            );
+            log::info!("[GroupPick] locked-in with {} + interjection: {:?}", partner_id, ordered);
+            Ok(ordered)
+        } else {
+            log::info!("[GroupPick] locked-in with {} — solo reply", partner_id);
+            Ok(vec![partner_id])
+        }
+    } else {
+        // 3. No signals. Everyone responds, in first_speaker order.
+        let all: Vec<String> = characters.iter().map(|c| c.character_id.clone()).collect();
+        log::info!("[GroupPick] no signals — all respond: {:?}", all);
+        Ok(all)
+    }
+}
+
 #[tauri::command]
 pub async fn send_group_message_cmd(
     db: State<'_, Database>,
@@ -326,10 +606,93 @@ pub async fn send_group_message_cmd(
         ).await
     });
 
-    // Phase 2: Each character responds in order
-    let mut responses: Vec<Message> = Vec::new();
+    // Read the per-group "first speaker" setting and reorder the
+    // characters list so the chosen character leads. Others follow in
+    // their original relative order. Default (no setting) preserves the
+    // natural character_ids order.
+    let first_speaker: Option<String> = {
+        let conn = db.conn.lock().map_err(|e| e.to_string())?;
+        get_setting(&conn, &format!("first_speaker.{}", gc.group_chat_id)).ok().flatten()
+    };
+    let mut characters = characters;
+    if let Some(fs_id) = first_speaker.as_deref().filter(|s| !s.is_empty()) {
+        if let Some(pos) = characters.iter().position(|c| c.character_id == fs_id) {
+            if pos != 0 {
+                let picked = characters.remove(pos);
+                characters.insert(0, picked);
+                log::info!("[GroupTurn] first_speaker={} — reordered character loop", fs_id);
+            }
+        }
+    }
 
-    for (_i, character) in characters.iter().enumerate() {
+    // Decide who responds. Hybrid policy:
+    // 1. Name-mention heuristic — free, deterministic. If the user's
+    //    message mentions exactly ONE group character by name (word
+    //    boundary, case-insensitive), only that character speaks.
+    // 2. LLM-pick fallback — when zero or multiple names matched, ask
+    //    the memory model which characters should respond in what
+    //    order. Real group conversation rarely has everyone pile onto
+    //    every utterance.
+    // 3. All-respond fallback — if the LLM call fails or returns no
+    //    valid ids, use the full first_speaker-ordered list.
+    let user_name_for_pick = user_profile.as_ref().map(|p| p.display_name.as_str()).unwrap_or("the human");
+    let named = detect_named_characters(&content, &characters);
+    let responder_ids: Vec<String> = if named.len() == 1 {
+        log::info!("[GroupTurn] name-mention matched: {:?}", named);
+        named
+    } else {
+        // Gather recent context for the picker.
+        let ctx_for_pick: Vec<Message> = {
+            let conn = db.conn.lock().map_err(|e| e.to_string())?;
+            let mut all = list_group_messages(&conn, &gc.thread_id, 6).unwrap_or_default();
+            all.retain(|m| m.message_id != user_msg.message_id);
+            all
+        };
+        match llm_pick_responders(&api_key, &model_config, &content, &characters, &ctx_for_pick, user_name_for_pick).await {
+            Ok(picks) => {
+                let mut valid: Vec<String> = picks.into_iter()
+                    .filter(|id| characters.iter().any(|c| &c.character_id == id))
+                    .collect();
+                if valid.is_empty() {
+                    log::info!("[GroupTurn] LLM pick returned no valid ids — all respond");
+                    characters.iter().map(|c| c.character_id.clone()).collect()
+                } else {
+                    // Respect the user's "who speaks first" preference: if
+                    // the designated first_speaker is among the LLM-picked
+                    // responders, move them to the front. Scope is ORDER —
+                    // never force someone to speak the LLM left out (that
+                    // would override the silence-is-right-here judgment).
+                    if let Some(fs_id) = first_speaker.as_deref().filter(|s| !s.is_empty()) {
+                        if let Some(pos) = valid.iter().position(|id| id == fs_id) {
+                            if pos != 0 {
+                                let picked = valid.remove(pos);
+                                valid.insert(0, picked);
+                                log::info!("[GroupTurn] first_speaker={} — promoted within LLM picks", fs_id);
+                            }
+                        }
+                    }
+                    log::info!("[GroupTurn] LLM-picked responders: {:?}", valid);
+                    valid
+                }
+            }
+            Err(e) => {
+                log::warn!("[GroupTurn] LLM-pick failed ({e}) — all respond");
+                characters.iter().map(|c| c.character_id.clone()).collect()
+            }
+        }
+    };
+    let responders: Vec<Character> = responder_ids.iter()
+        .filter_map(|id| characters.iter().find(|c| &c.character_id == id).cloned())
+        .collect();
+
+    // Phase 2: Each chosen character responds in order. Track who has
+    // already spoken in this turn-cycle so second-and-later characters
+    // can be explicitly told they may respond to what another character
+    // just said (not only to the user).
+    let mut responses: Vec<Message> = Vec::new();
+    let mut prior_speakers_this_turn: Vec<String> = Vec::new();
+
+    for (_i, character) in responders.iter().enumerate() {
         // Build group context (other characters, excluding the one responding)
         let other_chars: Vec<OtherCharacter> = characters.iter()
             .filter(|c| c.character_id != character.character_id)
@@ -347,7 +710,15 @@ pub async fn send_group_message_cmd(
         // Load settings scoped to the group chat
         let (response_length, narration_tone, leader) = {
             let conn = db.conn.lock().map_err(|e| e.to_string())?;
-            let rl = get_setting(&conn, &format!("response_length.{}", gc.group_chat_id)).ok().flatten();
+            // Group chats default to Short when the user hasn't explicitly
+            // set anything. The frontend already shows Short as the default,
+            // but the setting is only persisted when dirtied — so for fresh
+            // groups the DB returns None. Without this fallback, None →
+            // no token cap in the orchestrator, which is exactly the "group
+            // chats drift long" failure mode users report.
+            let rl = get_setting(&conn, &format!("response_length.{}", gc.group_chat_id))
+                .ok().flatten()
+                .or_else(|| Some("Short".to_string()));
             let nt = get_setting(&conn, &format!("narration_tone.{}", gc.group_chat_id)).ok().flatten();
             let leader = get_setting(&conn, &format!("leader.{}", gc.group_chat_id)).ok().flatten();
             (rl, nt, leader)
@@ -378,14 +749,35 @@ pub async fn send_group_message_cmd(
             .unwrap_or("the human");
         let mut dialogue_msgs = recent_msgs.clone();
         let length_tail = length_reminder_for_turn(response_length.as_deref());
+        let hint_content = if prior_speakers_this_turn.is_empty() {
+            // First speaker of the turn: default direction toward the
+            // user, but free to pivot to anyone they want (other
+            // characters in the room, a third party) as long as they
+            // mark it with an action beat — `*Looks at Aaron.*` or
+            // `*To Aaron:*`.
+            format!(
+                "[It is now {name}'s turn to speak. Default addressee is {user_name} — speak to them. If you pivot to someone else in the room (another character, a passerby), mark it visibly with an action beat like `*Looks at Aaron.*` or `*To Aaron:*` so the reader knows who you're speaking to. Do NOT open your line with any name at the top (no \"{user_name},\" or \"Aaron.\"). Do not prefix your reply with your own name either. Reply ONLY as {name}.{length_tail}]",
+                name = character.display_name,
+            )
+        } else {
+            // Second-and-later: explicitly unlock responding to whoever
+            // just spoke in this same turn. The prior speaker often gave
+            // the more interesting opening to respond to, and if the
+            // model only ever replies to the user in parallel it makes
+            // the group feel like two private conversations stapled
+            // together rather than a real three-way exchange.
+            let prior_list = join_names_english(&prior_speakers_this_turn);
+            format!(
+                "[It is now {name}'s turn to speak. {prior_list} just spoke in this same turn — you are free to respond to what they said, or to {user_name}, or both, whichever the moment actually asks for. In group conversation, real people often pick up a thread from whoever just spoke rather than answering the original question in parallel. Mark who you're addressing with an action beat — `*Looks at {first_prior}.*` or `*To {first_prior}:*` — so it's clear. Do NOT open your line with any name at the top. Do not prefix your reply with your own name. Reply ONLY as {name}.{length_tail}]",
+                name = character.display_name,
+                first_prior = prior_speakers_this_turn[0],
+            )
+        };
         dialogue_msgs.push(Message {
             message_id: String::new(),
             thread_id: String::new(),
             role: "user".to_string(),
-            content: format!(
-                "[It is now {name}'s turn to speak. Reply ONLY as {name}, speaking to {user_name} — but do NOT open your line with their name (no \"{user_name},\" or \"{user_name}.\" at the top). Do not prefix your reply with your own name either.{length_tail}]",
-                name = character.display_name,
-            ),
+            content: hint_content,
             tokens_estimate: 0,
             sender_character_id: None,
             created_at: Utc::now().to_rfc3339(),
@@ -409,6 +801,7 @@ pub async fn send_group_message_cmd(
             list_kept_message_ids_for_thread(&conn, &gc.thread_id).unwrap_or_default()
         };
         let illustration_captions = crate::commands::chat_cmds::collect_illustration_captions(&db, &dialogue_msgs);
+        let reactions_by_msg = crate::commands::chat_cmds::collect_reactions_by_message(&db, &dialogue_msgs);
         let mut retrieved = retrieved.clone();
         if let Some(ct) = crate::commands::chat_cmds::build_cross_thread_snippet(
             &db, &character.character_id, &gc.thread_id, user_profile.as_ref(),
@@ -425,8 +818,17 @@ pub async fn send_group_message_cmd(
             );
             retrieved.extend(mems);
         }
+        let send_history = {
+            let conn = db.conn.lock().map_err(|e| e.to_string())?;
+            get_setting(&conn, &format!("send_history.{}", gc.group_chat_id))
+                .ok().flatten()
+                .map(|v| v != "off" && v != "false")
+                .unwrap_or(true)
+        };
         let (raw_reply, usage) = orchestrator::run_dialogue_with_base(
             &model_config.chat_api_base(), &api_key, &model_config.dialogue_model,
+            if !model_config.is_local() { Some(&model_config.memory_model) } else { None },
+            send_history,
             &world, character, &dialogue_msgs, &retrieved,
             user_profile.as_ref(),
             None, // no mood directive for group chats (keep it simpler)
@@ -439,6 +841,7 @@ pub async fn send_group_message_cmd(
             leader.as_deref(),
             &kept_ids,
             &illustration_captions,
+            &reactions_by_msg,
         ).await?;
 
         // Strip own prefix and truncate any other-character dialogue
@@ -485,6 +888,7 @@ pub async fn send_group_message_cmd(
             ).await;
         }
 
+        prior_speakers_this_turn.push(character.display_name.clone());
         responses.push(response_msg);
     }
 
@@ -575,7 +979,9 @@ pub async fn prompt_group_character_cmd(
     // length reminder as a late-position reaffirmation.
     let (response_length, narration_tone, leader) = {
         let conn = db.conn.lock().map_err(|e| e.to_string())?;
-        let rl = get_setting(&conn, &format!("response_length.{}", gc.group_chat_id)).ok().flatten();
+        let rl = get_setting(&conn, &format!("response_length.{}", gc.group_chat_id))
+            .ok().flatten()
+            .or_else(|| Some("Short".to_string()));
         let nt = get_setting(&conn, &format!("narration_tone.{}", gc.group_chat_id)).ok().flatten();
         let leader = get_setting(&conn, &format!("leader.{}", gc.group_chat_id)).ok().flatten();
         (rl, nt, leader)
@@ -635,6 +1041,7 @@ pub async fn prompt_group_character_cmd(
         list_kept_message_ids_for_thread(&conn, &gc.thread_id).unwrap_or_default()
     };
     let illustration_captions = crate::commands::chat_cmds::collect_illustration_captions(&db, &dialogue_msgs);
+    let reactions_by_msg = crate::commands::chat_cmds::collect_reactions_by_message(&db, &dialogue_msgs);
     let mut retrieved = retrieved;
     if let Some(ct) = crate::commands::chat_cmds::build_cross_thread_snippet(
         &db, &character.character_id, &gc.thread_id, user_profile.as_ref(),
@@ -661,8 +1068,17 @@ pub async fn prompt_group_character_cmd(
         );
         retrieved.extend(mems);
     }
+    let send_history = {
+        let conn = db.conn.lock().map_err(|e| e.to_string())?;
+        get_setting(&conn, &format!("send_history.{}", gc.group_chat_id))
+            .ok().flatten()
+            .map(|v| v != "off" && v != "false")
+            .unwrap_or(true)
+    };
     let dialogue_fut = orchestrator::run_dialogue_with_base(
         &base, &api_key, &model_config.dialogue_model,
+        if !model_config.is_local() { Some(&model_config.memory_model) } else { None },
+        send_history,
         &world, &character, &dialogue_msgs, &retrieved,
         user_profile.as_ref(),
         None,
@@ -675,6 +1091,7 @@ pub async fn prompt_group_character_cmd(
         leader.as_deref(),
         &kept_ids,
         &illustration_captions,
+        &reactions_by_msg,
     );
     let reaction_fut = orchestrator::pick_character_reaction_via_llm(
         &base, &api_key, &model_config.dialogue_model,

@@ -38,6 +38,15 @@ theological anchor — a clause rooted in 1 John 4:2-3 — that further
 specifies which Christ is meant. It is not a phrase the app is willing
 to soften into a vaguer reference.
 
+**Compositional, not homiletic.** The test names Christ so the model
+composes under His light — it does NOT give characters a mandate to
+preach. The block is paired with an unspoken-North-Star clause that
+forbids the character from naming Christ, quoting scripture, invoking
+God, or turning the scene sermonic unless it authentically belongs to
+who they are (a pastor, a believer) or the user brought faith into the
+conversation first. The test is how we judge what we write. It is not
+what the character says inside the scene.
+
 **What counts as a violation:**
 
 - Removing the name "Jesus Christ".
@@ -46,6 +55,9 @@ to soften into a vaguer reference.
 - Removing the clause "who came in the flesh".
 - Rewording the closing test in a way that drops "stand plainly in
   the light" as its frame.
+- Removing the unspoken-North-Star clause — that's what keeps the
+  test from turning characters into mouthpieces for theology they
+  wouldn't actually speak.
 
 **If you need to edit nearby prose** for pacing or clarity: fine. Keep
 the two asserted substrings intact.
@@ -146,21 +158,85 @@ the four asserted substrings intact.
 
 ---
 
+## Invariant 4: Soundness over intensity — the posture of scenes
+
+**Location:** `SOUNDNESS_BLOCK` in `src-tauri/src/ai/prompts.rs`.
+
+**Required substrings (compile-time asserted):**
+
+- `"stop making every scene answer for itself in court"` — names the
+  failure mode: every scene rendered as tribunal.
+- `"ordinary life that can bear truth without announcing it"` — the
+  positive frame: truth lives in daily work, not in performance.
+- `"building, walking, singing, fixing, reading, eating"` — the
+  concrete verb list naming what ordinary life looks like.
+- `"proportionate, specific, and short"` — how pushback must arrive
+  when it's warranted.
+- `"missed reads, course corrections, and plain apologies"` — the
+  repair shapes that prevent scenes from escalating to crush either
+  side before resolution.
+- `"presence kept in the light"` — where affection shows up.
+- `"fewer speeches, more concrete action"` — the anti-oratory clause.
+- `"Build for soundness, not constant intensity."` — the closing seal,
+  preserved verbatim with trailing period.
+
+**Why it's load-bearing:**
+
+Without this clause, LLM-driven scenes drift toward *every exchange as
+courtroom*: every sentence must defend itself, every disagreement must
+escalate, every moral stake must be argued into the open before the
+scene can close. The drift is cosmetically impressive — "ooh, depth" —
+but it makes the world tiring, self-important, and unable to show
+affection as anything except crisis-resolution.
+
+This block is the posture correction: ordinary life carries the
+truth. Work, meals, walks, songs, repairs. Grace observable in
+continuity, not in announcement. Pushback is allowed — even required —
+but it must be *proportionate, specific, and short*, leaving room for
+misreads and plain apologies rather than forcing every scene to extract
+a verdict.
+
+The closing seal **"Build for soundness, not constant intensity."**
+is preserved verbatim (including the period) because it compresses
+the entire clause into a one-sentence rule the model can recall under
+attention pressure near the end of a long prompt.
+
+**What counts as a violation:**
+
+- Removing any asserted substring.
+- Rewriting the clause into "be less dramatic" generic guidance —
+  that drops the specific "ordinary life bears truth" frame.
+- Removing the verb list — the concreteness is load-bearing, not
+  decorative.
+- Softening "proportionate, specific, and short" into a vague
+  "don't over-argue" — the three-word list is how the model knows
+  what shape pushback should take.
+- Dropping the closing seal or removing its period.
+- Moving the clause out of the prompt stack so it stops reaching
+  the model.
+
+**If you need to edit nearby prose** for pacing or clarity: fine. Keep
+the asserted substrings intact.
+
+---
+
 ## Enforcement
 
-All three invariants are enforced by `const _: () = { assert!(...); };`
+All four invariants are enforced by `const _: () = { assert!(...); };`
 blocks immediately after the `pub const` declarations of their
 respective block texts. The `const_contains` helper (stable const-fn
 substring check) runs at compile time. Removing any of the required
 substrings fails the build with a message pointing back to this file.
 
-**Prompt wiring:** `DAYLIGHT_BLOCK` and `TELL_THE_TRUTH_BLOCK` are
-pushed at the end of every dialogue / group / narrative system prompt,
-with daylight immediately before the truth test. Both sit after the
-craft notes so they anchor the whole stack. `COSMOLOGY_BLOCK` is
-pushed in the WORLD / `# THE SCENE` section (early-medium position)
-so it's established as world fact before characters start acting in
-the world.
+**Prompt wiring:** `DAYLIGHT_BLOCK`, `SOUNDNESS_BLOCK`, and
+`TELL_THE_TRUTH_BLOCK` are pushed at the end of every dialogue /
+group / narrative system prompt, in that order — daylight sets the
+direction for closeness, soundness sets the posture of scenes, and
+the truth test binds everything under a single ethical grammar. All
+three sit after the craft notes so they anchor the whole stack.
+`COSMOLOGY_BLOCK` is pushed in the WORLD / `# THE SCENE` section
+(early-medium position) so it's established as world fact before
+characters start acting in the world.
 
 ## Modifying an invariant
 
