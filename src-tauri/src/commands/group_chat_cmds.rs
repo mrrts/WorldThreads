@@ -451,43 +451,85 @@ pub async fn pick_group_responders_cmd(
         return Ok(named);
     }
 
-    // 2. Locked-in exchange detection. Look at the last two assistant
-    //    messages. If both came from the same member of this group, we're
-    //    inside a two-way thread with them. Two is the minimum signal:
-    //    one message is ambient, two in a row says the thread has a
-    //    current partner.
+    // 2. Locked-in exchange detection. Two signals qualify:
+    //
+    //    (a) The last two assistant messages (ignoring user interleaving)
+    //        are from the same character — a sustained two-way thread.
+    //    (b) The single most recent assistant message came from character
+    //        X and the message before IT was a user message — i.e. the
+    //        user and X just had a one-round exchange and this is the
+    //        next user turn. Catches "just started talking to Darren"
+    //        which (a) alone needs two rounds to confirm.
+    //
+    //    Either signal locks in. The 20% interjection downstream keeps
+    //    the other characters occasionally present so locking in doesn't
+    //    mean the room disappears.
     let locked_in: Option<String> = {
-        let recent_assistants: Vec<&Message> = recent_msgs.iter()
-            .rev()
-            .filter(|m| m.role == "assistant" && m.sender_character_id.is_some())
-            .take(2)
-            .collect();
-        if recent_assistants.len() >= 2 {
-            let first_sender = recent_assistants[0].sender_character_id.as_deref();
-            let all_same = recent_assistants.iter()
-                .all(|m| m.sender_character_id.as_deref() == first_sender);
-            if all_same {
-                first_sender
-                    .filter(|id| characters.iter().any(|c| c.character_id == *id))
-                    .map(String::from)
+        // Signal (a): last two assistants same char.
+        let two_same: Option<String> = {
+            let recent_assistants: Vec<&Message> = recent_msgs.iter()
+                .rev()
+                .filter(|m| m.role == "assistant" && m.sender_character_id.is_some())
+                .take(2)
+                .collect();
+            if recent_assistants.len() >= 2 {
+                let first_sender = recent_assistants[0].sender_character_id.as_deref();
+                let all_same = recent_assistants.iter()
+                    .all(|m| m.sender_character_id.as_deref() == first_sender);
+                if all_same {
+                    first_sender
+                        .filter(|id| characters.iter().any(|c| c.character_id == *id))
+                        .map(String::from)
+                } else {
+                    None
+                }
             } else {
                 None
             }
-        } else {
-            None
-        }
+        };
+        // Signal (b): one-round exchange just started — assistant-from-X
+        // immediately preceded by a user message (itself preceded by the
+        // just-saved user we skip past at the top of the scan).
+        let one_round: Option<String> = {
+            let msgs: Vec<&Message> = recent_msgs.iter().rev().collect();
+            // Skip any trailing user messages (the just-saved one, plus
+            // defensively any others) to land on the most recent
+            // non-user message.
+            let mut idx = 0;
+            while idx < msgs.len() && msgs[idx].role == "user" { idx += 1; }
+            let recent = msgs.get(idx);
+            let prev = msgs.get(idx + 1);
+            match (recent, prev) {
+                (Some(r), Some(p)) if r.role == "assistant" && p.role == "user" => {
+                    r.sender_character_id.as_deref()
+                        .filter(|id| characters.iter().any(|c| c.character_id == *id))
+                        .map(String::from)
+                }
+                _ => None,
+            }
+        };
+        two_same.or(one_round)
     };
 
     if let Some(partner_id) = locked_in {
-        // Cheap pseudo-random: 20% of the time add an interjection from
-        // another member so the room doesn't vanish from the scene.
-        // Uses nanosecond wall clock — sufficient for "occasional" and
-        // avoids pulling in rand as a dependency.
-        let nanos = std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .map(|d| d.subsec_nanos())
-            .unwrap_or(0);
-        let interject = nanos % 5 == 0; // ~20%
+        // ~10% interjection chance. Hash-based entropy rather than raw
+        // clock nanos: macOS often quantizes SystemTime to microsecond
+        // or millisecond resolution, and 1000 / 1_000_000 are both
+        // multiples of common denominators — so clock-based mod was
+        // always triggering. Hashing the content + group id + timestamp
+        // gives a well-mixed value that mod 10 hits ~1-in-10 as intended.
+        let roll: u64 = {
+            use std::hash::{Hash, Hasher};
+            let mut h = std::collections::hash_map::DefaultHasher::new();
+            content.hash(&mut h);
+            gc.group_chat_id.hash(&mut h);
+            partner_id.hash(&mut h);
+            if let Ok(d) = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH) {
+                d.as_nanos().hash(&mut h);
+            }
+            h.finish()
+        };
+        let interject = roll % 10 == 0; // ~10%
         if interject {
             let mut ordered: Vec<String> = vec![partner_id.clone()];
             ordered.extend(

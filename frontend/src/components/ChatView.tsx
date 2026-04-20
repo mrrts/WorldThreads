@@ -180,6 +180,49 @@ export function ChatView({ store, onNavigateToCharacter }: Props) {
     return () => { cancelled = true; };
   }, [showSettingsPopover, charId, store.messages.length]);
 
+  // Background image selection for the right side of the chat canvas.
+  // Empty string = default = active world image. Otherwise a specific
+  // non-active portrait_id. Loaded once per character; non-active
+  // portraits list is fetched when the popover opens so the thumbnails
+  // are current with recent generations.
+  const [bgPortraitId, setBgPortraitId] = useState<string>("");
+  useEffect(() => {
+    if (!charId) return;
+    let cancelled = false;
+    api.getSetting(`bg_portrait.${charId}`).then((v) => {
+      if (!cancelled) setBgPortraitId(v ?? "");
+    }).catch(() => { if (!cancelled) setBgPortraitId(""); });
+    return () => { cancelled = true; };
+  }, [charId]);
+  const setBgPortraitIdPersist = useCallback((next: string) => {
+    setBgPortraitId(next);
+    if (charId) api.setSetting(`bg_portrait.${charId}`, next).catch(() => {});
+  }, [charId]);
+  const [bgPortraitOptions, setBgPortraitOptions] = useState<{ portrait_id: string; data_url: string }[]>([]);
+  // Load portraits up-front (not just when the popover opens) so the
+  // render below can resolve a saved bgPortraitId to its data_url on
+  // first paint. Refreshed when the popover opens in case portraits
+  // were generated in another view.
+  useEffect(() => {
+    if (!charId) return;
+    let cancelled = false;
+    api.listPortraits(charId).then((list) => {
+      if (cancelled) return;
+      // Exclude the active one — it's already the left-side background.
+      const nonActive = list.filter((p) => !p.is_active).map((p) => ({ portrait_id: p.portrait_id, data_url: p.data_url }));
+      setBgPortraitOptions(nonActive);
+    }).catch(() => { if (!cancelled) setBgPortraitOptions([]); });
+    return () => { cancelled = true; };
+  }, [charId, showSettingsPopover]);
+  // Resolve the data_url to use on the right: selected portrait when its
+  // id is still in the character's portrait set; otherwise the active
+  // world image. If a portrait was picked and later deleted, this
+  // transparently falls back.
+  const bgPortraitDataUrl = bgPortraitId
+    ? bgPortraitOptions.find((p) => p.portrait_id === bgPortraitId)?.data_url
+    : undefined;
+  const rightBgDataUrl = bgPortraitDataUrl ?? store.activeWorldImage?.data_url;
+
   // Per-chat provider override: "" (use global) | "lmstudio" | "openai".
   // Lets the user send a specific chat to a different provider than the
   // one configured globally — e.g. a local-default user can route one
@@ -319,9 +362,9 @@ export function ChatView({ store, onNavigateToCharacter }: Props) {
         className="absolute inset-0 z-0 pointer-events-none overflow-hidden"
         style={{ backgroundColor: store.activeCharacter?.avatar_color ?? undefined }}
       >
-        {store.activeWorldImage?.data_url ? (
+        {rightBgDataUrl ? (
           <img
-            src={store.activeWorldImage.data_url}
+            src={rightBgDataUrl}
             alt=""
             className="absolute inset-0 w-full h-full object-cover"
           />
@@ -1041,6 +1084,42 @@ export function ChatView({ store, onNavigateToCharacter }: Props) {
                     />
                     <span className="text-xs font-medium text-muted-foreground">Send conversation history</span>
                   </label>
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground block mb-1.5">
+                    Right-side background
+                    <span className="text-muted-foreground/50 font-normal ml-1.5">(portrait fades into it)</span>
+                  </label>
+                  <div className="flex gap-1.5 overflow-x-auto pb-1">
+                    <button
+                      onClick={() => setBgPortraitIdPersist("")}
+                      title="World image"
+                      className={`flex-shrink-0 w-12 h-12 rounded-lg overflow-hidden border transition-all cursor-pointer ${
+                        bgPortraitId === "" ? "border-primary ring-2 ring-primary/50" : "border-input hover:border-border"
+                      }`}
+                    >
+                      {store.activeWorldImage?.data_url ? (
+                        <img src={store.activeWorldImage.data_url} alt="" className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-[9px] text-muted-foreground bg-muted">World</div>
+                      )}
+                    </button>
+                    {bgPortraitOptions.map((p) => (
+                      <button
+                        key={p.portrait_id}
+                        onClick={() => setBgPortraitIdPersist(p.portrait_id)}
+                        title="Character portrait"
+                        className={`flex-shrink-0 w-12 h-12 rounded-lg overflow-hidden border transition-all cursor-pointer ${
+                          bgPortraitId === p.portrait_id ? "border-primary ring-2 ring-primary/50" : "border-input hover:border-border"
+                        }`}
+                      >
+                        <img src={p.data_url} alt="" className="w-full h-full object-cover" />
+                      </button>
+                    ))}
+                    {bgPortraitOptions.length === 0 && (
+                      <span className="text-xs text-muted-foreground/60 italic self-center ml-1">No other portraits</span>
+                    )}
+                  </div>
                 </div>
                 <div>
                   <label className="text-xs font-medium text-muted-foreground block mb-1.5">Thread mood</label>

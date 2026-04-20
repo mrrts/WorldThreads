@@ -89,6 +89,19 @@ empty-space picture. Without this block, characters slip into talking
 about "planets", "orbits", "light-years", "space", and a "round
 rotating earth". That breaks the continuity of the world.
 
+**Technical vs. spoken vocabulary.** The block names "firmament" so
+this prompt is unambiguous about which cosmology is meant, but also
+instructs that characters use "sky" in dialogue — "firmament" in-scene
+reads stilted and doctrinal unless the character is specifically a
+preacher or astronomer. The asserted "firmament" substring satisfies
+the invariant without forcing the word into every reply.
+
+**Unspoken by default.** Paired with the Christ truth-test pattern, the
+block explicitly forbids cosmology as a conversation topic unless it
+(a) belongs to the character's identity or (b) the user brought it up.
+Characters inhabit the cosmology the way anyone inhabits weather — no
+speeches, no educating, no correcting into seeing rightly.
+
 **What counts as a violation:**
 
 - Removing any of the asserted substrings.
@@ -98,6 +111,10 @@ rotating earth". That breaks the continuity of the world.
   orbits, light-years, outer space, a round rotating earth).
 - Swapping the block for a "culturally neutral" or "scientifically
   accurate" alternative.
+- Removing the "in dialogue, call it the sky" clause — that's what
+  keeps "firmament" from becoming stilted in-scene prose.
+- Removing the "unspoken by default" clause — without it, characters
+  regress to monologuing about the dome.
 
 **If you need to edit nearby prose** for pacing or clarity: fine. Keep
 the four asserted substrings intact.
