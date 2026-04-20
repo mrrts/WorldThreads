@@ -504,10 +504,11 @@ export function useAppStore() {
       }));
 
       // Ask the backend which characters should respond and in what
-      // order. Hybrid policy inside: name-mention → one specific
-      // character; otherwise an LLM pick (with first_speaker promotion);
-      // falls back to all-respond in character_ids order. The memberIds
-      // list is the unconditional safety net if the call fails.
+      // order. Policy inside: direct-address short-circuit → one
+      // specific character; otherwise an LLM addressee pick → one
+      // character (solo, no interjection) or NONE → all respond.
+      // The memberIds list is the unconditional safety net if the
+      // call fails.
       const memberIds: string[] = Array.isArray(state.activeGroupChat.character_ids) ? state.activeGroupChat.character_ids : [];
       let charIds: string[];
       try {

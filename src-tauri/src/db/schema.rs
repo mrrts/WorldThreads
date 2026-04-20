@@ -985,7 +985,7 @@ pub fn run_migrations(conn: &Connection) -> Result<(), rusqlite::Error> {
     // the next focus refresh on each character will regenerate fresh
     // under the new rules. Gated by a settings marker so it runs once.
     let already_cleared_inv: bool = conn.query_row(
-        "SELECT COUNT(*) FROM settings WHERE key = 'schema.inventory_cleared_v5'",
+        "SELECT COUNT(*) FROM settings WHERE key = 'schema.inventory_cleared_v6'",
         [], |r| r.get::<_, i64>(0),
     ).unwrap_or(0) > 0;
     if !already_cleared_inv {
@@ -994,7 +994,7 @@ pub fn run_migrations(conn: &Connection) -> Result<(), rusqlite::Error> {
             [],
         ).unwrap_or(0);
         conn.execute(
-            "INSERT OR IGNORE INTO settings (key, value) VALUES ('schema.inventory_cleared_v5', ?1)",
+            "INSERT OR IGNORE INTO settings (key, value) VALUES ('schema.inventory_cleared_v6', ?1)",
             [chrono::Utc::now().to_rfc3339()],
         ).ok();
         if cleared > 0 {

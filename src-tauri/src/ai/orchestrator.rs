@@ -962,6 +962,8 @@ Range (every one below should still get the specificity treatment):
 
 The rule: clear, accurate, AND specific to this character on this day. Grounded in who they are and what's actually present — the conversations, their identity, their ongoing life. If the character is a thoughtful person on a quiet day, you still have to surface the specific thing a person like this, after a day like this, would be carrying — not a generic version of that thing.
 
+FAVOR ITEMS THAT WILL HAVE CONSEQUENCES. The trick isn't adding more soul-shaped words; it's letting cause have consequences. A kept thing — physical or interior — should matter to what this character does next. Examples of items that carry consequence: agape love for someone, a bad night's sleep, an ache of being seen, an objective, a shame they're holding, a name they almost said. A folded note is only worth a slot if you could name the reply it's going to shape; a memory is only worth a slot if it's going to ambush them mid-sentence somewhere. If you can't name a plausible consequence, the item isn't earning its slot — swap it for one that will.
+
 RULES FOR CHANGES ACROSS DAYS:
 - ALL {max} slots filled. Non-negotiable. At least one of each kind.
 - REMOVE physicals that were clearly consumed, given away, lost, or resolved.

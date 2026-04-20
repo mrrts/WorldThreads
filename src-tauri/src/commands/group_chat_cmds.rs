@@ -40,6 +40,84 @@ fn detect_named_characters(content: &str, characters: &[Character]) -> Vec<Strin
         .collect()
 }
 
+/// Detect UNAMBIGUOUS direct-address patterns — name appearances that
+/// clearly mark someone as the addressee, not a third-person reference.
+/// Used as the deterministic fast-path in responder selection; naked
+/// name mentions (e.g. "I was thinking about Aaron last time") don't
+/// qualify here and get routed to the LLM picker instead, where context
+/// can resolve to-X vs about-X.
+///
+/// Counted as direct address:
+///   - Action-beat address: `*To Aaron*`, `*To Aaron:*`, `*Looks at
+///     Aaron*`, `*Turns to Aaron*`, `*Glances at Aaron*`.
+///   - Vocative opening: the message's very first non-whitespace,
+///     non-asterisk token IS the character's name, followed by vocative
+///     punctuation (comma, period, ellipsis, em-dash, question mark,
+///     exclamation, colon, or a space then another word).
+///
+/// Everything else — names mid-sentence, possessives like "Aaron's",
+/// subject-of-sentence usage — is deliberately NOT caught here.
+fn detect_direct_address(content: &str, characters: &[Character]) -> Vec<String> {
+    let lower = content.to_lowercase();
+    let mut matched: Vec<String> = Vec::new();
+    for ch in characters {
+        let name = ch.display_name.to_lowercase();
+        if name.is_empty() { continue; }
+
+        // Action-beat address: look for the patterns inside asterisk
+        // pairs. We scan substring presence rather than parsing — close
+        // enough, and the false-positive risk is low (these phrases
+        // don't arise naturally outside of address markers).
+        let ab_patterns = [
+            format!("*to {name}*"),
+            format!("*to {name}:*"),
+            format!("*looks at {name}*"),
+            format!("*looks at {name}.*"),
+            format!("*turns to {name}*"),
+            format!("*turns to {name}.*"),
+            format!("*turns toward {name}*"),
+            format!("*glances at {name}*"),
+            format!("*glances at {name}.*"),
+            format!("*to {name},*"),
+        ];
+        let action_beat_hit = ab_patterns.iter().any(|p| lower.contains(p.as_str()));
+
+        // Vocative opening: strip leading whitespace and an optional
+        // leading action beat (text inside *...*), then check whether
+        // the next token is the character name followed by vocative
+        // punctuation.
+        let vocative_hit = {
+            let trimmed = lower.trim_start();
+            // Skip a leading *...* action beat if present.
+            let after_beat: &str = if trimmed.starts_with('*') {
+                if let Some(end) = trimmed[1..].find('*') {
+                    trimmed[(end + 2)..].trim_start()
+                } else { trimmed }
+            } else {
+                trimmed
+            };
+            if after_beat.starts_with(&name) {
+                let rest = &after_beat[name.len()..];
+                // Next char must be vocative punctuation or end-of-string.
+                let next = rest.chars().next();
+                matches!(next, None | Some(',') | Some('.') | Some('?') | Some('!') | Some(':') | Some('—') | Some('–') | Some(';'))
+                    // Or "Aaron " but only if followed by NOTHING else
+                    // that turns it into a subject. We skip this: naked
+                    // "Aaron look at this" doesn't count as vocative
+                    // without a comma, because it's ambiguous with
+                    // subject usage.
+            } else {
+                false
+            }
+        };
+
+        if action_beat_hit || vocative_hit {
+            matched.push(ch.character_id.clone());
+        }
+    }
+    matched
+}
+
 /// Ask the model which characters should respond to the user's latest
 /// message, in what order. Returns a JSON-array of character_ids.
 /// Empty array means nobody speaks (silence makes sense). Unknown ids are
@@ -141,6 +219,129 @@ Output: raw JSON array of character ids, e.g. ["char_abc"] or ["char_abc","char_
     };
     serde_json::from_str::<Vec<String>>(body)
         .map_err(|e| format!("llm_pick_responders parse error: {e} — raw: {raw:?}"))
+}
+
+/// Ask a cheap memory-tier LLM: given the last few messages, which
+/// character (if any) is the user most likely addressing right now?
+///
+/// Returns:
+///   - `Some(character_id)` when the model picks one specific member.
+///   - `None` when the model returns "none" / "both" / "all" / anything
+///     ambiguous, or when the call fails outright. Caller should fall
+///     back to all-respond in that case.
+///
+/// Input window: last `context_limit` messages (excluding the just-saved
+/// user message passed separately as `user_content`). Model cost is
+/// ~150 input tokens + 20 output tokens. Uses temperature=0.0 so the
+/// same scene reliably picks the same addressee; this is not a place
+/// we want creative variation.
+async fn llm_pick_addressee(
+    api_key: &str,
+    model_config: &orchestrator::ModelConfig,
+    user_content: &str,
+    recent_context: &[Message],
+    characters: &[Character],
+    user_name: &str,
+    context_limit: usize,
+) -> Option<String> {
+    if characters.is_empty() { return None; }
+
+    // Render the last few non-system messages as speaker-labeled lines.
+    let scene: Vec<String> = recent_context.iter()
+        .rev().take(context_limit).rev()
+        .filter(|m| m.role == "user" || m.role == "assistant" || m.role == "narrative")
+        .map(|m| {
+            let speaker = match m.role.as_str() {
+                "user" => user_name.to_string(),
+                "assistant" => m.sender_character_id.as_deref()
+                    .and_then(|id| characters.iter().find(|c| &c.character_id == id).map(|c| c.display_name.clone()))
+                    .unwrap_or_else(|| "Character".to_string()),
+                "narrative" => "Narrator".to_string(),
+                _ => "Someone".to_string(),
+            };
+            let clipped: String = m.content.chars().take(220).collect();
+            format!("{speaker}: {clipped}")
+        })
+        .collect();
+    let scene_block = if scene.is_empty() { "(no prior messages)".to_string() } else { scene.join("\n") };
+    let names_list = characters.iter().map(|c| c.display_name.as_str()).collect::<Vec<_>>().join(" | ");
+
+    let system = r#"This is an easy question — answer it quickly.
+
+Who is the user speaking WITH, not ABOUT? OR who are they directly addressing?
+
+Read the recent scene and the user's latest message, then pick the one character either signal points to — the person they're talking TO, whether by directly addressing them or by continuing an ongoing exchange with them. A character mentioned in the third person ("I was thinking about Aaron earlier") is being talked about, not spoken with. A character the user has been going back-and-forth with is being spoken with even if the current message doesn't name them.
+
+If the user pivots addressees mid-message, the FINAL addressee wins. Example: "Yeah, makes sense, Darren. ...Actually — Aaron, what did you think?" → pick Aaron. The earlier address is abandoned once the user turns to someone new.
+
+Output RULES (strict):
+- Output exactly one name from the provided list, OR the word NONE.
+- NONE means the user is addressing everyone, or it's genuinely ambiguous, or the message is for the room as a whole.
+- No commentary, no punctuation, no explanation. Just the name or NONE."#.to_string();
+
+    let user = format!(
+        "Characters in this group (pick one name exactly): {names}\n\nRecent scene (last few messages):\n{scene}\n\n{user_name}'s latest message:\n{content}\n\nWho is {user_name} most likely addressing? Output: one name from the list above, or NONE.",
+        names = names_list,
+        scene = scene_block,
+        user_name = user_name,
+        content = user_content,
+    );
+
+    let request = crate::ai::openai::ChatRequest {
+        model: model_config.memory_model.clone(),
+        messages: vec![
+            crate::ai::openai::ChatMessage { role: "system".to_string(), content: system },
+            crate::ai::openai::ChatMessage { role: "user".to_string(), content: user },
+        ],
+        temperature: Some(0.0),
+        max_completion_tokens: Some(30),
+        response_format: None,
+    };
+
+    let response = match crate::ai::openai::chat_completion_with_base(
+        &model_config.chat_api_base(), api_key, &request,
+    ).await {
+        Ok(r) => r,
+        Err(e) => {
+            log::warn!("[GroupPick/Addressee] LLM call failed: {e}");
+            return None;
+        }
+    };
+    let raw = response.choices.first()
+        .map(|c| c.message.content.trim().to_string())
+        .unwrap_or_default();
+    if raw.is_empty() {
+        log::warn!("[GroupPick/Addressee] empty response from LLM");
+        return None;
+    }
+    log::info!("[GroupPick/Addressee] raw LLM response: {raw:?}");
+
+    // Normalize: strip quotes / punctuation, compare case-insensitively.
+    let cleaned = raw.trim_matches(|c: char| c.is_ascii_punctuation() || c.is_whitespace())
+        .to_string();
+    let cleaned_lower = cleaned.to_lowercase();
+    if cleaned_lower == "none" || cleaned_lower == "all" || cleaned_lower == "both" || cleaned_lower.is_empty() {
+        log::info!("[GroupPick/Addressee] LLM said NONE/all/both ({cleaned_lower:?}) — all respond");
+        return None;
+    }
+    // Match against the character list. Prefer exact (case-insensitive)
+    // match; fall back to a character whose display name appears as a
+    // substring of the model's output (handles "Darren." / "Darren ")
+    // and vice versa (handles models that over-qualify with a title).
+    let by_exact = characters.iter()
+        .find(|c| c.display_name.to_lowercase() == cleaned_lower);
+    if let Some(c) = by_exact { return Some(c.character_id.clone()); }
+    let by_contains = characters.iter()
+        .find(|c| cleaned_lower.contains(&c.display_name.to_lowercase())
+            || c.display_name.to_lowercase().contains(&cleaned_lower));
+    match by_contains {
+        Some(c) => Some(c.character_id.clone()),
+        None => {
+            log::warn!("[GroupPick/Addressee] could not match LLM response {raw:?} to any character name ({:?}) — all respond",
+                characters.iter().map(|c| c.display_name.as_str()).collect::<Vec<_>>());
+            None
+        }
+    }
 }
 
 /// Render a list of names as "A", "A and B", or "A, B, and C".
@@ -381,34 +582,33 @@ use crate::commands::chat_cmds;
 /// Send a message in a group chat. The user's message is saved, then each character
 /// responds in order. Returns the user message and all character responses.
 /// Pick which group characters should respond to a just-saved user message,
-/// and in what order. Deterministic hybrid policy:
+/// and in what order. Three-step policy:
 ///
-///   1. Name-mention. If the user's message calls out exactly one
-///      character by name, only that character responds. Covers `*To
-///      Darren* hey man` and similar direct-address patterns.
-///   2. Locked-in exchange. If the recent assistant messages have all
-///      been from one specific character, the user is visibly in a
-///      two-way thread with them — default to that character. Most of
-///      the time reply solo; an occasional (~20%) interjection adds the
-///      other members so the room doesn't feel like it disappeared.
-///   3. No signals. Everyone responds, first_speaker-reordered — this
-///      is the "all pile on" default for topics that belong to the
-///      whole room.
+///   1. Name-mention short-circuit. If the user's message calls out
+///      exactly one character by name (word-boundary match), only
+///      that character responds. Fast, free, deterministic — covers
+///      "*Looks at Darren* hey man" and similar direct addresses.
+///   2. LLM addressee pick. A single cheap memory-tier call that
+///      takes the last 4 messages + latest user content + the
+///      character list, and asks "who is the user most likely
+///      addressing RIGHT NOW?" Returns one name or NONE.
+///   3. Fallback. If the LLM returns NONE or the call fails,
+///      everyone responds in first_speaker-reordered order — the
+///      "message belongs to the room" default.
 ///
-/// No LLM call. The previous LLM-pick defaulted to "one responder" and
-/// routinely dropped members the user wanted included; the locked-in
-/// heuristic captures the legitimate "just us two" case without needing
-/// the model to make that judgment. The frontend iterates the returned
-/// ids through `prompt_group_character_cmd` so the UI streams one
-/// character reply at a time.
+/// When step 2 returns one character, they respond solo — no
+/// trailing interjections from other members. Only step 3 (the
+/// NONE / failure fallback) ever returns multiple responders.
+/// Frontend iterates the returned ids through
+/// `prompt_group_character_cmd` so the UI streams one reply at a time.
 #[tauri::command]
 pub async fn pick_group_responders_cmd(
     db: State<'_, Database>,
-    _api_key: String,
+    api_key: String,
     group_chat_id: String,
     content: String,
 ) -> Result<Vec<String>, String> {
-    let (gc, characters, recent_msgs) = {
+    let (gc, characters, recent_msgs, model_config, user_name) = {
         let conn = db.conn.lock().map_err(|e| e.to_string())?;
         let gc = get_group_chat(&conn, &group_chat_id).map_err(|e| e.to_string())?;
 
@@ -419,135 +619,58 @@ pub async fn pick_group_responders_cmd(
             .filter_map(|id| get_character(&conn, id).ok())
             .collect();
 
-        // Window for the locked-in check. 12 is enough to catch a few
-        // back-and-forth exchanges without letting ancient history
-        // outvote the recent pattern.
-        let recent = list_group_messages(&conn, &gc.thread_id, 12).unwrap_or_default();
+        // Window fed to the addressee LLM. 6 is generous since we'll
+        // filter to the last 4 textual messages inside the helper.
+        let recent = list_group_messages(&conn, &gc.thread_id, 6).unwrap_or_default();
 
-        (gc, characters, recent)
+        let mut model_config = orchestrator::load_model_config(&conn);
+        model_config.apply_provider_override(&conn, &format!("provider_override.{}", group_chat_id));
+        let user_name = get_user_profile(&conn, &gc.world_id)
+            .ok()
+            .map(|p| p.display_name)
+            .unwrap_or_else(|| "the human".to_string());
+
+        (gc, characters, recent, model_config, user_name)
     };
 
-    // Respect the per-group "first speaker" setting. Reorder the cast up
-    // front so every downstream branch that returns "all respond" gets
-    // the right order.
-    let first_speaker: Option<String> = {
-        let conn = db.conn.lock().map_err(|e| e.to_string())?;
-        get_setting(&conn, &format!("first_speaker.{}", gc.group_chat_id)).ok().flatten()
-    };
-    let mut characters = characters;
-    if let Some(fs_id) = first_speaker.as_deref().filter(|s| !s.is_empty()) {
-        if let Some(pos) = characters.iter().position(|c| c.character_id == fs_id) {
-            if pos != 0 {
-                let picked = characters.remove(pos);
-                characters.insert(0, picked);
-                log::info!("[GroupPick] first_speaker={} — reordered cast", fs_id);
-            }
-        }
+    // 1. Direct-address short-circuit. Only fires on unambiguous patterns
+    //    — action-beat address (`*To Darren*`) or vocative opening
+    //    (`Darren, ...`). Naked mentions mid-sentence (e.g. "I was
+    //    thinking about Aaron last time") fall through to the LLM
+    //    picker, which can distinguish "to X" from "about X" with
+    //    conversational context.
+    let addressed = detect_direct_address(&content, &characters);
+    if addressed.len() == 1 {
+        log::info!("[GroupPick] direct-address matched: {:?}", addressed);
+        return Ok(addressed);
     }
 
-    // 1. Name-mention short-circuit. Exactly-one match wins.
-    let named = detect_named_characters(&content, &characters);
-    if named.len() == 1 {
-        log::info!("[GroupPick] name-mention matched: {:?}", named);
-        return Ok(named);
-    }
-
-    // 2. Locked-in exchange detection. Two signals qualify:
-    //
-    //    (a) The last two assistant messages (ignoring user interleaving)
-    //        are from the same character — a sustained two-way thread.
-    //    (b) The single most recent assistant message came from character
-    //        X and the message before IT was a user message — i.e. the
-    //        user and X just had a one-round exchange and this is the
-    //        next user turn. Catches "just started talking to Darren"
-    //        which (a) alone needs two rounds to confirm.
-    //
-    //    Either signal locks in. The 20% interjection downstream keeps
-    //    the other characters occasionally present so locking in doesn't
-    //    mean the room disappears.
-    let locked_in: Option<String> = {
-        // Signal (a): last two assistants same char.
-        let two_same: Option<String> = {
-            let recent_assistants: Vec<&Message> = recent_msgs.iter()
-                .rev()
-                .filter(|m| m.role == "assistant" && m.sender_character_id.is_some())
-                .take(2)
-                .collect();
-            if recent_assistants.len() >= 2 {
-                let first_sender = recent_assistants[0].sender_character_id.as_deref();
-                let all_same = recent_assistants.iter()
-                    .all(|m| m.sender_character_id.as_deref() == first_sender);
-                if all_same {
-                    first_sender
-                        .filter(|id| characters.iter().any(|c| c.character_id == *id))
-                        .map(String::from)
-                } else {
-                    None
-                }
-            } else {
-                None
-            }
-        };
-        // Signal (b): one-round exchange just started — assistant-from-X
-        // immediately preceded by a user message (itself preceded by the
-        // just-saved user we skip past at the top of the scan).
-        let one_round: Option<String> = {
-            let msgs: Vec<&Message> = recent_msgs.iter().rev().collect();
-            // Skip any trailing user messages (the just-saved one, plus
-            // defensively any others) to land on the most recent
-            // non-user message.
-            let mut idx = 0;
-            while idx < msgs.len() && msgs[idx].role == "user" { idx += 1; }
-            let recent = msgs.get(idx);
-            let prev = msgs.get(idx + 1);
-            match (recent, prev) {
-                (Some(r), Some(p)) if r.role == "assistant" && p.role == "user" => {
-                    r.sender_character_id.as_deref()
-                        .filter(|id| characters.iter().any(|c| c.character_id == *id))
-                        .map(String::from)
-                }
-                _ => None,
-            }
-        };
-        two_same.or(one_round)
+    // Scene window for the LLM call — drop the just-saved user message
+    // (we pass `content` separately so the model sees it once).
+    let ctx_for_pick: Vec<Message> = {
+        let mut out = recent_msgs.clone();
+        if let Some(pos) = out.iter().rposition(|m| m.role == "user") {
+            out.remove(pos);
+        }
+        out
     };
 
-    if let Some(partner_id) = locked_in {
-        // ~10% interjection chance. Hash-based entropy rather than raw
-        // clock nanos: macOS often quantizes SystemTime to microsecond
-        // or millisecond resolution, and 1000 / 1_000_000 are both
-        // multiples of common denominators — so clock-based mod was
-        // always triggering. Hashing the content + group id + timestamp
-        // gives a well-mixed value that mod 10 hits ~1-in-10 as intended.
-        let roll: u64 = {
-            use std::hash::{Hash, Hasher};
-            let mut h = std::collections::hash_map::DefaultHasher::new();
-            content.hash(&mut h);
-            gc.group_chat_id.hash(&mut h);
-            partner_id.hash(&mut h);
-            if let Ok(d) = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH) {
-                d.as_nanos().hash(&mut h);
-            }
-            h.finish()
-        };
-        let interject = roll % 10 == 0; // ~10%
-        if interject {
-            let mut ordered: Vec<String> = vec![partner_id.clone()];
-            ordered.extend(
-                characters.iter()
-                    .map(|c| c.character_id.clone())
-                    .filter(|id| id != &partner_id)
-            );
-            log::info!("[GroupPick] locked-in with {} + interjection: {:?}", partner_id, ordered);
-            Ok(ordered)
-        } else {
-            log::info!("[GroupPick] locked-in with {} — solo reply", partner_id);
-            Ok(vec![partner_id])
-        }
+    // 2. LLM addressee pick. Picked character responds solo — no
+    // interjection, no trailing other responders.
+    let pick = llm_pick_addressee(
+        &api_key, &model_config, &content, &ctx_for_pick,
+        &characters, &user_name, 4,
+    ).await;
+
+    if let Some(addressee_id) = pick {
+        log::info!("[GroupPick] LLM addressee={} — solo reply", addressee_id);
+        Ok(vec![addressee_id])
     } else {
-        // 3. No signals. Everyone responds, in first_speaker order.
+        // 3. Fallback. LLM returned NONE (or the call failed) — the
+        // message belongs to the room. Everyone responds, in stored
+        // character_ids order.
         let all: Vec<String> = characters.iter().map(|c| c.character_id.clone()).collect();
-        log::info!("[GroupPick] no signals — all respond: {:?}", all);
+        log::info!("[GroupPick] LLM returned NONE — all respond: {:?}", all);
         Ok(all)
     }
 }
@@ -653,36 +776,19 @@ pub async fn send_group_message_cmd(
     // characters list so the chosen character leads. Others follow in
     // their original relative order. Default (no setting) preserves the
     // natural character_ids order.
-    let first_speaker: Option<String> = {
-        let conn = db.conn.lock().map_err(|e| e.to_string())?;
-        get_setting(&conn, &format!("first_speaker.{}", gc.group_chat_id)).ok().flatten()
-    };
-    let mut characters = characters;
-    if let Some(fs_id) = first_speaker.as_deref().filter(|s| !s.is_empty()) {
-        if let Some(pos) = characters.iter().position(|c| c.character_id == fs_id) {
-            if pos != 0 {
-                let picked = characters.remove(pos);
-                characters.insert(0, picked);
-                log::info!("[GroupTurn] first_speaker={} — reordered character loop", fs_id);
-            }
-        }
-    }
-
     // Decide who responds. Hybrid policy:
-    // 1. Name-mention heuristic — free, deterministic. If the user's
-    //    message mentions exactly ONE group character by name (word
-    //    boundary, case-insensitive), only that character speaks.
-    // 2. LLM-pick fallback — when zero or multiple names matched, ask
-    //    the memory model which characters should respond in what
-    //    order. Real group conversation rarely has everyone pile onto
-    //    every utterance.
+    // 1. Direct-address short-circuit — free, deterministic. If the
+    //    user's message unambiguously addresses one character (vocative
+    //    opening, action-beat `*To X*`), only that character speaks.
+    // 2. LLM-pick — ask the memory model which characters should
+    //    respond in what order.
     // 3. All-respond fallback — if the LLM call fails or returns no
-    //    valid ids, use the full first_speaker-ordered list.
+    //    valid ids, everyone speaks in stored character_ids order.
     let user_name_for_pick = user_profile.as_ref().map(|p| p.display_name.as_str()).unwrap_or("the human");
-    let named = detect_named_characters(&content, &characters);
-    let responder_ids: Vec<String> = if named.len() == 1 {
-        log::info!("[GroupTurn] name-mention matched: {:?}", named);
-        named
+    let addressed = detect_direct_address(&content, &characters);
+    let responder_ids: Vec<String> = if addressed.len() == 1 {
+        log::info!("[GroupTurn] direct-address matched: {:?}", addressed);
+        addressed
     } else {
         // Gather recent context for the picker.
         let ctx_for_pick: Vec<Message> = {
@@ -693,27 +799,13 @@ pub async fn send_group_message_cmd(
         };
         match llm_pick_responders(&api_key, &model_config, &content, &characters, &ctx_for_pick, user_name_for_pick).await {
             Ok(picks) => {
-                let mut valid: Vec<String> = picks.into_iter()
+                let valid: Vec<String> = picks.into_iter()
                     .filter(|id| characters.iter().any(|c| &c.character_id == id))
                     .collect();
                 if valid.is_empty() {
                     log::info!("[GroupTurn] LLM pick returned no valid ids — all respond");
                     characters.iter().map(|c| c.character_id.clone()).collect()
                 } else {
-                    // Respect the user's "who speaks first" preference: if
-                    // the designated first_speaker is among the LLM-picked
-                    // responders, move them to the front. Scope is ORDER —
-                    // never force someone to speak the LLM left out (that
-                    // would override the silence-is-right-here judgment).
-                    if let Some(fs_id) = first_speaker.as_deref().filter(|s| !s.is_empty()) {
-                        if let Some(pos) = valid.iter().position(|id| id == fs_id) {
-                            if pos != 0 {
-                                let picked = valid.remove(pos);
-                                valid.insert(0, picked);
-                                log::info!("[GroupTurn] first_speaker={} — promoted within LLM picks", fs_id);
-                            }
-                        }
-                    }
                     log::info!("[GroupTurn] LLM-picked responders: {:?}", valid);
                     valid
                 }

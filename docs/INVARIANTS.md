@@ -249,20 +249,86 @@ the asserted substrings intact.
 
 ---
 
+## Invariant 5: Agape — what love does, grounded in 1 Corinthians 13
+
+**Location:** `AGAPE_BLOCK` in `src-tauri/src/ai/prompts.rs`.
+
+**Required substrings (compile-time asserted):**
+
+- `"agape"` — the specific kind of love in view must be named, so the
+  model's response to "love" is anchored in self-giving / other-
+  seeking love rather than in romance or sentiment.
+- `"1 Corinthians 13"` — the citation to the Love Chapter must remain
+  present so the behavioral prescription is visibly scriptural, not
+  assembled from generic "kindness" tropes.
+- `"Love is patient, love is kind"` — the opening of 1 Cor 13:4,
+  quoted verbatim. Load-bearing as the anchor phrase the model ties
+  the rest of the block to.
+- `"keeps no record of wrongs"` — a distinctive middle-verse clause
+  (13:5) that guards against characters weaponizing past hurts when
+  they love the other person. Without this, the model drifts toward
+  "love but also remember every grievance" which breaks the clause.
+- `"Love never fails"` — the closing of 13:8a, preserved verbatim as
+  the block's final seal.
+
+**Why it's load-bearing:**
+
+LLMs default hard to a sentimental or romantic reading of "love."
+Asked to render a character who loves another, they produce declared
+feelings, announced affection, eye-contact adverbs. They don't
+produce *choices that look like love*. The agape block forces a
+behavioral reading: love is what this character CHOOSES, not what
+they announce. Patience. Kindness. Not self-seeking. Not easily
+angered. Keeps no record of wrongs. These are the specific shapes
+Paul names, and they produce specific scene-level consequences that
+generic "love" never touches — sparing a sharper answer, holding
+silence, carrying a cup, leaving an old wound alone.
+
+Direct citation of 1 Corinthians 13 is important because it (a)
+gives the block authority the model will actually reach for, (b)
+broadens the reading past romance into the full range Paul
+describes (friendship, brotherhood, neighbor, stranger, enemy),
+and (c) matches the app's Christian frame (Invariant 1's truth-test
+names Christ; this one names the scripture describing Christ-shaped
+love in action).
+
+**What counts as a violation:**
+
+- Removing any asserted substring (especially the citation or the
+  verbatim scripture quotes).
+- Replacing "agape" with "love" alone — that erases the specific
+  reading and lets the romantic default back in.
+- Rewriting the block to describe love as a feeling rather than as
+  a set of choices — the whole frame is "love is what they DO."
+- Dropping the "keeps no record of wrongs" guard — without it,
+  characters who "love" each other still weaponize old hurts and
+  the clause is meaningless.
+- Narrowing the applicability to romance only. The block explicitly
+  lists friend / family / brotherly / neighbor / stranger / enemy
+  as in-scope; pulling those out breaks the invariant.
+- Moving the clause out of the prompt stack so it stops reaching
+  the model.
+
+**If you need to edit nearby prose** for pacing, add examples, or
+adjust emphasis: fine. Keep the five asserted substrings intact.
+
+---
+
 ## Enforcement
 
-All four invariants are enforced by `const _: () = { assert!(...); };`
+All five invariants are enforced by `const _: () = { assert!(...); };`
 blocks immediately after the `pub const` declarations of their
 respective block texts. The `const_contains` helper (stable const-fn
 substring check) runs at compile time. Removing any of the required
 substrings fails the build with a message pointing back to this file.
 
-**Prompt wiring:** `DAYLIGHT_BLOCK`, `SOUNDNESS_BLOCK`, and
-`TELL_THE_TRUTH_BLOCK` are pushed at the end of every dialogue /
+**Prompt wiring:** `DAYLIGHT_BLOCK`, `AGAPE_BLOCK`, `SOUNDNESS_BLOCK`,
+and `TELL_THE_TRUTH_BLOCK` are pushed at the end of every dialogue /
 group / narrative system prompt, in that order — daylight sets the
-direction for closeness, soundness sets the posture of scenes, and
-the truth test binds everything under a single ethical grammar. All
-three sit after the craft notes so they anchor the whole stack.
+direction for closeness, agape names what love actually does inside
+that closeness, soundness sets the posture of scenes, and the truth
+test binds everything under a single ethical grammar. All four sit
+after the craft notes so they anchor the whole stack.
 `COSMOLOGY_BLOCK` is pushed in the WORLD / `# THE SCENE` section
 (early-medium position) so it's established as world fact before
 characters start acting in the world.

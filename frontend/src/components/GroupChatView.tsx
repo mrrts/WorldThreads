@@ -228,25 +228,6 @@ export function GroupChatView({ store, onNavigateToCharacter }: Props) {
     if (chatId) api.setSetting(`leader.${chatId}`, next).catch(() => {});
   }, [chatId]);
 
-  // First-speaker setting: which character replies first in auto-respond
-  // mode. Empty string = use the group's natural order (first character
-  // in character_ids). Group-chat-only setting; ignored in solo chats.
-  const [firstSpeaker, setFirstSpeaker] = useState<string>("");
-  useEffect(() => {
-    if (!chatId) return;
-    let cancelled = false;
-    api.getSetting(`first_speaker.${chatId}`).then((v) => {
-      if (!cancelled) setFirstSpeaker(v ?? "");
-    }).catch(() => {
-      if (!cancelled) setFirstSpeaker("");
-    });
-    return () => { cancelled = true; };
-  }, [chatId]);
-  const setFirstSpeakerPersist = useCallback((next: string) => {
-    setFirstSpeaker(next);
-    if (chatId) api.setSetting(`first_speaker.${chatId}`, next).catch(() => {});
-  }, [chatId]);
-
   // Send conversation history: default ON. When OFF, each responding
   // character sees only the system prompt + the triggering message.
   const [sendHistory, setSendHistory] = useState<boolean>(true);
@@ -1137,23 +1118,6 @@ export function GroupChatView({ store, onNavigateToCharacter }: Props) {
                         onClick={() => setLeaderPersist(opt.id)}
                         className={`flex-1 px-2 py-1.5 text-xs font-medium transition-colors cursor-pointer ${
                           leader === opt.id ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground hover:bg-accent/50"
-                        }`}
-                      >{opt.label}</button>
-                    ))}
-                  </div>
-                </div>
-                <div>
-                  <label className="text-xs font-medium text-muted-foreground block mb-1.5">
-                    Who speaks first
-                    <span className="text-muted-foreground/50 font-normal ml-1.5">(auto-respond order)</span>
-                  </label>
-                  <div className="flex rounded-lg overflow-hidden border border-input">
-                    {[{ id: "", label: "Default" }, ...groupCharacters.map((c) => ({ id: c.character_id, label: c.display_name }))].map((opt) => (
-                      <button
-                        key={opt.id || "default"}
-                        onClick={() => setFirstSpeakerPersist(opt.id)}
-                        className={`flex-1 px-2 py-1.5 text-xs font-medium transition-colors cursor-pointer ${
-                          firstSpeaker === opt.id ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground hover:bg-accent/50"
                         }`}
                       >{opt.label}</button>
                     ))}
