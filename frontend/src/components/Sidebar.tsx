@@ -262,7 +262,7 @@ export function Sidebar({ store, onNavigate }: Props) {
                       </button>
                     </div>
                     {hoverChar === ch.character_id && (
-                      <div className="fixed z-50 w-80 bg-card border border-border rounded-xl shadow-2xl shadow-black/40 overflow-hidden animate-in fade-in zoom-in-95 duration-150" ref={(el) => { sidebarPopoverRef.current = el; if (el) { const parent = el.closest("[data-sidebar]"); const sidebarRight = parent ? parent.getBoundingClientRect().right + 8 : 232; const itemRect = el.parentElement?.getBoundingClientRect(); el.style.left = `${sidebarRight}px`; if (itemRect) el.style.top = `${Math.min(itemRect.top, window.innerHeight - el.offsetHeight - 8)}px`; }}} onMouseEnter={keepTooltip} onMouseLeave={hideCharTooltip}>
+                      <div className="fixed z-50 w-80 bg-card border border-border rounded-xl shadow-2xl shadow-black/40 overflow-hidden animate-in fade-in zoom-in-95 duration-150" ref={(el) => { sidebarPopoverRef.current = el; if (el) { const parent = el.closest("[data-sidebar]"); const sidebarRight = parent ? parent.getBoundingClientRect().right + 8 : 232; const itemRect = el.parentElement?.getBoundingClientRect(); el.style.left = `${sidebarRight}px`; if (itemRect) el.style.top = `${Math.max(8, Math.min(itemRect.top, window.innerHeight - el.offsetHeight - 8))}px`; }}} onMouseEnter={keepTooltip} onMouseLeave={hideCharTooltip}>
                         <div className="flex items-center gap-3 p-3">
                           {portrait?.data_url ? (
                             <img src={portrait.data_url} alt="" className="w-14 h-14 rounded-full object-cover ring-2 ring-border flex-shrink-0" />
@@ -274,14 +274,14 @@ export function Sidebar({ store, onNavigate }: Props) {
                           </div>
                         </div>
                         {ch.identity && (
-                          <div className="px-3 pb-2 -mt-1 max-h-52 overflow-y-auto">
+                          <div className="px-3 pb-2 -mt-1 max-h-40 overflow-y-auto">
                             <p className="text-xs text-muted-foreground leading-relaxed whitespace-pre-wrap">
                               {ch.identity}
                             </p>
                           </div>
                         )}
                         {ch.inventory && ch.inventory.length > 0 && (
-                          <div className="px-3 pb-3 pt-1 border-t border-border/30">
+                          <div className="px-3 pb-3 pt-2 border-t border-border/30 max-h-96 overflow-y-auto">
                             <InventoryStrip inventory={ch.inventory} />
                           </div>
                         )}
@@ -335,7 +335,7 @@ export function Sidebar({ store, onNavigate }: Props) {
                         </div>
                       </button>
                       {hoverGroup === gc.group_chat_id && (
-                        <div className="fixed z-50 w-[540px] bg-card border border-border rounded-xl shadow-2xl shadow-black/40 overflow-hidden animate-in fade-in zoom-in-95 duration-150" ref={(el) => { sidebarPopoverRef.current = el; if (el) { const parent = el.closest("[data-sidebar]"); const sidebarRight = parent ? parent.getBoundingClientRect().right + 8 : 232; const itemRect = el.parentElement?.getBoundingClientRect(); el.style.left = `${sidebarRight}px`; if (itemRect) el.style.top = `${Math.min(itemRect.top, window.innerHeight - el.offsetHeight - 8)}px`; }}} onMouseEnter={keepTooltip} onMouseLeave={hideGroupTooltip}>
+                        <div className="fixed z-50 w-[540px] bg-card border border-border rounded-xl shadow-2xl shadow-black/40 overflow-hidden animate-in fade-in zoom-in-95 duration-150" ref={(el) => { sidebarPopoverRef.current = el; if (el) { const parent = el.closest("[data-sidebar]"); const sidebarRight = parent ? parent.getBoundingClientRect().right + 8 : 232; const itemRect = el.parentElement?.getBoundingClientRect(); el.style.left = `${sidebarRight}px`; if (itemRect) el.style.top = `${Math.max(8, Math.min(itemRect.top, window.innerHeight - el.offsetHeight - 8))}px`; }}} onMouseEnter={keepTooltip} onMouseLeave={hideGroupTooltip}>
                           <div className="grid grid-cols-2 divide-x divide-border">
                             {groupChars.map((ch) => {
                               const portrait = store.activePortraits[ch.character_id];
@@ -357,7 +357,7 @@ export function Sidebar({ store, onNavigate }: Props) {
                                     </div>
                                   )}
                                   {ch.inventory && ch.inventory.length > 0 && (
-                                    <div className="mt-2 pt-2 border-t border-border/30">
+                                    <div className="mt-2 pt-2 border-t border-border/30 max-h-72 overflow-y-auto">
                                       <InventoryStrip inventory={ch.inventory} compact />
                                     </div>
                                   )}

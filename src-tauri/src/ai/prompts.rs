@@ -911,7 +911,7 @@ pub fn render_inventory_block(label: &str, inventory: &Value) -> String {
             "{label} is also carrying inside them (not spoken aloud, not announced, but present): {line}",
         ));
     }
-    out.push_str("\n\nThese are latent context — don't reach for an item unless the moment specifically calls for it, an initiative needs a physical anchor, or a surprise wants one. The interior thing almost never gets named directly; it colors the edges of what {label} says or notices. Never announce the list.");
+    out.push_str("\n\nThese are latent context that should shape and color your reply — the items inform voice, stance, mood, and what you're likely to notice. Don't force mention of any specific item unless the moment specifically calls for it, an initiative needs a physical or emotional or spiritual or motivational anchor, or a surprise wants one. Interior items almost never get named directly; they color the edges of what {label} says or notices. Never announce the list.");
     out.replace("{label}", label)
 }
 
@@ -2048,10 +2048,11 @@ pub fn build_narrative_system_prompt(
                 facts = backstory.iter().map(|f| format!("- {f}")).collect::<Vec<_>>().join("\n"),
             ));
         }
-        // Inventory: small kept things the character has on/near them.
-        // Latent context — narrative should reach for an item only when
-        // the beat itself wants one. Rendered via the shared helper so
-        // the format matches what dialogue sees.
+        // Inventory: small kept things the character has on/near them,
+        // plus interior things they're carrying. Latent context — narrative
+        // shouldn't force mention of any specific item unless the beat
+        // itself wants one. Rendered via the shared helper so the format
+        // matches what dialogue sees.
         let inv = render_inventory_block(&c.display_name, &c.inventory);
         if !inv.is_empty() {
             cast_block.push('\n');

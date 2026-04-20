@@ -461,7 +461,7 @@ export function GroupChatView({ store, onNavigateToCharacter }: Props) {
                         </div>
                       )}
                       {ch.inventory && ch.inventory.length > 0 && (
-                        <div className="mt-2 pt-2 border-t border-border/30">
+                        <div className="mt-2 pt-2 border-t border-border/30 max-h-72 overflow-y-auto">
                           <InventoryStrip inventory={ch.inventory} compact />
                         </div>
                       )}

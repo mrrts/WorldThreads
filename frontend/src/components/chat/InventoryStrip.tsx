@@ -22,8 +22,8 @@ export function InventoryStrip({
 }) {
   const items = (inventory ?? []).filter((it) => it?.name?.trim());
   const physical = items.filter((it) => (it.kind ?? "physical") !== "interior");
-  const interior = items.find((it) => it.kind === "interior");
-  if (physical.length === 0 && !interior) return null;
+  const interior = items.filter((it) => it.kind === "interior");
+  if (physical.length === 0 && interior.length === 0) return null;
 
   return (
     <div className="space-y-2">
@@ -45,18 +45,22 @@ export function InventoryStrip({
           </ul>
         </div>
       )}
-      {interior && (
+      {interior.length > 0 && (
         <div className="space-y-1">
           <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-muted-foreground/70 font-semibold">
             <Heart size={10} />
             <span>Carried inside</span>
           </div>
-          <p className="text-xs leading-snug italic">
-            <span className="text-foreground/90">{interior.name}</span>
-            {!compact && interior.description?.trim() ? (
-              <span className="text-muted-foreground/70"> — {interior.description}</span>
-            ) : null}
-          </p>
+          <ul className="space-y-1">
+            {interior.map((it, i) => (
+              <li key={i} className="text-xs leading-snug italic">
+                <span className="text-foreground/90">{it.name}</span>
+                {!compact && it.description?.trim() ? (
+                  <span className="text-muted-foreground/70"> — {it.description}</span>
+                ) : null}
+              </li>
+            ))}
+          </ul>
         </div>
       )}
     </div>

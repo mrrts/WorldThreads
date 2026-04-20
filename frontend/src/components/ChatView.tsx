@@ -456,7 +456,7 @@ export function ChatView({ store, onNavigateToCharacter }: Props) {
                   <p className="text-xs text-muted-foreground leading-relaxed whitespace-pre-wrap">{store.activeCharacter?.identity}</p>
                 </div>
                 {store.activeCharacter?.inventory && store.activeCharacter.inventory.length > 0 && (
-                  <div className="mt-3 pt-3 border-t border-border/30">
+                  <div className="mt-3 pt-3 border-t border-border/30 max-h-96 overflow-y-auto">
                     <InventoryStrip inventory={store.activeCharacter.inventory} />
                   </div>
                 )}
