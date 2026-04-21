@@ -1,3 +1,4 @@
+pub mod conscience;
 pub mod google;
 pub mod mood;
 pub mod openai;

@@ -209,6 +209,312 @@ pub async fn refresh_group_inventories_cmd(
     Ok(out)
 }
 
+/// Fetch (role, content, sender_character_id, created_at) for a message
+/// by id. Checks both `messages` and `group_messages` tables — the click
+/// that drove this call can originate from either. Returns None if the
+/// message has been deleted between the click and the command landing.
+fn get_message_anchor(conn: &rusqlite::Connection, message_id: &str)
+    -> Option<(String, String, Option<String>, String)>
+{
+    let mut try_table = |table: &str| {
+        conn.query_row(
+            &format!("SELECT role, content, sender_character_id, created_at FROM {} WHERE message_id = ?1", table),
+            rusqlite::params![message_id],
+            |r| Ok((
+                r.get::<_, String>(0)?,
+                r.get::<_, String>(1)?,
+                r.get::<_, Option<String>>(2)?,
+                r.get::<_, String>(3)?,
+            )),
+        ).ok()
+    };
+    try_table("messages").or_else(|| try_table("group_messages"))
+}
+
+/// Resolve the "speaker label" for an anchor message. For user messages,
+/// uses the user's display_name (falling back to "The human"). For an
+/// assistant message, uses the sender character's display_name if we can
+/// find it, otherwise the active character's name. For narrative, a
+/// scene-voice label that reads right in the prompt.
+fn anchor_speaker_label(
+    conn: &rusqlite::Connection,
+    role: &str,
+    sender_character_id: Option<&str>,
+    world_id: &str,
+    active_character_name: &str,
+) -> String {
+    match role {
+        "user" => get_user_profile(conn, world_id)
+            .ok()
+            .map(|p| p.display_name)
+            .unwrap_or_else(|| "The human".to_string()),
+        "narrative" => "Narrative voice".to_string(),
+        _ => {
+            if let Some(cid) = sender_character_id {
+                if let Ok(c) = get_character(conn, cid) {
+                    return c.display_name;
+                }
+            }
+            active_character_name.to_string()
+        }
+    }
+}
+
+/// Core "update from moment" flow — bypasses the staleness gate, quotes
+/// the clicked message for the model. When `allow_pure_maintain` is
+/// false (user/assistant clicks, and solo-chat narrative) at least one
+/// slot MUST change. When true (narrative clicked in a group chat,
+/// per-member fan-out) the model is permitted to leave the inventory
+/// untouched if the narrative doesn't reach this character.
+async fn update_one_inventory_from_message(
+    db: &Database,
+    api_key: &str,
+    character_id: &str,
+    message_id: &str,
+    allow_pure_maintain: bool,
+) -> Result<InventoryRefreshResult, String> {
+    if api_key.trim().is_empty() {
+        return Err("no API key".to_string());
+    }
+
+    let (character, world, model_config, history, anchor_speaker, anchor_content) = {
+        let conn = db.conn.lock().map_err(|e| e.to_string())?;
+        let character = get_character(&conn, character_id).map_err(|e| e.to_string())?;
+        let world = get_world(&conn, &character.world_id).map_err(|e| e.to_string())?;
+        let model_config = orchestrator::load_model_config(&conn);
+        let user_name = get_user_profile(&conn, &character.world_id)
+            .ok()
+            .map(|p| p.display_name)
+            .unwrap_or_else(|| "the human".to_string());
+        let history = gather_character_recent_messages(
+            &conn,
+            &character.character_id,
+            &user_name,
+            INVENTORY_HISTORY_LIMIT,
+        );
+        let (role, content, sender, _created_at) = get_message_anchor(&conn, message_id)
+            .ok_or_else(|| "Message not found for inventory update".to_string())?;
+        let speaker = anchor_speaker_label(
+            &conn, &role, sender.as_deref(), &character.world_id, &character.display_name,
+        );
+        (character, world, model_config, history, speaker, content)
+    };
+
+    let today = current_world_day(&world);
+    let prior_items = parse_inventory(&character.inventory);
+    let base = model_config.chat_api_base();
+    let model = &model_config.memory_model;
+
+    let new_items = orchestrator::inventory_update_from_moment(
+        &base, api_key, model,
+        &character.display_name, &character.identity,
+        &prior_items, &history,
+        &anchor_speaker, &anchor_content,
+        allow_pure_maintain,
+    ).await.map_err(|e| {
+        log::warn!("[Inventory] moment-update for {} failed: {e}", character.display_name);
+        e
+    })?;
+
+    {
+        let conn = db.conn.lock().map_err(|e| e.to_string())?;
+        let json = serde_json::to_value(&new_items).unwrap_or(Value::Array(vec![]));
+        let _ = set_character_inventory(&conn, &character.character_id, &json, Some(today));
+    }
+
+    log::info!(
+        "[Inventory] moment-update for {} — {} items (anchor: {})",
+        character.display_name, new_items.len(), anchor_speaker,
+    );
+
+    Ok(InventoryRefreshResult {
+        character_id: character.character_id.clone(),
+        inventory: new_items,
+        refreshed: true,
+        mode: "moment".to_string(),
+    })
+}
+
+/// Resolve who the inventory update should target based on the clicked
+/// message. Returns a list of character_ids (one for most cases, many
+/// for narrative-in-group fan-out).
+///
+/// Routing rules:
+/// - **assistant**: the message's `sender_character_id` (the character who
+///   spoke). Falls back to the solo-thread's character if sender is null.
+/// - **user**: the addressee.
+///   - Solo thread → the thread's single character.
+///   - Group thread → run `detect_direct_address` first; if unambiguous,
+///     use it. Otherwise fall back to `llm_pick_addressee` (same helper
+///     that group chat uses to pick responders). Last resort: the
+///     most-recent assistant speaker, or the first member.
+/// - **narrative**: everyone in the chat.
+///   - Solo → the one character.
+///   - Group → fan out to all members.
+async fn resolve_inventory_targets(
+    db: &Database,
+    api_key: &str,
+    message_id: &str,
+) -> Result<Vec<(String, bool)>, String> {
+    use crate::commands::group_chat_cmds;
+
+    // Load message + thread context up front so we can release the
+    // mutex before any awaits.
+    let (role, content, sender_character_id, thread_id, model_config, user_name, group_info, solo_char_id, members, recent, sender_of_last_assistant) = {
+        let conn = db.conn.lock().map_err(|e| e.to_string())?;
+
+        let (role, content, sender_character_id, thread_id) = conn.query_row(
+            "SELECT role, content, sender_character_id, thread_id FROM messages WHERE message_id = ?1",
+            rusqlite::params![message_id],
+            |r| Ok((
+                r.get::<_, String>(0)?,
+                r.get::<_, String>(1)?,
+                r.get::<_, Option<String>>(2)?,
+                r.get::<_, String>(3)?,
+            )),
+        ).or_else(|_| conn.query_row(
+            "SELECT role, content, sender_character_id, thread_id FROM group_messages WHERE message_id = ?1",
+            rusqlite::params![message_id],
+            |r| Ok((
+                r.get::<_, String>(0)?,
+                r.get::<_, String>(1)?,
+                r.get::<_, Option<String>>(2)?,
+                r.get::<_, String>(3)?,
+            )),
+        )).map_err(|_| "Message not found".to_string())?;
+
+        // Is this thread a group chat? If so, get its member list.
+        let group_info: Option<(String, Vec<String>)> = conn.query_row(
+            "SELECT group_chat_id, character_ids FROM group_chats WHERE thread_id = ?1",
+            rusqlite::params![&thread_id],
+            |r| {
+                let gc_id: String = r.get(0)?;
+                let ids_json: String = r.get(1)?;
+                let ids: Vec<String> = serde_json::from_str::<serde_json::Value>(&ids_json)
+                    .ok()
+                    .and_then(|v| v.as_array().map(|a| a.iter().filter_map(|x| x.as_str().map(String::from)).collect()))
+                    .unwrap_or_default();
+                Ok((gc_id, ids))
+            },
+        ).ok();
+
+        // Solo fallback: the thread's character_id (may be NULL in group threads).
+        let solo_char_id: Option<String> = conn.query_row(
+            "SELECT character_id FROM threads WHERE thread_id = ?1",
+            rusqlite::params![&thread_id],
+            |r| r.get::<_, Option<String>>(0),
+        ).ok().flatten();
+
+        let model_config = orchestrator::load_model_config(&conn);
+
+        // For group user-message routing, we need Character structs + recent context.
+        let (members, recent, sender_of_last_assistant): (Vec<Character>, Vec<Message>, Option<String>) = if let Some((_, ref ids)) = group_info {
+            let chars: Vec<Character> = ids.iter()
+                .filter_map(|id| get_character(&conn, id).ok())
+                .collect();
+            let world_id = chars.first().map(|c| c.world_id.clone()).unwrap_or_default();
+            let recent: Vec<Message> = list_group_messages(&conn, &thread_id, 12).unwrap_or_default();
+            let last_assistant = recent.iter().rev()
+                .find(|m| m.role == "assistant")
+                .and_then(|m| m.sender_character_id.clone());
+            let _ = world_id;
+            (chars, recent, last_assistant)
+        } else {
+            (Vec::new(), Vec::new(), None)
+        };
+
+        let world_id = if let Some((_, ref ids)) = group_info {
+            ids.iter().filter_map(|id| get_character(&conn, id).ok()).next().map(|c| c.world_id)
+        } else if let Some(ref cid) = solo_char_id {
+            get_character(&conn, cid).ok().map(|c| c.world_id)
+        } else {
+            None
+        };
+        let user_name = world_id.and_then(|wid| get_user_profile(&conn, &wid).ok())
+            .map(|p| p.display_name)
+            .unwrap_or_else(|| "the human".to_string());
+
+        (role, content, sender_character_id, thread_id, model_config, user_name, group_info, solo_char_id, members, recent, sender_of_last_assistant)
+    };
+
+    let is_group = group_info.is_some();
+    let _ = thread_id; // kept for future use / logging
+
+    // Each entry: (character_id, allow_pure_maintain). The flag is only
+    // set on narrative-in-group fan-out, where the narrative may only
+    // reach a subset of the characters present.
+    let targets: Vec<(String, bool)> = match role.as_str() {
+        "assistant" => {
+            let id = sender_character_id.or(solo_char_id)
+                .ok_or_else(|| "Assistant message has no sender character".to_string())?;
+            vec![(id, false)]
+        }
+        "user" => {
+            if !is_group {
+                solo_char_id.map(|id| (id, false)).into_iter().collect()
+            } else {
+                // Try direct address first (fast path, no LLM cost).
+                let direct = group_chat_cmds::detect_direct_address(&content, &members);
+                let picked_id = if direct.len() == 1 {
+                    Some(direct[0].clone())
+                } else if !members.is_empty() {
+                    let llm_pick = group_chat_cmds::llm_pick_addressee(
+                        api_key, &model_config, &content, &recent, &members, &user_name, 8,
+                    ).await;
+                    llm_pick.or(sender_of_last_assistant).or_else(|| Some(members[0].character_id.clone()))
+                } else {
+                    None
+                };
+                match picked_id {
+                    Some(id) => vec![(id, false)],
+                    None => return Err("Group chat has no members".to_string()),
+                }
+            }
+        }
+        "narrative" => {
+            if is_group {
+                // Fan out to every member, but ALLOW pure-maintain: the
+                // narrative may only name one or two of them, and the
+                // untouched members shouldn't be forced to manufacture
+                // a change. The prompt handles the branching inside.
+                members.iter().map(|c| (c.character_id.clone(), true)).collect()
+            } else {
+                // Solo narrative still forces at least one change —
+                // there's only one character, and the user clicked on
+                // a narrative about them.
+                solo_char_id.map(|id| (id, false)).into_iter().collect()
+            }
+        }
+        other => return Err(format!("Inventory update not supported for role '{other}'")),
+    };
+
+    if targets.is_empty() {
+        return Err("Could not resolve any inventory target for this message".to_string());
+    }
+    Ok(targets)
+}
+
+/// Unified on-demand inventory update: routes based on the clicked
+/// message's role and whether the chat is solo or group. See
+/// `resolve_inventory_targets` for routing rules.
+#[tauri::command]
+pub async fn update_inventory_for_moment_cmd(
+    db: State<'_, Database>,
+    api_key: String,
+    message_id: String,
+) -> Result<Vec<InventoryRefreshResult>, String> {
+    let targets = resolve_inventory_targets(&db, &api_key, &message_id).await?;
+    let db_ref: &Database = db.inner();
+    let futs = targets.into_iter().map(|(cid, allow_maintain)| {
+        let key = api_key.clone();
+        let mid = message_id.clone();
+        async move { update_one_inventory_from_message(db_ref, &key, &cid, &mid, allow_maintain).await }
+    });
+    let results = futures_util::future::join_all(futs).await;
+    let out: Vec<InventoryRefreshResult> = results.into_iter().filter_map(|r| r.ok()).collect();
+    Ok(out)
+}
+
 /// User-edit entry point from the character settings page. Blindly
 /// stores whatever the user typed (trimmed + capped to max items).
 /// Stamps `last_inventory_day` to the current world-day so the

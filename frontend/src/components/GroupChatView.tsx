@@ -4,7 +4,7 @@ import { formatMessage, markdownComponents, remarkPlugins, rehypePlugins } from 
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Dialog } from "@/components/ui/dialog";
-import { Send, Loader2, X, BookOpen, MessageSquare, Compass, Settings, Image, Trash2, SlidersHorizontal, Pencil, Square, Crosshair, ChevronLeft, ChevronRight, ChevronDown, Play, Pause, Volume2, ArrowRight, Smile, SmilePlus, ScrollText } from "lucide-react";
+import { Send, Loader2, X, BookOpen, MessageSquare, Compass, Settings, Image, Trash2, SlidersHorizontal, Pencil, Square, Crosshair, ChevronLeft, ChevronRight, ChevronDown, Play, Pause, Volume2, ArrowRight, Smile, SmilePlus, ScrollText, Package } from "lucide-react";
 import { ReactionBubbles } from "@/components/chat/ReactionBubbles";
 import { ReactionPicker } from "@/components/chat/ReactionPicker";
 import { KeepRecordModal } from "@/components/chat/KeepRecordModal";
@@ -15,6 +15,8 @@ import { api } from "@/lib/tauri";
 import { NarrativeMessage } from "@/components/chat/NarrativeMessage";
 import { ChatErrorBar } from "@/components/chat/ChatErrorBar";
 import { AnimationReadyToast } from "@/components/chat/AnimationReadyToast";
+import { InventoryUpdatedToast, buildInventoryDiffSummary, type InventoryUpdateSummary } from "@/components/chat/InventoryUpdatedToast";
+import type { InventoryItem } from "@/lib/tauri";
 import { ResetConfirmModal } from "@/components/chat/ResetConfirmModal";
 import { RemoveVideoConfirmModal } from "@/components/chat/RemoveVideoConfirmModal";
 import { IllustrationPickerModal } from "@/components/chat/IllustrationPickerModal";
@@ -48,6 +50,29 @@ export function GroupChatView({ store, onNavigateToCharacter }: Props) {
   const [pickerMessageId, setPickerMessageId] = useState<string | null>(null);
   const [keepTargetId, setKeepTargetId] = useState<string | null>(null);
   const [keptIds, setKeptIds] = useState<Set<string>>(new Set());
+  const [invUpdatingId, setInvUpdatingId] = useState<string | null>(null);
+  const [inventoryToast, setInventoryToast] = useState<InventoryUpdateSummary[] | null>(null);
+
+  const handleInventoryUpdateFromMessage = useCallback(async (messageId: string) => {
+    setInvUpdatingId(messageId);
+    const priorByChar = new Map<string, InventoryItem[]>(
+      store.characters.map((c) => [c.character_id, c.inventory ?? []])
+    );
+    const nameById = new Map<string, string>(
+      store.characters.map((c) => [c.character_id, c.display_name])
+    );
+    try {
+      const results = await store.updateInventoryForMoment(messageId);
+      const summaries = results
+        .map((r) => buildInventoryDiffSummary(priorByChar.get(r.character_id) ?? [], r.inventory, nameById.get(r.character_id) ?? "A character"))
+        .filter((s): s is InventoryUpdateSummary => s !== null);
+      if (summaries.length > 0) setInventoryToast(summaries);
+    } catch (e) {
+      console.warn("[Inventory] moment-update failed", e);
+    } finally {
+      setInvUpdatingId(null);
+    }
+  }, [store]);
   // Captions for illustration messages — loaded once per visible window.
   const [illustrationCaptions, setIllustrationCaptions] = useState<Record<string, string>>({});
   useEffect(() => {
@@ -541,6 +566,8 @@ export function GroupChatView({ store, onNavigateToCharacter }: Props) {
                   onAdjust={(id) => setAdjustMessageId(id)}
                   onKeep={(id) => setKeepTargetId(id)}
                   isKept={keptIds.has(msg.message_id)}
+                  onInventoryUpdate={handleInventoryUpdateFromMessage}
+                  inventoryUpdatingId={invUpdatingId}
                   onDelete={(id) => store.deleteMessage(id)}
                   chatFontSize={store.chatFontSize}
                 />
@@ -806,6 +833,18 @@ export function GroupChatView({ store, onNavigateToCharacter }: Props) {
                             {keptIds.has(msg.message_id) ? "Kept · save again" : "Keep to record"}
                           </span>
                         </div>
+                        <div className="relative group/minv">
+                          <button
+                            onClick={() => handleInventoryUpdateFromMessage(msg.message_id)}
+                            disabled={invUpdatingId === msg.message_id}
+                            className="inline-flex items-center justify-center w-6 h-6 rounded-full border transition-colors cursor-pointer bg-secondary/50 hover:bg-secondary border-border/60 hover:border-border text-muted-foreground hover:text-foreground disabled:opacity-60 disabled:cursor-wait"
+                          >
+                            {invUpdatingId === msg.message_id ? <Loader2 size={12} className="animate-spin" /> : <Package size={12} />}
+                          </button>
+                          <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-2 py-0.5 text-[10px] font-medium text-white bg-black rounded-md shadow-lg whitespace-nowrap opacity-0 group-hover/minv:opacity-100 pointer-events-none transition-opacity z-50">
+                            Update group inventories from this moment
+                          </span>
+                        </div>
                       </>
                     )}
                     <ReactionBubbles
@@ -901,6 +940,10 @@ export function GroupChatView({ store, onNavigateToCharacter }: Props) {
           setAnimationReadyId(null);
         }}
         onDismiss={() => setAnimationReadyId(null)}
+      />
+      <InventoryUpdatedToast
+        updates={inventoryToast}
+        onDismiss={() => setInventoryToast(null)}
       />
       </div>
 
@@ -1057,9 +1100,9 @@ export function GroupChatView({ store, onNavigateToCharacter }: Props) {
               onClick={() => setShowEmojiPicker((v) => !v)}
               disabled={isSending || (store.autoRespond && !store.apiKey)}
               title="Insert emoji"
-              className="absolute top-2 right-2 w-8 h-8 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-accent/50 transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+              className="absolute top-1 right-2 w-10 h-10 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-accent/50 transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
             >
-              <Smile size={16} />
+              <Smile size={24} />
             </button>
             {showEmojiPicker && (
               <ReactionPicker

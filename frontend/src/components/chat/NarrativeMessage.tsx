@@ -1,6 +1,6 @@
 import { useRef, useState } from "react";
 import Markdown from "react-markdown";
-import { BookOpen, Volume2, Loader2, Square, Play, SlidersHorizontal, Trash2, ScrollText } from "lucide-react";
+import { BookOpen, Volume2, Loader2, Square, Play, SlidersHorizontal, Trash2, ScrollText, Package } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
 import { formatMessage, markdownComponents, remarkPlugins, rehypePlugins } from "./formatMessage";
@@ -32,6 +32,9 @@ interface NarrativeMessageProps {
   // Canon
   onKeep?: (messageId: string) => void;
   isKept?: boolean;
+  // On-demand inventory update anchored to this message
+  onInventoryUpdate?: (messageId: string) => void;
+  inventoryUpdatingId?: string | null;
 }
 
 export function NarrativeMessage({
@@ -41,6 +44,7 @@ export function NarrativeMessage({
   adjustingMessageId, onAdjust, onDelete,
   chatFontSize = 2,
   onKeep, isKept,
+  onInventoryUpdate, inventoryUpdatingId,
 }: NarrativeMessageProps) {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const hasCached = cachedTones && cachedTones.size > 0;
@@ -159,6 +163,20 @@ export function NarrativeMessage({
                 </button>
                 <span className="absolute top-full left-1/2 -translate-x-1/2 mt-1.5 px-2 py-0.5 text-[10px] font-medium text-white bg-black rounded-md shadow-lg whitespace-nowrap opacity-0 group-hover/mcanon:opacity-100 pointer-events-none transition-opacity not-italic">
                   {isKept ? "Kept · save again" : "Keep to record"}
+                </span>
+              </div>
+            )}
+            {onInventoryUpdate && (
+              <div className="relative group/minv">
+                <button
+                  onClick={() => onInventoryUpdate(message.message_id)}
+                  disabled={inventoryUpdatingId === message.message_id}
+                  className="w-7 h-7 rounded-full bg-black/50 text-white flex items-center justify-center cursor-pointer hover:bg-black/70 transition-colors backdrop-blur-sm disabled:opacity-60 disabled:cursor-wait"
+                >
+                  {inventoryUpdatingId === message.message_id ? <Loader2 size={12} className="animate-spin" /> : <Package size={12} />}
+                </button>
+                <span className="absolute top-full left-1/2 -translate-x-1/2 mt-1.5 px-2 py-0.5 text-[10px] font-medium text-white bg-black rounded-md shadow-lg whitespace-nowrap opacity-0 group-hover/minv:opacity-100 pointer-events-none transition-opacity not-italic">
+                  Update inventory from this moment
                 </span>
               </div>
             )}

@@ -686,4 +686,6 @@ export const api = {
     invoke<InventoryRefreshResult[]>("refresh_group_inventories_cmd", { apiKey, groupChatId }),
   setCharacterInventory: (characterId: string, inventory: InventoryItem[]) =>
     invoke<InventoryItem[]>("set_character_inventory_cmd", { characterId, inventory }),
+  updateInventoryForMoment: (apiKey: string, messageId: string) =>
+    invoke<InventoryRefreshResult[]>("update_inventory_for_moment_cmd", { apiKey, messageId }),
 };

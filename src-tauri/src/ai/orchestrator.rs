@@ -220,6 +220,7 @@ pub async fn run_dialogue_with_base(
     kept_ids: &[String],
     illustration_captions: &std::collections::HashMap<String, String>,
     reactions_by_msg: &std::collections::HashMap<String, Vec<crate::db::queries::Reaction>>,
+    drift_correction: Option<&str>,
 ) -> Result<(String, Option<openai::Usage>), String> {
     // When the user has disabled conversation history for this chat, strip
     // prior turns, semantic memories, and moment markers — the character
@@ -245,7 +246,15 @@ pub async fn run_dialogue_with_base(
     let effective_reactions = if send_history { reactions_by_msg } else { &empty_reactions };
     let user_display_name = user_profile.map(|p| p.display_name.as_str());
 
-    let system = prompts::build_dialogue_system_prompt(world, character, user_profile, mood_directive, response_length, group_context, tone, local_model, mood_chain, leader);
+    let mut system = prompts::build_dialogue_system_prompt(world, character, user_profile, mood_directive, response_length, group_context, tone, local_model, mood_chain, leader);
+    // Conscience-pass retry path: a prior draft drifted on an invariant,
+    // and the grader returned a concrete correction note. Append it at the
+    // end of the system block so it sits in the high-attention tail right
+    // before the dialogue messages.
+    if let Some(note) = drift_correction {
+        system.push_str("\n\n");
+        system.push_str(note);
+    }
     let messages = prompts::build_dialogue_messages(&system, effective_msgs, effective_snippets, character_names, effective_kept, effective_captions, effective_reactions, user_display_name);
 
     // Unsent-draft pre-pass — DISABLED 2026-04-20. The extra call produced
@@ -1082,6 +1091,96 @@ pub async fn refresh_character_inventory(
         prior = prior_block,
         hist = if history_block.is_empty() { "(no messages since)".to_string() } else { history_block },
         max = INVENTORY_MAX_ITEMS,
+    );
+
+    let request = ChatRequest {
+        model: model.to_string(),
+        messages: vec![
+            openai::ChatMessage { role: "system".to_string(), content: inventory_system_prompt(character_name) },
+            openai::ChatMessage { role: "user".to_string(), content: user },
+        ],
+        temperature: Some(0.6),
+        max_completion_tokens: None,
+        response_format: None,
+    };
+
+    let response = openai::chat_completion_with_base(base_url, api_key, &request).await?;
+    let raw = response.choices.first()
+        .map(|c| c.message.content.clone())
+        .unwrap_or_default();
+    Ok(parse_inventory_json(&raw))
+}
+
+/// On-demand inventory update anchored to ONE specific message the user
+/// clicked in the chat. Unlike the daily refresh, this path:
+///   - Is NOT gated by `last_inventory_day` staleness.
+///   - Quotes the clicked message so the model focuses on THIS moment.
+///   - Requires (usually) that at least one slot visibly change.
+///
+/// `allow_pure_maintain_if_untouched`: when true, pure-maintain (no
+/// slots changed) IS allowed — used for narrative messages in group
+/// chats, where the narrative may only touch a subset of the
+/// characters and the untouched ones shouldn't be forced to manufacture
+/// a change. When false (the default for user/assistant messages and
+/// all solo-chat cases), at least one slot MUST change.
+///
+/// Returns exactly INVENTORY_MAX_ITEMS items, same JSON shape as refresh.
+pub async fn inventory_update_from_moment(
+    base_url: &str,
+    api_key: &str,
+    model: &str,
+    character_name: &str,
+    character_identity: &str,
+    prior_inventory: &[InventoryItem],
+    history: &[crate::db::queries::ConversationLine],
+    anchor_speaker: &str,
+    anchor_content: &str,
+    allow_pure_maintain_if_untouched: bool,
+) -> Result<Vec<InventoryItem>, String> {
+    let prior_block = if prior_inventory.is_empty() {
+        "(empty — this update is also the seed)".to_string()
+    } else {
+        serde_json::to_string_pretty(prior_inventory).unwrap_or_else(|_| "[]".to_string())
+    };
+    let history_block = render_history_for_inventory(history);
+    let anchor_trimmed: String = anchor_content.chars().take(1200).collect();
+
+    // The change-rule line has two shapes. The strict form (user/assistant
+    // messages, and all solo-chat cases) requires at least one visible
+    // change. The permissive form (narrative-in-group) lets the moment
+    // pass through untouched if the narrative genuinely doesn't reach
+    // this character. The permissive form is load-bearing: without it,
+    // a narrative in a 3-person group chat about one character forces
+    // the other two to invent arbitrary changes.
+    // Shared guidance on how swaps work — applies whether pure-maintain
+    // is allowed or not. Biases: introducing a new physical item should
+    // typically displace the weakest interior, not an existing physical.
+    // Existing physicals stick around unless the moment consumes them.
+    let swap_bias = "- WHEN A NEW PHYSICAL ITEM IS INTRODUCED by the moment (e.g., someone hands the character a water bottle, they pick up a key, they're given a folded note): displace THE WEAKEST OR MOST VAGUE INTERIOR item to make room. Don't displace an existing physical item to make space for a new physical item — physicals represent what's actually in the character's keeping, and they don't vanish just because another one arrived.\n- DON'T SWAP OUT AN EXISTING PHYSICAL ITEM unless the moment actually consumes / gives away / loses / breaks / hands-off that specific item. If Aaron has a folded map and a water bottle, and the moment gives him a coin, the coin displaces the weakest interior — the map and water bottle stay.\n- When choosing which item to displace, rank by: least specific → most specific, least consequence-bearing → most consequence-bearing, least anchored to identity → most anchored. Drop the loser.";
+
+    let change_rule = if allow_pure_maintain_if_untouched {
+        format!(
+            "- DETERMINE FIRST whether this moment actually touches {name}. Signs it DOES: {name} is named, is addressed, is present and reacting, receives or gives something, has a feeling clearly arrive about this, is the subject of the action. Signs it DOES NOT: the narrative is describing something happening elsewhere, or between other people, and {name} is neither named nor plausibly present-and-affected.\n- IF THE MOMENT DOES NOT TOUCH {name}: output their current inventory unchanged. Pure maintain IS allowed on this specific path (narrative in a multi-character scene) precisely because a narrative may only reach a subset of the characters present. Don't manufacture changes for characters the moment isn't about.\n- IF THE MOMENT DOES TOUCH {name}: AT LEAST ONE SLOT MUST VISIBLY CHANGE — either UPDATED (same item, rewritten in place with what the moment gave it), SWAPPED (one specific item replaced with a different one), or ADDED (a new item that displaces a prior item).\n{swap_bias}",
+            name = character_name,
+            swap_bias = swap_bias,
+        )
+    } else {
+        format!(
+            "- AT LEAST ONE SLOT MUST VISIBLY CHANGE in response to this moment — either UPDATED (same item, rewritten in place with what the moment gave it), SWAPPED (one specific item replaced with a different one), or ADDED (a new item that displaces a prior item). Pure maintain is not an option on this path: the moment has weight, and the inventory must register that weight somewhere.\n{swap_bias}",
+            swap_bias = swap_bias,
+        )
+    };
+
+    let user = format!(
+        "{name}'s identity:\n{ident}\n\n{name}'s CURRENT inventory (mixed physical + interior):\n{prior}\n\nRecent chat history (chronological, for context):\n{hist}\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\nTHE MOMENT THE USER IS CALLING YOUR ATTENTION TO\n({speaker} said):\n\"{anchor}\"\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\nUpdate {name}'s inventory IN RESPONSE TO THIS MOMENT.\n\nRules for this update (these override the generic \"across days\" rules):\n- Output EXACTLY {max} items, not fewer. At least one physical and at least one interior. Each tagged kind='physical' or kind='interior'.\n- MOST slots should remain as they are. Don't churn. If the moment doesn't touch an item, leave it alone.\n{change_rule}\n- Let the change be proportionate to what the moment actually carries. A small quiet moment produces a small specific change (one interior item re-phrased, or one physical item picked up). A load-bearing moment may warrant more than one change.\n- The change should be CAUSED by the moment, not merely coincident with it. If a name was almost said in the moment, that name now belongs in an interior slot. If a small object was handed over, it belongs in a physical slot. If an old ache was braided with new information, rewrite that ache's description to show it.\n- Keep all other rules intact: specificity, consequences-first, one concrete hook per interior, no items belonging to other characters, exactly {max} total.",
+        name = character_name,
+        ident = if character_identity.is_empty() { "(no identity written)" } else { character_identity },
+        prior = prior_block,
+        hist = if history_block.is_empty() { "(no other recent messages)".to_string() } else { history_block },
+        speaker = anchor_speaker,
+        anchor = anchor_trimmed,
+        max = INVENTORY_MAX_ITEMS,
+        change_rule = change_rule,
     );
 
     let request = ChatRequest {

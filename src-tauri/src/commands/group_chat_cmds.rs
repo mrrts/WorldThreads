@@ -57,7 +57,7 @@ fn detect_named_characters(content: &str, characters: &[Character]) -> Vec<Strin
 ///
 /// Everything else — names mid-sentence, possessives like "Aaron's",
 /// subject-of-sentence usage — is deliberately NOT caught here.
-fn detect_direct_address(content: &str, characters: &[Character]) -> Vec<String> {
+pub fn detect_direct_address(content: &str, characters: &[Character]) -> Vec<String> {
     let lower = content.to_lowercase();
     let mut matched: Vec<String> = Vec::new();
     for ch in characters {
@@ -235,7 +235,7 @@ Output: raw JSON array of character ids, e.g. ["char_abc"] or ["char_abc","char_
 /// ~150 input tokens + 20 output tokens. Uses temperature=0.0 so the
 /// same scene reliably picks the same addressee; this is not a place
 /// we want creative variation.
-async fn llm_pick_addressee(
+pub async fn llm_pick_addressee(
     api_key: &str,
     model_config: &orchestrator::ModelConfig,
     user_content: &str,
@@ -1010,13 +1010,81 @@ pub async fn send_group_message_cmd(
             &kept_ids,
             &illustration_captions,
             &reactions_by_msg,
+            None,
         ).await?;
 
         // Strip own prefix and truncate any other-character dialogue
         let other_names: Vec<&str> = characters.iter()
             .filter(|c| c.character_id != character.character_id)
             .map(|c| c.display_name.as_str()).collect();
-        let reply_text = strip_character_prefix(&raw_reply, &character.display_name, &other_names);
+        let mut reply_text = strip_character_prefix(&raw_reply, &character.display_name, &other_names);
+        let mut usage = usage;
+
+        // Conscience Pass: grade against the five invariants and
+        // regenerate once on drift. Gated by `conscience_pass_enabled`
+        // setting (default on). Non-fatal on grader errors.
+        let conscience_enabled = {
+            let conn = db.conn.lock().map_err(|e| e.to_string())?;
+            get_setting(&conn, "conscience_pass_enabled")
+                .ok().flatten()
+                .map(|v| v != "off" && v != "false")
+                .unwrap_or(true)
+        };
+        if conscience_enabled {
+            match crate::ai::conscience::grade_reply(
+                &model_config.chat_api_base(), &api_key, &model_config.memory_model,
+                character, &content, &reply_text,
+            ).await {
+                Ok(verdict) => {
+                    if let Some(u) = &verdict.usage {
+                        let conn = db.conn.lock().map_err(|e| e.to_string())?;
+                        let _ = record_token_usage(&conn, "conscience", &model_config.memory_model, u.prompt_tokens, u.completion_tokens);
+                    }
+                    if !verdict.passed {
+                        log::warn!(
+                            "[Conscience] {} (group) draft flagged: {:?}",
+                            character.display_name,
+                            verdict.failures,
+                        );
+                        if let Some(note) = crate::ai::conscience::build_correction_note(&verdict) {
+                            match orchestrator::run_dialogue_with_base(
+                                &model_config.chat_api_base(), &api_key, &model_config.dialogue_model,
+                                if !model_config.is_local() { Some(&model_config.memory_model) } else { None },
+                                send_history,
+                                &world, character, &dialogue_msgs, &retrieved,
+                                user_profile.as_ref(),
+                                None,
+                                response_length.as_deref(),
+                                Some(&group_context),
+                                Some(&character_names),
+                                narration_tone.as_deref(),
+                                model_config.is_local(),
+                                &mood_chain,
+                                leader.as_deref(),
+                                &kept_ids,
+                                &illustration_captions,
+                                &reactions_by_msg,
+                                Some(&note),
+                            ).await {
+                                Ok((corrected_raw, corrected_usage)) => {
+                                    log::info!("[Conscience] {} (group) reply corrected after drift", character.display_name);
+                                    reply_text = strip_character_prefix(&corrected_raw, &character.display_name, &other_names);
+                                    usage = corrected_usage;
+                                }
+                                Err(e) => {
+                                    log::warn!("[Conscience] group regeneration failed, keeping original draft: {e}");
+                                }
+                            }
+                        }
+                    } else {
+                        log::info!("[Conscience] {} (group) draft passed", character.display_name);
+                    }
+                }
+                Err(e) => {
+                    log::warn!("[Conscience] grader unavailable, passing draft through: {e}");
+                }
+            }
+        }
 
         if let Some(u) = &usage {
             let conn = db.conn.lock().map_err(|e| e.to_string())?;
@@ -1261,6 +1329,7 @@ pub async fn prompt_group_character_cmd(
         &kept_ids,
         &illustration_captions,
         &reactions_by_msg,
+        None,
     );
     let reaction_fut = orchestrator::pick_character_reaction_via_llm(
         &base, &api_key, &model_config.dialogue_model,
@@ -1272,7 +1341,64 @@ pub async fn prompt_group_character_cmd(
     let other_names: Vec<&str> = characters.iter()
         .filter(|c| c.character_id != character.character_id)
         .map(|c| c.display_name.as_str()).collect();
-    let reply_text = strip_character_prefix(&raw_reply, &character.display_name, &other_names);
+    let mut reply_text = strip_character_prefix(&raw_reply, &character.display_name, &other_names);
+    let mut usage = usage;
+
+    // Conscience Pass (see send_group_message_cmd).
+    let conscience_enabled = {
+        let conn = db.conn.lock().map_err(|e| e.to_string())?;
+        get_setting(&conn, "conscience_pass_enabled")
+            .ok().flatten()
+            .map(|v| v != "off" && v != "false")
+            .unwrap_or(true)
+    };
+    if conscience_enabled {
+        match crate::ai::conscience::grade_reply(
+            &base, &api_key, &model_config.memory_model,
+            &character, &reaction_user_content, &reply_text,
+        ).await {
+            Ok(verdict) => {
+                if let Some(u) = &verdict.usage {
+                    let conn = db.conn.lock().map_err(|e| e.to_string())?;
+                    let _ = record_token_usage(&conn, "conscience", &model_config.memory_model, u.prompt_tokens, u.completion_tokens);
+                }
+                if !verdict.passed {
+                    log::warn!("[Conscience] {} (group-prompt) draft flagged: {:?}", character.display_name, verdict.failures);
+                    if let Some(note) = crate::ai::conscience::build_correction_note(&verdict) {
+                        match orchestrator::run_dialogue_with_base(
+                            &base, &api_key, &model_config.dialogue_model,
+                            if !model_config.is_local() { Some(&model_config.memory_model) } else { None },
+                            send_history,
+                            &world, &character, &dialogue_msgs, &retrieved,
+                            user_profile.as_ref(),
+                            None,
+                            response_length.as_deref(),
+                            Some(&group_context),
+                            Some(&character_names),
+                            narration_tone.as_deref(),
+                            model_config.is_local(),
+                            &mood_chain2,
+                            leader.as_deref(),
+                            &kept_ids,
+                            &illustration_captions,
+                            &reactions_by_msg,
+                            Some(&note),
+                        ).await {
+                            Ok((corrected_raw, corrected_usage)) => {
+                                log::info!("[Conscience] {} (group-prompt) reply corrected after drift", character.display_name);
+                                reply_text = strip_character_prefix(&corrected_raw, &character.display_name, &other_names);
+                                usage = corrected_usage;
+                            }
+                            Err(e) => log::warn!("[Conscience] group-prompt regeneration failed, keeping original: {e}"),
+                        }
+                    }
+                } else {
+                    log::info!("[Conscience] {} (group-prompt) draft passed", character.display_name);
+                }
+            }
+            Err(e) => log::warn!("[Conscience] grader unavailable: {e}"),
+        }
+    }
 
     if let Some(u) = &usage {
         let conn = db.conn.lock().map_err(|e| e.to_string())?;

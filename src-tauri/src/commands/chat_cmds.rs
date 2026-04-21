@@ -561,6 +561,7 @@ pub async fn send_message_cmd(
     &kept_ids,
     &illustration_captions,
     &reactions_by_msg,
+    None,
     );
     // Context for the reaction-emoji pick: the recent messages EXCLUDING
     // the user's brand-new one (which goes in the user-role slot). Gives
@@ -573,7 +574,77 @@ pub async fn send_message_cmd(
         &content, &mood_reduction, &reaction_context,
     );
     let (dialogue_res, reaction_res) = tokio::join!(dialogue_fut, reaction_fut);
-    let (reply_text, dialogue_usage) = dialogue_res?;
+    let (mut reply_text, mut dialogue_usage) = dialogue_res?;
+
+    // Phase 4c: Conscience Pass. Grade the draft against the five
+    // compile-time invariants via a cheap memory_model call. On drift,
+    // regenerate once with the correction note injected. Default on,
+    // gated by `conscience_pass_enabled` setting. Non-fatal on grader
+    // transport errors — we never block delivery on the grader itself.
+    let conscience_enabled = {
+        let conn = db.conn.lock().map_err(|e| e.to_string())?;
+        get_setting(&conn, "conscience_pass_enabled")
+            .ok().flatten()
+            .map(|v| v != "off" && v != "false")
+            .unwrap_or(true)
+    };
+    if conscience_enabled {
+        let user_last = recent_msgs.iter().rev()
+            .find(|m| m.role == "user")
+            .map(|m| m.content.as_str()).unwrap_or(content.as_str());
+        match crate::ai::conscience::grade_reply(
+            &base, &api_key, &model_config.memory_model,
+            &character, user_last, &reply_text,
+        ).await {
+            Ok(verdict) => {
+                if let Some(u) = &verdict.usage {
+                    let conn = db.conn.lock().map_err(|e| e.to_string())?;
+                    let _ = record_token_usage(&conn, "conscience", &model_config.memory_model, u.prompt_tokens, u.completion_tokens);
+                }
+                if !verdict.passed {
+                    log::warn!(
+                        "[Conscience] {} draft flagged: {:?}",
+                        character.display_name,
+                        verdict.failures,
+                    );
+                    if let Some(note) = crate::ai::conscience::build_correction_note(&verdict) {
+                        match orchestrator::run_dialogue_with_base(
+                            &base, &api_key, &model_config.dialogue_model,
+                            if !model_config.is_local() { Some(&model_config.memory_model) } else { None },
+                            send_history,
+                            &world, &character, &recent_msgs, &full_retrieved,
+                            user_profile.as_ref(),
+                            mood_directive.as_deref(),
+                            response_length.as_deref(),
+                            None, None, narration_tone.as_deref(),
+                            model_config.is_local(),
+                            &mood_chain,
+                            leader.as_deref(),
+                            &kept_ids,
+                            &illustration_captions,
+                            &reactions_by_msg,
+                            Some(&note),
+                        ).await {
+                            Ok((corrected, corrected_usage)) => {
+                                log::info!("[Conscience] {} reply corrected after drift", character.display_name);
+                                reply_text = corrected;
+                                dialogue_usage = corrected_usage;
+                            }
+                            Err(e) => {
+                                log::warn!("[Conscience] regeneration failed, keeping original draft: {e}");
+                            }
+                        }
+                    }
+                } else {
+                    log::info!("[Conscience] {} draft passed", character.display_name);
+                }
+            }
+            Err(e) => {
+                log::warn!("[Conscience] grader unavailable, passing draft through: {e}");
+            }
+        }
+    }
+
     let tokens = dialogue_usage.as_ref().map(|u| u.total_tokens).unwrap_or(0);
 
     // Phase 5: Store assistant message
@@ -877,7 +948,7 @@ pub async fn prompt_character_cmd(
             .map(|v| v != "off" && v != "false")
             .unwrap_or(true)
     };
-    let (reply_text, dialogue_usage) = orchestrator::run_dialogue_with_base(
+    let (mut reply_text, mut dialogue_usage) = orchestrator::run_dialogue_with_base(
         &model_config.chat_api_base(), &api_key, &model_config.dialogue_model,
         if !model_config.is_local() { Some(&model_config.memory_model) } else { None },
         send_history,
@@ -892,7 +963,65 @@ pub async fn prompt_character_cmd(
         &kept_ids,
         &illustration_captions,
         &reactions_by_msg,
+        None,
     ).await?;
+
+    // Conscience Pass: grade + regenerate-on-drift (see send_message_cmd).
+    let conscience_enabled = {
+        let conn = db.conn.lock().map_err(|e| e.to_string())?;
+        get_setting(&conn, "conscience_pass_enabled")
+            .ok().flatten()
+            .map(|v| v != "off" && v != "false")
+            .unwrap_or(true)
+    };
+    if conscience_enabled {
+        let user_last = dialogue_msgs.iter().rev()
+            .find(|m| m.role == "user")
+            .map(|m| m.content.as_str()).unwrap_or("");
+        match crate::ai::conscience::grade_reply(
+            &model_config.chat_api_base(), &api_key, &model_config.memory_model,
+            &character, user_last, &reply_text,
+        ).await {
+            Ok(verdict) => {
+                if let Some(u) = &verdict.usage {
+                    let conn = db.conn.lock().map_err(|e| e.to_string())?;
+                    let _ = record_token_usage(&conn, "conscience", &model_config.memory_model, u.prompt_tokens, u.completion_tokens);
+                }
+                if !verdict.passed {
+                    log::warn!("[Conscience] {} (prompt) draft flagged: {:?}", character.display_name, verdict.failures);
+                    if let Some(note) = crate::ai::conscience::build_correction_note(&verdict) {
+                        match orchestrator::run_dialogue_with_base(
+                            &model_config.chat_api_base(), &api_key, &model_config.dialogue_model,
+                            if !model_config.is_local() { Some(&model_config.memory_model) } else { None },
+                            send_history,
+                            &world, &character, &dialogue_msgs, &retrieved,
+                            user_profile.as_ref(),
+                            mood_directive.as_deref(),
+                            response_length.as_deref(),
+                            None, None, narration_tone.as_deref(),
+                            model_config.is_local(),
+                            &mood_chain,
+                            leader.as_deref(),
+                            &kept_ids,
+                            &illustration_captions,
+                            &reactions_by_msg,
+                            Some(&note),
+                        ).await {
+                            Ok((corrected, corrected_usage)) => {
+                                log::info!("[Conscience] {} (prompt) reply corrected after drift", character.display_name);
+                                reply_text = corrected;
+                                dialogue_usage = corrected_usage;
+                            }
+                            Err(e) => log::warn!("[Conscience] prompt regeneration failed, keeping original: {e}"),
+                        }
+                    }
+                } else {
+                    log::info!("[Conscience] {} (prompt) draft passed", character.display_name);
+                }
+            }
+            Err(e) => log::warn!("[Conscience] grader unavailable: {e}"),
+        }
+    }
 
     let tokens = dialogue_usage.as_ref().map(|u| u.total_tokens).unwrap_or(0);
     let (wd, wt) = world_time_fields(&world);
@@ -1809,6 +1938,7 @@ pub async fn reset_to_message_cmd(
         &kept_ids,
         &illustration_captions,
         &reactions_by_msg,
+        None,
         );
         let reaction_context: Vec<Message> = recent_msgs.iter()
             .rev().skip(1).take(4).rev().cloned().collect();
@@ -1817,7 +1947,61 @@ pub async fn reset_to_message_cmd(
             &anchor_content, &mood_reduction, &reaction_context,
         );
         let (dialogue_res, reaction_res) = tokio::join!(dialogue_fut, reaction_fut);
-        let (reply_text, dialogue_usage) = dialogue_res?;
+        let (mut reply_text, mut dialogue_usage) = dialogue_res?;
+
+        // Conscience Pass (see send_message_cmd).
+        let conscience_enabled = {
+            let conn = db.conn.lock().map_err(|e| e.to_string())?;
+            get_setting(&conn, "conscience_pass_enabled")
+                .ok().flatten()
+                .map(|v| v != "off" && v != "false")
+                .unwrap_or(true)
+        };
+        if conscience_enabled {
+            match crate::ai::conscience::grade_reply(
+                &base, &api_key, &model_config.memory_model,
+                &character, &anchor_content, &reply_text,
+            ).await {
+                Ok(verdict) => {
+                    if let Some(u) = &verdict.usage {
+                        let conn = db.conn.lock().map_err(|e| e.to_string())?;
+                        let _ = record_token_usage(&conn, "conscience", &model_config.memory_model, u.prompt_tokens, u.completion_tokens);
+                    }
+                    if !verdict.passed {
+                        log::warn!("[Conscience] {} (reset) draft flagged: {:?}", character.display_name, verdict.failures);
+                        if let Some(note) = crate::ai::conscience::build_correction_note(&verdict) {
+                            match orchestrator::run_dialogue_with_base(
+                                &base, &api_key, &model_config.dialogue_model,
+                                if !model_config.is_local() { Some(&model_config.memory_model) } else { None },
+                                send_history,
+                                &world, &character, &recent_msgs, &retrieved,
+                                user_profile.as_ref(),
+                                mood_directive.as_deref(),
+                                response_length.as_deref(),
+                                None, None, narration_tone.as_deref(),
+                                model_config.is_local(),
+                                &mood_chain,
+                                leader.as_deref(),
+                                &kept_ids,
+                                &illustration_captions,
+                                &reactions_by_msg,
+                                Some(&note),
+                            ).await {
+                                Ok((corrected, corrected_usage)) => {
+                                    log::info!("[Conscience] {} (reset) reply corrected after drift", character.display_name);
+                                    reply_text = corrected;
+                                    dialogue_usage = corrected_usage;
+                                }
+                                Err(e) => log::warn!("[Conscience] reset regeneration failed, keeping original: {e}"),
+                            }
+                        }
+                    } else {
+                        log::info!("[Conscience] {} (reset) draft passed", character.display_name);
+                    }
+                }
+                Err(e) => log::warn!("[Conscience] grader unavailable: {e}"),
+            }
+        }
 
         if let Some(u) = &dialogue_usage {
             let conn = db.conn.lock().map_err(|e| e.to_string())?;

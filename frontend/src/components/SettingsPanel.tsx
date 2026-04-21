@@ -29,6 +29,7 @@ export function SettingsPanel({ store }: Props) {
   const [selectedBackup, setSelectedBackup] = useState<string>("");
   const [restoringBackup, setRestoringBackup] = useState(false);
   const [backingUp, setBackingUp] = useState(false);
+  const [conscienceEnabled, setConscienceEnabled] = useState(true);
 
   useEffect(() => {
     setApiKey(store.apiKey);
@@ -38,6 +39,9 @@ export function SettingsPanel({ store }: Props) {
   useEffect(() => {
     api.getGoogleApiKey().then(setGoogleApiKey);
     api.listBackups().then((list) => { setBackups(list); if (list.length > 0) setSelectedBackup(list[0].file_name); });
+    api.getSetting("conscience_pass_enabled").then((v) => {
+      setConscienceEnabled(v === null ? true : v !== "off" && v !== "false");
+    });
   }, []);
 
   const fetchLocalModels = useCallback(async (url: string) => {
@@ -300,6 +304,24 @@ export function SettingsPanel({ store }: Props) {
               <Switch
                 checked={store.budgetMode}
                 onCheckedChange={(checked) => store.setBudgetMode(checked)}
+              />
+            </div>
+          </FieldGroup>
+
+          <FieldGroup label="Craft">
+            <div className="flex items-center justify-between py-2 px-4 rounded-lg border border-border bg-card/50">
+              <div>
+                <p className="text-sm font-medium">Conscience Pass</p>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Grade each reply against the five invariants and regenerate on drift. Adds one cheap memory-model call per reply.
+                </p>
+              </div>
+              <Switch
+                checked={conscienceEnabled}
+                onCheckedChange={async (checked) => {
+                  setConscienceEnabled(checked);
+                  await api.setSetting("conscience_pass_enabled", checked ? "true" : "false");
+                }}
               />
             </div>
           </FieldGroup>

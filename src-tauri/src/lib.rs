@@ -231,6 +231,7 @@ pub fn run() {
             refresh_character_inventory_cmd,
             refresh_group_inventories_cmd,
             set_character_inventory_cmd,
+            update_inventory_for_moment_cmd,
             generate_group_illustration_cmd,
             generate_group_narrative_cmd,
             generate_speech_cmd,

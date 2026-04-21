@@ -1412,6 +1412,32 @@ export function useAppStore() {
     }));
   }, []);
 
+  // On-demand, moment-anchored inventory update. The backend resolves
+  // which character(s) to update based on the clicked message's role
+  // and whether the chat is solo or group:
+  //   - character message → that character
+  //   - user message → the addressee (direct-address detection, then
+  //     LLM pick, then fallback)
+  //   - narrative → all characters in the chat (fan-out in group)
+  // Bypasses the staleness gate. Each returned inventory is applied to
+  // the local store so the strip reflects the update immediately.
+  const updateInventoryForMoment = useCallback(async (messageId: string) => {
+    const results = await api.updateInventoryForMoment(state.apiKey ?? "", messageId);
+    const updatedMap = new Map(results.map((r) => [r.character_id, r.inventory]));
+    if (updatedMap.size === 0) return results;
+    setState((s) => ({
+      ...s,
+      characters: s.characters.map((c) => {
+        const inv = updatedMap.get(c.character_id);
+        return inv ? { ...c, inventory: inv } : c;
+      }),
+      activeCharacter: s.activeCharacter && updatedMap.has(s.activeCharacter.character_id)
+        ? { ...s.activeCharacter, inventory: updatedMap.get(s.activeCharacter.character_id)! }
+        : s.activeCharacter,
+    }));
+    return results;
+  }, [state.apiKey]);
+
   // Parallel variant for group chats: one refresh per member. Backend
   // fans out concurrently; we merge any that came back refreshed into
   // the local store in a single setState so the UI doesn't flicker.
@@ -1566,6 +1592,7 @@ export function useAppStore() {
     backfillVisualDescriptions,
     refreshCharacterInventory,
     refreshGroupInventories,
+    updateInventoryForMoment,
     applyCharacterInventoryEdit,
   };
 }
