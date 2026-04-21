@@ -105,7 +105,7 @@ pub fn create_group_message(conn: &Connection, m: &Message) -> Result<(), rusqli
         "INSERT INTO group_messages (message_id, thread_id, role, content, tokens_estimate, sender_character_id, created_at, world_day, world_time, address_to) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)",
         params![m.message_id, m.thread_id, m.role, m.content, m.tokens_estimate, m.sender_character_id, m.created_at, m.world_day, m.world_time, m.address_to],
     )?;
-    if m.role != "illustration" && m.role != "video" {
+    if m.role != "illustration" && m.role != "video" && m.role != "inventory_update" {
         conn.execute(
             "INSERT INTO group_messages_fts (message_id, thread_id, content) VALUES (?1, ?2, ?3)",
             params![m.message_id, m.thread_id, m.content],

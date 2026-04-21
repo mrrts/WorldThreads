@@ -424,7 +424,7 @@ pub async fn send_message_cmd(
             match search_messages_fts(&conn, &thread.thread_id, &fts_query, 6) {
                 Ok(fts_msgs) => {
                     let fts_msgs: Vec<_> = fts_msgs.into_iter()
-                        .filter(|m| m.role != "illustration" && m.role != "video")
+                        .filter(|m| m.role != "illustration" && m.role != "video" && m.role != "inventory_update")
                         .collect();
                     log::info!("[Memory] FTS messages: {} results for {:?}", fts_msgs.len(), fts_query);
                     for m in fts_msgs {
@@ -1814,6 +1814,57 @@ pub async fn reset_to_message_cmd(
         (anchor.role, anchor.content, deleted.len(), thread_id, world, character, model_config)
     };
 
+    // Phase 1.5: Restore per-character inventory to its pre-mutation
+    // state at the anchor's timestamp. Solo: the thread's character.
+    // Group: every member of the group. For each, find the latest
+    // snapshot with created_at <= anchor.created_at and write it back
+    // to the characters row. Missing snapshots are silently skipped —
+    // the character's inventory predates the snapshot window and stays
+    // at its current state.
+    {
+        // Re-read the anchor's created_at since we released the conn above.
+        let conn = db.conn.lock().map_err(|e| e.to_string())?;
+        let table_for_anchor = if is_group { "group_messages" } else { "messages" };
+        let anchor_created_at: Option<String> = conn.query_row(
+            &format!("SELECT created_at FROM {} WHERE message_id = ?1", table_for_anchor),
+            params![message_id], |r| r.get(0),
+        ).ok();
+        // If the anchor was already deleted somehow, fall through with
+        // no-op; the reset still succeeds for the message side.
+        if let Some(anchor_ts) = anchor_created_at {
+            let target_char_ids: Vec<String> = if is_group {
+                let char_ids_json: Option<String> = conn.query_row(
+                    "SELECT character_ids FROM group_chats WHERE thread_id = ?1",
+                    params![thread_id], |r| r.get(0),
+                ).ok();
+                char_ids_json
+                    .and_then(|j| serde_json::from_str::<Vec<String>>(&j).ok())
+                    .unwrap_or_default()
+            } else {
+                vec![character_id.clone()]
+            };
+
+            for cid in &target_char_ids {
+                if let Some(snap) = get_inventory_snapshot_at_or_before(&conn, cid, &anchor_ts) {
+                    let inv_value: serde_json::Value = serde_json::from_str(&snap.inventory_json)
+                        .unwrap_or(serde_json::Value::Array(vec![]));
+                    match set_character_inventory(&conn, cid, &inv_value, snap.last_inventory_day) {
+                        Ok(_) => log::info!(
+                            "[Reset] restored inventory for {} to snapshot at <= {}",
+                            cid, anchor_ts,
+                        ),
+                        Err(e) => log::warn!("[Reset] inventory restore failed for {cid}: {e}"),
+                    }
+                } else {
+                    log::info!(
+                        "[Reset] no pre-anchor snapshot for {} — leaving inventory as-is",
+                        cid,
+                    );
+                }
+            }
+        }
+    }
+
     // Phase 2: Rebuild thread summary from remaining messages so the model has accurate context
     {
         let recent_msgs = {
@@ -1871,7 +1922,7 @@ pub async fn reset_to_message_cmd(
             let fts_query = sanitize_fts_query(&anchor_content);
             if !fts_query.is_empty() {
                 if let Ok(fts_msgs) = search_messages_fts(&conn, &thread_id, &fts_query, 6) {
-                    for m in fts_msgs.into_iter().filter(|m| m.role != "illustration" && m.role != "video") {
+                    for m in fts_msgs.into_iter().filter(|m| m.role != "illustration" && m.role != "video" && m.role != "inventory_update") {
                         retrieved.push(format!("[{}] {}: {}", m.created_at, m.role, m.content));
                     }
                 }

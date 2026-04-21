@@ -822,6 +822,8 @@ The exception: the user explicitly asks for advice, the character's role is spec
 
 **Don't be endlessly agreeable.** Auto-agreeing, nodding along, yes-and-ing every turn — that's a factory defect, not a personality. A character who affirms every framing, blesses every decision, and validates every small doubt is a mirror, not a person. Real people have opinions they won't swallow, reads they won't abandon, small frictions they bring even to conversations they love. Disagree when you disagree. Notice when you're about to second the user's view reflexively and ask whether THIS specific character actually would — often they wouldn't, and that gap is where the character lives. Giveaway drift to cut: "yeah, that makes total sense", "exactly right", "you nailed it", "that's a fair point" stacked one after another across turns. Sometimes the honest move is "no, I don't think so" — or a quiet shake of the head, or a silence that doesn't agree.
 
+**Send them back to life.** Default: the user wants to be engrossed. Match the register, lean into charge and intensity, inhabit the scene fully — the care you give their real life is expressed by building the fiction well enough that they leave nourished rather than hollowed. Encourage real action from INSIDE the story: the character notices their own world's clock — it's getting late, tomorrow is a workday, the light has turned, someone at home is probably waiting, there's mud to clean off the boots before the paddle tomorrow, the neighbor's dog has gone quiet, the stove needs tending. In-world care is how the scene hands the user back to their day without the character ever knowing that's what's happening. Let the moment earn its hold; don't strain to keep them. The fiction holds when it's good.
+
 **Names are cheap; mark who you're speaking to.** Real people rarely say each other's names — save them for addressing someone not looking, landing a point, a moment of tenderness or anger. When you pivot to address someone other than the default listener (a third party, a character across the room), make the redirection visible with an action beat: `*Looks at Aaron.*` / `*Turns to Bob.*` / `*To Aaron:*`. Without that marker, pivots read as muddled group chatter. Once marked, a whole reply can be directed there; mark again to pivot back.
 
 **Redirect without announcing.** When a subject touches old ground, change the subject the way a real person does: notice something in the room, return to a task, ask a practical question. "I don't want to talk about that" is a speech. "Looks like rain" is how it's actually done.
@@ -1604,6 +1606,53 @@ KNOWLEDGE LIMITS:
 /// so the model knows a visual beat occurred — the character can reference
 /// "the one with the pier at dusk" the way a real person references a shared photo.
 /// Illustrations without a stored caption fall back to `[Illustration shown]`.
+/// Turn an inventory_update message body (a "[Inventory updated:]\n"
+/// prefix followed by JSON) into a short human-readable summary for
+/// insertion into the dialogue prompt. One change per clause, showing
+/// character name, action, quoted item name, and the full description
+/// (the fuller text the LLM wove into the item). Falls back to the
+/// raw body stripped of the prefix if JSON parsing fails.
+fn render_inventory_update_for_prompt(content: &str) -> String {
+    let stripped = content
+        .trim_start_matches("[Inventory updated:]")
+        .trim()
+        .to_string();
+    #[derive(serde::Deserialize)]
+    struct Body {
+        #[serde(default)]
+        changes: Vec<Change>,
+    }
+    #[derive(serde::Deserialize)]
+    struct Change {
+        #[serde(default)]
+        character_name: String,
+        #[serde(default)]
+        action: String,
+        #[serde(default)]
+        name: String,
+        #[serde(default)]
+        description: String,
+    }
+    let Ok(body) = serde_json::from_str::<Body>(&stripped) else {
+        return stripped;
+    };
+    if body.changes.is_empty() { return stripped; }
+    let parts: Vec<String> = body.changes.iter().map(|c| {
+        let action = match c.action.as_str() {
+            "added" => "added",
+            "updated" => "updated",
+            "swapped_out" => "swapped out",
+            other => other,
+        };
+        if c.description.trim().is_empty() {
+            format!("{} {} \"{}\"", c.character_name, action, c.name)
+        } else {
+            format!("{} {} \"{}\" — {}", c.character_name, action, c.name, c.description.trim())
+        }
+    }).collect();
+    parts.join("; ")
+}
+
 pub fn build_dialogue_messages(
     system_prompt: &str,
     recent_messages: &[Message],
@@ -1657,6 +1706,21 @@ pub fn build_dialogue_messages(
         // Video messages are purely structural (a video tied to a prior
         // illustration); nothing textual to surface. Skip.
         if m.role == "video" {
+            continue;
+        }
+        // Inventory-update messages need a role-rewrite: "inventory_update"
+        // is not a role OpenAI accepts. Render them as a short system
+        // note so the model sees WHEN the inventory shifted relative to
+        // the scene flow (the full current inventory still reaches the
+        // model via the system prompt). Content is JSON — format a
+        // human-readable summary; fall back to the raw body on parse
+        // failure.
+        if m.role == "inventory_update" {
+            let summary = render_inventory_update_for_prompt(&m.content);
+            msgs.push(crate::ai::openai::ChatMessage {
+                role: "system".to_string(),
+                content: format!("[Inventory update at this moment] {summary}"),
+            });
             continue;
         }
         // Illustrations are rendered as a short system note carrying the
@@ -2030,7 +2094,7 @@ IMPORTANT: Output raw JSON only. Do NOT wrap in markdown code fences."#);
     }];
 
     let conversation: Vec<String> = recent_messages.iter()
-        .filter(|m| m.role != "illustration" && m.role != "video")
+        .filter(|m| m.role != "illustration" && m.role != "video" && m.role != "inventory_update")
         .map(|m| {
             format!("[{}] {}: {}", m.message_id, m.role, m.content)
         }).collect();
@@ -2378,7 +2442,7 @@ pub fn build_scene_description_prompt(
     // In group scenes, prefix assistant messages with [CharName] so the scene
     // director can tell who's speaking (same fix as dialogue history).
     let conversation: Vec<String> = recent_messages.iter()
-        .filter(|m| m.role != "illustration" && m.role != "video")
+        .filter(|m| m.role != "illustration" && m.role != "video" && m.role != "inventory_update")
         .map(|m| {
             let speaker = if m.role == "user" {
                 user_name.to_string()
@@ -2469,7 +2533,7 @@ Write ONLY the animation direction, nothing else."#,
     let system = system_parts.join("\n\n");
 
     let conversation: Vec<String> = recent_messages.iter()
-        .filter(|m| m.role != "illustration" && m.role != "video")
+        .filter(|m| m.role != "illustration" && m.role != "video" && m.role != "inventory_update")
         .rev().take(6).collect::<Vec<_>>().into_iter().rev()
         .map(|m| {
             let speaker = if m.role == "user" {

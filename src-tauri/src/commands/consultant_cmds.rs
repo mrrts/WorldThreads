@@ -236,7 +236,7 @@ pub fn import_chat_messages_cmd(
 
     // Format messages
     let conversation: Vec<String> = new_msgs.iter()
-        .filter(|m| m.role != "illustration" && m.role != "video")
+        .filter(|m| m.role != "illustration" && m.role != "video" && m.role != "inventory_update")
         .map(|m| {
             let speaker = match m.role.as_str() {
                 "user" => user_name.clone(),
@@ -467,7 +467,7 @@ pub async fn story_consultant_cmd(
     }).collect();
 
     let conversation: Vec<String> = recent_msgs.iter()
-        .filter(|m| m.role != "illustration" && m.role != "video")
+        .filter(|m| m.role != "illustration" && m.role != "video" && m.role != "inventory_update")
         .map(|m| {
             let speaker = match m.role.as_str() {
                 "user" => user_name.clone(),

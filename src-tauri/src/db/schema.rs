@@ -1046,5 +1046,63 @@ pub fn run_migrations(conn: &Connection) -> Result<(), rusqlite::Error> {
         CREATE INDEX IF NOT EXISTS idx_kept_subject ON kept_records(subject_type, subject_id);
     ").ok();
 
+    // ── Character inventory snapshots ─────────────────────────────────────
+    //
+    // Time-travel ledger for per-character inventory state. Written BEFORE
+    // every inventory mutation (seed, refresh, moment-update, user edit)
+    // so each row represents "what the inventory WAS just prior to this
+    // change". Used by `reset_to_message_cmd` to rewind a character's
+    // keeping alongside the messages when the user resets to a point in
+    // history — the world and the thing-in-hand stay in sync.
+    //
+    // Capped at ~50 rows per character via trim-on-insert. The trigger
+    // column is diagnostic: "seed" | "refresh" | "moment" | "user_edit".
+    // FK cascade on character deletion cleans up automatically.
+    conn.execute_batch("
+        CREATE TABLE IF NOT EXISTS character_inventory_snapshots (
+            snapshot_id TEXT PRIMARY KEY,
+            character_id TEXT NOT NULL REFERENCES characters(character_id) ON DELETE CASCADE,
+            inventory TEXT NOT NULL DEFAULT '[]',
+            last_inventory_day INTEGER,
+            created_at TEXT NOT NULL DEFAULT (datetime('now')),
+            trigger TEXT NOT NULL DEFAULT ''
+        );
+        CREATE INDEX IF NOT EXISTS idx_inv_snapshots_char_time
+            ON character_inventory_snapshots(character_id, created_at DESC);
+    ").ok();
+
+    // ── Inventory update records ──────────────────────────────────────────
+    //
+    // One row per (message_id, character_id) pair recording the diff from
+    // the moment-anchored inventory update that was triggered from that
+    // message. Used to render an inline "Inventory updated ✓: ..."
+    // badge under messages that have produced an update, and to persist
+    // that indicator across app restarts.
+    //
+    // `added` / `updated` / `removed` are JSON arrays of item names
+    // (strings). Empty arrays are valid — a row with all-empty arrays
+    // means "the moment was considered but no change was made" (only
+    // possible on the narrative-in-group pure-maintain path). Writing
+    // such rows would clutter the UI, so callers only insert when at
+    // least one of the three arrays is non-empty.
+    //
+    // PK (message_id, character_id) with ON CONFLICT REPLACE semantics
+    // means re-running the button overwrites the prior record for that
+    // character — each message shows the latest update's diff, not a
+    // history. No FK on message_id (messages live in two tables);
+    // character_id FK cascades cleanup on character deletion.
+    conn.execute_batch("
+        CREATE TABLE IF NOT EXISTS inventory_update_records (
+            message_id TEXT NOT NULL,
+            character_id TEXT NOT NULL REFERENCES characters(character_id) ON DELETE CASCADE,
+            added TEXT NOT NULL DEFAULT '[]',
+            updated TEXT NOT NULL DEFAULT '[]',
+            removed TEXT NOT NULL DEFAULT '[]',
+            created_at TEXT NOT NULL DEFAULT (datetime('now')),
+            PRIMARY KEY (message_id, character_id)
+        );
+        CREATE INDEX IF NOT EXISTS idx_inv_upd_message ON inventory_update_records(message_id);
+    ").ok();
+
     Ok(())
 }

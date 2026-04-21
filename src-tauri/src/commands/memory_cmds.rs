@@ -305,7 +305,7 @@ pub async fn generate_chat_summary_cmd(
     }
 
     let conversation: Vec<String> = recent_msgs.iter()
-        .filter(|m| m.role != "illustration" && m.role != "video")
+        .filter(|m| m.role != "illustration" && m.role != "video" && m.role != "inventory_update")
         .map(|m| format!("[{}] {}", m.role, m.content))
         .collect();
 
@@ -374,7 +374,7 @@ pub async fn generate_group_chat_summary_cmd(
     let char_names: Vec<String> = characters.iter().map(|c| c.display_name.clone()).collect();
 
     let conversation: Vec<String> = recent_msgs.iter()
-        .filter(|m| m.role != "illustration" && m.role != "video")
+        .filter(|m| m.role != "illustration" && m.role != "video" && m.role != "inventory_update")
         .map(|m| {
             let speaker = if m.role == "user" { "User".to_string() }
                 else if let Some(sid) = &m.sender_character_id {

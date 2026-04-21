@@ -19,15 +19,29 @@ pub const INVENTORY_HISTORY_LIMIT: usize = 40;
 /// indicating whether a refresh actually ran this call (vs. no-op).
 /// Frontend uses `refreshed` to decide whether to display a subtle
 /// "inventory updated" cue.
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
 pub struct InventoryRefreshResult {
     pub character_id: String,
     pub inventory: Vec<InventoryItem>,
     /// true if this call actually ran seed or refresh; false if the
     /// inventory was still fresh and we returned cached.
     pub refreshed: bool,
-    /// "seed" | "refresh" | "noop"
+    /// "seed" | "refresh" | "noop" | "moment"
     pub mode: String,
+    /// Diff produced by moment-anchored updates. Empty on seed/refresh
+    /// callers — only the moment path fills these. Full items so the
+    /// card can render names WITH descriptions (the fuller text with
+    /// nuances the LLM put into each item).
+    #[serde(default)]
+    pub added: Vec<InventoryItem>,
+    /// Items present in both prior and new with different descriptions.
+    #[serde(default)]
+    pub updated: Vec<InventoryItem>,
+    /// Items that were in prior but not in new. Name-only — the item
+    /// is gone from the inventory, so there's no "new" description to
+    /// show; we just name what dropped off.
+    #[serde(default)]
+    pub removed: Vec<String>,
 }
 
 fn current_world_day(world: &World) -> i64 {
@@ -90,6 +104,7 @@ pub async fn refresh_one_character_inventory(
             inventory: prior_items,
             refreshed: false,
             mode: "noop".to_string(),
+            ..Default::default()
         });
     }
 
@@ -102,6 +117,7 @@ pub async fn refresh_one_character_inventory(
             inventory: prior_items,
             refreshed: false,
             mode: "noop".to_string(),
+            ..Default::default()
         });
     }
 
@@ -141,13 +157,17 @@ pub async fn refresh_one_character_inventory(
                 inventory: prior_items,
                 refreshed: false,
                 mode: "noop".to_string(),
+                ..Default::default()
             });
         }
     };
 
     // Persist the new inventory and advance the stamp to today.
+    // Snapshot the PRIOR state first so a later "reset to here" can
+    // rewind the character's keeping along with the messages.
     {
         let conn = db.conn.lock().map_err(|e| e.to_string())?;
+        let _ = snapshot_inventory_pre_mutation(&conn, &character.character_id, mode);
         let json = serde_json::to_value(&new_items).unwrap_or(Value::Array(vec![]));
         let _ = set_character_inventory(&conn, &character.character_id, &json, Some(today));
     }
@@ -162,6 +182,7 @@ pub async fn refresh_one_character_inventory(
         inventory: new_items,
         refreshed: true,
         mode: mode.to_string(),
+        ..Default::default()
     })
 }
 
@@ -316,15 +337,45 @@ async fn update_one_inventory_from_message(
         e
     })?;
 
+    // Diff prior vs new by item name (case-insensitive). Added / updated
+    // carry the FULL item (name + description + kind) so the chat-history
+    // card can render the fuller text with its nuances — not just the
+    // short label. Removed carries names only since the item is gone.
+    let norm = |s: &str| s.trim().to_lowercase();
+    let prior_map: std::collections::HashMap<String, &InventoryItem> =
+        prior_items.iter().map(|p| (norm(&p.name), p)).collect();
+    let new_map: std::collections::HashMap<String, &InventoryItem> =
+        new_items.iter().map(|p| (norm(&p.name), p)).collect();
+    let mut added: Vec<InventoryItem> = Vec::new();
+    let mut updated: Vec<InventoryItem> = Vec::new();
+    let mut removed: Vec<String> = Vec::new();
+    for n in &new_items {
+        let key = norm(&n.name);
+        match prior_map.get(&key) {
+            None => added.push(n.clone()),
+            Some(p) if p.description.trim() != n.description.trim() => updated.push(n.clone()),
+            _ => {}
+        }
+    }
+    for p in &prior_items {
+        let key = norm(&p.name);
+        if !new_map.contains_key(&key) {
+            removed.push(p.name.clone());
+        }
+    }
+
     {
         let conn = db.conn.lock().map_err(|e| e.to_string())?;
+        let _ = snapshot_inventory_pre_mutation(&conn, &character.character_id, "moment");
         let json = serde_json::to_value(&new_items).unwrap_or(Value::Array(vec![]));
         let _ = set_character_inventory(&conn, &character.character_id, &json, Some(today));
     }
+    let _ = message_id; // anchor id no longer persisted — diff lives in the inventory_update message inserted by the dispatcher.
 
     log::info!(
-        "[Inventory] moment-update for {} — {} items (anchor: {})",
+        "[Inventory] moment-update for {} — {} items (anchor: {}) +{}/~{}/-{}",
         character.display_name, new_items.len(), anchor_speaker,
+        added.len(), updated.len(), removed.len(),
     );
 
     Ok(InventoryRefreshResult {
@@ -332,6 +383,9 @@ async fn update_one_inventory_from_message(
         inventory: new_items,
         refreshed: true,
         mode: "moment".to_string(),
+        added,
+        updated,
+        removed,
     })
 }
 
@@ -351,11 +405,17 @@ async fn update_one_inventory_from_message(
 /// - **narrative**: everyone in the chat.
 ///   - Solo → the one character.
 ///   - Group → fan out to all members.
+pub struct ResolvedTargets {
+    pub targets: Vec<(String, bool)>,
+    pub thread_id: String,
+    pub is_group: bool,
+}
+
 async fn resolve_inventory_targets(
     db: &Database,
     api_key: &str,
     message_id: &str,
-) -> Result<Vec<(String, bool)>, String> {
+) -> Result<ResolvedTargets, String> {
     use crate::commands::group_chat_cmds;
 
     // Load message + thread context up front so we can release the
@@ -438,7 +498,6 @@ async fn resolve_inventory_targets(
     };
 
     let is_group = group_info.is_some();
-    let _ = thread_id; // kept for future use / logging
 
     // Each entry: (character_id, allow_pure_maintain). The flag is only
     // set on narrative-in-group fan-out, where the narrative may only
@@ -491,28 +550,158 @@ async fn resolve_inventory_targets(
     if targets.is_empty() {
         return Err("Could not resolve any inventory target for this message".to_string());
     }
-    Ok(targets)
+    Ok(ResolvedTargets { targets, thread_id, is_group })
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct UpdateInventoryForMomentResponse {
+    pub results: Vec<InventoryRefreshResult>,
+    /// The inserted "[Inventory updated:] ..." message row that lives in
+    /// chat history. None when every target was a pure-maintain on the
+    /// narrative-in-group path (no character actually changed, so there
+    /// was nothing to announce).
+    pub new_message: Option<Message>,
+}
+
+/// One change entry in the JSON body of an inventory_update message.
+/// Serialized as the message `content` so the frontend can render each
+/// change with the item's full description, not just its short name.
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct InventoryChangeEntry {
+    pub character_name: String,
+    /// "added" | "updated" | "swapped_out"
+    pub action: String,
+    pub name: String,
+    /// Full item description. Empty string on "swapped_out" since the
+    /// item is gone and there's no new description to show.
+    #[serde(default)]
+    pub description: String,
+    /// "physical" | "interior" | "" (empty on swapped_out).
+    #[serde(default)]
+    pub kind: String,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct InventoryUpdateMessageBody {
+    pub changes: Vec<InventoryChangeEntry>,
+}
+
+/// Build the JSON body of the "[Inventory updated:] ..." message.
+/// Returns None when no character actually changed — the caller skips
+/// the message insertion in that case. The content is ALWAYS emitted
+/// as JSON prefixed with the verbatim "[Inventory updated:]\n" line so
+/// that (a) the frontend card can parse structured data, and (b) any
+/// fallback prose render still reads as an inventory-update message.
+fn build_inventory_update_content(
+    results: &[InventoryRefreshResult],
+    id_to_name: &std::collections::HashMap<String, String>,
+) -> Option<String> {
+    let mut changes: Vec<InventoryChangeEntry> = Vec::new();
+    for r in results {
+        let name = id_to_name.get(&r.character_id).cloned().unwrap_or_else(|| "Character".to_string());
+        for item in &r.added {
+            changes.push(InventoryChangeEntry {
+                character_name: name.clone(),
+                action: "added".to_string(),
+                name: item.name.clone(),
+                description: item.description.clone(),
+                kind: item.kind.clone(),
+            });
+        }
+        for item in &r.updated {
+            changes.push(InventoryChangeEntry {
+                character_name: name.clone(),
+                action: "updated".to_string(),
+                name: item.name.clone(),
+                description: item.description.clone(),
+                kind: item.kind.clone(),
+            });
+        }
+        // Show removes only when they outnumber adds — the balanced
+        // ones are the implicit other-half of each swap that the
+        // "added" entries already name.
+        if r.removed.len() > r.added.len() {
+            for removed_name in r.removed.iter().skip(r.added.len()) {
+                changes.push(InventoryChangeEntry {
+                    character_name: name.clone(),
+                    action: "swapped_out".to_string(),
+                    name: removed_name.clone(),
+                    description: String::new(),
+                    kind: String::new(),
+                });
+            }
+        }
+    }
+    if changes.is_empty() { return None; }
+    let body = InventoryUpdateMessageBody { changes };
+    let json = serde_json::to_string(&body).ok()?;
+    Some(format!("[Inventory updated:]\n{json}"))
 }
 
 /// Unified on-demand inventory update: routes based on the clicked
 /// message's role and whether the chat is solo or group. See
-/// `resolve_inventory_targets` for routing rules.
+/// `resolve_inventory_targets` for routing rules. Inserts a new
+/// "[Inventory updated:]" message into the chat history and returns it.
 #[tauri::command]
 pub async fn update_inventory_for_moment_cmd(
     db: State<'_, Database>,
     api_key: String,
     message_id: String,
-) -> Result<Vec<InventoryRefreshResult>, String> {
-    let targets = resolve_inventory_targets(&db, &api_key, &message_id).await?;
+) -> Result<UpdateInventoryForMomentResponse, String> {
+    let resolved = resolve_inventory_targets(&db, &api_key, &message_id).await?;
+    let thread_id = resolved.thread_id.clone();
+    let is_group = resolved.is_group;
+
     let db_ref: &Database = db.inner();
-    let futs = targets.into_iter().map(|(cid, allow_maintain)| {
+    let futs = resolved.targets.into_iter().map(|(cid, allow_maintain)| {
         let key = api_key.clone();
         let mid = message_id.clone();
         async move { update_one_inventory_from_message(db_ref, &key, &cid, &mid, allow_maintain).await }
     });
-    let results = futures_util::future::join_all(futs).await;
-    let out: Vec<InventoryRefreshResult> = results.into_iter().filter_map(|r| r.ok()).collect();
-    Ok(out)
+    let results_raw = futures_util::future::join_all(futs).await;
+    let results: Vec<InventoryRefreshResult> = results_raw.into_iter().filter_map(|r| r.ok()).collect();
+
+    // Resolve display names for every character that was updated.
+    let id_to_name: std::collections::HashMap<String, String> = {
+        let conn = db.conn.lock().map_err(|e| e.to_string())?;
+        results.iter()
+            .filter_map(|r| get_character(&conn, &r.character_id).ok().map(|c| (c.character_id, c.display_name)))
+            .collect()
+    };
+
+    let content = build_inventory_update_content(&results, &id_to_name);
+    let new_message: Option<Message> = if let Some(body) = content {
+        let now = chrono::Utc::now().to_rfc3339();
+        let msg = Message {
+            message_id: uuid::Uuid::new_v4().to_string(),
+            thread_id: thread_id.clone(),
+            role: "inventory_update".to_string(),
+            content: body,
+            tokens_estimate: 0,
+            sender_character_id: None,
+            created_at: now,
+            world_day: None,
+            world_time: None,
+            address_to: None,
+            mood_chain: None,
+            is_proactive: false,
+        };
+        let conn = db.conn.lock().map_err(|e| e.to_string())?;
+        let insert = if is_group {
+            create_group_message(&conn, &msg)
+        } else {
+            create_message(&conn, &msg)
+        };
+        match insert {
+            Ok(_) => Some(msg),
+            Err(e) => {
+                log::warn!("[Inventory] failed to insert inventory_update message: {e}");
+                None
+            }
+        }
+    } else { None };
+
+    Ok(UpdateInventoryForMomentResponse { results, new_message })
 }
 
 /// User-edit entry point from the character settings page. Blindly
@@ -559,6 +748,7 @@ pub fn set_character_inventory_cmd(
     let character = get_character(&conn, &character_id).map_err(|e| e.to_string())?;
     let world = get_world(&conn, &character.world_id).map_err(|e| e.to_string())?;
     let today = current_world_day(&world);
+    let _ = snapshot_inventory_pre_mutation(&conn, &character_id, "user_edit");
     let json = serde_json::to_value(&cleaned).unwrap_or(Value::Array(vec![]));
     set_character_inventory(&conn, &character_id, &json, Some(today))
         .map_err(|e| e.to_string())?;

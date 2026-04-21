@@ -63,8 +63,22 @@ export interface InventoryRefreshResult {
   character_id: string;
   inventory: InventoryItem[];
   refreshed: boolean;
-  /** "seed" | "refresh" | "noop" */
+  /** "seed" | "refresh" | "noop" | "moment" */
   mode: string;
+  /** Items newly added by a moment-anchored update (full item with description). */
+  added?: InventoryItem[];
+  /** Items whose description changed in a moment-anchored update. */
+  updated?: InventoryItem[];
+  /** Names of items that were removed. */
+  removed?: string[];
+}
+
+export interface UpdateInventoryForMomentResponse {
+  results: InventoryRefreshResult[];
+  /** The "[Inventory updated:] ..." message row inserted into the chat
+   *  transcript. Null when every target was pure-maintain (no changes
+   *  were made — only possible on narrative-in-group fan-out). */
+  new_message: Message | null;
 }
 
 export interface CharacterState {
@@ -78,7 +92,7 @@ export interface CharacterState {
 export interface Message {
   message_id: string;
   thread_id: string;
-  role: "user" | "assistant" | "system" | "narrative" | "illustration" | "context" | "dream";
+  role: "user" | "assistant" | "system" | "narrative" | "illustration" | "context" | "dream" | "inventory_update";
   content: string;
   tokens_estimate: number;
   sender_character_id: string | null;
@@ -687,5 +701,5 @@ export const api = {
   setCharacterInventory: (characterId: string, inventory: InventoryItem[]) =>
     invoke<InventoryItem[]>("set_character_inventory_cmd", { characterId, inventory }),
   updateInventoryForMoment: (apiKey: string, messageId: string) =>
-    invoke<InventoryRefreshResult[]>("update_inventory_for_moment_cmd", { apiKey, messageId }),
+    invoke<UpdateInventoryForMomentResponse>("update_inventory_for_moment_cmd", { apiKey, messageId }),
 };

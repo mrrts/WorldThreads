@@ -16,6 +16,7 @@ import { NarrativeMessage } from "@/components/chat/NarrativeMessage";
 import { ChatErrorBar } from "@/components/chat/ChatErrorBar";
 import { AnimationReadyToast } from "@/components/chat/AnimationReadyToast";
 import { InventoryUpdatedToast, buildInventoryDiffSummary, type InventoryUpdateSummary } from "@/components/chat/InventoryUpdatedToast";
+import { InventoryUpdateMessage } from "@/components/chat/InventoryUpdateMessage";
 import type { InventoryItem } from "@/lib/tauri";
 import { ResetConfirmModal } from "@/components/chat/ResetConfirmModal";
 import { RemoveVideoConfirmModal } from "@/components/chat/RemoveVideoConfirmModal";
@@ -62,8 +63,8 @@ export function GroupChatView({ store, onNavigateToCharacter }: Props) {
       store.characters.map((c) => [c.character_id, c.display_name])
     );
     try {
-      const results = await store.updateInventoryForMoment(messageId);
-      const summaries = results
+      const resp = await store.updateInventoryForMoment(messageId);
+      const summaries = resp.results
         .map((r) => buildInventoryDiffSummary(priorByChar.get(r.character_id) ?? [], r.inventory, nameById.get(r.character_id) ?? "A character"))
         .filter((s): s is InventoryUpdateSummary => s !== null);
       if (summaries.length > 0) setInventoryToast(summaries);
@@ -220,6 +221,7 @@ export function GroupChatView({ store, onNavigateToCharacter }: Props) {
     }
   }, [keepThreadId]);
   useEffect(() => { reloadKept(); }, [reloadKept]);
+
 
   // Per-chat provider override: "" (use global) | "lmstudio" | "openai".
   const [providerOverride, setProviderOverride] = useState<string>("");
@@ -584,6 +586,13 @@ export function GroupChatView({ store, onNavigateToCharacter }: Props) {
                   adjustingMessageId={store.adjustingMessageId}
                   onAdjust={(id) => setAdjustMessageId(id)}
                 />
+              </React.Fragment>);
+            }
+
+            if (msg.role === "inventory_update") {
+              return (<React.Fragment key={msg.message_id}>
+                <TimeDivider current={msg} previous={prevMsg} />
+                <InventoryUpdateMessage message={msg} />
               </React.Fragment>);
             }
 

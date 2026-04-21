@@ -377,7 +377,7 @@ pub async fn generate_novel_entry_cmd(
         };
 
         let day_msgs: Vec<Message> = all_msgs.into_iter()
-            .filter(|m| m.world_day == Some(world_day) && m.role != "illustration" && m.role != "video")
+            .filter(|m| m.world_day == Some(world_day) && m.role != "illustration" && m.role != "video" && m.role != "inventory_update")
             .collect();
 
         if day_msgs.is_empty() {
@@ -676,7 +676,7 @@ async fn run_day_novel_silent(
             get_all_messages(&conn, thread_id).map_err(|e| e.to_string())?
         };
         let day_msgs: Vec<Message> = all_msgs.into_iter()
-            .filter(|m| m.world_day == Some(world_day) && m.role != "illustration" && m.role != "video")
+            .filter(|m| m.world_day == Some(world_day) && m.role != "illustration" && m.role != "video" && m.role != "inventory_update")
             .collect();
         if day_msgs.is_empty() { return Err("No messages for this day.".to_string()); }
         let world_id: String = conn.query_row(

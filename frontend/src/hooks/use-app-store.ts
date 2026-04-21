@@ -1422,20 +1422,27 @@ export function useAppStore() {
   // Bypasses the staleness gate. Each returned inventory is applied to
   // the local store so the strip reflects the update immediately.
   const updateInventoryForMoment = useCallback(async (messageId: string) => {
-    const results = await api.updateInventoryForMoment(state.apiKey ?? "", messageId);
-    const updatedMap = new Map(results.map((r) => [r.character_id, r.inventory]));
-    if (updatedMap.size === 0) return results;
-    setState((s) => ({
-      ...s,
-      characters: s.characters.map((c) => {
-        const inv = updatedMap.get(c.character_id);
-        return inv ? { ...c, inventory: inv } : c;
-      }),
-      activeCharacter: s.activeCharacter && updatedMap.has(s.activeCharacter.character_id)
-        ? { ...s.activeCharacter, inventory: updatedMap.get(s.activeCharacter.character_id)! }
-        : s.activeCharacter,
-    }));
-    return results;
+    const resp = await api.updateInventoryForMoment(state.apiKey ?? "", messageId);
+    const updatedMap = new Map(resp.results.map((r) => [r.character_id, r.inventory]));
+    setState((s) => {
+      const nextMessages = resp.new_message
+        ? [...s.messages, resp.new_message]
+        : s.messages;
+      const nextTotal = resp.new_message ? s.totalMessages + 1 : s.totalMessages;
+      return {
+        ...s,
+        messages: nextMessages,
+        totalMessages: nextTotal,
+        characters: s.characters.map((c) => {
+          const inv = updatedMap.get(c.character_id);
+          return inv ? { ...c, inventory: inv } : c;
+        }),
+        activeCharacter: s.activeCharacter && updatedMap.has(s.activeCharacter.character_id)
+          ? { ...s.activeCharacter, inventory: updatedMap.get(s.activeCharacter.character_id)! }
+          : s.activeCharacter,
+      };
+    });
+    return resp;
   }, [state.apiKey]);
 
   // Parallel variant for group chats: one refresh per member. Backend

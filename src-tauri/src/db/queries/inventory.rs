@@ -1,4 +1,5 @@
 use rusqlite::{params, Connection};
+use serde::{Deserialize, Serialize};
 
 /// One rendered line of a character's recent conversation history, merged
 /// across every thread they participate in (solo + groups) and sorted by
@@ -99,7 +100,7 @@ pub fn gather_character_recent_messages(
         let lim = (limit as i64).max(1);
         if let Ok(mut stmt) = conn.prepare(
             "SELECT role, content, created_at, sender_character_id FROM messages
-             WHERE thread_id = ?1 AND role NOT IN ('illustration', 'video', 'system', 'context')
+             WHERE thread_id = ?1 AND role NOT IN ('illustration', 'video', 'system', 'context', 'inventory_update')
              ORDER BY created_at DESC LIMIT ?2",
         ) {
             if let Ok(rows) = stmt.query_map(params![tid, lim], |r| {
@@ -126,7 +127,7 @@ pub fn gather_character_recent_messages(
         let lim = (limit as i64).max(1);
         if let Ok(mut stmt) = conn.prepare(
             "SELECT role, content, created_at, sender_character_id FROM group_messages
-             WHERE thread_id = ?1 AND role NOT IN ('illustration', 'video', 'system', 'context')
+             WHERE thread_id = ?1 AND role NOT IN ('illustration', 'video', 'system', 'context', 'inventory_update')
              ORDER BY created_at DESC LIMIT ?2",
         ) {
             if let Ok(rows) = stmt.query_map(params![tid, lim], |r| {
@@ -155,6 +156,184 @@ pub fn gather_character_recent_messages(
         all.drain(0..drop);
     }
     all
+}
+
+// ─── Inventory update records ───────────────────────────────────────────
+//
+// Superseded by the `inventory_update` message role (rows stored in
+// `messages` / `group_messages`) — the old per-message badge design was
+// replaced by first-class message cards in chat history. The table and
+// these helpers are retained unused per the database-safety policy:
+// existing data stays intact but is no longer written or read.
+
+#[allow(dead_code)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct InventoryUpdateRecord {
+    pub message_id: String,
+    pub character_id: String,
+    /// Display name of the character at record-fetch time. Denormalized
+    /// for the frontend's convenience so the badge can read "added X to
+    /// Darren" without a second lookup. Falls back to empty string when
+    /// the character was deleted after the record was written (the FK
+    /// cascade should remove such orphans, but the column is still
+    /// emitted as empty to keep the shape stable).
+    pub character_name: String,
+    pub added: Vec<String>,
+    pub updated: Vec<String>,
+    pub removed: Vec<String>,
+    pub created_at: String,
+}
+
+/// Write (or replace) the record for one (message_id, character_id) pair.
+/// Safe no-op when all three lists are empty — we don't want phantom
+/// "no-change" records cluttering the UI.
+#[allow(dead_code)]
+pub fn record_inventory_update(
+    conn: &Connection,
+    message_id: &str,
+    character_id: &str,
+    added: &[String],
+    updated: &[String],
+    removed: &[String],
+) -> Result<(), rusqlite::Error> {
+    if added.is_empty() && updated.is_empty() && removed.is_empty() {
+        return Ok(());
+    }
+    let added_json = serde_json::to_string(added).unwrap_or_else(|_| "[]".to_string());
+    let updated_json = serde_json::to_string(updated).unwrap_or_else(|_| "[]".to_string());
+    let removed_json = serde_json::to_string(removed).unwrap_or_else(|_| "[]".to_string());
+    conn.execute(
+        "INSERT INTO inventory_update_records (message_id, character_id, added, updated, removed, created_at)
+         VALUES (?1, ?2, ?3, ?4, ?5, datetime('now'))
+         ON CONFLICT(message_id, character_id) DO UPDATE SET
+           added = excluded.added,
+           updated = excluded.updated,
+           removed = excluded.removed,
+           created_at = excluded.created_at",
+        params![message_id, character_id, added_json, updated_json, removed_json],
+    )?;
+    Ok(())
+}
+
+// ─── Inventory snapshots (time-travel ledger) ───────────────────────────
+//
+// One row per pre-mutation state, keyed by snapshot_id (UUID). Written
+// BEFORE each inventory mutation so a snapshot at time T represents
+// "what the inventory was just before the change at T." The reset path
+// picks the latest snapshot whose `created_at <= target.created_at` and
+// restores it — world and keeping rewind together.
+//
+// Capped at MAX_SNAPSHOTS_PER_CHARACTER via trim-on-insert. Old rows
+// fall off quietly; we don't surface the history anywhere, so old
+// snapshots only exist to serve resets in the window they cover.
+
+const MAX_SNAPSHOTS_PER_CHARACTER: i64 = 50;
+
+#[derive(Debug, Clone)]
+pub struct InventorySnapshotData {
+    /// Inventory JSON as stored (same shape as characters.inventory).
+    pub inventory_json: String,
+    pub last_inventory_day: Option<i64>,
+}
+
+/// Read the character's CURRENT inventory + last_inventory_day, insert
+/// a snapshot row with the given `trigger` label, and trim older rows
+/// beyond the cap. A no-op if the character row isn't found. Callers
+/// should run this BEFORE writing the new inventory so the snapshot
+/// captures the state about to be overwritten.
+pub fn snapshot_inventory_pre_mutation(
+    conn: &Connection,
+    character_id: &str,
+    trigger: &str,
+) -> Result<(), rusqlite::Error> {
+    let current: Option<(String, Option<i64>)> = conn
+        .query_row(
+            "SELECT inventory, last_inventory_day FROM characters WHERE character_id = ?1",
+            params![character_id],
+            |r| Ok((r.get::<_, String>(0)?, r.get::<_, Option<i64>>(1)?)),
+        )
+        .ok();
+    let Some((inv_json, last_day)) = current else { return Ok(()); };
+
+    let snapshot_id = uuid::Uuid::new_v4().to_string();
+    conn.execute(
+        "INSERT INTO character_inventory_snapshots
+           (snapshot_id, character_id, inventory, last_inventory_day, created_at, trigger)
+         VALUES (?1, ?2, ?3, ?4, datetime('now'), ?5)",
+        params![snapshot_id, character_id, inv_json, last_day, trigger],
+    )?;
+
+    // Trim to newest N per character. Use a rowid-scoped DELETE so we
+    // don't accidentally nuke rows from other characters.
+    conn.execute(
+        "DELETE FROM character_inventory_snapshots
+         WHERE character_id = ?1
+           AND snapshot_id NOT IN (
+               SELECT snapshot_id FROM character_inventory_snapshots
+               WHERE character_id = ?1
+               ORDER BY created_at DESC
+               LIMIT ?2
+           )",
+        params![character_id, MAX_SNAPSHOTS_PER_CHARACTER],
+    )?;
+
+    Ok(())
+}
+
+/// Find the latest snapshot for this character with created_at <= the
+/// given ISO timestamp. Returns None when no snapshot precedes that
+/// time — caller should leave the inventory alone in that case.
+pub fn get_inventory_snapshot_at_or_before(
+    conn: &Connection,
+    character_id: &str,
+    at_or_before_iso: &str,
+) -> Option<InventorySnapshotData> {
+    conn.query_row(
+        "SELECT inventory, last_inventory_day FROM character_inventory_snapshots
+         WHERE character_id = ?1 AND created_at <= ?2
+         ORDER BY created_at DESC LIMIT 1",
+        params![character_id, at_or_before_iso],
+        |r| Ok(InventorySnapshotData {
+            inventory_json: r.get::<_, String>(0)?,
+            last_inventory_day: r.get::<_, Option<i64>>(1)?,
+        }),
+    ).ok()
+}
+
+/// Fetch all records whose message_id is in `message_ids`. Returns a
+/// flat vector — the frontend groups by message_id itself. Batched via
+/// a single query with a dynamic IN clause.
+#[allow(dead_code)]
+pub fn get_inventory_updates_for_messages(
+    conn: &Connection,
+    message_ids: &[String],
+) -> Result<Vec<InventoryUpdateRecord>, rusqlite::Error> {
+    if message_ids.is_empty() { return Ok(Vec::new()); }
+    let placeholders = message_ids.iter().map(|_| "?").collect::<Vec<_>>().join(",");
+    let sql = format!(
+        "SELECT r.message_id, r.character_id, COALESCE(c.display_name, ''), r.added, r.updated, r.removed, r.created_at
+         FROM inventory_update_records r
+         LEFT JOIN characters c ON c.character_id = r.character_id
+         WHERE r.message_id IN ({placeholders})
+         ORDER BY r.created_at DESC"
+    );
+    let mut stmt = conn.prepare(&sql)?;
+    let params_vec: Vec<&dyn rusqlite::ToSql> = message_ids.iter().map(|s| s as &dyn rusqlite::ToSql).collect();
+    let rows = stmt.query_map(&params_vec[..], |r| {
+        let added_json: String = r.get(3)?;
+        let updated_json: String = r.get(4)?;
+        let removed_json: String = r.get(5)?;
+        Ok(InventoryUpdateRecord {
+            message_id: r.get(0)?,
+            character_id: r.get(1)?,
+            character_name: r.get(2)?,
+            added: serde_json::from_str(&added_json).unwrap_or_default(),
+            updated: serde_json::from_str(&updated_json).unwrap_or_default(),
+            removed: serde_json::from_str(&removed_json).unwrap_or_default(),
+            created_at: r.get(6)?,
+        })
+    })?;
+    rows.collect()
 }
 
 fn label_for(

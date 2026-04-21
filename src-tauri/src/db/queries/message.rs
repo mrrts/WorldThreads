@@ -92,7 +92,7 @@ pub fn create_message(conn: &Connection, m: &Message) -> Result<(), rusqlite::Er
         params![m.message_id, m.thread_id, m.role, m.content, m.tokens_estimate, m.sender_character_id, m.created_at, m.world_day, m.world_time, m.address_to, m.mood_chain, m.is_proactive as i64],
     )?;
     // Don't index illustration/video content in FTS — they contain binary data (base64)
-    if m.role != "illustration" && m.role != "video" {
+    if m.role != "illustration" && m.role != "video" && m.role != "inventory_update" {
         conn.execute(
             "INSERT INTO messages_fts (message_id, thread_id, content) VALUES (?1, ?2, ?3)",
             params![m.message_id, m.thread_id, m.content],
