@@ -1104,5 +1104,94 @@ pub fn run_migrations(conn: &Connection) -> Result<(), rusqlite::Error> {
         CREATE INDEX IF NOT EXISTS idx_inv_upd_message ON inventory_update_records(message_id);
     ").ok();
 
+    // One-shot backfill for inventory_update messages written before the
+    // dispatcher started copying world_day / world_time from world state.
+    // Without this, the frontend's TimeDivider sees a NULL-time meta row
+    // between two same-time messages and falsely draws a new-time divider
+    // on the next real message the user sends. We pick the nearest real
+    // message in the same thread (prior preferred, next as fallback) and
+    // copy its fields onto the inventory_update row. Gated by a settings
+    // marker so the sweep runs exactly once.
+    let inv_wt_backfilled: bool = conn.query_row(
+        "SELECT COUNT(*) FROM settings WHERE key = 'schema.inventory_update_world_time_backfilled_v1'",
+        [], |r| r.get::<_, i64>(0),
+    ).unwrap_or(0) > 0;
+    if !inv_wt_backfilled {
+        let patched_solo = conn.execute("
+            UPDATE messages
+            SET world_day = COALESCE(
+                    (SELECT m2.world_day FROM messages m2
+                     WHERE m2.thread_id = messages.thread_id
+                       AND m2.role <> 'inventory_update'
+                       AND m2.created_at <= messages.created_at
+                       AND m2.world_day IS NOT NULL
+                     ORDER BY m2.created_at DESC LIMIT 1),
+                    (SELECT m2.world_day FROM messages m2
+                     WHERE m2.thread_id = messages.thread_id
+                       AND m2.role <> 'inventory_update'
+                       AND m2.created_at > messages.created_at
+                       AND m2.world_day IS NOT NULL
+                     ORDER BY m2.created_at ASC LIMIT 1)
+                ),
+                world_time = COALESCE(
+                    (SELECT m2.world_time FROM messages m2
+                     WHERE m2.thread_id = messages.thread_id
+                       AND m2.role <> 'inventory_update'
+                       AND m2.created_at <= messages.created_at
+                       AND m2.world_time IS NOT NULL
+                     ORDER BY m2.created_at DESC LIMIT 1),
+                    (SELECT m2.world_time FROM messages m2
+                     WHERE m2.thread_id = messages.thread_id
+                       AND m2.role <> 'inventory_update'
+                       AND m2.created_at > messages.created_at
+                       AND m2.world_time IS NOT NULL
+                     ORDER BY m2.created_at ASC LIMIT 1)
+                )
+            WHERE role = 'inventory_update' AND (world_day IS NULL OR world_time IS NULL)
+        ", []).unwrap_or(0);
+        let patched_group = conn.execute("
+            UPDATE group_messages
+            SET world_day = COALESCE(
+                    (SELECT m2.world_day FROM group_messages m2
+                     WHERE m2.thread_id = group_messages.thread_id
+                       AND m2.role <> 'inventory_update'
+                       AND m2.created_at <= group_messages.created_at
+                       AND m2.world_day IS NOT NULL
+                     ORDER BY m2.created_at DESC LIMIT 1),
+                    (SELECT m2.world_day FROM group_messages m2
+                     WHERE m2.thread_id = group_messages.thread_id
+                       AND m2.role <> 'inventory_update'
+                       AND m2.created_at > group_messages.created_at
+                       AND m2.world_day IS NOT NULL
+                     ORDER BY m2.created_at ASC LIMIT 1)
+                ),
+                world_time = COALESCE(
+                    (SELECT m2.world_time FROM group_messages m2
+                     WHERE m2.thread_id = group_messages.thread_id
+                       AND m2.role <> 'inventory_update'
+                       AND m2.created_at <= group_messages.created_at
+                       AND m2.world_time IS NOT NULL
+                     ORDER BY m2.created_at DESC LIMIT 1),
+                    (SELECT m2.world_time FROM group_messages m2
+                     WHERE m2.thread_id = group_messages.thread_id
+                       AND m2.role <> 'inventory_update'
+                       AND m2.created_at > group_messages.created_at
+                       AND m2.world_time IS NOT NULL
+                     ORDER BY m2.created_at ASC LIMIT 1)
+                )
+            WHERE role = 'inventory_update' AND (world_day IS NULL OR world_time IS NULL)
+        ", []).unwrap_or(0);
+        conn.execute(
+            "INSERT OR IGNORE INTO settings (key, value) VALUES ('schema.inventory_update_world_time_backfilled_v1', ?1)",
+            [chrono::Utc::now().to_rfc3339()],
+        ).ok();
+        if patched_solo > 0 || patched_group > 0 {
+            log::warn!(
+                "[Schema] backfilled world_day/world_time on {} solo + {} group inventory_update rows",
+                patched_solo, patched_group,
+            );
+        }
+    }
+
     Ok(())
 }

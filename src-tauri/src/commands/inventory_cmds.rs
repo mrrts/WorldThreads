@@ -1,4 +1,6 @@
 use crate::ai::orchestrator::{self, InventoryItem};
+use crate::commands::chat_cmds;
+use crate::commands::group_chat_cmds;
 use crate::db::queries::*;
 use crate::db::Database;
 use serde::{Deserialize, Serialize};
@@ -500,8 +502,6 @@ async fn resolve_inventory_targets(
     api_key: &str,
     message_id: &str,
 ) -> Result<ResolvedTargets, String> {
-    use crate::commands::group_chat_cmds;
-
     // Load message + thread context up front so we can release the
     // mutex before any awaits.
     let (role, content, sender_character_id, thread_id, model_config, user_name, group_info, solo_char_id, members, recent, sender_of_last_assistant) = {
@@ -755,6 +755,22 @@ pub async fn update_inventory_for_moment_cmd(
 
     let content = build_inventory_update_content(&results, &id_to_name);
     let new_message: Option<Message> = if let Some(body) = content {
+        // Inherit world_day + world_time from the current world state so
+        // the inventory_update row sits naturally in the current beat's
+        // time flow — without this, the TimeDivider sees a NULL-time
+        // meta row between two same-time messages and falsely draws a
+        // new-time divider on the NEXT message the user sends.
+        let (world_day, world_time) = {
+            let conn = db.conn.lock().map_err(|e| e.to_string())?;
+            let world_id: Option<String> = conn.query_row(
+                "SELECT world_id FROM threads WHERE thread_id = ?1",
+                rusqlite::params![thread_id], |r| r.get(0),
+            ).ok();
+            match world_id.and_then(|wid| get_world(&conn, &wid).ok()) {
+                Some(w) => chat_cmds::world_time_fields(&w),
+                None => (None, None),
+            }
+        };
         let now = chrono::Utc::now().to_rfc3339();
         let msg = Message {
             message_id: uuid::Uuid::new_v4().to_string(),
@@ -764,8 +780,8 @@ pub async fn update_inventory_for_moment_cmd(
             tokens_estimate: 0,
             sender_character_id: None,
             created_at: now,
-            world_day: None,
-            world_time: None,
+            world_day,
+            world_time,
             address_to: None,
             mood_chain: None,
             is_proactive: false,
