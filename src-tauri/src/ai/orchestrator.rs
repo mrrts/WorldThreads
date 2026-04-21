@@ -1133,6 +1133,7 @@ pub async fn inventory_update_from_moment(
     character_identity: &str,
     prior_inventory: &[InventoryItem],
     history: &[crate::db::queries::ConversationLine],
+    run_up: &[crate::db::queries::ConversationLine],
     anchor_speaker: &str,
     anchor_content: &str,
     allow_pure_maintain_if_untouched: bool,
@@ -1143,6 +1144,11 @@ pub async fn inventory_update_from_moment(
         serde_json::to_string_pretty(prior_inventory).unwrap_or_else(|_| "[]".to_string())
     };
     let history_block = render_history_for_inventory(history);
+    let run_up_block = if run_up.is_empty() {
+        "(no preceding turns — the anchor is the only context)".to_string()
+    } else {
+        render_history_for_inventory(run_up)
+    };
     let anchor_trimmed: String = anchor_content.chars().take(1200).collect();
 
     // The change-rule line has two shapes. The strict form (user/assistant
@@ -1172,11 +1178,12 @@ pub async fn inventory_update_from_moment(
     };
 
     let user = format!(
-        "{name}'s identity:\n{ident}\n\n{name}'s CURRENT inventory (mixed physical + interior):\n{prior}\n\nRecent chat history (chronological, for context):\n{hist}\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\nTHE MOMENT THE USER IS CALLING YOUR ATTENTION TO\n({speaker} said):\n\"{anchor}\"\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\nUpdate {name}'s inventory IN RESPONSE TO THIS MOMENT.\n\nRules for this update (these override the generic \"across days\" rules):\n- Output EXACTLY {max} items, not fewer. At least one physical and at least one interior. Each tagged kind='physical' or kind='interior'.\n- MOST slots should remain as they are. Don't churn. If the moment doesn't touch an item, leave it alone.\n{change_rule}\n- Let the change be proportionate to what the moment actually carries. A small quiet moment produces a small specific change (one interior item re-phrased, or one physical item picked up). A load-bearing moment may warrant more than one change.\n- The change should be CAUSED by the moment, not merely coincident with it. If a name was almost said in the moment, that name now belongs in an interior slot. If a small object was handed over, it belongs in a physical slot. If an old ache was braided with new information, rewrite that ache's description to show it.\n- Keep all other rules intact: specificity, consequences-first, one concrete hook per interior, no items belonging to other characters, exactly {max} total.",
+        "{name}'s identity:\n{ident}\n\n{name}'s CURRENT inventory (mixed physical + interior):\n{prior}\n\nRecent chat history (chronological, for broad context):\n{hist}\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\nIMMEDIATE RUN-UP (the 5 turns just before the anchor, chronological — background only, not the thing to respond to):\n{run_up}\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\nTHE MOMENT THE USER IS CALLING YOUR ATTENTION TO — THIS IS THE ONE DRIVING THE UPDATE\n({speaker} said):\n\"{anchor}\"\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\nUpdate {name}'s inventory IN RESPONSE TO THE ANCHORED MOMENT ABOVE.\n\nThe anchor is the specific message that must drive the change. Use the run-up ONLY to understand what the anchor is referring to — if the anchor says \"thanks\" and the run-up shows a pencil was just handed over, that pencil belongs in the update; the anchor's \"thanks\" is what calls the moment. Don't use the run-up as its own reason to update; the anchor is the trigger.\n\nRules for this update (these override the generic \"across days\" rules):\n- Output EXACTLY {max} items, not fewer. At least one physical and at least one interior. Each tagged kind='physical' or kind='interior'.\n- MOST slots should remain as they are. Don't churn. If the anchor doesn't touch an item, leave it alone.\n{change_rule}\n- Let the change be proportionate to what the anchor actually carries (read through the run-up when needed). A small quiet moment produces a small specific change (one interior item re-phrased, or one physical item picked up). A load-bearing moment may warrant more than one change.\n- The change should be CAUSED by what the anchor points at — either directly stated in the anchor, or clearly referenced from the run-up just before. If a name was almost said in the anchor, that name now belongs in an interior slot. If a small object was handed over in the run-up and acknowledged by the anchor, it belongs in a physical slot. If an old ache was braided with new information by the anchor, rewrite that ache's description to show it.\n- Keep all other rules intact: specificity, consequences-first, one concrete hook per interior, no items belonging to other characters, exactly {max} total.",
         name = character_name,
         ident = if character_identity.is_empty() { "(no identity written)" } else { character_identity },
         prior = prior_block,
         hist = if history_block.is_empty() { "(no other recent messages)".to_string() } else { history_block },
+        run_up = run_up_block,
         speaker = anchor_speaker,
         anchor = anchor_trimmed,
         max = INVENTORY_MAX_ITEMS,

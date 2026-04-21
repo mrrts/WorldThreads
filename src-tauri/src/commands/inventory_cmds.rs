@@ -234,22 +234,97 @@ pub async fn refresh_group_inventories_cmd(
 /// by id. Checks both `messages` and `group_messages` tables — the click
 /// that drove this call can originate from either. Returns None if the
 /// message has been deleted between the click and the command landing.
+struct MessageAnchor {
+    role: String,
+    content: String,
+    sender_character_id: Option<String>,
+    created_at: String,
+    thread_id: String,
+    /// True if this row came from `group_messages` (needed so the
+    /// run-up query targets the correct table).
+    is_group: bool,
+}
+
 fn get_message_anchor(conn: &rusqlite::Connection, message_id: &str)
-    -> Option<(String, String, Option<String>, String)>
+    -> Option<MessageAnchor>
 {
-    let mut try_table = |table: &str| {
+    let try_table = |table: &str, is_group: bool| -> Option<MessageAnchor> {
         conn.query_row(
-            &format!("SELECT role, content, sender_character_id, created_at FROM {} WHERE message_id = ?1", table),
+            &format!("SELECT role, content, sender_character_id, created_at, thread_id FROM {} WHERE message_id = ?1", table),
             rusqlite::params![message_id],
+            |r| Ok(MessageAnchor {
+                role: r.get(0)?,
+                content: r.get(1)?,
+                sender_character_id: r.get(2)?,
+                created_at: r.get(3)?,
+                thread_id: r.get(4)?,
+                is_group,
+            }),
+        ).ok()
+    };
+    try_table("messages", false).or_else(|| try_table("group_messages", true))
+}
+
+/// Fetch the N messages that arrived strictly before the anchor's
+/// timestamp in the same thread, excluding meta / structural roles.
+/// Returned chronological (oldest first) so the model reads them as a
+/// run-up. Used to give the inventory-update LLM context for the turn
+/// right before the clicked message — e.g. if the user says "thanks"
+/// and you click that message, the pencil-handed-over line from the
+/// turn before should still be visible.
+fn fetch_run_up_before(
+    conn: &rusqlite::Connection,
+    anchor: &MessageAnchor,
+    limit: usize,
+    user_display_name: &str,
+    active_character_name: &str,
+) -> Vec<crate::db::queries::ConversationLine> {
+    let table = if anchor.is_group { "group_messages" } else { "messages" };
+    let sql = format!(
+        "SELECT role, content, sender_character_id, created_at
+         FROM {} WHERE thread_id = ?1 AND created_at < ?2
+           AND role NOT IN ('illustration','video','system','context','inventory_update')
+         ORDER BY created_at DESC LIMIT ?3",
+        table
+    );
+    let mut out: Vec<crate::db::queries::ConversationLine> = Vec::new();
+    if let Ok(mut stmt) = conn.prepare(&sql) {
+        if let Ok(rows) = stmt.query_map(
+            rusqlite::params![anchor.thread_id, anchor.created_at, limit as i64],
             |r| Ok((
                 r.get::<_, String>(0)?,
                 r.get::<_, String>(1)?,
                 r.get::<_, Option<String>>(2)?,
                 r.get::<_, String>(3)?,
             )),
-        ).ok()
-    };
-    try_table("messages").or_else(|| try_table("group_messages"))
+        ) {
+            for (role, content, sender, created_at) in rows.flatten() {
+                // Resolve speaker the same way the anchor label does so the
+                // run-up and the anchor quote are written in consistent
+                // registers.
+                let speaker = match role.as_str() {
+                    "user" => user_display_name.to_string(),
+                    "narrative" => "Narrative voice".to_string(),
+                    "dream" => "Dream".to_string(),
+                    _ => {
+                        if let Some(cid) = sender.as_deref() {
+                            get_character(conn, cid).map(|c| c.display_name)
+                                .unwrap_or_else(|_| active_character_name.to_string())
+                        } else {
+                            active_character_name.to_string()
+                        }
+                    }
+                };
+                out.push(crate::db::queries::ConversationLine {
+                    speaker,
+                    content,
+                    created_at,
+                });
+            }
+        }
+    }
+    out.reverse();
+    out
 }
 
 /// Resolve the "speaker label" for an anchor message. For user messages,
@@ -298,7 +373,7 @@ async fn update_one_inventory_from_message(
         return Err("no API key".to_string());
     }
 
-    let (character, world, model_config, history, anchor_speaker, anchor_content) = {
+    let (character, world, model_config, history, anchor_speaker, anchor_content, run_up) = {
         let conn = db.conn.lock().map_err(|e| e.to_string())?;
         let character = get_character(&conn, character_id).map_err(|e| e.to_string())?;
         let world = get_world(&conn, &character.world_id).map_err(|e| e.to_string())?;
@@ -313,12 +388,20 @@ async fn update_one_inventory_from_message(
             &user_name,
             INVENTORY_HISTORY_LIMIT,
         );
-        let (role, content, sender, _created_at) = get_message_anchor(&conn, message_id)
+        let anchor = get_message_anchor(&conn, message_id)
             .ok_or_else(|| "Message not found for inventory update".to_string())?;
         let speaker = anchor_speaker_label(
-            &conn, &role, sender.as_deref(), &character.world_id, &character.display_name,
+            &conn, &anchor.role, anchor.sender_character_id.as_deref(),
+            &character.world_id, &character.display_name,
         );
-        (character, world, model_config, history, speaker, content)
+        // Pull 5 messages from the same thread immediately before the
+        // anchor — the "run-up" that gives the LLM the immediate context
+        // the clicked message may rely on (e.g. "thanks" after a pencil
+        // was handed over the turn before).
+        let run_up = fetch_run_up_before(
+            &conn, &anchor, 5, &user_name, &character.display_name,
+        );
+        (character, world, model_config, history, speaker, anchor.content, run_up)
     };
 
     let today = current_world_day(&world);
@@ -330,6 +413,7 @@ async fn update_one_inventory_from_message(
         &base, api_key, model,
         &character.display_name, &character.identity,
         &prior_items, &history,
+        &run_up,
         &anchor_speaker, &anchor_content,
         allow_pure_maintain,
     ).await.map_err(|e| {
