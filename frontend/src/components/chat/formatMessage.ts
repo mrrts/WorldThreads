@@ -127,15 +127,20 @@ function extractText(children: React.ReactNode): string {
  * Custom Markdown components for message rendering.
  * Single-word emphasis → inline <i> (just italic)
  * Multi-word emphasis → <em> (picks up block/border styling from parent CSS)
+ *
+ * Both are rendered at 75% opacity so action beats / stage directions
+ * sit slightly quieter than spoken dialogue. Keeps the contrast tonal
+ * rather than chromatic, so it works across every bubble color (primary
+ * user, secondary assistant, amber narrative).
  */
 export const markdownComponents = {
   em: ({ children }: { children?: React.ReactNode }) => {
     const text = extractText(children).trim();
     const isSingleWord = text.length > 0 && !text.includes(" ");
     if (isSingleWord) {
-      return React.createElement("i", { className: "italic" }, children);
+      return React.createElement("i", { className: "italic opacity-75" }, children);
     }
-    return React.createElement("em", null, children);
+    return React.createElement("em", { className: "opacity-75" }, children);
   },
 };
 

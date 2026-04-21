@@ -17,6 +17,9 @@ export interface WorldState {
   time: { day_index: number; time_of_day: string };
   global_arcs: Array<{ arc_id: string; status: string; notes: string }>;
   facts: Array<{ fact_id: string; text: string; confidence: string }>;
+  /** Optional weather key (see src/lib/weather.ts). Empty / absent =
+   *  no weather set; the prompt injection skips the weather block. */
+  weather?: string;
 }
 
 export interface Character {

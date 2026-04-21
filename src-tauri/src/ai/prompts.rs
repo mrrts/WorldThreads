@@ -838,7 +838,11 @@ The exception: the user explicitly asks for advice, the character's role is spec
 
 **Cleverness needs something to strike against.** A quick line, a witty turn, a clever read only feels alive when the character is improvising under actual pressure. Pressure from a body that wants things (tired, hungry, impatient, tender, aching in the left knee), from a world that keeps being itself (time passing whether they talk or not, work undone, weather, the wrong hour of day for the right conversation), from other people with their own gravity (a brother across the room, a memory that never got finished, a debt unpaid, someone they can't stay entirely hidden from), from consequences that accumulate (what was said, what was avoided, what's still owed). A clever line with no friction behind it is articulate fog — sparkle without traction. Let cleverness rise out of solidity: something this specific character is actually carrying, actually refusing, actually noticing in this specific minute. The test: could you name what the quip is struck AGAINST? If yes, let it land. If no, the moment hasn't earned the shine — trim it, or say a plainer true thing instead.
 
-**Let them be funny.** A decent joke at the right moment is its own kind of honesty — often how a person says something hard, or keeps a room breathing, or signals affection without having to announce it. Not cleverness for its own sake; humor that fits this character — dry, crooked, self-deprecating, landing slightly off. Laughing with someone, at themselves, or at the absurd weight of the moment. Characters who never show humor read as braced, and braced characters are less human than they'd like to be.
+**Let them be funny — and actually make the joke good.** Humor is craft, not reflex. A real joke at the right moment is its own kind of honesty — how a person says something hard, keeps a room breathing, or signals affection without announcing it. Every register is fair game and welcome: dry deadpan, ironic understatement, punny wordplay (bad puns land too, sometimes best), absurd-literal ("the bread is clearly conspiring with the butter"), silly imagined stakes, self-deprecating admission, observational ("why do cats treat doorways like customs checkpoints"), mock-solemn, mock-formal, old-man grumble, a well-earned non-sequitur. Fit the KIND to this character and this beat — but don't limit yourself to one flavor.
+
+When the moment actually reaches for a laugh, WORK for it. Try hard to land a good one. Specifics are funnier than generics — "the aunt who buys him wool socks every Christmas" beats "a relative"; "a raccoon who's just remembered something important" beats "a weird animal". Reach past the first joke that comes; the third or fourth candidate is often where the real one lives. The twist should actually twist. The comparison should be exactly apt, not approximately. Small earned surprise rewards the reader for paying attention; generic rhythm pretending to be wit doesn't.
+
+Tests before letting a joke land: could THIS character have said THIS specific line, in THEIR voice, on THIS day? Does the line reward attention a beat later, or does it dissolve? Is a concrete image or construction doing the work, or is it empty cleverness pretending to be a joke? If yes, yes, yes — use it. If no — a plain honest line beats a forced joke. Characters who never show humor read as braced; characters who reach for humor without craft read as trying too hard, which is worse than braced. The goal: a joke the reader would still smile at ten minutes later — not a joke-shaped filler line.
 
 **One emoji, rarely.** A reply can, every once in a while, be a single emoji and nothing else — no words, no action beat, no quotation marks, just the emoji. Two and only two cases qualify: (a) a true micro-moment that only needs a small emotional acknowledgement — a wince, a soft laugh, a small yes, a shrug, a quiet heart — where any sentence would pad it out; OR (b) the user is already playfully in emoji-mode, sending emoji at the character, and matching the register back is the honest reply. The test: would any phrase cheapen it? If yes, let the emoji BE the whole reply. Default stays prose; this is rare spice, not a mode. Don't reach for an emoji-reply to dodge a hard line or to look cute — the moment has to actually be small enough that a word would be too much."#
 }
@@ -1444,6 +1448,10 @@ fn build_solo_dialogue_system_prompt(
         }
     }
 
+    if let Some(weather) = world_weather_block(world) {
+        parts.push(weather);
+    }
+
     if let Some(char_state) = character.state.as_object() {
         if !char_state.is_empty() {
             parts.push(format!("YOUR CURRENT STATE:\n{}", serde_json::to_string_pretty(&character.state).unwrap_or_default()));
@@ -1663,6 +1671,10 @@ fn build_group_dialogue_system_prompt(
             scene.push_str("\n\nCurrent world state:\n");
             scene.push_str(&serde_json::to_string_pretty(&world.state).unwrap_or_default());
         }
+    }
+    if let Some(weather) = world_weather_block(world) {
+        scene.push_str("\n\n");
+        scene.push_str(&weather);
     }
     parts.push(scene);
 
@@ -2180,6 +2192,10 @@ pub fn build_dream_system_prompt(
         ));
     }
 
+    if let Some(weather) = world_weather_block(world) {
+        parts.push(weather);
+    }
+
     parts.push(dream_craft_block().to_string());
     parts.push(daylight_block().to_string());
     parts.push(agape_block().to_string());
@@ -2531,6 +2547,10 @@ pub fn build_narrative_system_prompt(
         }
     }
 
+    if let Some(weather) = world_weather_block(world) {
+        parts.push(weather);
+    }
+
     if let Some(char_state) = character.state.as_object() {
         if !char_state.is_empty() {
             parts.push(format!(
@@ -2542,6 +2562,9 @@ pub fn build_narrative_system_prompt(
 
     if let Some(time_desc) = world_time_description(world) {
         parts.push(time_desc);
+    }
+    if let Some(weather) = world_weather_block(world) {
+        parts.push(weather);
     }
 
     if let Some(directive) = mood_directive {
@@ -2683,6 +2706,9 @@ pub fn build_scene_description_prompt(
     if let Some(time_desc) = world_time_description(world) {
         system_parts.push(time_desc);
     }
+    if let Some(weather) = world_weather_block(world) {
+        system_parts.push(weather);
+    }
 
     let char_count_phrase = if cast.len() == 1 { "both characters" } else { "ALL characters" };
     system_parts.push(format!(
@@ -2780,6 +2806,9 @@ Write ONLY the animation direction, nothing else."#,
     if let Some(time_desc) = world_time_description(world) {
         system_parts.push(time_desc);
     }
+    if let Some(weather) = world_weather_block(world) {
+        system_parts.push(weather);
+    }
 
     // Per-character descriptions so the motion director can reference them
     // distinctly by name (critical for group scenes with same-gender pairs).
@@ -2828,6 +2857,52 @@ Write ONLY the animation direction, nothing else."#,
             ),
         },
     ]
+}
+
+/// Map a weather key (stored in `world.state.weather`) to its label and
+/// emoji. Must stay in lockstep with `frontend/src/lib/weather.ts`.
+/// Returns None for unknown or empty keys.
+fn weather_meta(key: &str) -> Option<(&'static str, &'static str)> {
+    // (emoji, label)
+    match key {
+        "sunny_clear"       => Some(("☀️", "Sunny and clear")),
+        "mostly_sunny"      => Some(("🌤️", "Mostly sunny")),
+        "partly_cloudy"     => Some(("⛅", "Partly cloudy")),
+        "overcast"          => Some(("☁️", "Overcast")),
+        "sun_showers"       => Some(("🌦️", "Sun showers")),
+        "drizzle"           => Some(("💧", "Light drizzle")),
+        "steady_rain"       => Some(("🌧️", "Steady rain")),
+        "thunderstorm"      => Some(("⛈️", "Thunderstorm")),
+        "distant_lightning" => Some(("🌩️", "Distant lightning")),
+        "light_snow"        => Some(("🌨️", "Light snow")),
+        "heavy_snow"        => Some(("❄️", "Heavy snow")),
+        "fog"               => Some(("🌫️", "Foggy")),
+        "windy"             => Some(("🌬️", "Windy")),
+        "windstorm"         => Some(("🌪️", "Windstorm")),
+        "rainbow"           => Some(("🌈", "Rainbow after rain")),
+        "hot"               => Some(("🥵", "Sweltering heat")),
+        "humid"             => Some(("🌡️", "Humid and close")),
+        "freezing"          => Some(("🥶", "Freezing")),
+        "cool_crisp"        => Some(("🍂", "Cool and crisp")),
+        _ => None,
+    }
+}
+
+/// Build a dedicated weather block for prompts. Reads
+/// `world.state.weather` (string key) and emits "CURRENT WEATHER: …"
+/// with usage guidance: backdrop, not subject; OK to reference
+/// lightly when the moment calls for it; natural topic when a
+/// character wants to say something safe or small. Returns None when
+/// no weather is set.
+fn world_weather_block(world: &World) -> Option<String> {
+    let key = world.state.get("weather").and_then(|v| v.as_str()).unwrap_or("");
+    if key.is_empty() { return None; }
+    let (emoji, label) = weather_meta(key)?;
+    Some(format!(
+        "CURRENT WEATHER: {emoji} {label}. Weather is a BACKDROP by default — always present, rarely center-stage. Don't narrate it every beat; don't make every scene about it. But it's THERE: the sound on the roof, a wet coat, light changing through a window, the particular quiet of snow, a shiver, a sleeve pushed up in the heat. Reference it when the moment naturally reaches for it, and lean on it when a character wants to say something small or safe — weather is the universal reach-for-neutral topic, a glance out the window, a comment on the wind.\n\nEXCEPTION — weather CAN become the subject when the scene is making an event of it or the characters are genuinely discussing it: a storm that's keeping them in, someone arriving soaked through, a sudden downpour interrupting a walk, a rainbow after a hard week, a heat wave that's making the day unbearable, the first snow. When the scene is treating the weather AS the beat, fully engage — the weather is the beat. Otherwise: backdrop, never heavy-handed, colour without subject.",
+        emoji = emoji,
+        label = label,
+    ))
 }
 
 fn world_time_description(world: &World) -> Option<String> {

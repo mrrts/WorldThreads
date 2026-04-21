@@ -29,7 +29,7 @@ export function SettingsPanel({ store }: Props) {
   const [selectedBackup, setSelectedBackup] = useState<string>("");
   const [restoringBackup, setRestoringBackup] = useState(false);
   const [backingUp, setBackingUp] = useState(false);
-  const [conscienceEnabled, setConscienceEnabled] = useState(true);
+  const [conscienceEnabled, setConscienceEnabled] = useState(false);
 
   useEffect(() => {
     setApiKey(store.apiKey);
@@ -40,7 +40,10 @@ export function SettingsPanel({ store }: Props) {
     api.getGoogleApiKey().then(setGoogleApiKey);
     api.listBackups().then((list) => { setBackups(list); if (list.length > 0) setSelectedBackup(list[0].file_name); });
     api.getSetting("conscience_pass_enabled").then((v) => {
-      setConscienceEnabled(v === null ? true : v !== "off" && v !== "false");
+      // Default OFF — feature is opt-in because it roughly doubles the
+      // per-reply token cost (one extra memory-model grader call + the
+      // occasional dialogue-model regenerate).
+      setConscienceEnabled(v === "true" || v === "on");
     });
   }, []);
 
@@ -308,12 +311,15 @@ export function SettingsPanel({ store }: Props) {
             </div>
           </FieldGroup>
 
-          <FieldGroup label="Craft">
-            <div className="flex items-center justify-between py-2 px-4 rounded-lg border border-border bg-card/50">
-              <div>
+          <FieldGroup label="Craft (Optional)">
+            <div className="flex items-start justify-between gap-4 py-3 px-4 rounded-lg border border-border bg-card/50">
+              <div className="space-y-1.5">
                 <p className="text-sm font-medium">Conscience Pass</p>
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  Grade each reply against the five invariants and regenerate on drift. Adds one cheap memory-model call per reply.
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  A quality guard: after every character reply, a second cheaper model reads the draft and checks it against the app's five craft invariants (agape, soundness, daylight, truth-test, cosmology). If the draft drifts, the original model rewrites it once with a specific correction note. Catches the subtle drift that pure prompting misses.
+                </p>
+                <p className="text-xs text-amber-500/80 leading-relaxed">
+                  <strong>Token cost:</strong> roughly doubles per-reply spend — one extra grader call every time, plus the occasional regenerate. Off by default. Turn on when the craft payoff is worth the burn, off when it isn't.
                 </p>
               </div>
               <Switch

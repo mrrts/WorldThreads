@@ -585,8 +585,8 @@ pub async fn send_message_cmd(
         let conn = db.conn.lock().map_err(|e| e.to_string())?;
         get_setting(&conn, "conscience_pass_enabled")
             .ok().flatten()
-            .map(|v| v != "off" && v != "false")
-            .unwrap_or(true)
+            .map(|v| v == "true" || v == "on")
+            .unwrap_or(false)
     };
     if conscience_enabled {
         let user_last = recent_msgs.iter().rev()
@@ -971,8 +971,8 @@ pub async fn prompt_character_cmd(
         let conn = db.conn.lock().map_err(|e| e.to_string())?;
         get_setting(&conn, "conscience_pass_enabled")
             .ok().flatten()
-            .map(|v| v != "off" && v != "false")
-            .unwrap_or(true)
+            .map(|v| v == "true" || v == "on")
+            .unwrap_or(false)
     };
     if conscience_enabled {
         let user_last = dialogue_msgs.iter().rev()
@@ -2006,8 +2006,8 @@ pub async fn reset_to_message_cmd(
             let conn = db.conn.lock().map_err(|e| e.to_string())?;
             get_setting(&conn, "conscience_pass_enabled")
                 .ok().flatten()
-                .map(|v| v != "off" && v != "false")
-                .unwrap_or(true)
+                .map(|v| v == "true" || v == "on")
+                .unwrap_or(false)
         };
         if conscience_enabled {
             match crate::ai::conscience::grade_reply(

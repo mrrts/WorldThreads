@@ -3,10 +3,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogBody, DialogFooter } from "@/components/ui/dialog";
-import { Plus, Archive, ArchiveRestore, ChevronRight, Globe, Sparkles, User, Settings2 } from "lucide-react";
+import { Plus, Archive, ArchiveRestore, ChevronRight, ChevronDown, Globe, Sparkles, User, Settings2, CloudSun } from "lucide-react";
 import type { useAppStore } from "@/hooks/use-app-store";
 import { api, type WorldImageInfo } from "@/lib/tauri";
 import { InventoryStrip } from "@/components/chat/InventoryStrip";
+import { WeatherPicker } from "@/components/WeatherPicker";
+import { weatherById } from "@/lib/weather";
 
 interface Props {
   store: ReturnType<typeof useAppStore>;
@@ -21,6 +23,8 @@ export function Sidebar({ store, onNavigate }: Props) {
   const [showArchived, setShowArchived] = useState(false);
   const [archiveConfirm, setArchiveConfirm] = useState<{ id: string; name: string } | null>(null);
   const [timeConfirm, setTimeConfirm] = useState<{ day: number; time: string } | null>(null);
+  const [showWeatherPicker, setShowWeatherPicker] = useState(false);
+  const weatherAnchorRef = useRef<HTMLButtonElement>(null);
   const [showGroupPicker, setShowGroupPicker] = useState(false);
   const [selectedGroupMembers, setSelectedGroupMembers] = useState<string[]>([]);
   const [userAvatarUrl, setUserAvatarUrl] = useState("");
@@ -437,8 +441,10 @@ export function Sidebar({ store, onNavigate }: Props) {
                   const advanceDay = () => setTimeConfirm({ day: currentDay + 1, time: TIMES[0] });
                   const advanceTime = () => setTimeConfirm({ day: nextDay, time: nextTime });
 
+                  const currentWeather = weatherById(store.activeWorld!.state.weather ?? null);
+
                   return (
-                    <div className="relative">
+                    <div className="relative space-y-1.5">
                       <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                         <Sparkles size={10} className="text-primary/50" />
                         <span>Day {currentDay}</span>
@@ -459,6 +465,42 @@ export function Sidebar({ store, onNavigate }: Props) {
                           <Plus size={10} />
                         </button>
                       </div>
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <span className="text-muted-foreground/70">Weather:</span>
+                        <button
+                          ref={weatherAnchorRef}
+                          onClick={() => setShowWeatherPicker((v) => !v)}
+                          className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md bg-secondary/50 border border-border/60 hover:bg-secondary hover:border-border transition-colors cursor-pointer shadow-sm text-foreground/85"
+                          title={currentWeather ? `Change weather (current: ${currentWeather.label})` : "Set current weather"}
+                        >
+                          {currentWeather ? (
+                            <>
+                              <span className="text-xl leading-none">{currentWeather.emoji}</span>
+                              <span>{currentWeather.label}</span>
+                            </>
+                          ) : (
+                            <>
+                              <CloudSun size={14} className="text-muted-foreground/60" />
+                              <span className="text-muted-foreground/60 italic">set weather</span>
+                            </>
+                          )}
+                          <ChevronDown size={11} className="text-muted-foreground/60 ml-0.5" />
+                        </button>
+                      </div>
+                      {showWeatherPicker && (
+                        <WeatherPicker
+                          anchor={weatherAnchorRef.current}
+                          currentId={currentWeather?.id ?? null}
+                          onPick={(id) => {
+                            if (!store.activeWorld) return;
+                            const newState = structuredClone(store.activeWorld.state);
+                            if (id) { newState.weather = id; }
+                            else { delete newState.weather; }
+                            store.updateWorldState(newState);
+                          }}
+                          onClose={() => setShowWeatherPicker(false)}
+                        />
+                      )}
                       {timeConfirm && (
                         <div className="absolute bottom-full left-0 mb-2 w-56 bg-card border border-border rounded-lg shadow-xl shadow-black/30 p-3 z-50 animate-in fade-in zoom-in-95 duration-150">
                           <p className="text-xs text-foreground mb-2">
