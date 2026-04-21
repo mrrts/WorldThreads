@@ -1034,23 +1034,41 @@ export function GroupChatView({ store, onNavigateToCharacter }: Props) {
               </div>
             </div>
           </div>
-          <textarea
-            ref={inputRef}
-            defaultValue=""
-            style={{ fontSize: `${chatFontPx(store.chatFontSize)}px` }}
-            onChange={(e) => {
-              inputValueRef.current = e.target.value;
-              const empty = !e.target.value.trim();
-              if (hasInput === empty) setHasInput(!empty);
-              e.target.style.height = "auto";
-              e.target.style.height = `${e.target.scrollHeight}px`;
-            }}
-            onKeyDown={handleKeyDown}
-            placeholder={`Talk to ${store.activeGroupChat?.display_name ?? "the group"}...`}
-            className="flex-1 self-stretch resize-none overflow-hidden rounded-xl border border-input bg-transparent px-4 py-2.5 placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring"
-            rows={1}
-            disabled={isSending || (store.autoRespond && !store.apiKey)}
-          />
+          <div className="flex-1 self-stretch relative">
+            <textarea
+              ref={inputRef}
+              defaultValue=""
+              style={{ fontSize: `${chatFontPx(store.chatFontSize)}px` }}
+              onChange={(e) => {
+                inputValueRef.current = e.target.value;
+                const empty = !e.target.value.trim();
+                if (hasInput === empty) setHasInput(!empty);
+                e.target.style.height = "auto";
+                e.target.style.height = `${e.target.scrollHeight}px`;
+              }}
+              onKeyDown={handleKeyDown}
+              placeholder={`Talk to ${store.activeGroupChat?.display_name ?? "the group"}...`}
+              className="w-full resize-none overflow-hidden rounded-xl border border-input bg-transparent pl-4 pr-12 py-2.5 placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+              rows={1}
+              disabled={isSending || (store.autoRespond && !store.apiKey)}
+            />
+            <button
+              type="button"
+              onClick={() => setShowEmojiPicker((v) => !v)}
+              disabled={isSending || (store.autoRespond && !store.apiKey)}
+              title="Insert emoji"
+              className="absolute top-2 right-2 w-8 h-8 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-accent/50 transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              <Smile size={16} />
+            </button>
+            {showEmojiPicker && (
+              <ReactionPicker
+                anchorRight
+                onPick={(emoji) => insertEmojiAtCursor(emoji)}
+                onClose={() => setShowEmojiPicker(false)}
+              />
+            )}
+          </div>
           <div className="flex-shrink-0 flex flex-col gap-1">
             <div className="flex gap-2 flex-1">
               <Button
@@ -1061,25 +1079,6 @@ export function GroupChatView({ store, onNavigateToCharacter }: Props) {
               >
                 {isSending ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
               </Button>
-              <div className="relative flex-shrink-0">
-                <Button
-                  size="icon"
-                  variant="secondary"
-                  className="rounded-xl self-stretch w-10 flex-shrink-0 hover:bg-secondary/70"
-                  onClick={() => setShowEmojiPicker((v) => !v)}
-                  disabled={isSending || (store.autoRespond && !store.apiKey)}
-                  title="Insert emoji"
-                >
-                  <Smile size={16} />
-                </Button>
-                {showEmojiPicker && (
-                  <ReactionPicker
-                    anchorRight
-                    onPick={(emoji) => insertEmojiAtCursor(emoji)}
-                    onClose={() => setShowEmojiPicker(false)}
-                  />
-                )}
-              </div>
               <div className="relative flex-shrink-0" ref={settingsPopoverRef}>
             <Button
               size="icon"
