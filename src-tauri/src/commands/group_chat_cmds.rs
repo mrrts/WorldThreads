@@ -270,7 +270,22 @@ async fn llm_pick_addressee(
 
 Who is the user speaking WITH, not ABOUT? OR who are they directly addressing?
 
-Read the recent scene and the user's latest message, then pick the one character either signal points to — the person they're talking TO, whether by directly addressing them or by continuing an ongoing exchange with them. A character mentioned in the third person ("I was thinking about Aaron earlier") is being talked about, not spoken with. A character the user has been going back-and-forth with is being spoken with even if the current message doesn't name them.
+═══════════════════════════════════════════════════════════════
+CRITICAL RULE — READ TWICE:
+
+A CHARACTER BEING TALKED ABOUT, REFERRED TO, OR GESTURED AT IS NOT THE ADDRESSEE. THEY ARE A REFERENCE POINT. DO NOT PICK THEM.
+
+The person the user is talking TO is the person whose reply the user is setting up. NOT the person the user is pointing at, naming in the third person, asking about, looking at, nodding toward, or referencing in any way.
+
+  - "I was thinking about Aaron earlier." → Aaron is REFERRED TO. Not addressed. Do NOT pick Aaron.
+  - "*Looks at Aaron.* What do you think, Darren?" → Aaron is GESTURED AT. Darren is addressed. Pick Darren.
+  - "What about Aaron, though?" → Aaron is MENTIONED POINTEDLY. Not addressed. Do NOT pick Aaron; pick whoever the user is actually talking to.
+  - "Did you hear what Aaron said?" → Aaron is the SUBJECT. The addressee is whoever "you" refers to — probably whoever was just in dialogue with the user. Do NOT pick Aaron.
+
+Direction-of-SPEECH is what matters. Not direction-of-eyes, gesture, name-mention, or topic. The addressee is the person the user's speech is FOR — the one whose response the user is waiting for.
+═══════════════════════════════════════════════════════════════
+
+Read the recent scene and the user's latest message, then pick the one character the user is actually talking TO — whether by directly addressing them or by continuing an ongoing exchange with them. A character the user has been going back-and-forth with is being spoken with even if the current message doesn't name them.
 
 If the user pivots addressees mid-message, the FINAL addressee wins. Example: "Yeah, makes sense, Darren. ...Actually — Aaron, what did you think?" → pick Aaron. The earlier address is abandoned once the user turns to someone new.
 

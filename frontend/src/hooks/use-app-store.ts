@@ -1201,45 +1201,11 @@ export function useAppStore() {
         }));
       }
 
-      // For group chats: if auto-respond is on and the anchor was a
-      // user message, pick ONE character to respond via the same
-      // addressee-pick pipeline sendGroupMessage uses. Used to
-      // iterate every character in order — that produced the
-      // unwanted one-after-another chain.
-      if (isGroupChat && isUserMsg && state.autoRespond && state.activeGroupChat) {
-        const memberIds: string[] = Array.isArray(state.activeGroupChat.character_ids) ? state.activeGroupChat.character_ids : [];
-        const anchorContent = anchorMsg?.content ?? "";
-        let pickedIds: string[];
-        try {
-          const picked = await api.pickGroupResponders(state.apiKey, state.activeGroupChat.group_chat_id, anchorContent);
-          pickedIds = picked.filter((id) => memberIds.includes(id));
-          if (pickedIds.length === 0) pickedIds = memberIds.slice(0, 1);
-        } catch {
-          pickedIds = memberIds.slice(0, 1);
-        }
-        setState((s) => ({ ...s, sending: state.activeGroupChat!.group_chat_id }));
-        try {
-          for (const cid of pickedIds) {
-            setState((s) => ({ ...s, sendingCharacterId: cid }));
-            const res = await api.promptGroupCharacter(state.apiKey, state.activeGroupChat.group_chat_id, cid);
-            setState((s) => {
-              const merged = { ...s.reactions };
-              for (const r of res.ai_reactions) {
-                if (!merged[r.message_id]) merged[r.message_id] = [];
-                merged[r.message_id].push(r);
-              }
-              return {
-                ...s,
-                messages: [...s.messages, res.assistant_message],
-                totalMessages: s.totalMessages + 1,
-                reactions: merged,
-                sendingCharacterId: null,
-              };
-            });
-          }
-        } catch { /* non-fatal */ }
-        setState((s) => ({ ...s, sending: null, sendingCharacterId: null }));
-      }
+      // Group chats: resetting to a user message does NOT kick off
+      // automatic who-speaks-next. The user can manually prompt a
+      // character if they want one to respond. Auto-response on
+      // reset produced unexpected chained replies and muddied the
+      // "rewind to this exact point" intent of the feature.
     } catch (e) {
       // Reload messages from DB to get correct state after partial failure
       if (state.activeCharacter) {
