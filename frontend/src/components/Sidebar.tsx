@@ -3,9 +3,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogBody, DialogFooter } from "@/components/ui/dialog";
-import { Plus, Archive, ArchiveRestore, ChevronRight, ChevronDown, Globe, Sparkles, User, Settings2, CloudSun } from "lucide-react";
+import { Plus, Archive, ArchiveRestore, ChevronRight, ChevronDown, Globe, Sparkles, User, Settings2, CloudSun, Loader2, Wind } from "lucide-react";
 import type { useAppStore } from "@/hooks/use-app-store";
-import { api, type WorldImageInfo } from "@/lib/tauri";
+import { api, type WorldImageInfo, type MeanwhileEvent } from "@/lib/tauri";
 import { InventoryStrip } from "@/components/chat/InventoryStrip";
 import { WeatherPicker } from "@/components/WeatherPicker";
 import { weatherById } from "@/lib/weather";
@@ -25,6 +25,38 @@ export function Sidebar({ store, onNavigate }: Props) {
   const [timeConfirm, setTimeConfirm] = useState<{ day: number; time: string } | null>(null);
   const [showWeatherPicker, setShowWeatherPicker] = useState(false);
   const weatherAnchorRef = useRef<HTMLButtonElement>(null);
+  const [meanwhileEvents, setMeanwhileEvents] = useState<MeanwhileEvent[]>([]);
+  const [meanwhileExpanded, setMeanwhileExpanded] = useState(false);
+  const [meanwhileLoading, setMeanwhileLoading] = useState(false);
+  const [meanwhileGenerating, setMeanwhileGenerating] = useState(false);
+
+  // Load recent meanwhile events when the active world changes. Keep to
+  // the 20 most recent; the panel is a quick glance, not a history view.
+  useEffect(() => {
+    if (!store.activeWorld) { setMeanwhileEvents([]); return; }
+    let cancelled = false;
+    setMeanwhileLoading(true);
+    api.listMeanwhileEvents(store.activeWorld.world_id, 20)
+      .then((events) => { if (!cancelled) setMeanwhileEvents(events); })
+      .catch(() => { if (!cancelled) setMeanwhileEvents([]); })
+      .finally(() => { if (!cancelled) setMeanwhileLoading(false); });
+    return () => { cancelled = true; };
+  }, [store.activeWorld?.world_id]);
+
+  const handleGenerateMeanwhile = async () => {
+    if (!store.activeWorld || !store.apiKey) return;
+    setMeanwhileGenerating(true);
+    try {
+      const fresh = await api.generateMeanwhileEvents(store.apiKey, store.activeWorld.world_id);
+      // Prepend newly-generated events to the top of the feed.
+      setMeanwhileEvents((prev) => [...fresh, ...prev].slice(0, 20));
+      setMeanwhileExpanded(true);
+    } catch (e) {
+      store.setError?.(String(e));
+    } finally {
+      setMeanwhileGenerating(false);
+    }
+  };
   const [showGroupPicker, setShowGroupPicker] = useState(false);
   const [selectedGroupMembers, setSelectedGroupMembers] = useState<string[]>([]);
   const [userAvatarUrl, setUserAvatarUrl] = useState("");
@@ -527,6 +559,55 @@ export function Sidebar({ store, onNavigate }: Props) {
                     </div>
                   );
                 })()}
+
+                {/* Meanwhile feed — small-grain "off-screen life" events
+                    so opening the app feels like returning somewhere real.
+                    Collapsed by default; header click toggles. */}
+                <div className="pt-2 border-t border-border/40">
+                  <div className="flex items-center justify-between">
+                    <button
+                      onClick={() => setMeanwhileExpanded((v) => !v)}
+                      className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+                    >
+                      <ChevronRight size={10} className={`transition-transform ${meanwhileExpanded ? "rotate-90" : ""}`} />
+                      <Wind size={10} />
+                      Meanwhile
+                      {meanwhileEvents.length > 0 && <span className="text-muted-foreground/50">({meanwhileEvents.length})</span>}
+                    </button>
+                    <button
+                      onClick={handleGenerateMeanwhile}
+                      disabled={meanwhileGenerating || !store.apiKey}
+                      className="text-[10px] text-muted-foreground hover:text-foreground transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-wait flex items-center gap-1"
+                      title="Generate off-screen events for everyone"
+                    >
+                      {meanwhileGenerating ? <Loader2 size={9} className="animate-spin" /> : <Plus size={9} />}
+                      {meanwhileGenerating ? "Writing…" : "Generate"}
+                    </button>
+                  </div>
+                  {meanwhileExpanded && (
+                    <div className="mt-2 space-y-1.5 max-h-[280px] overflow-y-auto pr-1">
+                      {meanwhileLoading ? (
+                        <div className="text-[10px] text-muted-foreground italic py-2 text-center">Loading…</div>
+                      ) : meanwhileEvents.length === 0 ? (
+                        <div className="text-[10px] text-muted-foreground/60 italic py-2 text-center">No events yet.</div>
+                      ) : (
+                        meanwhileEvents.map((e) => (
+                          <div key={e.event_id} className="text-[11px] leading-snug flex items-start gap-2 rounded-md px-2 py-1.5 bg-secondary/20">
+                            <span
+                              className="w-2 h-2 rounded-full flex-shrink-0 mt-1 ring-1 ring-white/10"
+                              style={{ backgroundColor: e.avatar_color || "#c4a882" }}
+                            />
+                            <div className="flex-1 min-w-0">
+                              <span className="font-medium text-foreground/90">{e.character_name}</span>
+                              <span className="text-muted-foreground/60"> · Day {e.world_day}{e.time_of_day ? `, ${e.time_of_day.toLowerCase()}` : ""}</span>
+                              <div className="text-foreground/75 italic mt-0.5">{e.summary}</div>
+                            </div>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           </div>

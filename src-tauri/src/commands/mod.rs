@@ -19,3 +19,5 @@ pub mod reaction_cmds;
 pub mod settings_cmds;
 pub mod usage_cmds;
 pub mod user_profile_cmds;
+pub mod journal_cmds;
+pub mod meanwhile_cmds;

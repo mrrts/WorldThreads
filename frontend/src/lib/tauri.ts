@@ -721,4 +721,31 @@ export const api = {
     invoke<UpdateInventoryForMomentResponse>("update_inventory_for_moment_cmd", { apiKey, messageId }),
   getInventoryUpdatesForMessages: (messageIds: string[]) =>
     invoke<InventoryUpdateRecord[]>("get_inventory_updates_for_messages_cmd", { messageIds }),
+  generateCharacterJournal: (apiKey: string, characterId: string) =>
+    invoke<JournalEntry>("generate_character_journal_cmd", { apiKey, characterId }),
+  listCharacterJournals: (characterId: string, limit?: number) =>
+    invoke<JournalEntry[]>("list_character_journals_cmd", { characterId, limit: limit ?? null }),
+  generateMeanwhileEvents: (apiKey: string, worldId: string) =>
+    invoke<MeanwhileEvent[]>("generate_meanwhile_events_cmd", { apiKey, worldId }),
+  listMeanwhileEvents: (worldId: string, limit?: number) =>
+    invoke<MeanwhileEvent[]>("list_meanwhile_events_cmd", { worldId, limit: limit ?? null }),
 };
+
+export interface JournalEntry {
+  journal_id: string;
+  character_id: string;
+  world_day: number;
+  content: string;
+  created_at: string;
+}
+
+export interface MeanwhileEvent {
+  event_id: string;
+  character_id: string;
+  character_name: string;
+  avatar_color: string;
+  world_day: number;
+  time_of_day: string;
+  summary: string;
+  created_at: string;
+}

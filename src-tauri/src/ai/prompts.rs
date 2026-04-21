@@ -1288,11 +1288,12 @@ pub fn build_dialogue_system_prompt(
     local_model: bool,
     mood_chain: &[String],
     leader: Option<&str>,
+    recent_journals: &[crate::db::queries::JournalEntry],
 ) -> String {
     if group_context.is_some() {
-        build_group_dialogue_system_prompt(world, character, user_profile, mood_directive, response_length, group_context.unwrap(), tone, local_model, mood_chain, leader)
+        build_group_dialogue_system_prompt(world, character, user_profile, mood_directive, response_length, group_context.unwrap(), tone, local_model, mood_chain, leader, recent_journals)
     } else {
-        build_solo_dialogue_system_prompt(world, character, user_profile, mood_directive, response_length, tone, local_model, mood_chain, leader)
+        build_solo_dialogue_system_prompt(world, character, user_profile, mood_directive, response_length, tone, local_model, mood_chain, leader, recent_journals)
     }
 }
 
@@ -1320,6 +1321,7 @@ pub fn build_proactive_ping_system_prompt(
         local_model,
         mood_chain,
         None,
+        &[],
     );
     format!("{base}\n\n{}", proactive_ping_block())
 }
@@ -1354,6 +1356,7 @@ fn build_solo_dialogue_system_prompt(
     local_model: bool,
     mood_chain: &[String],
     leader: Option<&str>,
+    recent_journals: &[crate::db::queries::JournalEntry],
 ) -> String {
     let mut parts = Vec::new();
 
@@ -1394,6 +1397,14 @@ fn build_solo_dialogue_system_prompt(
     // block still sits at the END for the full craft; this banner
     // carries the orientation in one scannable line.
     parts.push(leading_banner_dialogue(leader, &character.character_id, None));
+
+    // Recent journal pages — first-person continuity fuel. Lets the
+    // character read their own account of themselves from the last 1-2
+    // days and keep threads alive without the user having to restate.
+    {
+        let block = render_recent_journals_block(recent_journals);
+        if !block.is_empty() { parts.push(block); }
+    }
 
     // What YOU look like. Pinned right after identity so the character
     // has a concrete self-image available when asked to look in a
@@ -1521,6 +1532,7 @@ fn build_group_dialogue_system_prompt(
     local_model: bool,
     mood_chain: &[String],
     leader: Option<&str>,
+    recent_journals: &[crate::db::queries::JournalEntry],
 ) -> String {
     let mut parts = Vec::new();
     parts.push(FUNDAMENTAL_SYSTEM_PREAMBLE.to_string());
@@ -1588,6 +1600,14 @@ fn build_group_dialogue_system_prompt(
     // framing still sits at the END for full craft; this banner keeps
     // the orientation visible up top.
     parts.push(leading_banner_dialogue(leader, &character.character_id, Some(gc)));
+
+    // Recent journal pages — same as solo path; first-person continuity
+    // for this specific speaker so ongoing interior threads carry across
+    // days even in group register.
+    {
+        let block = render_recent_journals_block(recent_journals);
+        if !block.is_empty() { parts.push(block); }
+    }
 
     // ── # FORMAT ────────────────────────────────────────────────────────
     // Placed right after identity so the asterisk convention is established
@@ -1929,6 +1949,28 @@ pub fn render_inventory_update_for_prompt(content: &str) -> String {
         }
     }).collect();
     parts.join("; ")
+}
+
+/// Render the most-recent journal entries for a character as a
+/// prompt block that reads as "who you've been lately." First-person
+/// already (the entries are written in the character's own voice),
+/// so the block just frames them as continuity fuel — not instructions,
+/// not a recap, a private register.
+///
+/// Caller is responsible for passing the entries in whatever slice
+/// they want surfaced (e.g., the last 2-3). Empty slice returns empty
+/// string so the caller can conditionally skip without an if-let.
+pub fn render_recent_journals_block(
+    entries: &[crate::db::queries::JournalEntry],
+) -> String {
+    if entries.is_empty() { return String::new(); }
+    let body: Vec<String> = entries.iter().rev()
+        .map(|e| format!("Day {}:\n{}", e.world_day, e.content.trim()))
+        .collect();
+    format!(
+        "RECENT PAGES FROM YOUR JOURNAL (what's been sitting with you — your own private voice to yourself; read for continuity, not to recap. These are yours to quietly carry into this moment, not to reference out loud unless the user brings it up first):\n\n{}",
+        body.join("\n\n"),
+    )
 }
 
 pub fn build_dialogue_messages(

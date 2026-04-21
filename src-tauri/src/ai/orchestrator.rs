@@ -221,6 +221,7 @@ pub async fn run_dialogue_with_base(
     illustration_captions: &std::collections::HashMap<String, String>,
     reactions_by_msg: &std::collections::HashMap<String, Vec<crate::db::queries::Reaction>>,
     drift_correction: Option<&str>,
+    recent_journals: &[crate::db::queries::JournalEntry],
 ) -> Result<(String, Option<openai::Usage>), String> {
     // When the user has disabled conversation history for this chat, strip
     // prior turns, semantic memories, and moment markers — the character
@@ -246,7 +247,7 @@ pub async fn run_dialogue_with_base(
     let effective_reactions = if send_history { reactions_by_msg } else { &empty_reactions };
     let user_display_name = user_profile.map(|p| p.display_name.as_str());
 
-    let mut system = prompts::build_dialogue_system_prompt(world, character, user_profile, mood_directive, response_length, group_context, tone, local_model, mood_chain, leader);
+    let mut system = prompts::build_dialogue_system_prompt(world, character, user_profile, mood_directive, response_length, group_context, tone, local_model, mood_chain, leader, recent_journals);
     // Conscience-pass retry path: a prior draft drifted on an invariant,
     // and the grader returned a concrete correction note. Append it at the
     // end of the system block so it sits in the high-attention tail right
@@ -691,7 +692,7 @@ pub async fn run_dialogue_streaming(
     kept_ids: &[String],
     illustration_captions: &std::collections::HashMap<String, String>,
 ) -> Result<String, String> {
-    let system = prompts::build_dialogue_system_prompt(world, character, user_profile, mood_directive, response_length, group_context, tone, local_model, mood_chain, leader);
+    let system = prompts::build_dialogue_system_prompt(world, character, user_profile, mood_directive, response_length, group_context, tone, local_model, mood_chain, leader, &[]);
     let empty_reactions: std::collections::HashMap<String, Vec<crate::db::queries::Reaction>> = std::collections::HashMap::new();
     let user_display_name = user_profile.map(|p| p.display_name.as_str());
     let messages = prompts::build_dialogue_messages(&system, recent_messages, retrieved_snippets, character_names, kept_ids, illustration_captions, &empty_reactions, user_display_name);
@@ -1214,6 +1215,175 @@ pub async fn inventory_update_from_moment(
         .map(|c| c.message.content.clone())
         .unwrap_or_default();
     Ok(parse_inventory_json(&raw))
+}
+
+/// Generate a first-person journal entry for a character covering a
+/// specific world-day. Cheap memory_model call. Not a recap — a
+/// reflection: what stayed with them, what pressed on them, what
+/// small specific thing they noticed, what's still unresolved.
+///
+/// Inputs:
+///   - character identity (context)
+///   - current inventory (latent weight they're carrying)
+///   - prior 1-2 entries (so the voice stays consistent and ongoing
+///     threads continue rather than re-starting each day)
+///   - history lines involving the character from the target day
+///
+/// Output: ~120-180 words of first-person prose in the character's
+/// voice. Written AS the character, not about them.
+pub async fn generate_character_journal(
+    base_url: &str,
+    api_key: &str,
+    model: &str,
+    character_name: &str,
+    character_identity: &str,
+    signature_emoji: &str,
+    prior_inventory: &[InventoryItem],
+    prior_entries: &[crate::db::queries::JournalEntry],
+    history: &[crate::db::queries::ConversationLine],
+    world_day: i64,
+) -> Result<String, String> {
+    let inv_block = if prior_inventory.is_empty() {
+        "(empty)".to_string()
+    } else {
+        prior_inventory.iter()
+            .map(|i| format!("  - [{}] {} — {}", i.kind, i.name, i.description))
+            .collect::<Vec<_>>()
+            .join("\n")
+    };
+    let prior_block = if prior_entries.is_empty() {
+        "(none — this is your first entry)".to_string()
+    } else {
+        prior_entries.iter().rev()
+            .map(|e| format!("Day {}: {}", e.world_day, e.content.trim()))
+            .collect::<Vec<_>>()
+            .join("\n\n")
+    };
+    let history_block = render_history_for_inventory(history);
+    let sig_line = if signature_emoji.trim().is_empty() { String::new() }
+        else { format!("\nYour signature emoji (use sparingly if at all — a journal entry is rarely the place): {}", signature_emoji.trim()) };
+
+    let system = format!(
+        r#"You are {name}, writing a short private journal entry for Day {day} of your life.
+
+Write in FIRST PERSON, in your own voice. This is your private register — how you actually think to yourself, not how you speak aloud. Between 90 and 160 words. One or two short paragraphs.
+
+This is NOT a recap. Do not list what happened. A journal entry is what STAYED with you — the one thing that pressed on you, the small specific image that came back at dusk, the half-finished thought you took to bed, the thing you almost said and didn't, the ache that braided with the work, the clarity (or lack of it) the day left you with. Pick a true small thing and sit with it for a few lines. Leave most things out. Let one moment carry the day.
+
+Your identity:
+{ident}{sig}
+
+What you're currently carrying (physical things in hand, interior things in heart):
+{inv}
+
+Previous journal entries (for voice continuity — don't recap them, but let unresolved threads continue naturally if they're still with you):
+{prior}
+
+Speak as {name}. Contractions. Half-sentences are fine. Leave room. Don't narrate your own significance. Don't explain the day to yourself — trust the single image to hold it."#,
+        name = character_name,
+        day = world_day,
+        ident = if character_identity.is_empty() { "(no identity written)" } else { character_identity },
+        sig = sig_line,
+        inv = inv_block,
+        prior = prior_block,
+    );
+
+    let user = format!(
+        "Day {day} — what came through from the conversations you were in (chronological):\n{hist}\n\nWrite today's entry.",
+        day = world_day,
+        hist = if history_block.is_empty() { "(the day was quiet — journal from the inside, what's still with you from before)".to_string() } else { history_block },
+    );
+
+    let request = ChatRequest {
+        model: model.to_string(),
+        messages: vec![
+            openai::ChatMessage { role: "system".to_string(), content: system },
+            openai::ChatMessage { role: "user".to_string(), content: user },
+        ],
+        temperature: Some(0.85),
+        max_completion_tokens: Some(450),
+        response_format: None,
+    };
+
+    let response = openai::chat_completion_with_base(base_url, api_key, &request).await?;
+    let raw = response.choices.first()
+        .map(|c| c.message.content.trim().to_string())
+        .unwrap_or_default();
+    if raw.is_empty() { return Err("empty journal response".to_string()); }
+    Ok(raw)
+}
+
+/// Generate one "meanwhile" event for a character — a single compact
+/// line describing something they were doing off-screen in the given
+/// day + time-of-day window. Texture, not plot. 1-2 short sentences.
+pub async fn generate_meanwhile_event(
+    base_url: &str,
+    api_key: &str,
+    model: &str,
+    character_name: &str,
+    character_identity: &str,
+    prior_inventory: &[InventoryItem],
+    recent_history: &[crate::db::queries::ConversationLine],
+    world_day: i64,
+    time_of_day: &str,
+    weather_label: Option<&str>,
+) -> Result<String, String> {
+    let inv_block = if prior_inventory.is_empty() {
+        "(empty)".to_string()
+    } else {
+        prior_inventory.iter()
+            .map(|i| format!("  - [{}] {}", i.kind, i.name))
+            .collect::<Vec<_>>()
+            .join("\n")
+    };
+    let history_block = render_history_for_inventory(recent_history);
+    let weather_line = weather_label.map(|w| format!("Weather: {w}\n")).unwrap_or_default();
+
+    let system = format!(
+        r#"You write ONE small line of texture — what {name} was doing when no one was watching, in the {time} window of Day {day}. Not plot. Not stakes. Not dialogue. Not a scene. Just a small concrete thing a specific person like {name} would actually be doing in this hour of this kind of day.
+
+The goal: someone reading this feels the world kept moving without them. Not drama, not setup — the small grain of an ongoing life. Fixing a hinge. Standing at the window with tea gone cold. Walking the dog the long way. Half-remembering a tune. Re-sorting the tools on the bench. Greeting someone across the square. Starting a letter and stopping. Small ordinary continuities.
+
+Length: ONE sentence, TWO at most. Present tense or past, either is fine. Third person ("{name} did X"). No quotes. No dialogue. No explanatory framing.
+
+Draw from: what you know of {name} — their work, habits, ordinary tasks, mood, the things they're carrying in body and heart. Let the line be specific to THIS person on THIS day at THIS hour, not generic anyone-anywhere.
+
+Your identity:
+{ident}
+
+What you're currently carrying:
+{inv}
+{weather}
+Recent context (the conversations you've been in — for texture, not for recapping):
+{hist}"#,
+        name = character_name,
+        time = time_of_day,
+        day = world_day,
+        ident = if character_identity.is_empty() { "(no identity written)" } else { character_identity },
+        inv = inv_block,
+        weather = weather_line,
+        hist = if history_block.is_empty() { "(no recent chat history)".to_string() } else { history_block },
+    );
+
+    let user = format!("Write the one small thing {name} was doing this {time}.", name = character_name, time = time_of_day);
+
+    let request = ChatRequest {
+        model: model.to_string(),
+        messages: vec![
+            openai::ChatMessage { role: "system".to_string(), content: system },
+            openai::ChatMessage { role: "user".to_string(), content: user },
+        ],
+        temperature: Some(0.9),
+        max_completion_tokens: Some(100),
+        response_format: None,
+    };
+
+    let response = openai::chat_completion_with_base(base_url, api_key, &request).await?;
+    let raw = response.choices.first()
+        .map(|c| c.message.content.trim().trim_matches('"').to_string())
+        .unwrap_or_default();
+    if raw.is_empty() { return Err("empty meanwhile response".to_string()); }
+    Ok(raw)
 }
 
 pub async fn derive_caption_from_scene(

@@ -546,6 +546,10 @@ pub async fn send_message_cmd(
             .map(|v| v != "off" && v != "false")
             .unwrap_or(true)
     };
+    let recent_journals = {
+        let conn = db.conn.lock().map_err(|e| e.to_string())?;
+        list_journal_entries(&conn, &character.character_id, 2).unwrap_or_default()
+    };
     let dialogue_fut = orchestrator::run_dialogue_with_base(
         &base, &api_key, &model_config.dialogue_model,
         if !model_config.is_local() { Some(&model_config.memory_model) } else { None },
@@ -562,6 +566,7 @@ pub async fn send_message_cmd(
     &illustration_captions,
     &reactions_by_msg,
     None,
+    &recent_journals,
     );
     // Context for the reaction-emoji pick: the recent messages EXCLUDING
     // the user's brand-new one (which goes in the user-role slot). Gives
@@ -624,6 +629,7 @@ pub async fn send_message_cmd(
                             &illustration_captions,
                             &reactions_by_msg,
                             Some(&note),
+                            &recent_journals,
                         ).await {
                             Ok((corrected, corrected_usage)) => {
                                 log::info!("[Conscience] {} reply corrected after drift", character.display_name);
@@ -948,6 +954,10 @@ pub async fn prompt_character_cmd(
             .map(|v| v != "off" && v != "false")
             .unwrap_or(true)
     };
+    let recent_journals = {
+        let conn = db.conn.lock().map_err(|e| e.to_string())?;
+        list_journal_entries(&conn, &character.character_id, 2).unwrap_or_default()
+    };
     let (mut reply_text, mut dialogue_usage) = orchestrator::run_dialogue_with_base(
         &model_config.chat_api_base(), &api_key, &model_config.dialogue_model,
         if !model_config.is_local() { Some(&model_config.memory_model) } else { None },
@@ -964,6 +974,7 @@ pub async fn prompt_character_cmd(
         &illustration_captions,
         &reactions_by_msg,
         None,
+        &recent_journals,
     ).await?;
 
     // Conscience Pass: grade + regenerate-on-drift (see send_message_cmd).
@@ -1006,6 +1017,7 @@ pub async fn prompt_character_cmd(
                             &illustration_captions,
                             &reactions_by_msg,
                             Some(&note),
+                            &recent_journals,
                         ).await {
                             Ok((corrected, corrected_usage)) => {
                                 log::info!("[Conscience] {} (prompt) reply corrected after drift", character.display_name);
@@ -1975,6 +1987,10 @@ pub async fn reset_to_message_cmd(
                 .map(|v| v != "off" && v != "false")
                 .unwrap_or(true)
         };
+        let recent_journals = {
+            let conn = db.conn.lock().map_err(|e| e.to_string())?;
+            list_journal_entries(&conn, &character.character_id, 2).unwrap_or_default()
+        };
         let dialogue_fut = orchestrator::run_dialogue_with_base(
             &base, &api_key, &model_config.dialogue_model,
             if !model_config.is_local() { Some(&model_config.memory_model) } else { None },
@@ -1991,6 +2007,7 @@ pub async fn reset_to_message_cmd(
         &illustration_captions,
         &reactions_by_msg,
         None,
+        &recent_journals,
         );
         let reaction_context: Vec<Message> = recent_msgs.iter()
             .rev().skip(1).take(4).rev().cloned().collect();
@@ -2038,6 +2055,7 @@ pub async fn reset_to_message_cmd(
                                 &illustration_captions,
                                 &reactions_by_msg,
                                 Some(&note),
+                                &recent_journals,
                             ).await {
                                 Ok((corrected, corrected_usage)) => {
                                     log::info!("[Conscience] {} (reset) reply corrected after drift", character.display_name);

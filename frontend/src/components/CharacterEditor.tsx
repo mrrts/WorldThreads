@@ -8,7 +8,7 @@ import { Field, FieldGroup } from "@/components/ui/field";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogBody } from "@/components/ui/dialog";
 import { Plus, X, BookTemplate, ImagePlus, Loader2, Check, Images, Shuffle, Trash2, AlertTriangle, MessageSquareX, RotateCcw, PenLine, Volume2, Square } from "lucide-react";
 import { CHARACTER_TEMPLATES, type CharacterTemplate } from "@/lib/character-templates";
-import { api, type Character, type PortraitInfo, type GalleryItem, type InventoryItem } from "@/lib/tauri";
+import { api, type Character, type PortraitInfo, type GalleryItem, type InventoryItem, type JournalEntry } from "@/lib/tauri";
 import type { useAppStore } from "@/hooks/use-app-store";
 import { InventoryEditor } from "@/components/character/InventoryEditor";
 
@@ -40,6 +40,9 @@ export function CharacterEditor({ store }: Props) {
   const [ttsModel, setTtsModel] = useState("gpt-4o-mini-tts");
   const [showSignatureEmojiPicker, setShowSignatureEmojiPicker] = useState(false);
   const signatureEmojiPickerRef = useRef<HTMLDivElement>(null);
+  const [journalEntries, setJournalEntries] = useState<JournalEntry[]>([]);
+  const [journalLoading, setJournalLoading] = useState(false);
+  const [journalGenerating, setJournalGenerating] = useState(false);
 
   // Close signature-emoji picker on outside click.
   useEffect(() => {
@@ -86,8 +89,30 @@ export function CharacterEditor({ store }: Props) {
       loadPortraits(ch.character_id);
       api.getSetting(`voice.${ch.character_id}`).then((v) => setTtsVoice(v || "ash"));
       api.getSetting(`tts_model.${ch.character_id}`).then((v) => setTtsModel(v || "gpt-4o-mini-tts"));
+      setJournalLoading(true);
+      api.listCharacterJournals(ch.character_id, 30)
+        .then((entries) => setJournalEntries(entries))
+        .catch(() => setJournalEntries([]))
+        .finally(() => setJournalLoading(false));
     }
   }, [ch?.character_id, loadPortraits]);
+
+  const handleGenerateJournal = async () => {
+    if (!ch || !store.apiKey) return;
+    setJournalGenerating(true);
+    try {
+      const entry = await api.generateCharacterJournal(store.apiKey, ch.character_id);
+      // Replace-or-prepend: upsert by world_day.
+      setJournalEntries((prev) => {
+        const filtered = prev.filter((e) => e.world_day !== entry.world_day);
+        return [entry, ...filtered].sort((a, b) => b.world_day - a.world_day);
+      });
+    } catch (e) {
+      store.setError?.(String(e));
+    } finally {
+      setJournalGenerating(false);
+    }
+  };
 
   if (!ch) {
     return (
@@ -683,6 +708,42 @@ export function CharacterEditor({ store }: Props) {
                   if (ch) store.applyCharacterInventoryEdit(ch.character_id, next);
                 }}
               />
+            </FieldGroup>
+
+            <FieldGroup label="Journal">
+              <div className="flex items-start justify-between gap-4 mb-3">
+                <p className="text-xs text-muted-foreground flex-1">
+                  A first-person reflective entry per world-day, written in {ch?.display_name ?? "this character"}'s own voice. Fed back into dialogue prompts as "who you've been lately" so ongoing interior threads carry across days. Regenerate today's entry any time.
+                </p>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={handleGenerateJournal}
+                  disabled={journalGenerating || !store.apiKey}
+                >
+                  {journalGenerating ? <Loader2 size={12} className="animate-spin mr-1.5" /> : <PenLine size={12} className="mr-1.5" />}
+                  {journalGenerating ? "Writing..." : "Write today's entry"}
+                </Button>
+              </div>
+              {journalLoading ? (
+                <div className="text-xs text-muted-foreground italic">Loading entries…</div>
+              ) : journalEntries.length === 0 ? (
+                <div className="text-xs text-muted-foreground italic py-4 text-center">
+                  No entries yet. Click "Write today's entry" to generate the first one.
+                </div>
+              ) : (
+                <div className="space-y-3 max-h-[480px] overflow-y-auto pr-1">
+                  {journalEntries.map((e) => (
+                    <div key={e.journal_id} className="rounded-lg border border-border/60 bg-secondary/20 p-3">
+                      <div className="flex items-center justify-between mb-1.5">
+                        <span className="text-[11px] uppercase tracking-wider text-muted-foreground font-semibold">Day {e.world_day}</span>
+                        <span className="text-[10px] text-muted-foreground/60">{new Date(e.created_at).toLocaleString([], { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}</span>
+                      </div>
+                      <p className="text-sm leading-relaxed whitespace-pre-wrap italic text-foreground/85">{e.content}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
             </FieldGroup>
 
             <FieldGroup label="Danger Zone">

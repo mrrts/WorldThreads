@@ -993,6 +993,10 @@ pub async fn send_group_message_cmd(
                 .map(|v| v != "off" && v != "false")
                 .unwrap_or(true)
         };
+        let recent_journals = {
+            let conn = db.conn.lock().map_err(|e| e.to_string())?;
+            list_journal_entries(&conn, &character.character_id, 2).unwrap_or_default()
+        };
         let (raw_reply, usage) = orchestrator::run_dialogue_with_base(
             &model_config.chat_api_base(), &api_key, &model_config.dialogue_model,
             if !model_config.is_local() { Some(&model_config.memory_model) } else { None },
@@ -1011,6 +1015,7 @@ pub async fn send_group_message_cmd(
             &illustration_captions,
             &reactions_by_msg,
             None,
+            &recent_journals,
         ).await?;
 
         // Strip own prefix and truncate any other-character dialogue
@@ -1065,6 +1070,7 @@ pub async fn send_group_message_cmd(
                                 &illustration_captions,
                                 &reactions_by_msg,
                                 Some(&note),
+                                &recent_journals,
                             ).await {
                                 Ok((corrected_raw, corrected_usage)) => {
                                     log::info!("[Conscience] {} (group) reply corrected after drift", character.display_name);
@@ -1312,6 +1318,10 @@ pub async fn prompt_group_character_cmd(
             .map(|v| v != "off" && v != "false")
             .unwrap_or(true)
     };
+    let recent_journals = {
+        let conn = db.conn.lock().map_err(|e| e.to_string())?;
+        list_journal_entries(&conn, &character.character_id, 2).unwrap_or_default()
+    };
     let dialogue_fut = orchestrator::run_dialogue_with_base(
         &base, &api_key, &model_config.dialogue_model,
         if !model_config.is_local() { Some(&model_config.memory_model) } else { None },
@@ -1330,6 +1340,7 @@ pub async fn prompt_group_character_cmd(
         &illustration_captions,
         &reactions_by_msg,
         None,
+        &recent_journals,
     );
     let reaction_fut = orchestrator::pick_character_reaction_via_llm(
         &base, &api_key, &model_config.dialogue_model,
@@ -1383,6 +1394,7 @@ pub async fn prompt_group_character_cmd(
                             &illustration_captions,
                             &reactions_by_msg,
                             Some(&note),
+                            &recent_journals,
                         ).await {
                             Ok((corrected_raw, corrected_usage)) => {
                                 log::info!("[Conscience] {} (group-prompt) reply corrected after drift", character.display_name);
