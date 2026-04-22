@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useState, useCallback } from "react";
+import React, { useRef, useEffect, useState, useCallback, useMemo } from "react";
 import Markdown from "react-markdown";
 import { formatMessage, markdownComponents, remarkPlugins, rehypePlugins, isEmojiOnlyMessage } from "@/components/chat/formatMessage";
 import { Button } from "@/components/ui/button";
@@ -9,7 +9,8 @@ import { ReactionBubbles } from "@/components/chat/ReactionBubbles";
 import { ReactionPicker } from "@/components/chat/ReactionPicker";
 import { KeepRecordModal } from "@/components/chat/KeepRecordModal";
 import { KeepToast } from "@/components/chat/KeepToast";
-import type { KeptRecord } from "@/lib/tauri";
+import type { KeptRecord, MeanwhileEvent } from "@/lib/tauri";
+import { MeanwhileCard } from "@/components/chat/MeanwhileCard";
 import type { useAppStore } from "@/hooks/use-app-store";
 import { api } from "@/lib/tauri";
 import { NarrativeMessage } from "@/components/chat/NarrativeMessage";
@@ -123,6 +124,41 @@ export function GroupChatView({ store, onNavigateToCharacter }: Props) {
     : [];
   const groupCharacters = groupCharIds.map((id) => store.characters.find((c) => c.character_id === id)).filter(Boolean) as typeof store.characters;
 
+  // Inline meanwhile cards (per-world): scoped to all characters in this
+  // group chat so every member's off-screen beat can surface here.
+  const [meanwhileEvents, setMeanwhileEvents] = useState<MeanwhileEvent[]>([]);
+  useEffect(() => {
+    if (!store.activeWorld) { setMeanwhileEvents([]); return; }
+    let cancelled = false;
+    api.listMeanwhileEvents(store.activeWorld.world_id, 200)
+      .then((list) => { if (!cancelled) setMeanwhileEvents(list); })
+      .catch(() => { if (!cancelled) setMeanwhileEvents([]); });
+    return () => { cancelled = true; };
+  }, [store.activeWorld?.world_id]);
+
+  const groupCharIdsKey = groupCharIds.join(",");
+  const meanwhileBuckets = useMemo(() => {
+    const relevantIds = new Set<string>(groupCharIds);
+    const scoped = meanwhileEvents
+      .filter((e) => relevantIds.has(e.character_id))
+      .slice()
+      .sort((a, b) => a.created_at.localeCompare(b.created_at));
+    const before = new Map<string, MeanwhileEvent[]>();
+    const trailing: MeanwhileEvent[] = [];
+    const filteredMsgs = store.messages.filter((m) => m.content || m.role === "illustration");
+    for (const ev of scoped) {
+      const firstLater = filteredMsgs.find((m) => m.created_at > ev.created_at);
+      if (firstLater) {
+        const arr = before.get(firstLater.message_id) ?? [];
+        arr.push(ev);
+        before.set(firstLater.message_id, arr);
+      } else {
+        trailing.push(ev);
+      }
+    }
+    return { before, trailing };
+  }, [meanwhileEvents, store.messages, groupCharIdsKey]);
+
   // ── Shared chat state from hook ──────────────────────────────────────
   const chatId = store.activeGroupChat?.group_chat_id;
 
@@ -209,9 +245,14 @@ export function GroupChatView({ store, onNavigateToCharacter }: Props) {
           api.maybeGenerateCharacterJournal(store.apiKey, cid).catch(() => {});
         }
       }
-      // Per-world meanwhile auto-gen.
+      // Per-world meanwhile auto-gen. Refetch after to pick up new events
+      // in inline chat history.
       if (store.apiKey && store.activeWorld) {
-        api.maybeGenerateMeanwhileEvents(store.apiKey, store.activeWorld.world_id).catch(() => {});
+        const wid = store.activeWorld.world_id;
+        api.maybeGenerateMeanwhileEvents(store.apiKey, wid)
+          .then(() => api.listMeanwhileEvents(wid, 200))
+          .then(setMeanwhileEvents)
+          .catch(() => {});
       }
       // Per-world daily reading auto-gen (short-circuits if today's
       // reading already exists; two-pass chain with self-critique).
@@ -602,8 +643,20 @@ export function GroupChatView({ store, onNavigateToCharacter }: Props) {
             const reactions = store.reactions[msg.message_id] ?? [];
             const showPicker = pickerMessageId === msg.message_id;
 
+            // Any meanwhile events chronologically preceding this message
+            // — render as inline cards before the message itself.
+            const priorMeanwhiles = meanwhileBuckets.before.get(msg.message_id) ?? [];
+            const meanwhileBefore = priorMeanwhiles.map((ev) => (
+              <MeanwhileCard
+                key={`mw-${ev.event_id}`}
+                event={ev}
+                portraitUrl={store.activePortraits[ev.character_id]?.data_url}
+              />
+            ));
+
             if (isNarrative) {
               return (<React.Fragment key={msg.message_id}>
+                {meanwhileBefore}
                 <TimeDivider current={msg} previous={prevMsg} />
                 <NarrativeMessage
                   message={msg}
@@ -634,6 +687,7 @@ export function GroupChatView({ store, onNavigateToCharacter }: Props) {
 
             if (msg.role === "context") {
               return (<React.Fragment key={msg.message_id}>
+                {meanwhileBefore}
                 <TimeDivider current={msg} previous={prevMsg} />
                 <ContextMessage
                   message={msg}
@@ -647,6 +701,7 @@ export function GroupChatView({ store, onNavigateToCharacter }: Props) {
 
             if (msg.role === "inventory_update") {
               return (<React.Fragment key={msg.message_id}>
+                {meanwhileBefore}
                 <TimeDivider current={msg} previous={prevMsg} />
                 <InventoryUpdateMessage message={msg} />
               </React.Fragment>);
@@ -654,6 +709,7 @@ export function GroupChatView({ store, onNavigateToCharacter }: Props) {
 
             if (msg.role === "illustration") {
               return (<React.Fragment key={msg.message_id}>
+                {meanwhileBefore}
                 <TimeDivider current={msg} previous={prevMsg} />
                 <IllustrationMessage
                   msg={msg} isPending={isPending} isSending={isSending} isGeneratingVideo={isGeneratingVideo} store={store}
@@ -698,6 +754,7 @@ export function GroupChatView({ store, onNavigateToCharacter }: Props) {
 
             return (
               <React.Fragment key={msg.message_id}>
+              {meanwhileBefore}
               <TimeDivider current={msg} previous={prevMsg} />
               <div data-message-id={msg.message_id}>
                 <div className={`flex items-end gap-2 ${isUser ? "justify-end" : "justify-start"}`}>
@@ -955,6 +1012,13 @@ export function GroupChatView({ store, onNavigateToCharacter }: Props) {
               </React.Fragment>
             );
           })}
+          {meanwhileBuckets.trailing.map((ev) => (
+            <MeanwhileCard
+              key={`mw-${ev.event_id}`}
+              event={ev}
+              portraitUrl={store.activePortraits[ev.character_id]?.data_url}
+            />
+          ))}
           {isSending && !isGeneratingNarrative && !isGeneratingIllustration && !isGeneratingVideo && (() => {
             const sendingChar = store.sendingCharacterId
               ? groupCharacters.find((c) => c.character_id === store.sendingCharacterId)
