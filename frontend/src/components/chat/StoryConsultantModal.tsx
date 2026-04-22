@@ -421,18 +421,24 @@ export function StoryConsultantModal({ open, onClose, apiKey, characterId, group
               Active mode fills with its accent + label tagline; inactive
               mode is plain text with the icon, clearly subordinate but
               one click away. */}
-          <div className="flex items-center justify-between px-5 py-3 border-b border-border bg-gradient-to-b from-card/95 to-card/80 relative z-[1]">
-            <div className="flex items-center gap-3 min-w-0">
+          <div className="flex items-center px-5 py-3 border-b border-border bg-gradient-to-b from-card/95 to-card/80 relative z-[1]">
+            {/* Left slot — sidebar toggle (or spacer to keep center true). */}
+            <div className="flex items-center w-10 flex-shrink-0">
               {!sidebarOpen && (
                 <button
                   onClick={() => setSidebarOpen(true)}
-                  className="w-8 h-8 rounded-md flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-accent transition-colors cursor-pointer flex-shrink-0"
+                  className="w-8 h-8 rounded-md flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-accent transition-colors cursor-pointer"
                   title="Show sidebar"
                 >
                   <PanelLeftOpen size={16} />
                 </button>
               )}
-              <div className="inline-flex rounded-xl overflow-hidden border border-border/80 bg-background/40 shadow-inner">
+            </div>
+            {/* Centered big-brassy mode toggle. The toggle IS the modal's
+                title — wider buttons, proudly placed, so the choice reads
+                at a glance. */}
+            <div className="flex-1 flex justify-center">
+              <div className="inline-flex rounded-xl overflow-hidden border border-border/80 bg-background/40 shadow-inner shadow-black/20 ring-1 ring-white/5">
                 <button
                   onClick={() => {
                     setActiveMode("immersive");
@@ -441,19 +447,19 @@ export function StoryConsultantModal({ open, onClose, apiKey, characterId, group
                       setMessages([]);
                     }
                   }}
-                  className={`group/im flex items-center gap-2.5 px-5 py-2.5 transition-all cursor-pointer ${
+                  className={`group/im flex items-center justify-center gap-3 px-9 py-3 min-w-[200px] transition-all cursor-pointer ${
                     activeMode === "immersive"
-                      ? "bg-gradient-to-br from-indigo-500/25 via-violet-500/15 to-indigo-500/10 text-indigo-100 shadow-[inset_0_-1px_0_rgba(99,102,241,0.4)]"
+                      ? "bg-gradient-to-br from-indigo-500/30 via-violet-500/20 to-indigo-500/15 text-indigo-100 shadow-[inset_0_-2px_0_rgba(99,102,241,0.5)]"
                       : "text-muted-foreground hover:text-foreground hover:bg-accent/40"
                   }`}
                   title="Immersive — in-the-story confidant"
                 >
                   <Sparkles
-                    size={18}
-                    className={activeMode === "immersive" ? "text-indigo-300 drop-shadow-[0_0_4px_rgba(165,180,252,0.6)]" : ""}
+                    size={20}
+                    className={activeMode === "immersive" ? "text-indigo-300 drop-shadow-[0_0_5px_rgba(165,180,252,0.7)]" : ""}
                   />
                   <span className="flex flex-col items-start leading-tight">
-                    <span className={`text-base font-bold tracking-tight ${activeMode === "immersive" ? "" : ""}`}>
+                    <span className="text-base font-bold tracking-tight">
                       Immersive
                     </span>
                     <span className={`text-[10px] uppercase tracking-[0.14em] ${activeMode === "immersive" ? "text-indigo-300/80" : "text-muted-foreground/50"}`}>
@@ -469,19 +475,19 @@ export function StoryConsultantModal({ open, onClose, apiKey, characterId, group
                       setMessages([]);
                     }
                   }}
-                  className={`group/bs flex items-center gap-2.5 px-5 py-2.5 transition-all cursor-pointer border-l border-border/80 ${
+                  className={`group/bs flex items-center justify-center gap-3 px-9 py-3 min-w-[200px] transition-all cursor-pointer border-l border-border/80 ${
                     activeMode === "backstage"
-                      ? "bg-gradient-to-br from-amber-500/25 via-orange-500/15 to-amber-500/10 text-amber-100 shadow-[inset_0_-1px_0_rgba(245,158,11,0.4)]"
+                      ? "bg-gradient-to-br from-amber-500/30 via-orange-500/20 to-amber-500/15 text-amber-100 shadow-[inset_0_-2px_0_rgba(245,158,11,0.5)]"
                       : "text-muted-foreground hover:text-foreground hover:bg-accent/40"
                   }`}
                   title="Backstage — fourth-wall stage manager"
                 >
                   <Drama
-                    size={18}
-                    className={activeMode === "backstage" ? "text-amber-300 drop-shadow-[0_0_4px_rgba(252,211,77,0.6)]" : ""}
+                    size={20}
+                    className={activeMode === "backstage" ? "text-amber-300 drop-shadow-[0_0_5px_rgba(252,211,77,0.7)]" : ""}
                   />
                   <span className="flex flex-col items-start leading-tight">
-                    <span className={`text-base font-bold tracking-tight ${activeMode === "backstage" ? "" : ""}`}>
+                    <span className="text-base font-bold tracking-tight">
                       Backstage
                     </span>
                     <span className={`text-[10px] uppercase tracking-[0.14em] ${activeMode === "backstage" ? "text-amber-300/80" : "text-muted-foreground/50"}`}>
@@ -491,12 +497,16 @@ export function StoryConsultantModal({ open, onClose, apiKey, characterId, group
                 </button>
               </div>
             </div>
-            <button
-              onClick={onClose}
-              className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-muted transition-colors cursor-pointer flex-shrink-0"
-            >
-              <X size={15} />
-            </button>
+            {/* Right slot — close button. Same width as left slot so the
+                toggle stays visually centered. */}
+            <div className="flex items-center justify-end w-10 flex-shrink-0">
+              <button
+                onClick={onClose}
+                className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-muted transition-colors cursor-pointer"
+              >
+                <X size={15} />
+              </button>
+            </div>
           </div>
 
           {/* Content area */}
