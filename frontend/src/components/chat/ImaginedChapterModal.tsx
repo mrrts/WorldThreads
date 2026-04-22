@@ -16,6 +16,9 @@ interface Props {
   /** Data URLs for the chat's character portraits — shown stacked on the
    *  compose view's hero. Solo chat = 1, group chat = N. */
   characterPortraitUrls?: string[];
+  /** Active world image data URL — painted behind the portraits as an
+   *  edge-to-edge banner that fades into the parchment. Optional. */
+  worldImageUrl?: string;
   /** Whether to play a chime on first token of writing phase. */
   notifyOnMessage: boolean;
   /** Chat font size shared with ChatView/GroupChatView. */
@@ -33,6 +36,7 @@ export function ImaginedChapterModal({
   apiKey,
   threadId,
   characterPortraitUrls,
+  worldImageUrl,
   notifyOnMessage: _notifyOnMessage,
   chatFontSize,
   openChapterId,
@@ -356,6 +360,7 @@ export function ImaginedChapterModal({
                   setImageTier={setImageTier}
                   onGenerate={handleGenerate}
                   characterPortraitUrls={characterPortraitUrls ?? []}
+                  worldImageUrl={worldImageUrl}
                 />
               )}
 
@@ -409,6 +414,7 @@ function ComposeView({
   imageTier, setImageTier,
   onGenerate,
   characterPortraitUrls,
+  worldImageUrl,
 }: {
   seedHint: string;
   setSeedHint: (s: string) => void;
@@ -419,27 +425,62 @@ function ComposeView({
   setImageTier: (t: "low" | "medium" | "high") => void;
   onGenerate: () => void;
   characterPortraitUrls: string[];
+  worldImageUrl?: string;
 }) {
-  // Negative margin overlap when there are multiple portraits — gives the
-  // group a "stacked huddle" feel rather than a row of disconnected disks.
   const portraits = characterPortraitUrls.filter(Boolean);
   return (
-    <div className="max-w-2xl mx-auto space-y-5">
-      {portraits.length > 0 && (
-        <div className="flex justify-center mb-2">
-          <div className="flex">
-            {portraits.map((url, i) => (
-              <div
-                key={i}
-                className="w-24 h-24 rounded-full overflow-hidden border-4 border-amber-200/60 shadow-md bg-amber-100"
-                style={{ marginLeft: i === 0 ? 0 : "-1.25rem", zIndex: portraits.length - i }}
-              >
-                <img src={url} alt="" className="w-full h-full object-cover" />
+    <div className="space-y-5">
+      {/* Edge-to-edge banner — portraits float over the active world image,
+          banner fades into the parchment at the bottom. Negative top + horizontal
+          margins back out of the body's px-6 py-6 padding. */}
+      {(portraits.length > 0 || worldImageUrl) && (
+        <div className="-mx-6 -mt-6 relative">
+          <div className="relative w-full h-44 overflow-hidden">
+            {worldImageUrl ? (
+              <img
+                src={worldImageUrl}
+                alt=""
+                className="absolute inset-0 w-full h-full object-cover"
+              />
+            ) : (
+              <div className="absolute inset-0 bg-gradient-to-b from-amber-200/50 to-amber-100/40" />
+            )}
+            {/* Bottom fade into the parchment. The parchment color is
+                #f4ecd8 (top) → #ede2c4 (bottom) on the modal's main panel.
+                Use the lighter top color here so the seam reads clean. */}
+            <div
+              className="absolute inset-x-0 bottom-0 h-2/3 pointer-events-none"
+              style={{
+                background: "linear-gradient(to bottom, rgba(244,236,216,0) 0%, rgba(244,236,216,0.55) 45%, rgba(244,236,216,0.95) 85%, rgba(244,236,216,1) 100%)",
+              }}
+            />
+            {/* A soft top vignette so the world image doesn't clash with
+                the modal header's edge. */}
+            <div
+              className="absolute inset-x-0 top-0 h-12 pointer-events-none"
+              style={{
+                background: "linear-gradient(to bottom, rgba(244,236,216,0.55) 0%, rgba(244,236,216,0) 100%)",
+              }}
+            />
+            {portraits.length > 0 && (
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className="flex">
+                  {portraits.map((url, i) => (
+                    <div
+                      key={i}
+                      className="w-24 h-24 rounded-full overflow-hidden border-4 border-amber-50/90 shadow-xl bg-amber-100"
+                      style={{ marginLeft: i === 0 ? 0 : "-1.25rem", zIndex: portraits.length - i }}
+                    >
+                      <img src={url} alt="" className="w-full h-full object-cover" />
+                    </div>
+                  ))}
+                </div>
               </div>
-            ))}
+            )}
           </div>
         </div>
       )}
+      <div className="max-w-2xl mx-auto space-y-5">
       <div className="text-center space-y-1">
         <h3 className="text-2xl font-serif text-amber-900">Imagine a chapter</h3>
         <p className="text-xs text-amber-900/60">A new scene in this world that hasn't happened in chat. The illustration leads; the prose answers it.</p>
@@ -495,6 +536,7 @@ function ComposeView({
           <Sparkles size={14} className="mr-2" />
           Imagine the chapter
         </Button>
+      </div>
       </div>
     </div>
   );

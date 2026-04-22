@@ -1523,6 +1523,7 @@ export function GroupChatView({ store, onNavigateToCharacter }: Props) {
         characterPortraitUrls={groupCharacters
           .map((c) => store.activePortraits[c.character_id]?.data_url)
           .filter((u): u is string => !!u)}
+        worldImageUrl={store.activeWorldImage?.data_url}
         notifyOnMessage={store.notifyOnMessage}
         chatFontSize={store.chatFontSize}
         openChapterId={openImaginedChapterId}

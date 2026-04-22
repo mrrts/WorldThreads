@@ -1541,6 +1541,7 @@ export function ChatView({ store, onNavigateToCharacter }: Props) {
         characterPortraitUrls={store.activeCharacter && store.activePortraits[store.activeCharacter.character_id]?.data_url
           ? [store.activePortraits[store.activeCharacter.character_id]!.data_url!]
           : []}
+        worldImageUrl={store.activeWorldImage?.data_url}
         notifyOnMessage={store.notifyOnMessage}
         chatFontSize={store.chatFontSize}
         openChapterId={openImaginedChapterId}
