@@ -104,7 +104,7 @@ export function StickyIllustration({ messages, scrollContainer, aspectRatios }: 
       onClick={onClick}
       aria-label="Scroll to latest illustration"
       title="Scroll to latest illustration"
-      className="absolute bottom-4 right-4 z-20 group cursor-pointer select-none
+      className="hidden xl:block absolute bottom-4 right-4 z-20 group cursor-pointer select-none
                  rounded-xl overflow-hidden shadow-2xl shadow-black/50
                  ring-1 ring-emerald-700/30 hover:ring-emerald-500/60
                  bg-gradient-to-br from-emerald-950/40 to-emerald-900/20
