@@ -84,6 +84,7 @@ export function CharacterEditor({ store }: Props) {
         state: structuredClone(ch.state),
         visual_description: ch.visual_description ?? "",
         signature_emoji: ch.signature_emoji ?? "",
+        action_beat_density: (ch.action_beat_density ?? "normal") as "low" | "normal" | "high",
       });
       setDirty(false);
       loadPortraits(ch.character_id);
@@ -495,6 +496,25 @@ export function CharacterEditor({ store }: Props) {
                         />
                       </div>
                     )}
+                  </div>
+                </Field>
+                <Field label="Action-Beat Density" hint="How often they narrate their body (*leans back*, *looks out*). Low = quiet/measured; High = alert/in-motion.">
+                  <div className="inline-flex rounded-lg border border-input overflow-hidden bg-background">
+                    {(["low", "normal", "high"] as const).map((opt) => {
+                      const current = (form.action_beat_density ?? "normal") as "low" | "normal" | "high";
+                      return (
+                        <button
+                          key={opt}
+                          type="button"
+                          onClick={() => update({ action_beat_density: opt })}
+                          className={`px-3 py-1.5 text-sm font-medium transition-colors cursor-pointer capitalize ${
+                            current === opt ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
+                          }`}
+                        >
+                          {opt}
+                        </button>
+                      );
+                    })}
                   </div>
                 </Field>
               </div>

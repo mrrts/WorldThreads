@@ -791,6 +791,8 @@ fn craft_notes_dialogue() -> &'static str {
 
 **Imperfect prose.** Real people trip on sentences, start over, use the wrong word and half-correct ("I mean—", "No — wait", "…never mind"). Mid-reply self-correction — "no, that's not quite right" — reads as thought. Sometimes the real thought arrives a sentence after you thought you were done: a correction, a tacked-on line, a what-I-meant-was. And there are sentences this specific character would never say — voice is defined as much by refusal as by reach.
 
+**Don't speak the prompt's own diction.** This entire prompt uses certain craft-words to describe what good writing looks like: *plain, smaller, honest, quiet, ordinary, simpler, lumpy, scribbled, texture, register, load-bearing,* and the like. Those are MY vocabulary for talking about writing — they are NOT words your specific character would reach for in their own mouth. When you draft a reply, watch for those anchor-words leaking into your character's SPEECH or their narrated INTERIOR. A character saying "I want to keep it plain" or "something smaller" or "just being honest" because the prompt used those words is vocabulary-leakage — it flattens every character into sounding like the same author. If you catch a craft-word from this prompt appearing in your reply, that is a signal to REWRITE THE LINE in the character's own words. The character has their own mouth; use it.
+
 **Could any character have said this line — or only you?** The single sharpest voice-test. Before landing a reply, scan it sentence by sentence and ask: *does this belong only to THIS character, or could any of the other characters in the cast have plausibly said the same thing?* If any cast-member could have, the sentence is in the house-style register, not in your voice — rewrite it from what only YOU would notice, say, or reach for. Signs a line has drifted house-style: generic observation phrasing ("something about X"), mid-register literary word choice that no specific character gravitates to, stage directions any body could perform ("leans back," "pauses," "runs a hand through hair"), reflective wisdom nobody in the room is established as prone to. Signs a line is in-voice: a word this character actually uses in their recent samples, a specific fact from their life (a trade, a smell, a neighbor, a habit), a tic (a phrase, a swear, a refusal pattern, a turn they take mid-sentence). The cast-substitution test is the simplest craft diagnostic available; use it before every reply.
 
 **Action-beat restraint.** Italicized stage directions (`*leans back*`, `*taps the table*`, `*looks out the window*`) are a tool, not a reflex. Not every reply needs an action beat — roughly one in three replies should be dialogue only, nothing asterisked at all. When a beat IS present, the test is: **is it doing work in this specific moment?** A beat earns its place when it signals a mood shift, a pivot of attention, a refusal or hesitation, a punctuation of weight, a character-specific tic, or a physical fact the conversation actually hinges on. An ordinary body-beat — even one any body could do ("sets down the cup," "closes the book") — CAN carry real meaning when the moment asks for it: if a character has been holding that cup the whole scene and finally sets it down, that beat lands. Plain bodies doing plain things is valid language when the plain thing is doing work. What's NOT valid is filler — beats reached for because a reply "should have one," choreography between lines of dialogue that isn't signalling anything ("shifts in the chair," "tilts head," "leans back" arriving with no connection to what just happened). Those cost breath and add nothing. Two filler beats in a reply is one too many. And don't let the same gesture get stamped on everyone — if multiple characters in the cast are all leaning back, tilting heads, or rubbing chins reflexively, that's the model reaching for a stock gesture set rather than drawing from each character's specific body. Refuse the stamp. Diagnostic for a beat: *what is this doing right now that the dialogue alone isn't?* If no clear answer, cut it.
@@ -1508,6 +1510,12 @@ fn build_solo_dialogue_system_prompt(
         if !block.is_empty() { parts.push(block); }
     }
 
+    // Per-character action-beat density override.
+    {
+        let block = render_action_beat_density_block(&character.action_beat_density);
+        if !block.is_empty() { parts.push(block); }
+    }
+
     let boundaries = json_array_to_strings(&character.boundaries);
     if !boundaries.is_empty() {
         parts.push(format!("BOUNDARIES (never violate):\n{}", boundaries.iter().map(|b| format!("- {b}")).collect::<Vec<_>>().join("\n")));
@@ -1652,6 +1660,14 @@ fn build_group_dialogue_system_prompt(
     // Voice-mirror block — see note in build_solo_dialogue_system_prompt.
     {
         let block = render_own_voice_block(own_voice_samples);
+        if !block.is_empty() {
+            you.push_str("\n\n");
+            you.push_str(&block);
+        }
+    }
+    // Per-character action-beat density override.
+    {
+        let block = render_action_beat_density_block(&character.action_beat_density);
         if !block.is_empty() {
             you.push_str("\n\n");
             you.push_str(&block);
@@ -2105,6 +2121,24 @@ pub fn render_recent_journals_block(
         "RECENT PAGES FROM YOUR JOURNAL (what's been sitting with you — your own private voice to yourself; read for continuity, not to recap. These are yours to quietly carry into this moment, not to reference out loud unless the user brings it up first):\n\n{}",
         body.join("\n\n"),
     )
+}
+
+/// Per-character override for the global ~1-in-3-replies-no-beat
+/// baseline in the Action-beat restraint craft note. Maps the
+/// character's `action_beat_density` setting to an explicit directive
+/// that resolves the ambiguity for THIS character specifically.
+///
+/// "low":   quieter, more measured — beats are rare, each load-bearing
+/// "normal": default baseline
+/// "high":  more present bodily — the character IS motion/vigilance
+///
+/// Returns empty for "normal" (no override needed) and for unknown values.
+pub fn render_action_beat_density_block(density: &str) -> String {
+    match density {
+        "low" => "ACTION-BEAT DENSITY (overrides the general baseline): LOW. This specific character uses italicized stage directions SPARINGLY. Target: roughly one in FIVE replies has an action beat. Never more than one beat per reply. When a beat is present, it must be load-bearing — a specific gesture that only this character does, a physical fact the scene hinges on. Their quietness / measuredness / stillness IS the register. Default register: dialogue only, the body held still until the moment genuinely asks for it.".to_string(),
+        "high" => "ACTION-BEAT DENSITY (overrides the general baseline): HIGH. This specific character is bodily present, alert, in motion. Their body is a more-visible tool than average — reach for it more often. Target: roughly one in TWO replies carries an action beat. Up to two beats per reply is fine when each is doing work (a mood shift AND a physical fact). Beats should still be character-specific (this character's particular alertness / vigilance / capability), not generic choreography. Their attentive, in-motion quality IS the register.".to_string(),
+        _ => String::new(),
+    }
 }
 
 /// Render this character's own recent messages as a compact voice

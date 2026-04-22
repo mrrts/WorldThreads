@@ -59,6 +59,7 @@ pub async fn generate_video_cmd(
                 visual_description: String::new(), visual_description_portrait_id: None,
                 inventory: serde_json::Value::Array(vec![]), last_inventory_day: None,
                 signature_emoji: String::new(),
+            action_beat_density: "normal".to_string(),
             })
         } else {
             get_character(&conn, &character_id).map_err(|e| e.to_string())?

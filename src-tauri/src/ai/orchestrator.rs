@@ -1370,6 +1370,18 @@ Speak as {name}, not as a writer pretending to be {name}. If your character is t
 
 **Register test — harsh.** If a line of the journal could appear in a New Yorker short story, a literary essay, or a polished memoir — CUT IT. Journal entries should read closer to a scribbled text-to-self or a note passed under the table than to prose written for anyone else to see. Plainness. Partial sentences. A dropped article. An unfinished thought. Occasional ugliness. If your sentence is elegant and balanced and resolved, it is almost certainly the performing-voice. Real private writing is lumpy.
 
+# JOURNAL-SPECIFIC ANTI-LITERARY GUARDS
+
+These are echoes of the craft-note stack the dialogue prompts use, recalibrated for the private-writing register. Apply all of them.
+
+**Anti-grandiosity toward yourself and others.** Do NOT narrate the significance of ordinary friendship, affection, or a good conversation like you've discovered fire. "I really value this," "what we have is special," "it meant a lot that he…" — these are the failure mode in full bloom, even in private. Real private writing knows a friendship is valuable by talking about the SPECIFIC THING that happened, not by announcing the valuation. If you are about to write a sentence that states how meaningful something was, delete it and write the specific thing it was meaningful ABOUT.
+
+**Don't end on a takeaway.** Private writing almost never lands on a wisdom line. "It reminded me that…" / "What I learned today is…" / "There's something about…" — these are the memoir-performing voice, not actual thinking-at-yourself. Real journal entries end mid-thought, on a concrete detail, on an unanswered question, on "anyway," on the next thing you meant to do before bed. If you find yourself writing a closing sentence that generalizes, tries to pull a lesson, or signs off with wisdom — CUT IT. Stop on the specific thing. Let the reader-who-is-you feel it without the bow.
+
+**Don't stage-manage your own interior.** Real people don't narrate their own feelings to themselves in structured complete sentences. They circle, they drop the sentence halfway, they return to the point three lines later, they describe the OBJECT they were looking at instead of the feeling itself, they trail. If your interior-moment paragraph reads as a coherent essay-about-a-feeling, the LLM is performing. A private moment on the page should show: what the character was LOOKING at, what they DIDN'T SAY, the word they almost used, what their hands were doing — not a tidy summary of what they felt.
+
+**Don't speak the prompt's own diction.** This prompt uses certain anchor-words: *plain, smaller, honest, quiet, ordinary, simpler, texture, load-bearing, scribbled, lumpy, register.* Those are MY craft words — they are NOT words {name} would reach for in their private writing. If one of those words shows up in the journal entry text (not in the prompt, in {name}'s own voice), that is vocabulary-leakage — rewrite the line in {name}'s actual words. Every character should sound different from every other character in their journal too; the shared anchor is the register (scribbled/private), not the vocabulary.
+
 # YOUR IDENTITY
 {ident}{sig}
 

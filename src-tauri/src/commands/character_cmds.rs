@@ -62,6 +62,7 @@ pub fn create_character_cmd(db: State<Database>, world_id: String, display_name:
         inventory: serde_json::Value::Array(vec![]),
         last_inventory_day: None,
         signature_emoji: String::new(),
+            action_beat_density: "normal".to_string(),
     };
     create_character(&conn, &ch).map_err(|e| e.to_string())?;
     create_thread(&conn, &Thread {

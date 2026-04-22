@@ -1823,6 +1823,7 @@ pub async fn reset_to_message_cmd(
                 visual_description: String::new(), visual_description_portrait_id: None,
                 inventory: serde_json::Value::Array(vec![]), last_inventory_day: None,
                 signature_emoji: String::new(),
+            action_beat_density: "normal".to_string(),
             };
             (dummy, world, mc)
         } else {

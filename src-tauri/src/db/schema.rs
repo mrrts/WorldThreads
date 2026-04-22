@@ -997,6 +997,20 @@ pub fn run_migrations(conn: &Connection) -> Result<(), rusqlite::Error> {
         conn.execute("ALTER TABLE characters ADD COLUMN signature_emoji TEXT NOT NULL DEFAULT ''", []).ok();
     }
 
+    // ── Per-character action-beat density ─────────────────────────────
+    //
+    // Overrides the global ~1-in-3-replies-no-beat baseline per-character.
+    // One of "low" | "normal" | "high". Quiet characters (older, soft-
+    // spoken) read better on "low"; alert, in-motion characters on "high".
+    // Additive ALTER — safe per the DATABASE SAFETY rule.
+    let has_abd: bool = conn.query_row(
+        "SELECT COUNT(*) FROM pragma_table_info('characters') WHERE name = 'action_beat_density'",
+        [], |r| r.get::<_, i64>(0),
+    ).unwrap_or(0) > 0;
+    if !has_abd {
+        conn.execute("ALTER TABLE characters ADD COLUMN action_beat_density TEXT NOT NULL DEFAULT 'normal'", []).ok();
+    }
+
     // One-time clear of existing character inventories so they re-seed
     // under the new mixed physical/interior prompt (soul-level interior
     // items, up to 10 total, kind tag per slot). Any inventories saved

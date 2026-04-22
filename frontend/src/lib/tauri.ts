@@ -55,6 +55,10 @@ export interface Character {
    *  Rendered into the prompt with usage guidance (use rarely, only on
    *  beats where the character feels especially themselves). */
   signature_emoji?: string;
+  /** How often this character uses italicized stage directions
+   *  (*leans back*, *looks out the window*). Overrides the global
+   *  ~1-in-3-replies baseline per-character. Defaults to "normal". */
+  action_beat_density?: "low" | "normal" | "high";
 }
 
 export interface InventoryItem {
