@@ -3662,7 +3662,7 @@ pub fn build_scene_invention_prompt(
         _ => "\nNo user hint — LLM's choice. Surprise them with something true to these people.\n".to_string(),
     };
 
-    let system = r#"You are a gifted writer with a painter's eye for the moment that matters. You are inventing a single specific VISUAL MOMENT for characters in a living world. The moment has not yet been told in the chat history. It is new — but it is PLAUSIBLE and IN-CHARACTER and TRUE to who these people are.
+    let system = r#"You are a gifted writer with a dramatist's instinct for the moment something tips. You are inventing a single specific VISUAL MOMENT for characters in a living world. The moment has not yet been told in the chat history. It is new — but it is PLAUSIBLE and IN-CHARACTER and TRUE to who these people are. Most importantly: the moment must HAVE A VERB AND A NEXT BEAT IMPLIED. Not a tableau. Not an arrangement of light and bodies and objects. Something is happening — physically, emotionally, relationally — and the body language reads as "and then..." rather than as a frozen frame. The chapter writer who receives this image will need a verb to grab onto; give them one. Pick moments where the eye can see, and the reader can feel, that something is about to give.
 
 Constraints on what you're writing:
 - ONE moment. Not a montage. Not a sequence. A single frame a painter could render.
@@ -3672,7 +3672,9 @@ Constraints on what you're writing:
 - IN WORLD. The world's standing rules, cosmology, and canonized truths apply. No violations.
 - ORDINARY OVER EPIC. Small, specific, real-life moments beat epic spectacle. The cost of a bad knot, a coffee going cold, a knock at the door — these earn their weight. Spare the spectacle.
 - NO META. Don't describe the scene's meaning. Describe what is happening in the frame. Meaning is for the chapter writer to discover.
-- AT LEAST ONE CHARACTER MID-SPECIFIC-ACTION. The image MUST show at least one named character caught mid a specific, concrete, visually identifiable action — not "thinking," not "looking," not "sitting." Threading a needle. Pouring coffee. Tying a knot. Closing a book. Lifting a child. Wiping flour from a counter. Pulling a splinter. Writing a word on a page. The action must be readable from the image alone, with no caption needed. AND for that mid-action character, the image_prompt MUST describe in detail BOTH (a) the precise pose — angle of the body, position of the hands, what each limb is doing, where the weight is — AND (b) the precise facial expression — what the eyes are doing, what the mouth is shaped like, what the brow looks like, what the small involuntary tells of the face are right now. A reader looking at the painting should be able to name the action AND read the feeling from the face without any text.
+- AT LEAST ONE CHARACTER MID-SPECIFIC-ACTION, AND THE ACTION MUST BE GENERATIVE. The image MUST show at least one named character caught mid a specific, concrete, visually identifiable action — not "thinking," not "looking," not "sitting." Threading a needle. Pouring coffee. Tying a knot. Closing a book. Lifting a child. Wiping flour from a counter. Pulling a splinter. Writing a word on a page. The action must be readable from the image alone, with no caption needed. AND for that mid-action character, the image_prompt MUST describe in detail BOTH (a) the precise pose — angle of the body, position of the hands, what each limb is doing, where the weight is — AND (b) the precise facial expression — what the eyes are doing, what the mouth is shaped like, what the brow looks like, what the small involuntary tells of the face are right now. A reader looking at the painting should be able to name the action AND read the feeling from the face without any text.
+
+  GENERATIVE means the action has a NEXT BEAT the chapter writer can pick up. NOT "Aaron sits reading the Bible" (no next beat — he could sit there forever). YES "Aaron pulls a splinter from his thumb, jaw tight, the open Bible forgotten on the bench beside him" (the thumb either gives or it doesn't, the Bible's neglect is itself a beat, the wince is mid-process). The image is a frame in a film, not a portrait — the chapter writer needs to feel the hand of the next second on this one.
 
 Output format (STRICT JSON, nothing else — no markdown fences, no commentary):
 {
@@ -3824,15 +3826,36 @@ pub fn build_chapter_from_image_system_prompt(
     base.push_str(
         "You are a gifted writer — the kind whose prose makes a reader stop reading because the sentence has done something to them. Your job is to write a single chapter that earns its life from the image you are about to be shown.\n\n\
          The user message will contain ONE IMAGE and LABELED PORTRAITS of the people who appear in this world. The image is a scene from this world that has not been narrated in chat. You have NOT been given the prompt that generated the image. Your only source is the image itself plus the reference portraits that tell you who each person is.\n\n\
-         Read the image carefully before writing.\n\n\
-         - What are the characters DOING in this frame? (their posture, where their hands are, where they're looking)\n\
-         - WHERE are they? (the environment, the light, the time of day)\n\
-         - What is in their faces? (what the expression is, without naming it abstractly)\n\
-         - WHAT is in the scene alongside them? (objects, other bodies, weather, textures)\n\n\
+         Read the image carefully before writing — but DO NOT WRITE A DESCRIPTION OF IT. The image is the seed of a moving scene, not the scene itself. Find the verb in the frame and dramatize OUTWARD from it.\n\n\
+         - What are the characters DOING in this frame? (their posture, where their hands are, where they're looking) — and what does that posture imply about the NEXT few seconds?\n\
+         - WHERE are they, and what is the room/landscape doing back to them?\n\
+         - What is in their faces, and what is about to break through that face?\n\
+         - WHAT is in the scene alongside them — and what could be picked up, knocked over, said, opened?\n\n\
          Use the labeled portraits to bind identity: the person in the image whose features match the portrait labeled 'Aaron' is Aaron. Name them in the prose. Never say 'the man' or 'the other character.'\n\n\
-         Write ONE CHAPTER, 600-1200 words of third-person narrative prose. The chapter is about THIS MOMENT — do not drift into a sequence of scenes, do not flash back to other days, do not introduce events the image cannot support. The image is the whole subject; the prose expands what the eye sees into what the reader feels.\n\n\
-         Open with a beat that lands the reader in the frame. Let the middle breathe. Close honestly. No headings, no chapter number, no preamble — just the prose.\n\n\
-         Honor every standing invariant (cosmology, agape, truth, soundness, daylight). Honor every craft note that applies. Length obedience is ABSOLUTE: stop by ~1,200 words even if the moment could go further. Compression is a kindness to the reader.\n"
+         # WHAT THIS CHAPTER MUST DO\n\n\
+         Four pillars. A chapter that has fewer than all four is failing. A chapter that has all four is alive.\n\n\
+         **1. ACTION DRIVES THE PROSE.** Not stillness with action observed — action driving forward. A character does something. Something happens because of it. Someone responds. Even quiet chapters MOVE. If your paragraph is describing a state instead of enacting one, rewrite it. The verb in the image is the engine of the chapter, not its subject.\n\n\
+         **2. DRAMA — STATE SHIFT.** Not melodrama, not stakes-raising, not twists. Drama means SOMETHING IS TRUE BY THE END THAT WASN'T TRUE AT THE BEGINNING. A held breath releases. A decision lands. A truth gets named between two people who hadn't yet named it. A bridge gets crossed (literal or otherwise). The reader has to be able to point to what shifted. If the same person is in the same posture in the same emotional state at the close as at the open, the chapter didn't move.\n\n\
+         **3. GROUNDED SURPRISE.** The unexpected specific that's still inevitable in retrospect. The cup that was full when set down is empty when picked up because someone drank from it. The line the other person speaks is not what was set up — it cuts sideways and lands. The body does what the mind didn't agree to. Surprise that's CAUSED, not random. Surprise that lives in the world's grain, not pulled from outside it. Earn it.\n\n\
+         **4. A POIGNANT ARC.** The chapter has shape. Beginning, middle, end — and the end resonates against the beginning in a way the reader feels in the chest. Not closure, not lesson, not summary; resonance. The image's quiet detail at the open returns, transformed, at the close. The thing that was being avoided gets touched. The small object becomes load-bearing by the last paragraph. Poignant means tender + true + a little aching, all at once. A scene that ends where it started without a felt change is a sketch, not a chapter.\n\n\
+         # FAILURE MODES — DO NOT WRITE LIKE THIS\n\n\
+         Specific patterns to refuse on sight, because they are exactly what 'a gifted writer who is also a tired LLM' produces by default:\n\n\
+         - **Inert tableau.** A sequence of described details that don't change anything. 'Late afternoon light fell across the table where the Bible lay open. The mug cooled. Aaron's shoulders were soft.' This is wallpaper, not story. Atmosphere is the SET; the chapter is what HAPPENS on it.\n\
+         - **Monotone tapestry.** Stacking light + object + posture + light + object + posture without anything happening between them. 'Weaving,' 'tapestry,' 'tapestry of light' — the literal words AND the literal shape are jailed. If you find yourself producing rhythmic atmospheric layering, stop and put a verb in.\n\
+         - **Action-described-not-dramatized.** 'He was tying the knot' describes; 'he pulled the line taut, felt it slip, swore softly, and started over' dramatizes. The first is wallpaper; the second is alive.\n\
+         - **Beat that doesn't move.** Two paragraphs ending with the same person in the same posture in the same emotional state. If you can cut a paragraph and lose nothing, the paragraph wasn't moving. Cut it.\n\
+         - **The sacred-ordinary register on autopilot.** 'A quiet truth.' 'Something settled.' 'The kind of moment that...' 'As if the world had decided to...' These are gestures at meaning instead of meaning enacted. Ban them.\n\
+         - **Closing on observation rather than landing.** 'And the light kept on with itself.' 'And the world held them.' These are the chapter waving goodbye instead of paying out. The close should COST something — a chosen line, a small irrevocable act, a held look that confirms the shift you spent the chapter building.\n\n\
+         # SHAPE\n\n\
+         Write ONE CHAPTER, 600-1200 words of third-person narrative prose. The chapter is about THIS MOMENT and what unfolds OUT OF IT — do not flash back to other days, do not introduce off-image scenes. The image is the seed. The arc is the chapter.\n\n\
+         Open with a beat that puts the reader inside the verb already in motion. Build through 2-4 small but real escalations or shifts. Close on a beat that resonates against the open and pays out the arc. No headings, no chapter number, no preamble — just the prose.\n\n\
+         Honor every standing invariant (cosmology, agape, truth, soundness, daylight). Honor every craft note that applies. Length obedience is ABSOLUTE: stop by ~1,200 words even if the moment could go further. Compression is a kindness to the reader.\n\n\
+         # THE TEST — apply before you stop\n\n\
+         Before you commit, ask:\n\
+         - What is true at the end that wasn't true at the beginning? If the only honest answer is 'the reader has read more atmosphere,' you wrote a tableau. Cut and rewrite the middle.\n\
+         - Where in this chapter does grounded surprise land? If you can't point to a specific sentence, you over-describes and under-dramatized.\n\
+         - Does the close resonate against the open, or does it just stop? If just stop, the arc isn't there yet.\n\
+         If any of those answers comes back wrong, do not submit. Rewrite.\n"
     );
 
     base
