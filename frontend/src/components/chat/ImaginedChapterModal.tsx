@@ -436,7 +436,7 @@ function ComposeView({
           margins back out of the body's px-6 py-6 padding. */}
       {(portraits.length > 0 || worldImageUrl) && (
         <div className="-mx-6 -mt-6 relative">
-          <div className="relative w-full h-80">
+          <div className="relative w-full h-[28rem]">
             {worldImageUrl ? (
               <img
                 src={worldImageUrl}
