@@ -6,6 +6,8 @@ import { formatMessage, markdownComponents, remarkPlugins, rehypePlugins } from 
 import { listen } from "@tauri-apps/api/event";
 import { api, type ConsultantChat } from "@/lib/tauri";
 import { BackstageActionCard, parseBackstageSegments, type BackstageActionContext } from "./BackstageActionCard";
+
+const CONSULTANT_MODE_KEY = "worldthreads:consultant-mode";
 import { playChime } from "@/lib/chime";
 import { Button } from "@/components/ui/button";
 import { chatFontPx } from "@/lib/chat-font";
@@ -92,8 +94,18 @@ export function StoryConsultantModal({ open, onClose, apiKey, characterId, group
   const [chats, setChats] = useState<ConsultantChat[]>([]);
   const [activeChatId, setActiveChatId] = useState<string | null>(null);
   // Which tab the sidebar is showing. Also determines the mode of any
-  // new chat created from the sidebar "+" button.
-  const [activeMode, setActiveMode] = useState<"immersive" | "backstage">("immersive");
+  // new chat created from the sidebar "+" button. Persisted across
+  // sessions in localStorage so users who live in one mode don't have
+  // to re-select it every time they open the modal.
+  const [activeMode, setActiveMode] = useState<"immersive" | "backstage">(() => {
+    try {
+      const stored = localStorage.getItem(CONSULTANT_MODE_KEY);
+      return stored === "backstage" ? "backstage" : "immersive";
+    } catch { return "immersive"; }
+  });
+  useEffect(() => {
+    try { localStorage.setItem(CONSULTANT_MODE_KEY, activeMode); } catch { /* private mode etc. */ }
+  }, [activeMode]);
   const [messages, setMessages] = useState<ConsultantMessage[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
