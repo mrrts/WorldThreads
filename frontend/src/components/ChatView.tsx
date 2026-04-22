@@ -1471,10 +1471,6 @@ export function ChatView({ store, onNavigateToCharacter }: Props) {
         title={`Summary: ${store.activeCharacter?.display_name ?? "Chat"}`}
         generateSummary={() => api.generateChatSummary(store.apiKey, store.activeCharacter?.character_id ?? "")}
         notifyOnMessage={store.notifyOnMessage}
-        characters={store.characters}
-        groupChats={store.groupChats}
-        activePortraits={store.activePortraits}
-        currentCharacterId={store.activeCharacter?.character_id}
       />
 
       <KeepRecordModal

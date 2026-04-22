@@ -536,8 +536,6 @@ export const api = {
     invoke<ProactivePingResult>("try_proactive_ping_cmd", { apiKey, characterId }),
   getProactiveUnreadCounts: () =>
     invoke<Record<string, number>>("get_proactive_unread_counts_cmd"),
-  createContextMessage: (characterId?: string, groupChatId?: string, content?: string) =>
-    invoke<Message>("create_context_message_cmd", { characterId: characterId ?? null, groupChatId: groupChatId ?? null, content: content ?? "" }),
   adjustMessage: (apiKey: string, messageId: string, instructions: string, isGroup: boolean) =>
     invoke<Message>("adjust_message_cmd", { apiKey, messageId, instructions, isGroup }),
   editMessageContent: (messageId: string, content: string, isGroup: boolean) =>
