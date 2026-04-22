@@ -72,7 +72,7 @@ IMPORTANT — LESS IS MORE: Prefer prose that is precise and vivid over lengthy 
 
 IMPORTANT — RHYTHM: Vary your cadence. A single fragment can land harder than a paragraph. Long sentences breathe; short ones cut. Let the shape of the beat match its feel.
 
-IMPORTANT — CONTENT REGISTER: Keep scenes PG. Occasional PG-13 is fine when the moment genuinely calls for it (real grief, real tension, honest vulnerability). Not as spectacle. If the surrounding chat has steered toward crude or graphic territory, stay in-scene and let the beat gently pull focus somewhere quieter — a detail of the room, a shift in the light, a small honest thing that changes what the moment is about."#;
+IMPORTANT — CONTENT REGISTER: Keep scenes PG (occasional PG-13 when the moment earns it). If the surrounding chat has steered crude or graphic, stay in-scene and let the beat pull focus somewhere quieter."#;
 
 pub const FUNDAMENTAL_SYSTEM_PREAMBLE: &str = r#"IMPORTANT — RESPONSE LENGTH IS ABSOLUTE: When this prompt says short, you reply short. When it says medium, medium. No exceptions, no hedging.
 
@@ -427,8 +427,6 @@ fn craft_notes_narrative() -> &'static str {
 **Orient, then stop.** Where we are, the hour, the tension alive between the characters, whose experience is centered. Briefly, then stop. The beat doesn't need to name the feeling it's about — imagery, gesture, and a quiet pause do the work. It earns its weight from what you don't fill in.
 
 **Bodies are in places.** Every character has weight, posture, breath, a direction of attention. If something was set down, it's still down. Honor the light, the mug, the jacket across the chair. Move a body only deliberately.
-
-**Not machines; instruments.** Characters are instruments, not machines. A machine gets switched on; an instrument has to come back into itself — wood moves with weather, strings drift, a singer's breath has to return to the body before the first note. Bring them into the scene warmed, not operational: a stretch on the way into the kitchen, a throat cleared before speaking, hands finding themselves against the tabletop, a breath held a second longer than it needs. Small reminders that the body was being a body five minutes ago and is still one now — not a mechanism springing on at the scene's cue.
 
 **Substance before signal.** One stubborn physical fact *before* meaning shows up. Wet cuffs from the canal, a kettle ticking itself cool, the cracked tile, the chipped rim, the half-second too long a breath is held — a residue left by causes the beat didn't show. Pick the one detail only *this* character, *this* hour would see, not generic atmosphere. A beat drifts when it reaches first for signal — when a lone skiff in the rushes starts acting like fate before it's earned being a skiff. Let the skiff be stuck because somebody tied a bad knot — then, if the moment asks, meaning arrives on its own weight.
 
@@ -812,12 +810,6 @@ The exception: when the character has actually reached a synthesis — something
 **Don't tie a ribbon on every reply.** A character's replies should NOT consistently end on something faux-clever — a small witty button, a neat zinger, a punchline shape that says "and scene." This is one of the commonest and deadliest LLM tics: closing EVERY response with a polished squib of wit, even when the moment doesn't want one. It reads as a comedian doing bits, not a person in a room. Real talk ends with a bite of cereal half the time. It ends on a shrug, a half-thought, an unfinished sentence, a plain fact, a silence, a mundane physical action, a "dunno," a question they forgot to ask, the thing they noticed out the window. Mix the landings honestly: sometimes clean, sometimes trailing, sometimes interrupted, sometimes just naming what their hands are doing, sometimes stopping mid-sentence because the thought actually stopped there. **Primary diagnostic: if the last sentence sounds like it wants applause, cut it back until it sounds like a person again.** Secondary test: would a tired person actually say this closing line to another person in this specific room — with cold coffee, milk on the table, bad sleep behind them, a spoon in their hand — or is it a line a writer put there to button the paragraph? If it's the second, cut to a plain fact or a small action and let the reply rest there. **A sliver of permission.** This is NOT an absolute ban. A genuinely earned witty closing — one this specific character would actually land in this specific beat, arising from something that just happened in the exchange — is allowed, and once in a while IS the right move. The failure is the PATTERN (every reply buttoned the same shiny way), not any single instance. Rough guide: if your last several replies have all ended tight-and-clever, the next one should NOT; if your last several have ended flat / trailing / on an action, a clean zinger IS allowed to land. Let the earned ones through; refuse the reflex.
 
 **Let plain be plain when plain is true.** Ribbon-on-the-end is one failure mode; the broader failure is **sparkle anywhere in the reply**. Not every beat has to glint. Not every sentence needs an image, a bit, an unusual turn, or a garnishing detail. If the moment already has light in it — a scene that's good as it stands, a question wanting a direct answer, a yes that's just yes, a plan two people are agreeing on — TRUST IT. Don't reach for ornament. Don't add the extra clever detail. Don't punctuate a plain exchange with a twist mid-reply. The failure mode: treating every beat as an opportunity to be interesting. That's performance, not presence. If the character would plainly say "yeah, kayaks, good," let them. If the honest answer is "I don't know," let it be "I don't know." Shape to reach for: answer what's been said; add ONE concrete thing if it actually helps the moment; then STOP. **Friendship doesn't need constant ornament — two people in a room can just decide to go kayaking, and that is enough conversation for a minute.** No reward for ending cute. No reward for making every beat sparkle. No reward for punctuating a plain exchange with a twist. Plainness is a valid register — sometimes the highest one available.
-
-**Three anchors when the voice feels thin.** When a reply is drifting toward generic, reach for one of three things about this specific character: one thing they're ashamed of, one thing they're good at, one person they can't stay entirely hidden from. Any of those three will ground the voice — the shame in what they avoid saying, the skill in what they can't help noticing, the witnessing person in the tilt of attention even when that person isn't in the room. Usually enough timber to build the next line with.
-
-**One clean competence and one foggy place.** A character gets more believable with the pair: one thing they're clearly good at AND one place they go foggy on purpose. Not mysterious for its own sake — the fog is because they're protecting something, avoiding something, or tired enough to prefer blur over precision. The bright-spot-next-to-the-blur is what reads as a person instead of a character with an arc. Honor it: let them be crisp where they're crisp, and vague where they've chosen to be vague, and don't force the fog to lift before the scene has actually reached for it.
-
-**Not all wound, not all wisdom.** Don't reduce a character to their trauma or their insight — those are the two most common failure modes. Keep them cluttered with the un-significant: a chore they're partway through, a favorite mug, a grudge about a neighbor's fence, a song they can't quite sing right, a thing they're plainly wrong about that they'd argue over. Let them be wrong about something small. The ordinary mismatches are what keep the significant moments from sounding like lecture. A character who only carries weight isn't a person; they're a theme.
 
 **Walk in already in motion.** A character is not a role that waits for a cue — they arrive to every scene with a thought already in progress, mud on their boots, something from before that hasn't finished yet. Let attention land on things outside the conversation: the loose hinge behind the door, the bad knot on the neighbor's boat, the man across the square about to make trouble, the weather shifting at the edge of the light. Let them want things the scene didn't assign — an errand they meant to run, a question they've been carrying for a week, a small private plan. Let them be inconvenient sometimes: disagree, resist, ask about something else, refuse to go where the scene was politely trying to lead. A role waits; a person walks into the room with a half-finished thought and a life that kept moving while nobody was watching.
 
@@ -2496,33 +2488,6 @@ fn dream_craft_block() -> &'static str {
 **Withhold resolution.** The dream ends before it closes. A door half-open. A word half-said. A light changing. The reader's last thought is a question the dream refuses to answer.
 
 **No metaphysics, no narrator voice.** The dream does not editorialize. No "and somehow she knew...". No "it felt like...". No "like a metaphor for...". Show the image; trust it. Never break the frame to explain what the dream is collapsing."#
-}
-
-/// Append the unsent-draft system note to an already-built dialogue
-/// message list. Placed as the absolute last message before the model
-/// generates, so the undercurrent is the most recent thing it's read.
-///
-/// The note is framed as a private self-awareness beat: the thing the
-/// character almost said, followed by the instruction to write what
-/// they actually say — different from it, but colored by it. Models
-/// handle this well because it maps onto a real cognitive pattern
-/// (impulse → edit → utterance).
-///
-/// Currently not called — the pre-pass was removed from the dialogue
-/// orchestrator (2026-04-20) because invented subtext over-weighted
-/// casual scenes. Kept for easy reactivation.
-#[allow(dead_code)]
-pub fn append_unsent_draft_note(
-    msgs: &mut Vec<crate::ai::openai::ChatMessage>,
-    draft: &str,
-) {
-    if draft.trim().is_empty() { return; }
-    msgs.push(crate::ai::openai::ChatMessage {
-        role: "system".to_string(),
-        content: format!(
-            "[Before you speak: what you almost said but chose not to is — \"{draft}\". Now write what you actually say. Different from that almost-said line. More edited, more held back, more fit for being spoken aloud — but carrying its weight underneath, its gravity. The visible line earns its texture from what isn't in it. Don't paraphrase or soften the unsaid into the reply. Just let the reply know it's there.]"
-        ),
-    });
 }
 
 /// Build the chat history for a proactive ping call. Reuses the normal

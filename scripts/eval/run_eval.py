@@ -105,7 +105,8 @@ def main():
         sys.exit(f"unknown experiments: {bad}; available: {list(ABLATIONS)}")
     in_tok, out_tok, cost = estimate_cost(eids)
     print(f"Plan: {eids} → ~{in_tok:,} input + ~{out_tok:,} output tokens, ~${cost:.2f}")
-    if not DRY_RUN and input("Proceed? [y/N] ").strip().lower() != "y":
+    auto_confirm = os.environ.get("LLM_AUTO_CONFIRM", "0") == "1"
+    if not DRY_RUN and not auto_confirm and input("Proceed? [y/N] ").strip().lower() != "y":
         sys.exit("aborted")
     for eid in eids:
         run_experiment(eid)
