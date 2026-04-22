@@ -4,7 +4,6 @@ use crate::db::Database;
 use chrono::Utc;
 use rusqlite::params;
 use serde::{Deserialize, Serialize};
-use serde_json::{json, Value};
 use tauri::State;
 
 const CONTEXT_BEFORE: i64 = 3;
@@ -225,43 +224,16 @@ pub fn save_kept_record_cmd(
         _ => (None, None, None),
     };
 
-    // Apply side effect to the subject row.
+    // Apply side effect to the subject row. The UI now only exposes
+    // description_weave for character|user — known_fact, relationship_note,
+    // and world_fact are deprecated. Historical entries with those
+    // record_types remain readable in the kept_records table; only the
+    // write path is narrowed.
     match (request.subject_type.as_str(), request.record_type.as_str()) {
         ("character", "description_weave") => {
             conn.execute(
                 "UPDATE characters SET identity = ?2, updated_at = datetime('now') WHERE character_id = ?1",
                 params![request.subject_id, request.content],
-            ).map_err(|e| e.to_string())?;
-        }
-        ("character", "known_fact") => {
-            let ch = get_character(&conn, &request.subject_id).map_err(|e| e.to_string())?;
-            let mut facts: Vec<Value> = ch.backstory_facts.as_array().cloned().unwrap_or_default();
-            facts.push(Value::String(request.content.clone()));
-            let new_facts = Value::Array(facts);
-            conn.execute(
-                "UPDATE characters SET backstory_facts = ?2, updated_at = datetime('now') WHERE character_id = ?1",
-                params![request.subject_id, new_facts.to_string()],
-            ).map_err(|e| e.to_string())?;
-        }
-        ("character", "relationship_note") => {
-            // subject_id encodes "<char_id>::<other>" where other = character_id or "user"
-            let parts: Vec<&str> = request.subject_id.splitn(2, "::").collect();
-            if parts.len() != 2 {
-                return Err(format!("relationship subject_id must be 'char_a::char_b|user', got {}", request.subject_id));
-            }
-            let char_a = parts[0];
-            let other = parts[1];
-            let ch = get_character(&conn, char_a).map_err(|e| e.to_string())?;
-            let mut rels = ch.relationships.as_object().cloned().unwrap_or_default();
-            let existing = rels.remove(other).unwrap_or_else(|| json!({ "notes": [] }));
-            let mut obj = existing.as_object().cloned().unwrap_or_default();
-            let mut notes: Vec<Value> = obj.get("notes").and_then(|v| v.as_array()).cloned().unwrap_or_default();
-            notes.push(Value::String(request.content.clone()));
-            obj.insert("notes".to_string(), Value::Array(notes));
-            rels.insert(other.to_string(), Value::Object(obj));
-            conn.execute(
-                "UPDATE characters SET relationships = ?2, updated_at = datetime('now') WHERE character_id = ?1",
-                params![char_a, Value::Object(rels).to_string()],
             ).map_err(|e| e.to_string())?;
         }
         ("user", "description_weave") => {
@@ -270,25 +242,7 @@ pub fn save_kept_record_cmd(
                 params![request.subject_id, request.content],
             ).map_err(|e| e.to_string())?;
         }
-        ("user", "known_fact") => {
-            let profile = get_user_profile(&conn, &request.subject_id).map_err(|e| e.to_string())?;
-            let mut facts: Vec<Value> = profile.facts.as_array().cloned().unwrap_or_default();
-            facts.push(Value::String(request.content.clone()));
-            conn.execute(
-                "UPDATE user_profiles SET facts = ?2, updated_at = datetime('now') WHERE world_id = ?1",
-                params![request.subject_id, Value::Array(facts).to_string()],
-            ).map_err(|e| e.to_string())?;
-        }
-        ("world", "world_fact") => {
-            let w = get_world(&conn, &request.subject_id).map_err(|e| e.to_string())?;
-            let mut invariants: Vec<Value> = w.invariants.as_array().cloned().unwrap_or_default();
-            invariants.push(Value::String(request.content.clone()));
-            conn.execute(
-                "UPDATE worlds SET invariants = ?2, updated_at = datetime('now') WHERE world_id = ?1",
-                params![request.subject_id, Value::Array(invariants).to_string()],
-            ).map_err(|e| e.to_string())?;
-        }
-        (st, ct) => return Err(format!("unsupported (subject_type, record_type) = ({st}, {ct})")),
+        (st, ct) => return Err(format!("unsupported (subject_type, record_type) = ({st}, {ct}) — only description_weave on character|user is supported")),
     }
 
     let entry = KeptRecord {

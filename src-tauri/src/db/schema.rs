@@ -696,15 +696,22 @@ pub fn run_migrations(conn: &Connection) -> Result<(), rusqlite::Error> {
     //
     // `record_type`:
     //   description_weave  — revised full description (character or user)
-    //   known_fact         — appended to backstory_facts / user facts
-    //   relationship_note  — appended to a relationship entry
-    //   world_fact         — appended to world.invariants
+    //                        — THE ONLY ACTIVE MODE. UI exposes nothing else.
+    //   known_fact         — DEPRECATED. Constraint kept for historical reads.
+    //   relationship_note  — DEPRECATED. Constraint kept for historical reads.
+    //   world_fact         — DEPRECATED. Constraint kept for historical reads.
+    //
+    // The CHECK constraints stay permissive because (per CLAUDE.md DATABASE
+    // SAFETY) tightening them would require a recreate+verify migration of
+    // a table that already contains user data. The save_kept_record_cmd
+    // write path errors out on anything but description_weave, so no new
+    // entries with the deprecated record_types can be created.
     //
     // Actual application to the subject row (character.identity updated,
-    // fact appended, etc) happens at the same time; this table is the
-    // audit trail + provenance ledger, not the source of truth for the
-    // subject. Queryable by source_message_id for "is this message
-    // canonized?" indicators.
+    // user_profile.description updated) happens at the same time; this
+    // table is the audit trail + provenance ledger, not the source of
+    // truth for the subject. Queryable by source_message_id for "is this
+    // message canonized?" indicators.
     conn.execute_batch("
         CREATE TABLE IF NOT EXISTS kept_records (
             kept_id TEXT PRIMARY KEY,

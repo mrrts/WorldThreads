@@ -238,6 +238,11 @@ export interface KeptRecord {
   source_thread_id: string | null;
   source_world_day: number | null;
   source_created_at: string | null;
+  // Live writes are always character|user + description_weave (the only
+  // canonization mode the UI exposes). Older entries in the DB may carry
+  // the deprecated "world"/"relationship" subject types or known_fact /
+  // relationship_note / world_fact record types — kept in the union so
+  // historical reads still typecheck.
   subject_type: "character" | "user" | "world" | "relationship";
   subject_id: string;
   record_type: "description_weave" | "known_fact" | "relationship_note" | "world_fact";

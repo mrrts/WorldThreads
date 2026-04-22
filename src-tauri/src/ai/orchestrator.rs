@@ -1965,7 +1965,40 @@ pub async fn generate_canon_weave_description(
 
 Preserve the voice, length, and overall structure of the original description. Keep anything that was already true. The revision should feel like the same description, but wiser — as if the writer now knows something they didn't before, and that knowledge has colored the whole portrait.
 
-Do NOT reference the moment directly in the revised text. Do NOT name the conversation. The moment informs the revision; it does not appear in it.
+Do NOT reference the moment directly in the revised text. Do NOT name the conversation, the date, the other speaker, or the meta-frame ("as he revealed", "in a recent talk", "after recently sharing").
+
+# CRITICAL — DO NOT SAND THE SPECIFIC INTO ATMOSPHERE
+
+"Don't name the moment" does NOT mean "abstract it into vague characterology." That is the failure mode this kind of revision drifts toward: the literal texture of what was revealed gets translated into gauzy thematic generality, and the portrait becomes wiser-sounding without being wiser. The trace of the SPECIFIC must remain. A concrete object, a specific physical habit, a particular phrase, a named place, a quoted line, a specific kind of person — at least one of these should carry forward from the moment into the revision, dressed in the description's own register.
+
+# WRONG vs RIGHT
+
+Source moment (illustrative):
+> Aaron quietly admitted he still doesn't sing in church because at thirteen he started crying during "How Great Thou Art" and the boys in the next pew laughed at him until he stopped.
+
+Wrong (sanded smooth — the texture is gone, only "wiser-sounding" remains):
+> He carries a complicated relationship with public worship — a sensitivity to communal expression shaped by old wounds, which gives him an instinctive tenderness toward those who struggle to participate in collective expressions of feeling.
+
+Right (the specific trace stays — a hymn, a pew, the held-back voice):
+> He goes quiet when a hymn starts. Not unmoved — the opposite. There is a thirteen-year-old boy still inside him who learned that some kinds of feeling get punished if you let them show in front of other boys, and the cost of that lesson was the part of his voice that used to come up easily in a room full of singing. Now when others hesitate to join in, he holds the space for them with a particular gentleness, as if he knows exactly which kind of silence theirs is.
+
+Source moment:
+> Darren admitted that the smile he gives people first thing in the morning is something he practices in the bathroom mirror because his actual face when he wakes is, in his words, "the face of a man not entirely sure he wants to be still here."
+
+Wrong (sanded — "discipline" replaces the bathroom mirror):
+> The warmth he extends to others is itself a discipline, born of an unspoken weight he carries from the war and an active choice to be a certain kind of presence in the world.
+
+Right (the trace stays — a mirror, a morning, the practiced face):
+> The smile he gives you in the morning is something he had to put on the list of things to do — practiced in the mirror, because the face that arrives with the eyes opening is not, on most days, the face he wants the room to meet first. Knowing this about him changes nothing about the warmth, except that you understand it the way you understand a man choosing to make coffee for a wife he loves on a morning he himself feels like nothing.
+
+# WHAT THE RIGHT EXAMPLES DO
+- They carry forward at least one concrete object or habit from the moment (the hymn, the bathroom mirror, the practiced face, the held-back voice).
+- They quote the literal where it carries weight ("the face of a man not entirely sure he wants to be still here" → "not, on most days, the face he wants the room to meet first" — paraphrased to fit the description's register, but the specific sentiment survives).
+- They translate the moment into a habit, a tendency, an observable behavior the reader could now spot — not into a theme.
+- They never use "in a recent conversation," "as he revealed," "after sharing," or any meta-frame.
+
+# THE TEST before submitting
+Read the new description. If a stranger read it cold, would they sense the specific shape of the moment that prompted the revision — even though they don't know it happened? If yes, you've integrated. If the description could equally have been written from no specific moment at all, you've sanded it smooth. Rewrite.
 
 Return ONLY the revised description prose. No preamble, no quotes, no commentary."#.to_string();
 
