@@ -109,6 +109,44 @@ pub async fn generate_meanwhile_events_cmd(
     Ok(inserted)
 }
 
+/// Auto-variant invoked from the chat focus-refresh hook: short-circuits
+/// if the world already has meanwhile events for the current world_day.
+/// Returns empty vec on no-op; returns the generated batch when it
+/// actually ran. Non-fatal on LLM errors.
+#[tauri::command]
+pub async fn maybe_generate_meanwhile_events_cmd(
+    db: State<'_, Database>,
+    api_key: String,
+    world_id: String,
+) -> Result<Vec<MeanwhileEventWithName>, String> {
+    // Short-circuit check: is there already an event for this world +
+    // current world_day? If yes, no-op.
+    let (world_day, already_exists) = {
+        let conn = db.conn.lock().map_err(|e| e.to_string())?;
+        let world = get_world(&conn, &world_id).map_err(|e| e.to_string())?;
+        let (wd, _) = current_world_day_and_time(&world);
+        let count: i64 = conn.query_row(
+            "SELECT COUNT(*) FROM meanwhile_events WHERE world_id = ?1 AND world_day = ?2",
+            rusqlite::params![world_id, wd], |r| r.get(0),
+        ).unwrap_or(0);
+        (wd, count > 0)
+    };
+    if already_exists {
+        log::info!("[Meanwhile] world {world_id} already has events for Day {world_day} — skipping auto-gen");
+        return Ok(Vec::new());
+    }
+    if api_key.trim().is_empty() {
+        return Ok(Vec::new());
+    }
+    match generate_meanwhile_events_cmd(db, api_key, world_id.clone()).await {
+        Ok(events) => Ok(events),
+        Err(e) => {
+            log::warn!("[Meanwhile] auto-generation failed for {world_id} (non-fatal): {e}");
+            Ok(Vec::new())
+        }
+    }
+}
+
 /// Fetch the most-recent N meanwhile events for a world.
 #[tauri::command]
 pub fn list_meanwhile_events_cmd(

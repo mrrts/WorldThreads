@@ -51,6 +51,33 @@ pub fn list_journal_entries(
     rows.collect()
 }
 
+/// Most-recent N entries BEFORE a given world-day. Used by the journal
+/// prompt to fetch "yesterday and the day before" when writing a new
+/// entry — explicitly excludes the current day so a regenerate doesn't
+/// recycle its own previous version as prior context.
+pub fn list_journal_entries_before(
+    conn: &Connection,
+    character_id: &str,
+    before_world_day: i64,
+    limit: usize,
+) -> Result<Vec<JournalEntry>, rusqlite::Error> {
+    let mut stmt = conn.prepare(
+        "SELECT journal_id, character_id, world_day, content, created_at
+         FROM character_journals
+         WHERE character_id = ?1 AND world_day < ?2
+         ORDER BY world_day DESC, created_at DESC
+         LIMIT ?3"
+    )?;
+    let rows = stmt.query_map(params![character_id, before_world_day, limit as i64], |r| Ok(JournalEntry {
+        journal_id: r.get(0)?,
+        character_id: r.get(1)?,
+        world_day: r.get(2)?,
+        content: r.get(3)?,
+        created_at: r.get(4)?,
+    }))?;
+    rows.collect()
+}
+
 /// Fetch the single entry for a specific (character, world_day), if any.
 pub fn get_journal_entry_for_day(
     conn: &Connection,

@@ -168,7 +168,26 @@ export function ChatView({ store, onNavigateToCharacter }: Props) {
   useChatFocusRefresh({
     chatKey: charId,
     containerRef: chatContainerRef,
-    onFocusRefresh: () => { if (charId) store.refreshCharacterInventory(charId); },
+    onFocusRefresh: () => {
+      if (!charId) return;
+      // Inventory: per-character world-day staleness check on the backend.
+      store.refreshCharacterInventory(charId);
+      // Journal: per-character, once per world-day. Backend short-circuits
+      // if today's entry already exists. Non-blocking; errors log-only.
+      if (store.apiKey) {
+        api.maybeGenerateCharacterJournal(store.apiKey, charId).catch(() => {});
+      }
+      // Meanwhile: per-world, once per world-day. Backend short-circuits
+      // if the world already has events for today.
+      if (store.apiKey && store.activeWorld) {
+        api.maybeGenerateMeanwhileEvents(store.apiKey, store.activeWorld.world_id).catch(() => {});
+      }
+      // Daily reading: per-world, once per world-day. Backend
+      // short-circuits if today's reading already exists.
+      if (store.apiKey && store.activeWorld) {
+        api.maybeGenerateDailyReading(store.apiKey, store.activeWorld.world_id).catch(() => {});
+      }
+    },
   });
 
   const {

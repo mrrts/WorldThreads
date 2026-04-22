@@ -5,10 +5,11 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogBody, DialogFooter } from "@/components/ui/dialog";
 import { Plus, Archive, ArchiveRestore, ChevronRight, ChevronDown, Globe, Sparkles, User, Settings2, CloudSun, Loader2, Wind } from "lucide-react";
 import type { useAppStore } from "@/hooks/use-app-store";
-import { api, type WorldImageInfo, type MeanwhileEvent } from "@/lib/tauri";
+import { api, type WorldImageInfo, type MeanwhileEvent, type DailyReading } from "@/lib/tauri";
 import { InventoryStrip } from "@/components/chat/InventoryStrip";
 import { WeatherPicker } from "@/components/WeatherPicker";
 import { weatherById } from "@/lib/weather";
+import { DailyReadingHUD } from "@/components/DailyReadingHUD";
 
 interface Props {
   store: ReturnType<typeof useAppStore>;
@@ -29,6 +30,35 @@ export function Sidebar({ store, onNavigate }: Props) {
   const [meanwhileExpanded, setMeanwhileExpanded] = useState(false);
   const [meanwhileLoading, setMeanwhileLoading] = useState(false);
   const [meanwhileGenerating, setMeanwhileGenerating] = useState(false);
+  const [dailyReading, setDailyReading] = useState<DailyReading | null>(null);
+  const [readingLoading, setReadingLoading] = useState(false);
+  const [readingGenerating, setReadingGenerating] = useState(false);
+  const [readingExpanded, setReadingExpanded] = useState(false);
+
+  useEffect(() => {
+    if (!store.activeWorld) { setDailyReading(null); return; }
+    let cancelled = false;
+    setReadingLoading(true);
+    api.getLatestDailyReading(store.activeWorld.world_id)
+      .then((r) => { if (!cancelled) setDailyReading(r); })
+      .catch(() => { if (!cancelled) setDailyReading(null); })
+      .finally(() => { if (!cancelled) setReadingLoading(false); });
+    return () => { cancelled = true; };
+  }, [store.activeWorld?.world_id]);
+
+  const handleGenerateReading = async () => {
+    if (!store.activeWorld || !store.apiKey) return;
+    setReadingGenerating(true);
+    try {
+      const fresh = await api.generateDailyReading(store.apiKey, store.activeWorld.world_id);
+      setDailyReading(fresh);
+      setReadingExpanded(true);
+    } catch (e) {
+      store.setError?.(String(e));
+    } finally {
+      setReadingGenerating(false);
+    }
+  };
 
   // Load recent meanwhile events when the active world changes. Keep to
   // the 20 most recent; the panel is a quick glance, not a history view.
@@ -559,6 +589,18 @@ export function Sidebar({ store, onNavigate }: Props) {
                     </div>
                   );
                 })()}
+
+                {/* Daily reading HUD — percent + qualitative phrase per
+                    craft axis, plus the day's poignant complication. */}
+                <DailyReadingHUD
+                  reading={dailyReading}
+                  loading={readingLoading}
+                  generating={readingGenerating}
+                  expanded={readingExpanded}
+                  onToggle={() => setReadingExpanded((v) => !v)}
+                  onGenerate={handleGenerateReading}
+                  canGenerate={!!store.apiKey}
+                />
 
                 {/* Meanwhile feed — small-grain "off-screen life" events
                     so opening the app feels like returning somewhere real.

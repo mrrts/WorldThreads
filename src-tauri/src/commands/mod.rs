@@ -21,3 +21,4 @@ pub mod usage_cmds;
 pub mod user_profile_cmds;
 pub mod journal_cmds;
 pub mod meanwhile_cmds;
+pub mod daily_reading_cmds;

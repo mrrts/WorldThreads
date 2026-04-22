@@ -1289,11 +1289,12 @@ pub fn build_dialogue_system_prompt(
     mood_chain: &[String],
     leader: Option<&str>,
     recent_journals: &[crate::db::queries::JournalEntry],
+    latest_reading: Option<&crate::db::queries::DailyReading>,
 ) -> String {
     if group_context.is_some() {
-        build_group_dialogue_system_prompt(world, character, user_profile, mood_directive, response_length, group_context.unwrap(), tone, local_model, mood_chain, leader, recent_journals)
+        build_group_dialogue_system_prompt(world, character, user_profile, mood_directive, response_length, group_context.unwrap(), tone, local_model, mood_chain, leader, recent_journals, latest_reading)
     } else {
-        build_solo_dialogue_system_prompt(world, character, user_profile, mood_directive, response_length, tone, local_model, mood_chain, leader, recent_journals)
+        build_solo_dialogue_system_prompt(world, character, user_profile, mood_directive, response_length, tone, local_model, mood_chain, leader, recent_journals, latest_reading)
     }
 }
 
@@ -1322,6 +1323,7 @@ pub fn build_proactive_ping_system_prompt(
         mood_chain,
         None,
         &[],
+        None,
     );
     format!("{base}\n\n{}", proactive_ping_block())
 }
@@ -1357,6 +1359,7 @@ fn build_solo_dialogue_system_prompt(
     mood_chain: &[String],
     leader: Option<&str>,
     recent_journals: &[crate::db::queries::JournalEntry],
+    latest_reading: Option<&crate::db::queries::DailyReading>,
 ) -> String {
     let mut parts = Vec::new();
 
@@ -1397,6 +1400,13 @@ fn build_solo_dialogue_system_prompt(
     // block still sits at the END for the full craft; this banner
     // carries the orientation in one scannable line.
     parts.push(leading_banner_dialogue(leader, &character.character_id, None));
+
+    // Today's reading — the shape of the day so far / yesterday's
+    // residue. Read for tone and carry, not as a subject.
+    {
+        let block = render_daily_reading_block(latest_reading);
+        if !block.is_empty() { parts.push(block); }
+    }
 
     // Recent journal pages — first-person continuity fuel. Lets the
     // character read their own account of themselves from the last 1-2
@@ -1533,6 +1543,7 @@ fn build_group_dialogue_system_prompt(
     mood_chain: &[String],
     leader: Option<&str>,
     recent_journals: &[crate::db::queries::JournalEntry],
+    latest_reading: Option<&crate::db::queries::DailyReading>,
 ) -> String {
     let mut parts = Vec::new();
     parts.push(FUNDAMENTAL_SYSTEM_PREAMBLE.to_string());
@@ -1600,6 +1611,12 @@ fn build_group_dialogue_system_prompt(
     // framing still sits at the END for full craft; this banner keeps
     // the orientation visible up top.
     parts.push(leading_banner_dialogue(leader, &character.character_id, Some(gc)));
+
+    // Today's reading — same carry as solo path.
+    {
+        let block = render_daily_reading_block(latest_reading);
+        if !block.is_empty() { parts.push(block); }
+    }
 
     // Recent journal pages — same as solo path; first-person continuity
     // for this specific speaker so ongoing interior threads carry across
@@ -1949,6 +1966,33 @@ pub fn render_inventory_update_for_prompt(content: &str) -> String {
         }
     }).collect();
     parts.join("; ")
+}
+
+/// Render the latest daily reading as a prompt block. Meant as
+/// scene-register fuel: this is how the day (so far / yesterday) is
+/// tilting across the craft axes, plus the one unresolved thing still
+/// pulling. Read for tone and carry, NOT to recap. The character/
+/// narrator doesn't speak about the "reading" — it just feels like
+/// the air the day has. Returns "" if the reading is None.
+pub fn render_daily_reading_block(
+    reading: Option<&crate::db::queries::DailyReading>,
+) -> String {
+    let Some(r) = reading else { return String::new(); };
+    if r.domains.is_empty() && r.complication.trim().is_empty() { return String::new(); }
+    let domain_lines: Vec<String> = r.domains.iter()
+        .map(|d| format!("  - {}: {}% · {}", d.name, d.percent, d.phrase))
+        .collect();
+    let comp_line = if r.complication.trim().is_empty() {
+        String::new()
+    } else {
+        format!("\n\nPOIGNANT COMPLICATION (what's still pulling underneath): {}", r.complication.trim())
+    };
+    format!(
+        "TODAY'S READING — Day {} (for your register and carry; not a subject, not to reference out loud, just the air the day has):\n{}{}",
+        r.world_day,
+        domain_lines.join("\n"),
+        comp_line,
+    )
 }
 
 /// Render the most-recent journal entries for a character as a

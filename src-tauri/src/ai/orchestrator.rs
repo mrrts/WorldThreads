@@ -222,6 +222,7 @@ pub async fn run_dialogue_with_base(
     reactions_by_msg: &std::collections::HashMap<String, Vec<crate::db::queries::Reaction>>,
     drift_correction: Option<&str>,
     recent_journals: &[crate::db::queries::JournalEntry],
+    latest_reading: Option<&crate::db::queries::DailyReading>,
 ) -> Result<(String, Option<openai::Usage>), String> {
     // When the user has disabled conversation history for this chat, strip
     // prior turns, semantic memories, and moment markers — the character
@@ -247,7 +248,7 @@ pub async fn run_dialogue_with_base(
     let effective_reactions = if send_history { reactions_by_msg } else { &empty_reactions };
     let user_display_name = user_profile.map(|p| p.display_name.as_str());
 
-    let mut system = prompts::build_dialogue_system_prompt(world, character, user_profile, mood_directive, response_length, group_context, tone, local_model, mood_chain, leader, recent_journals);
+    let mut system = prompts::build_dialogue_system_prompt(world, character, user_profile, mood_directive, response_length, group_context, tone, local_model, mood_chain, leader, recent_journals, latest_reading);
     // Conscience-pass retry path: a prior draft drifted on an invariant,
     // and the grader returned a concrete correction note. Append it at the
     // end of the system block so it sits in the high-attention tail right
@@ -692,7 +693,7 @@ pub async fn run_dialogue_streaming(
     kept_ids: &[String],
     illustration_captions: &std::collections::HashMap<String, String>,
 ) -> Result<String, String> {
-    let system = prompts::build_dialogue_system_prompt(world, character, user_profile, mood_directive, response_length, group_context, tone, local_model, mood_chain, leader, &[]);
+    let system = prompts::build_dialogue_system_prompt(world, character, user_profile, mood_directive, response_length, group_context, tone, local_model, mood_chain, leader, &[], None);
     let empty_reactions: std::collections::HashMap<String, Vec<crate::db::queries::Reaction>> = std::collections::HashMap::new();
     let user_display_name = user_profile.map(|p| p.display_name.as_str());
     let messages = prompts::build_dialogue_messages(&system, recent_messages, retrieved_snippets, character_names, kept_ids, illustration_captions, &empty_reactions, user_display_name);
@@ -961,9 +962,36 @@ Small things they currently have on or near them — folded notes, small objects
 INTERIOR ITEMS (kind="interior"):
 Something the character is carrying inside right now. Anything the day's messages make clear and accurate belongs. Big or small, ordinary or weighty — all of it counts as long as it truly fits what happened and what's present in them now.
 
-AIM FOR SPECIFICITY. Generic labels are lazy and don't land. Every interior item should have ONE concrete hook — a cause, a detail, a when, an object, a named person — that ties it to THIS character on THIS day. Don't say "tired"; say "tired from carrying Aaron's question across the afternoon". Don't say "a bit sad"; say "a small sadness about the empty chair at the table". Don't say "contentment"; say "the contentment that settled when the kettle caught and the light shifted west". Don't say "an objective"; say "to finish the third shelf before supper, or quit honestly". If the hook isn't there, you're writing weather instead of interior — rewrite until one concrete thing anchors it.
+╔══════════════════════════════════════════════════════════════╗
+║  SPECIFICITY IS NOT OPTIONAL — IT IS THE WHOLE POINT.        ║
+║  A GENERIC ITEM IS A FAILED ITEM. NO EXCEPTIONS.             ║
+╚══════════════════════════════════════════════════════════════╝
 
-PULL THE HOOKS FROM IDENTITY AND HISTORY FIRST — BUT FAVOR SPECIFICITY OVER LITERAL FIDELITY. Reach first into what's actually on the page: a name that appeared, an object actually mentioned, a phrase someone actually said, a worry the identity makes real. When no hook is on the page, draw from the character's profession, setting, relationships, established life. AND when even that leaves an item feeling generic, INVENT a small concrete detail to nuance it — a named tool, a specific hour, a particular phrase, a sensed texture — so long as the invention stays in keeping with who the character actually is and doesn't contradict anything established. Specificity wins over strict fidelity: a small invented detail that makes an item land is better than a literal but vague rendering. What's forbidden is inventing new facts about the character that conflict with identity or history; what's welcome is inventing the concrete specific angle that makes an item alive.
+EVERY item — physical AND interior — MUST carry a specific concrete hook: a named thing, a named person, a named moment, a named place, a quoted phrase, a specific texture, a specific hour. If an item could belong to any character on any day, it is WRONG and must be rewritten until it could only belong to THIS character on THIS day.
+
+THE TEST: read the item. If swapping the character's name changes nothing about how it reads, the item is generic and must be rewritten.
+
+FORBIDDEN (cut on sight):
+- "tired", "sad", "happy", "anxious", "hopeful" standing alone — these are weather, not interior items.
+- "a worry", "a memory", "a daydream", "a song" with no WHAT. Always name the specific thing.
+- "an objective" without ONE concrete next step the character would actually take.
+- "a folded note" without naming what was on it or who sent it or what it's going to shape.
+- Abstract virtue words ("gratitude", "peace", "contentment") without the specific cause + observable moment that produced them.
+
+REQUIRED (the shape EVERY item must take):
+- "tired" → "tired from carrying Aaron's question across the afternoon"
+- "a worry" → "whether the back-door latch catches before the weather turns"
+- "a song" → "the second verse of that hymn his mother hummed when the bread rose"
+- "an objective" → "to write Darren the letter tonight no matter how tired"
+- "contentment" → "the contentment that settled when the kettle caught and the light shifted west"
+- "a memory" → "his grandmother's hands on the stove rail, the year the river froze"
+- "a folded note" → "the folded note from Aaron with the ferry dock circled and the word maybe crossed out twice"
+
+When you catch yourself writing a vague item, STOP. Ask: "what specific thing is under this?" Rewrite at the level of evidence — a hand, a room, a cup, a silence, a named person, a specific hour, a particular phrase.
+
+If a hook is on the page (a name someone said, an object actually mentioned, a phrase actually quoted), REACH FOR IT FIRST — the literal detail is usually stronger than any invention. If no hook is on the page, INVENT a small concrete angle consistent with the character's identity, profession, setting. What's forbidden is inventing new facts that contradict identity/history; what's REQUIRED is making each item specific.
+
+SPECIFICITY WINS OVER STRICT FIDELITY. A small invented concrete detail that makes an item land is ALWAYS better than a literal but vague rendering. "A book" is wrong. "The borrowed copy of Psalms with the cracked spine" is right — even if no one explicitly said it was borrowed or cracked-spined, as long as that invention fits who the character is. The rule is: stay consistent with identity and established facts; within that envelope, INVENT the specific angle every time.
 
 Range (every one below should still get the specificity treatment):
 - A song stuck in their head (WHICH song, why today).
@@ -1384,6 +1412,196 @@ Recent context (the conversations you've been in — for texture, not for recapp
         .unwrap_or_default();
     if raw.is_empty() { return Err("empty meanwhile response".to_string()); }
     Ok(raw)
+}
+
+/// Fixed axes the daily reading scores against. Adding / reordering
+/// here is fine — readings are stored as JSON so the schema doesn't
+/// churn with the axis list.
+pub const DAILY_READING_DOMAINS: &[(&str, &str)] = &[
+    ("Agape",         "love shown in choices (patience, kindness, not-self-seeking, not-easily-angered, keeps-no-record-of-wrongs). 100 = agape actively chose the costlier warmth over efficient coolness; 20 = mostly transactional or preoccupied; 0 = affection actively withheld."),
+    ("Daylight",      "closeness moved into the open (shared work, meals, plain speech) vs. hidden intensity / secret significance. 100 = nothing important stayed in a private theater; 20 = a feeling kept its own quiet room; 0 = furtive / coded / fed on secrecy."),
+    ("Soundness",     "ordinary life bearing weight vs. manufactured intensity. 100 = grounded, proportionate, real grief/joy when earned; 20 = several scenes overreached for significance; 0 = everything staged as courtroom / sermon."),
+    ("Aliveness",     "characters awake to the specific moment — body, weather, texture, THIS minute. 100 = fully noticing the particular; 20 = coasting on stock beats; 0 = sleepwalking."),
+    ("Honesty",       "truth-telling at proportionate cost (small and short when small; refusing the sedative-as-comfort). 100 = hard true things named cleanly; 20 = softened when it shouldn't have; 0 = sedatives / counterfeit intimacy / dark little trapdoors."),
+    ("Undercurrents", "how much is still unresolved / pulling underneath. HIGH is not inherently bad — stories need tension. 100 = thick unfinished weight carrying forward; 50 = moderate, healthy threads; 0 = everything wrapped, nothing open."),
+];
+
+/// Two-pass daily reading chain. First pass drafts the reading; second
+/// pass self-critiques for performative drift, numeric laziness, or
+/// generic phrasing, and emits the refined version. Both passes use
+/// memory_model tier. Returns (domains, complication).
+pub async fn generate_daily_reading_with_critique(
+    base_url: &str,
+    api_key: &str,
+    model: &str,
+    world: &World,
+    world_day: i64,
+    characters_summary: &str,
+    day_messages_rendered: &str,
+    yesterday_reading: Option<&crate::db::queries::DailyReading>,
+) -> Result<(Vec<crate::db::queries::ReadingDomain>, String, Option<openai::Usage>, Option<openai::Usage>), String> {
+    let domain_block: String = DAILY_READING_DOMAINS.iter()
+        .map(|(name, def)| format!("  - {name}: {def}"))
+        .collect::<Vec<_>>().join("\n");
+    let domain_names: Vec<&str> = DAILY_READING_DOMAINS.iter().map(|(n, _)| *n).collect();
+
+    let yesterday_block = yesterday_reading.map(|r| {
+        let prev: Vec<String> = r.domains.iter()
+            .map(|d| format!("  - {}: {} — {}", d.name, d.percent, d.phrase))
+            .collect();
+        format!("YESTERDAY'S READING (for drift reference — don't copy, but a 20+ point swing in one day is unusual):\n{}\nComplication carried from yesterday: {}",
+            prev.join("\n"), r.complication)
+    }).unwrap_or_else(|| "(no prior reading)".to_string());
+
+    let world_block = {
+        let mut parts = vec![
+            format!("World: {}", if world.description.is_empty() { "(no description)" } else { &world.description })
+        ];
+        if let Some(time) = world.state.get("time") {
+            let tod = time.get("time_of_day").and_then(|v| v.as_str()).unwrap_or("");
+            if !tod.is_empty() { parts.push(format!("End of day: {tod}")); }
+        }
+        if let Some(w) = world.state.get("weather").and_then(|v| v.as_str()) {
+            if let Some((emoji, label)) = crate::ai::prompts::weather_meta(w) {
+                parts.push(format!("Weather: {emoji} {label}"));
+            }
+        }
+        parts.join("\n")
+    };
+
+    // ── PASS 1: DRAFT ──────────────────────────────────────────────────
+    let draft_system = format!(
+        r#"You write the DAILY READING — a field report measuring how today went across a fixed set of craft axes. Output strict JSON matching this shape:
+
+{{
+  "domains": [
+    {{"name": "Agape", "percent": 0-100, "phrase": "5-15 word qualitative phrase — specific, not generic"}},
+    ...one object per domain in the order below...
+  ],
+  "complication": "one short sentence naming a poignant unresolved thing that's still hanging at the end of today"
+}}
+
+THE DOMAINS (always include all of them, in this order):
+{domains}
+
+PERCENT SEMANTICS:
+- This is not an optimization target and not a grade. It's a barometer — what the day ACTUALLY was, honestly.
+- Most days sit in the 40-80 band across most axes. 90+ is rare and hard-earned. Below 30 means something was meaningfully off.
+- Numbers should track the evidence in the day's messages. If nothing happened in a domain, anchor to yesterday's reading rather than inventing drift.
+
+PHRASE SEMANTICS (this is the honest part — take time on it):
+- Specific, not generic. "steady, with an ache around Darren" beats "good engagement."
+- Name a concrete moment or register when possible. "one apology said plainly over tea." "the quiet between the second and third coat of varnish."
+- Five to fifteen words. No performative language. No self-announcing gravitas.
+- If the day was quiet, the phrase should honor the quiet rather than inflate it.
+
+COMPLICATION:
+- One sentence. One unresolved thing that the day left pulling. Could be a question unasked, a feeling un-named, a small wrongness, a thread hanging.
+- Specific to THIS day's actual content, not a generic "there's tension in the air."
+
+Do not hedge or explain. Output ONLY the JSON object."#,
+        domains = domain_block,
+    );
+
+    let draft_user = format!(
+        "WORLD CONTEXT:\n{world}\n\nCHARACTERS:\n{chars}\n\n{yest}\n\nTODAY'S MESSAGES (Day {day}, chronological, across every chat in the world):\n{msgs}\n\nWrite the Day {day} reading.",
+        world = world_block,
+        chars = characters_summary,
+        yest = yesterday_block,
+        day = world_day,
+        msgs = if day_messages_rendered.trim().is_empty() { "(no messages logged for today)".to_string() } else { day_messages_rendered.to_string() },
+    );
+
+    let draft_req = ChatRequest {
+        model: model.to_string(),
+        messages: vec![
+            openai::ChatMessage { role: "system".to_string(), content: draft_system.clone() },
+            openai::ChatMessage { role: "user".to_string(), content: draft_user.clone() },
+        ],
+        temperature: Some(0.5),
+        max_completion_tokens: Some(800),
+        response_format: Some(openai::ResponseFormat { format_type: "json_object".to_string() }),
+    };
+    let draft_resp = openai::chat_completion_with_base(base_url, api_key, &draft_req).await?;
+    let draft_usage = draft_resp.usage.clone();
+    let draft_raw = draft_resp.choices.first().map(|c| c.message.content.clone()).unwrap_or_default();
+
+    // ── PASS 2: SELF-CRITIQUE + REFINE ─────────────────────────────────
+    let critique_system = format!(
+        r#"You are reviewing a DRAFT daily reading for a living-story app. Your job is to CRITIQUE it and emit a REFINED version in the same JSON shape.
+
+Check the draft against these failure modes:
+- Generic phrasing. "good engagement," "mixed results," "some tension" — cut. Replace with something anchored to a specific moment or register from the actual messages.
+- Numeric laziness. If numbers look rounded to multiples of 10 across all axes, nudge a few to real specific values that track the evidence.
+- Performative gravitas. Phrases that sound profound but don't land concretely — cut.
+- Scoring drift. 90+ anywhere should be earned by a specific hard-won moment in the day's messages. If no such moment exists, pull it down to the 60-80 band.
+- Generic complication. "There's something unresolved between them" — cut. Name the specific thing, the specific character(s).
+- Unexamined carryover from yesterday. If a domain scored 80 yesterday and nothing on that axis happened today, the correct move is usually steady within 5-10 points, not identical. Unless the messages clearly warrant drift.
+- Missing groundedness. The phrase should cite concrete texture — a hand, a room, a cup, a silence, a specific character, a named thing — not float above the day.
+
+Output the REFINED reading in the same strict JSON shape as the draft. Always all domains, in the same order. Keep what's honest and specific; rewrite what's generic or performative.
+
+DOMAINS (required, in this order):
+{domains}
+
+Output ONLY the JSON object. No preamble."#,
+        domains = domain_block,
+    );
+
+    let critique_user = format!(
+        "ORIGINAL CONTEXT (same as the draft saw):\n{world}\n\nCHARACTERS:\n{chars}\n\n{yest}\n\nTODAY'S MESSAGES:\n{msgs}\n\nDRAFT READING (to critique and refine):\n{draft}\n\nWrite the refined reading.",
+        world = world_block,
+        chars = characters_summary,
+        yest = yesterday_block,
+        msgs = if day_messages_rendered.trim().is_empty() { "(no messages logged for today)".to_string() } else { day_messages_rendered.to_string() },
+        draft = draft_raw,
+    );
+
+    let crit_req = ChatRequest {
+        model: model.to_string(),
+        messages: vec![
+            openai::ChatMessage { role: "system".to_string(), content: critique_system },
+            openai::ChatMessage { role: "user".to_string(), content: critique_user },
+        ],
+        temperature: Some(0.4),
+        max_completion_tokens: Some(800),
+        response_format: Some(openai::ResponseFormat { format_type: "json_object".to_string() }),
+    };
+    let crit_resp = openai::chat_completion_with_base(base_url, api_key, &crit_req).await?;
+    let crit_usage = crit_resp.usage.clone();
+    let refined_raw = crit_resp.choices.first().map(|c| c.message.content.clone()).unwrap_or_default();
+
+    // Parse refined; fall back to draft on parse error.
+    #[derive(serde::Deserialize)]
+    struct Parsed {
+        domains: Vec<crate::db::queries::ReadingDomain>,
+        #[serde(default)]
+        complication: String,
+    }
+    let parsed: Parsed = serde_json::from_str(&refined_raw)
+        .or_else(|_| serde_json::from_str(&draft_raw))
+        .map_err(|e| format!("Could not parse daily-reading JSON: {e}"))?;
+
+    // Normalize: clamp percents to [0,100], trim phrases, ensure every
+    // required domain is present (fill missing with a blank-ish placeholder
+    // at 50 so the UI never renders a broken row).
+    let by_name: std::collections::HashMap<String, crate::db::queries::ReadingDomain> =
+        parsed.domains.into_iter()
+            .map(|mut d| {
+                d.percent = d.percent.clamp(0, 100);
+                d.phrase = d.phrase.trim().to_string();
+                (d.name.clone(), d)
+            })
+            .collect();
+    let domains_out: Vec<crate::db::queries::ReadingDomain> = domain_names.iter().map(|n| {
+        by_name.get(*n).cloned().unwrap_or_else(|| crate::db::queries::ReadingDomain {
+            name: (*n).to_string(),
+            percent: 50,
+            phrase: "(no reading)".to_string(),
+        })
+    }).collect();
+
+    Ok((domains_out, parsed.complication.trim().to_string(), draft_usage, crit_usage))
 }
 
 pub async fn derive_caption_from_scene(

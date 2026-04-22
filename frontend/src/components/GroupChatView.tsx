@@ -198,7 +198,26 @@ export function GroupChatView({ store, onNavigateToCharacter }: Props) {
   useChatFocusRefresh({
     chatKey: chatId,
     containerRef: chatContainerRef,
-    onFocusRefresh: () => { if (chatId) store.refreshGroupInventories(chatId); },
+    onFocusRefresh: () => {
+      if (!chatId) return;
+      store.refreshGroupInventories(chatId);
+      // Per-member journal auto-gen. Each backend call short-circuits
+      // if today's entry already exists for that character.
+      if (store.apiKey) {
+        for (const cid of groupCharIds) {
+          api.maybeGenerateCharacterJournal(store.apiKey, cid).catch(() => {});
+        }
+      }
+      // Per-world meanwhile auto-gen.
+      if (store.apiKey && store.activeWorld) {
+        api.maybeGenerateMeanwhileEvents(store.apiKey, store.activeWorld.world_id).catch(() => {});
+      }
+      // Per-world daily reading auto-gen (short-circuits if today's
+      // reading already exists; two-pass chain with self-critique).
+      if (store.apiKey && store.activeWorld) {
+        api.maybeGenerateDailyReading(store.apiKey, store.activeWorld.world_id).catch(() => {});
+      }
+    },
   });
 
   // Close settings popover on outside click

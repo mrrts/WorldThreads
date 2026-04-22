@@ -14,6 +14,7 @@ mod weathering;
 mod inventory;
 mod journal;
 mod meanwhile;
+mod daily_reading;
 
 pub use world::*;
 pub use user_profile::*;
@@ -31,3 +32,4 @@ pub use weathering::*;
 pub use inventory::*;
 pub use journal::*;
 pub use meanwhile::*;
+pub use daily_reading::*;

@@ -336,6 +336,129 @@ pub fn get_inventory_updates_for_messages(
     rows.collect()
 }
 
+/// Like `gather_character_recent_messages`, but strictly bounded to a
+/// single `world_day`. Used by the journal path so the entry is
+/// written from exactly today's messages — not whatever happened to
+/// be in the last 60 lines by wall-clock. Merges across solo + every
+/// group thread the character is in; sorted chronologically.
+/// Messages with NULL `world_day` are excluded (the journal is a
+/// structured-time artifact).
+pub fn gather_character_messages_for_world_day(
+    conn: &Connection,
+    character_id: &str,
+    user_display_name: &str,
+    world_day: i64,
+) -> Vec<ConversationLine> {
+    let my_name: String = conn
+        .query_row(
+            "SELECT display_name FROM characters WHERE character_id = ?1",
+            params![character_id],
+            |r| r.get(0),
+        )
+        .unwrap_or_else(|_| "Character".to_string());
+
+    let mut names: std::collections::HashMap<String, String> =
+        std::collections::HashMap::new();
+    names.insert(character_id.to_string(), my_name.clone());
+
+    let group_threads: Vec<String> = {
+        let mut out: Vec<String> = Vec::new();
+        if let Ok(mut stmt) = conn.prepare(
+            "SELECT thread_id, character_ids FROM group_chats
+             WHERE EXISTS (SELECT 1 FROM json_each(character_ids) WHERE value = ?1)",
+        ) {
+            if let Ok(rows) = stmt.query_map(params![character_id], |r| {
+                Ok((r.get::<_, String>(0)?, r.get::<_, String>(1)?))
+            }) {
+                for row in rows.flatten() {
+                    out.push(row.0);
+                    if let Ok(ids) = serde_json::from_str::<Vec<String>>(&row.1) {
+                        for id in ids {
+                            if !names.contains_key(&id) {
+                                if let Ok(n) = conn.query_row(
+                                    "SELECT display_name FROM characters WHERE character_id = ?1",
+                                    params![id],
+                                    |r| r.get::<_, String>(0),
+                                ) {
+                                    names.insert(id, n);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        out
+    };
+
+    let solo_thread: Option<String> = conn
+        .query_row(
+            "SELECT thread_id FROM threads WHERE character_id = ?1",
+            params![character_id],
+            |r| r.get(0),
+        )
+        .ok();
+
+    let mut all: Vec<ConversationLine> = Vec::new();
+
+    if let Some(tid) = solo_thread.as_deref() {
+        if let Ok(mut stmt) = conn.prepare(
+            "SELECT role, content, created_at, sender_character_id FROM messages
+             WHERE thread_id = ?1
+               AND world_day = ?2
+               AND role NOT IN ('illustration', 'video', 'system', 'context', 'inventory_update')
+             ORDER BY created_at ASC",
+        ) {
+            if let Ok(rows) = stmt.query_map(params![tid, world_day], |r| {
+                Ok((
+                    r.get::<_, String>(0)?,
+                    r.get::<_, String>(1)?,
+                    r.get::<_, String>(2)?,
+                    r.get::<_, Option<String>>(3)?,
+                ))
+            }) {
+                for (role, content, created_at, sender_id) in rows.flatten() {
+                    all.push(ConversationLine {
+                        speaker: label_for(&role, sender_id.as_deref(), &names, &my_name, user_display_name),
+                        content,
+                        created_at,
+                    });
+                }
+            }
+        }
+    }
+
+    for tid in &group_threads {
+        if let Ok(mut stmt) = conn.prepare(
+            "SELECT role, content, created_at, sender_character_id FROM group_messages
+             WHERE thread_id = ?1
+               AND world_day = ?2
+               AND role NOT IN ('illustration', 'video', 'system', 'context', 'inventory_update')
+             ORDER BY created_at ASC",
+        ) {
+            if let Ok(rows) = stmt.query_map(params![tid, world_day], |r| {
+                Ok((
+                    r.get::<_, String>(0)?,
+                    r.get::<_, String>(1)?,
+                    r.get::<_, String>(2)?,
+                    r.get::<_, Option<String>>(3)?,
+                ))
+            }) {
+                for (role, content, created_at, sender_id) in rows.flatten() {
+                    all.push(ConversationLine {
+                        speaker: label_for(&role, sender_id.as_deref(), &names, &my_name, user_display_name),
+                        content,
+                        created_at,
+                    });
+                }
+            }
+        }
+    }
+
+    all.sort_by(|a, b| a.created_at.cmp(&b.created_at));
+    all
+}
+
 fn label_for(
     role: &str,
     sender_id: Option<&str>,

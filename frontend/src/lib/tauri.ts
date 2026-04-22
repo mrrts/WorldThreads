@@ -723,13 +723,50 @@ export const api = {
     invoke<InventoryUpdateRecord[]>("get_inventory_updates_for_messages_cmd", { messageIds }),
   generateCharacterJournal: (apiKey: string, characterId: string) =>
     invoke<JournalEntry>("generate_character_journal_cmd", { apiKey, characterId }),
+  maybeGenerateCharacterJournal: (apiKey: string, characterId: string) =>
+    invoke<MaybeJournalResult>("maybe_generate_character_journal_cmd", { apiKey, characterId }),
   listCharacterJournals: (characterId: string, limit?: number) =>
     invoke<JournalEntry[]>("list_character_journals_cmd", { characterId, limit: limit ?? null }),
   generateMeanwhileEvents: (apiKey: string, worldId: string) =>
     invoke<MeanwhileEvent[]>("generate_meanwhile_events_cmd", { apiKey, worldId }),
+  maybeGenerateMeanwhileEvents: (apiKey: string, worldId: string) =>
+    invoke<MeanwhileEvent[]>("maybe_generate_meanwhile_events_cmd", { apiKey, worldId }),
   listMeanwhileEvents: (worldId: string, limit?: number) =>
     invoke<MeanwhileEvent[]>("list_meanwhile_events_cmd", { worldId, limit: limit ?? null }),
+  generateDailyReading: (apiKey: string, worldId: string) =>
+    invoke<DailyReading>("generate_daily_reading_cmd", { apiKey, worldId }),
+  maybeGenerateDailyReading: (apiKey: string, worldId: string) =>
+    invoke<MaybeDailyReadingResult>("maybe_generate_daily_reading_cmd", { apiKey, worldId }),
+  listDailyReadings: (worldId: string, limit?: number) =>
+    invoke<DailyReading[]>("list_daily_readings_cmd", { worldId, limit: limit ?? null }),
+  getLatestDailyReading: (worldId: string) =>
+    invoke<DailyReading | null>("get_latest_daily_reading_cmd", { worldId }),
 };
+
+export interface ReadingDomain {
+  name: string;
+  percent: number;
+  phrase: string;
+}
+
+export interface DailyReading {
+  reading_id: string;
+  world_id: string;
+  world_day: number;
+  domains: ReadingDomain[];
+  complication: string;
+  created_at: string;
+}
+
+export interface MaybeDailyReadingResult {
+  reading: DailyReading | null;
+  refreshed: boolean;
+}
+
+export interface MaybeJournalResult {
+  entry: JournalEntry | null;
+  refreshed: boolean;
+}
 
 export interface JournalEntry {
   journal_id: string;
