@@ -110,8 +110,10 @@ export function StickyIllustration({ messages, scrollContainer, aspectRatios }: 
                  bg-gradient-to-br from-emerald-950/40 to-emerald-900/20
                  backdrop-blur-sm transition-all duration-200
                  hover:scale-[1.04] hover:-translate-y-0.5
-                 animate-in fade-in slide-in-from-bottom-2"
-      style={{ width: 132 }}
+                 animate-in fade-in-0 zoom-in-90 slide-in-from-bottom-4 slide-in-from-right-2
+                 duration-500 ease-out
+                 motion-reduce:animate-in motion-reduce:fade-in-0 motion-reduce:duration-200"
+      style={{ width: 264 }}
     >
       <img
         src={latest.content}
