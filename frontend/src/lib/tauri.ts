@@ -238,17 +238,51 @@ export interface KeptRecord {
   source_thread_id: string | null;
   source_world_day: number | null;
   source_created_at: string | null;
-  // Live writes are always character|user + description_weave (the only
-  // canonization mode the UI exposes). Older entries in the DB may carry
-  // the deprecated "world"/"relationship" subject types or known_fact /
-  // relationship_note / world_fact record types — kept in the union so
-  // historical reads still typecheck.
+  // Live writes come from the auto-canonization classifier: character|user
+  // subjects and one of the five live record types below. Older rows may
+  // carry deprecated subject_type ("world"/"relationship") or record_type
+  // ("relationship_note"/"world_fact") — still readable, kept in the union.
   subject_type: "character" | "user" | "world" | "relationship";
   subject_id: string;
-  record_type: "description_weave" | "known_fact" | "relationship_note" | "world_fact";
+  record_type:
+    | "description_weave"
+    | "voice_rule"
+    | "boundary"
+    | "known_fact"
+    | "open_loop"
+    | "relationship_note"
+    | "world_fact";
   content: string;
   user_note: string;
   created_at: string;
+}
+
+/// Auto-canonization proposal kinds. All five map to an editable shape
+/// on the CharacterEditor page (description = textarea; voice_rule /
+/// boundary / known_fact / open_loop = single-line bullet strings).
+export type CanonKind =
+  | "description_weave"
+  | "voice_rule"
+  | "boundary"
+  | "known_fact"
+  | "open_loop";
+
+export interface ProposedCanonUpdate {
+  kind: CanonKind;
+  subject_type: "character" | "user";
+  subject_id: string;
+  subject_label: string;
+  /// For description_weave: full revised description to replace
+  /// identity/description. For the others: the single bullet to append.
+  new_content: string;
+  /// Present only for description_weave — the old description, for
+  /// before/after display.
+  prior_content: string | null;
+  justification: string;
+}
+
+export interface AppliedCanonUpdate extends ProposedCanonUpdate {
+  kept_id: string;
 }
 
 export interface UserProfile {
@@ -676,6 +710,16 @@ export const api = {
     content: string;
     userNote?: string;
   }) => invoke<KeptRecord>("save_kept_record_cmd", { request }),
+  /// Auto-canon propose: classify a moment into 1-2 proposed updates
+  /// (description_weave / voice_rule / boundary / known_fact / open_loop)
+  /// without applying anything. The returned proposals carry a kind,
+  /// subject, content, optional prior content for diff, and a brief
+  /// justification — the UI can let the user edit content and then
+  /// commit.
+  proposeAutoCanon: (apiKey: string, request: { sourceMessageId: string; userHint?: string }) =>
+    invoke<ProposedCanonUpdate[]>("propose_auto_canon_cmd", { apiKey, request }),
+  commitAutoCanon: (request: { sourceMessageId: string; updates: ProposedCanonUpdate[]; userNote?: string }) =>
+    invoke<AppliedCanonUpdate[]>("commit_auto_canon_cmd", { request }),
   listKeptMessageIds: (threadId: string) =>
     invoke<string[]>("list_kept_message_ids_cmd", { threadId }),
   listKeptForMessage: (messageId: string) =>

@@ -262,6 +262,314 @@ pub fn save_kept_record_cmd(
     Ok(entry)
 }
 
+// ─── Auto-canonization (propose + commit) ────────────────────────────────
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ProposeAutoCanonRequest {
+    pub source_message_id: String,
+    /// Free-text user hint to steer the classifier ("add as boundary for
+    /// Darren", "remember Anna likes coffee with cream, no sugar").
+    /// Optional — blank or missing is fine.
+    #[serde(default)]
+    pub user_hint: String,
+}
+
+/// Classify a moment into 1-2 proposed canonization updates without
+/// applying anything. Returns a preview the UI can display (and
+/// optionally allow the user to edit in-place) before the user commits.
+#[tauri::command]
+pub async fn propose_auto_canon_cmd(
+    db: State<'_, Database>,
+    api_key: String,
+    request: ProposeAutoCanonRequest,
+) -> Result<Vec<orchestrator::ProposedCanonUpdate>, String> {
+    if api_key.trim().is_empty() {
+        return Err("no API key".to_string());
+    }
+
+    // Gather everything under one lock, then release before the LLM call.
+    let (model_config, source_msg, source_speaker_label, context_msgs, subjects) = {
+        let conn = db.conn.lock().map_err(|e| e.to_string())?;
+        let model_config = orchestrator::load_model_config(&conn);
+
+        let (source_msg, table) = find_message(&conn, &request.source_message_id)
+            .ok_or_else(|| "source message not found".to_string())?;
+
+        // Find the world this moment belongs to (via the thread).
+        let world_id: String = conn.query_row(
+            "SELECT world_id FROM threads WHERE thread_id = ?1",
+            params![source_msg.thread_id], |r| r.get(0),
+        ).map_err(|e| format!("couldn't resolve world for source message: {e}"))?;
+
+        let user_profile = get_user_profile(&conn, &world_id).ok();
+        let user_display_name = user_profile.as_ref()
+            .map(|p| p.display_name.clone())
+            .unwrap_or_else(|| "The human".to_string());
+
+        let speaker_label = speaker_label_for(&conn, &source_msg, &user_display_name);
+        let context_msgs = surrounding_messages(&conn, &table, &source_msg.thread_id, &source_msg.created_at);
+
+        // Build candidate subject list: every character in the world + the user.
+        let characters = list_characters(&conn, &world_id).unwrap_or_default();
+        let mut subjects: Vec<orchestrator::CanonizationSubject> = Vec::new();
+        for ch in &characters {
+            if ch.is_archived { continue; }
+            subjects.push(orchestrator::CanonizationSubject {
+                subject_type: "character".to_string(),
+                subject_id: ch.character_id.clone(),
+                subject_label: ch.display_name.clone(),
+                current_description: ch.identity.clone(),
+                voice_rules: json_array_to_strings(&ch.voice_rules),
+                boundaries: json_array_to_strings(&ch.boundaries),
+                backstory_facts: json_array_to_strings(&ch.backstory_facts),
+                open_loops: character_open_loops(ch),
+            });
+        }
+        if let Some(profile) = user_profile.as_ref() {
+            subjects.push(orchestrator::CanonizationSubject {
+                subject_type: "user".to_string(),
+                subject_id: world_id.clone(),
+                subject_label: if profile.display_name.trim().is_empty() { "You".to_string() } else { profile.display_name.clone() },
+                current_description: profile.description.clone(),
+                // User profile doesn't carry these lists today; pass empty
+                // so the classifier treats the user as weave-only-eligible
+                // unless the moment genuinely fits another kind.
+                voice_rules: Vec::new(),
+                boundaries: Vec::new(),
+                backstory_facts: Vec::new(),
+                open_loops: Vec::new(),
+            });
+        }
+
+        (model_config, source_msg, speaker_label, context_msgs, subjects)
+    };
+
+    let (proposals, usage) = orchestrator::propose_canonization_updates(
+        &model_config.chat_api_base(), &api_key, &model_config.memory_model,
+        &source_msg, &source_speaker_label, &context_msgs, &subjects,
+        Some(&request.user_hint),
+    ).await?;
+
+    if let Some(u) = &usage {
+        let conn = db.conn.lock().map_err(|e| e.to_string())?;
+        let _ = record_token_usage(&conn, "canon_auto_propose", &model_config.memory_model, u.prompt_tokens, u.completion_tokens);
+    }
+
+    Ok(proposals)
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CommitAutoCanonRequest {
+    pub source_message_id: String,
+    /// The (possibly user-edited) proposals to commit. The frontend passes
+    /// back what the user saw and optionally tweaked. Server re-validates
+    /// shape but trusts content.
+    pub updates: Vec<orchestrator::ProposedCanonUpdate>,
+    #[serde(default)]
+    pub user_note: String,
+}
+
+#[derive(Debug, Serialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct AppliedCanonUpdate {
+    pub kept_id: String,
+    pub kind: String,
+    pub subject_type: String,
+    pub subject_id: String,
+    pub subject_label: String,
+    pub new_content: String,
+    pub prior_content: Option<String>,
+    pub justification: String,
+}
+
+/// Apply a set of previously-proposed (and possibly user-edited) updates
+/// to their subjects and write one kept_records row per update. Returns
+/// the list of applied updates so the UI can show a final report.
+#[tauri::command]
+pub fn commit_auto_canon_cmd(
+    db: State<Database>,
+    request: CommitAutoCanonRequest,
+) -> Result<Vec<AppliedCanonUpdate>, String> {
+    if request.updates.is_empty() {
+        return Err("no updates to commit".to_string());
+    }
+    if request.updates.len() > 2 {
+        return Err(format!("too many updates ({}); max is 2", request.updates.len()));
+    }
+
+    let conn = db.conn.lock().map_err(|e| e.to_string())?;
+
+    // Provenance block — resolve once; reused across all applied updates.
+    let (source_thread_id, source_world_day, source_created_at) = match find_message(&conn, &request.source_message_id) {
+        Some((m, _)) => (Some(m.thread_id), m.world_day, Some(m.created_at)),
+        None => (None, None, None),
+    };
+
+    let mut applied: Vec<AppliedCanonUpdate> = Vec::new();
+    for u in &request.updates {
+        let trimmed = u.new_content.trim().to_string();
+        if trimmed.is_empty() {
+            return Err(format!("update for {} has empty content", u.subject_label));
+        }
+
+        // Apply side effect based on kind + subject_type.
+        let prior_for_report: Option<String> = match (u.subject_type.as_str(), u.kind.as_str()) {
+            ("character", "description_weave") => {
+                let ch = get_character(&conn, &u.subject_id).map_err(|e| e.to_string())?;
+                let prior = ch.identity.clone();
+                conn.execute(
+                    "UPDATE characters SET identity = ?2, updated_at = datetime('now') WHERE character_id = ?1",
+                    params![u.subject_id, trimmed],
+                ).map_err(|e| e.to_string())?;
+                Some(prior)
+            }
+            ("character", "voice_rule") => {
+                append_character_list(&conn, &u.subject_id, "voice_rules", &trimmed)?;
+                None
+            }
+            ("character", "boundary") => {
+                append_character_list(&conn, &u.subject_id, "boundaries", &trimmed)?;
+                None
+            }
+            ("character", "known_fact") => {
+                append_character_list(&conn, &u.subject_id, "backstory_facts", &trimmed)?;
+                None
+            }
+            ("character", "open_loop") => {
+                append_character_state_open_loop(&conn, &u.subject_id, &trimmed)?;
+                None
+            }
+            ("user", "description_weave") => {
+                let prior = get_user_profile(&conn, &u.subject_id).map(|p| p.description).unwrap_or_default();
+                conn.execute(
+                    "UPDATE user_profiles SET description = ?2, updated_at = datetime('now') WHERE world_id = ?1",
+                    params![u.subject_id, trimmed],
+                ).map_err(|e| e.to_string())?;
+                Some(prior)
+            }
+            ("user", _other) => {
+                // The user profile today doesn't carry voice_rules /
+                // boundaries / backstory_facts / open_loops. Reject with a
+                // clear message rather than silently dropping the intent.
+                return Err(format!(
+                    "{} is not yet supported for subject_type=user — only description_weave is applicable to the user profile",
+                    u.kind
+                ));
+            }
+            (st, k) => return Err(format!("unsupported (subject_type={st}, kind={k})")),
+        };
+
+        let kept_id = uuid::Uuid::new_v4().to_string();
+        let entry = KeptRecord {
+            kept_id: kept_id.clone(),
+            source_message_id: Some(request.source_message_id.clone()),
+            source_thread_id: source_thread_id.clone(),
+            source_world_day,
+            source_created_at: source_created_at.clone(),
+            subject_type: u.subject_type.clone(),
+            subject_id: u.subject_id.clone(),
+            record_type: u.kind.clone(),
+            content: trimmed.clone(),
+            user_note: request.user_note.clone(),
+            created_at: Utc::now().to_rfc3339(),
+        };
+        create_kept_record(&conn, &entry).map_err(|e| e.to_string())?;
+
+        applied.push(AppliedCanonUpdate {
+            kept_id,
+            kind: u.kind.clone(),
+            subject_type: u.subject_type.clone(),
+            subject_id: u.subject_id.clone(),
+            subject_label: u.subject_label.clone(),
+            new_content: trimmed,
+            prior_content: prior_for_report,
+            justification: u.justification.clone(),
+        });
+    }
+
+    Ok(applied)
+}
+
+/// Append `value` to the JSON-array field `field` on character `id`.
+/// field ∈ {"voice_rules","boundaries","backstory_facts"}. Preserves
+/// existing entries; no dedupe (the classifier is instructed not to
+/// duplicate, and the user can still force it via Regenerate-with-hint
+/// if they want).
+fn append_character_list(
+    conn: &rusqlite::Connection,
+    character_id: &str,
+    field: &str,
+    value: &str,
+) -> Result<(), String> {
+    let current_json: String = conn.query_row(
+        &format!("SELECT {field} FROM characters WHERE character_id = ?1"),
+        params![character_id], |r| r.get(0),
+    ).map_err(|e| format!("character load failed: {e}"))?;
+    let mut arr: Vec<serde_json::Value> = serde_json::from_str(&current_json)
+        .unwrap_or_else(|_| Vec::new());
+    arr.push(serde_json::Value::String(value.to_string()));
+    let new_json = serde_json::to_string(&arr).map_err(|e| e.to_string())?;
+    conn.execute(
+        &format!("UPDATE characters SET {field} = ?2, updated_at = datetime('now') WHERE character_id = ?1"),
+        params![character_id, new_json],
+    ).map_err(|e| format!("character update failed: {e}"))?;
+    Ok(())
+}
+
+/// Append a string to `state.open_loops` inside the character's state JSON.
+/// Open loops live nested one level deep so we merge-read-modify-write.
+fn append_character_state_open_loop(
+    conn: &rusqlite::Connection,
+    character_id: &str,
+    value: &str,
+) -> Result<(), String> {
+    let current_json: String = conn.query_row(
+        "SELECT state FROM characters WHERE character_id = ?1",
+        params![character_id], |r| r.get(0),
+    ).map_err(|e| format!("character load failed: {e}"))?;
+    let mut state: serde_json::Value = serde_json::from_str(&current_json)
+        .unwrap_or_else(|_| serde_json::json!({}));
+    let loops = state
+        .as_object_mut()
+        .ok_or_else(|| "character state is not an object".to_string())?
+        .entry("open_loops".to_string())
+        .or_insert_with(|| serde_json::Value::Array(Vec::new()));
+    if let Some(arr) = loops.as_array_mut() {
+        arr.push(serde_json::Value::String(value.to_string()));
+    } else {
+        *loops = serde_json::json!([value]);
+    }
+    let new_json = serde_json::to_string(&state).map_err(|e| e.to_string())?;
+    conn.execute(
+        "UPDATE characters SET state = ?2, updated_at = datetime('now') WHERE character_id = ?1",
+        params![character_id, new_json],
+    ).map_err(|e| format!("character state update failed: {e}"))?;
+    Ok(())
+}
+
+/// Pull the list of `state.open_loops` strings from a character, for the
+/// classifier's "don't duplicate existing canon" awareness.
+fn character_open_loops(ch: &Character) -> Vec<String> {
+    ch.state.get("open_loops")
+        .and_then(|v| v.as_array())
+        .map(|arr| arr.iter()
+            .filter_map(|x| x.as_str().map(|s| s.to_string()))
+            .collect())
+        .unwrap_or_default()
+}
+
+/// Convert a JSON array of strings to Vec<String>. Defensive: returns
+/// empty if the value isn't an array or entries aren't strings.
+fn json_array_to_strings(v: &serde_json::Value) -> Vec<String> {
+    v.as_array()
+        .map(|arr| arr.iter()
+            .filter_map(|x| x.as_str().map(|s| s.to_string()))
+            .collect())
+        .unwrap_or_default()
+}
+
 /// Return the distinct set of message IDs (in the current thread) that have
 /// been canonized at least once — drives the "this moment is canon"
 /// indicator on messages.

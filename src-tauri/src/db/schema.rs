@@ -1047,6 +1047,13 @@ pub fn run_migrations(conn: &Connection) -> Result<(), rusqlite::Error> {
     // Fresh-install path: create the new table directly. IF NOT EXISTS means
     // this is a no-op on databases that already came through the rename
     // branch above.
+    //
+    // record_type CHECK is intentionally broad: the live write types are
+    // description_weave / voice_rule / boundary / known_fact / open_loop
+    // (the auto-classifier can emit any of these). Deprecated legacy
+    // values relationship_note and world_fact stay in the constraint so
+    // pre-existing rows from the old flow remain readable — they are
+    // NEVER emitted by the write path.
     conn.execute_batch("
         CREATE TABLE IF NOT EXISTS kept_records (
             kept_id TEXT PRIMARY KEY,
@@ -1056,7 +1063,7 @@ pub fn run_migrations(conn: &Connection) -> Result<(), rusqlite::Error> {
             source_created_at TEXT,
             subject_type TEXT NOT NULL CHECK(subject_type IN ('character','user','world','relationship')),
             subject_id TEXT NOT NULL,
-            record_type TEXT NOT NULL CHECK(record_type IN ('description_weave','known_fact','relationship_note','world_fact')),
+            record_type TEXT NOT NULL CHECK(record_type IN ('description_weave','voice_rule','boundary','known_fact','open_loop','relationship_note','world_fact')),
             content TEXT NOT NULL,
             user_note TEXT NOT NULL DEFAULT '',
             created_at TEXT NOT NULL DEFAULT (datetime('now'))
@@ -1064,6 +1071,108 @@ pub fn run_migrations(conn: &Connection) -> Result<(), rusqlite::Error> {
         CREATE INDEX IF NOT EXISTS idx_kept_source_message ON kept_records(source_message_id);
         CREATE INDEX IF NOT EXISTS idx_kept_subject ON kept_records(subject_type, subject_id);
     ").ok();
+
+    // ── One-shot migration: broaden kept_records.record_type CHECK ────────
+    //
+    // Existing installs have a narrower CHECK that only admits
+    // description_weave / known_fact / relationship_note / world_fact.
+    // The auto-canonization classifier also emits voice_rule / boundary /
+    // open_loop, so we need to rebuild the table with the broader
+    // constraint. Idempotent via the `schema.kept_records_check_v2`
+    // setting marker.
+    //
+    // Safety protocol (per CLAUDE.md DATABASE SAFETY rule):
+    //   1. Rename old table → kept_records_migrating
+    //   2. Create new table with broader CHECK
+    //   3. INSERT all rows from migrating → new
+    //   4. VERIFY row count matches; if not, ROLLBACK (rename back)
+    //   5. Only drop the migrating table on verified success
+    let already_migrated: i64 = conn.query_row(
+        "SELECT COUNT(*) FROM settings WHERE key = 'schema.kept_records_check_v2'",
+        [], |r| r.get(0),
+    ).unwrap_or(0);
+    if already_migrated == 0 {
+        let table_exists: i64 = conn.query_row(
+            "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='kept_records'",
+            [], |r| r.get(0),
+        ).unwrap_or(0);
+        if table_exists > 0 {
+            let before: i64 = conn.query_row("SELECT COUNT(*) FROM kept_records", [], |r| r.get(0)).unwrap_or(-1);
+            let migrate_result: rusqlite::Result<()> = (|| {
+                conn.execute_batch("PRAGMA foreign_keys=OFF;")?;
+                conn.execute_batch("ALTER TABLE kept_records RENAME TO kept_records_migrating;")?;
+                conn.execute_batch("
+                    CREATE TABLE kept_records (
+                        kept_id TEXT PRIMARY KEY,
+                        source_message_id TEXT,
+                        source_thread_id TEXT,
+                        source_world_day INTEGER,
+                        source_created_at TEXT,
+                        subject_type TEXT NOT NULL CHECK(subject_type IN ('character','user','world','relationship')),
+                        subject_id TEXT NOT NULL,
+                        record_type TEXT NOT NULL CHECK(record_type IN ('description_weave','voice_rule','boundary','known_fact','open_loop','relationship_note','world_fact')),
+                        content TEXT NOT NULL,
+                        user_note TEXT NOT NULL DEFAULT '',
+                        created_at TEXT NOT NULL DEFAULT (datetime('now'))
+                    );
+                ")?;
+                conn.execute_batch("
+                    INSERT INTO kept_records
+                        (kept_id, source_message_id, source_thread_id, source_world_day,
+                         source_created_at, subject_type, subject_id, record_type,
+                         content, user_note, created_at)
+                    SELECT kept_id, source_message_id, source_thread_id, source_world_day,
+                           source_created_at, subject_type, subject_id, record_type,
+                           content, user_note, created_at
+                    FROM kept_records_migrating;
+                ")?;
+                Ok(())
+            })();
+            match migrate_result {
+                Ok(()) => {
+                    let after: i64 = conn.query_row("SELECT COUNT(*) FROM kept_records", [], |r| r.get(0)).unwrap_or(-2);
+                    if after == before {
+                        // Verified — safe to drop the old table and mark migrated.
+                        conn.execute_batch("
+                            DROP TABLE kept_records_migrating;
+                            CREATE INDEX IF NOT EXISTS idx_kept_source_message ON kept_records(source_message_id);
+                            CREATE INDEX IF NOT EXISTS idx_kept_subject ON kept_records(subject_type, subject_id);
+                            PRAGMA foreign_keys=ON;
+                        ").ok();
+                        conn.execute(
+                            "INSERT INTO settings (key, value) VALUES ('schema.kept_records_check_v2', ?1)",
+                            [chrono::Utc::now().to_rfc3339()],
+                        ).ok();
+                        log::warn!("kept_records CHECK broadened to v2: {} rows preserved", after);
+                    } else {
+                        // Count mismatch — ROLLBACK.
+                        conn.execute_batch("
+                            DROP TABLE IF EXISTS kept_records;
+                            ALTER TABLE kept_records_migrating RENAME TO kept_records;
+                            PRAGMA foreign_keys=ON;
+                        ").ok();
+                        log::error!("kept_records CHECK migration count mismatch ({} vs {}) — rolled back, original table restored. No data lost.", before, after);
+                    }
+                }
+                Err(e) => {
+                    // Migration failed partway through — restore original.
+                    conn.execute_batch("
+                        DROP TABLE IF EXISTS kept_records;
+                        ALTER TABLE kept_records_migrating RENAME TO kept_records;
+                        PRAGMA foreign_keys=ON;
+                    ").ok();
+                    log::error!("kept_records CHECK migration failed: {}. Table is left in its original state; no data lost.", e);
+                }
+            }
+        } else {
+            // Fresh install — no migration needed; just mark v2 to skip the
+            // check next launch.
+            conn.execute(
+                "INSERT INTO settings (key, value) VALUES ('schema.kept_records_check_v2', ?1)",
+                [chrono::Utc::now().to_rfc3339()],
+            ).ok();
+        }
+    }
 
     // ── Character inventory snapshots ─────────────────────────────────────
     //

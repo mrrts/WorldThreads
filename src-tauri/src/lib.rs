@@ -178,6 +178,8 @@ pub fn run() {
             get_mood_reduction_cmd,
             propose_kept_weave_cmd,
             save_kept_record_cmd,
+            propose_auto_canon_cmd,
+            commit_auto_canon_cmd,
             list_kept_message_ids_cmd,
             list_kept_for_message_cmd,
             delete_kept_record_cmd,

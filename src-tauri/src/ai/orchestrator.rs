@@ -2074,6 +2074,213 @@ Return ONLY the revised description prose. No preamble, no quotes, no commentary
     Ok((text, usage))
 }
 
+// ─── Auto-canonization: classify a moment into 1-2 proposed updates ──────
+//
+// The user clicked Canonize because this moment carries meaning. Our job is
+// to find the strongest one or two ways that meaning becomes canon — pick
+// the right kind of update (description_weave / voice_rule / boundary /
+// known_fact / open_loop), pick the right subject, write the content, and
+// say why in one sentence. Never zero updates — the click was deliberate.
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct CanonizationSubject {
+    pub subject_type: String, // "character" | "user"
+    pub subject_id: String,
+    pub subject_label: String,
+    /// Character: identity prose. User: description prose. Used as the
+    /// weave baseline AND as context for other update kinds so the
+    /// classifier can avoid duplicating existing canon.
+    pub current_description: String,
+    /// Short compact views of the subject's current append-lists so the
+    /// classifier knows what's already canonical and doesn't re-add it.
+    pub voice_rules: Vec<String>,
+    pub boundaries: Vec<String>,
+    pub backstory_facts: Vec<String>,
+    pub open_loops: Vec<String>,
+}
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct ProposedCanonUpdate {
+    /// One of: description_weave / voice_rule / boundary / known_fact / open_loop.
+    pub kind: String,
+    pub subject_type: String,
+    pub subject_id: String,
+    pub subject_label: String,
+    /// For description_weave: the full revised description to replace
+    /// identity/description.
+    /// For appends (voice_rule / boundary / known_fact / open_loop):
+    /// the single bullet string to append to the list.
+    pub new_content: String,
+    /// For description_weave only: the prior description, preserved so the
+    /// UI can render a before/after diff. Ignored for append kinds.
+    pub prior_content: Option<String>,
+    /// One-sentence justification shown to the user before they commit.
+    pub justification: String,
+}
+
+pub async fn propose_canonization_updates(
+    base_url: &str,
+    api_key: &str,
+    model: &str,
+    source_message: &Message,
+    source_speaker_label: &str,
+    context_messages: &[Message],
+    subjects: &[CanonizationSubject],
+    user_hint: Option<&str>,
+) -> Result<(Vec<ProposedCanonUpdate>, Option<openai::Usage>), String> {
+    if subjects.is_empty() {
+        return Err("no canonization subjects provided".to_string());
+    }
+
+    let rendered_context: Vec<String> = context_messages.iter()
+        .map(|m| {
+            let role = if m.message_id == source_message.message_id { "★ SOURCE" }
+                else if m.role == "user" { "USER" }
+                else { "CHARACTER" };
+            let clipped: String = m.content.chars().take(600).collect();
+            format!("[{role}] {clipped}")
+        })
+        .collect();
+    let context_block = rendered_context.join("\n\n");
+
+    let subjects_block: String = subjects.iter().enumerate().map(|(i, s)| {
+        let fmt_list = |label: &str, items: &[String]| -> String {
+            if items.is_empty() { format!("{label}: (none)") }
+            else { format!("{label}:\n{}", items.iter().map(|x| format!("  - {x}")).collect::<Vec<_>>().join("\n")) }
+        };
+        format!(
+            "## Subject {idx}: {label} (type={st}, id={sid})\n\
+             current_description:\n{desc}\n\n\
+             {vr}\n{bd}\n{bf}\n{ol}",
+            idx = i + 1,
+            label = s.subject_label,
+            st = s.subject_type,
+            sid = s.subject_id,
+            desc = if s.current_description.trim().is_empty() { "(none)".to_string() } else { s.current_description.clone() },
+            vr = fmt_list("voice_rules", &s.voice_rules),
+            bd = fmt_list("boundaries", &s.boundaries),
+            bf = fmt_list("backstory_facts", &s.backstory_facts),
+            ol = fmt_list("open_loops", &s.open_loops),
+        )
+    }).collect::<Vec<_>>().join("\n\n");
+
+    let hint_block = match user_hint.map(|s| s.trim()).filter(|s| !s.is_empty()) {
+        Some(h) => format!("\n\n## USER HINT (optional steer from the person who clicked Canonize — follow it unless it conflicts with the canon shape):\n{h}"),
+        None => String::new(),
+    };
+
+    let system = r#"You extract 1 or 2 canonization updates from a moment a user has deliberately flagged as meaningful. Return STRICT JSON only.
+
+# Your job
+The user clicked "Canonize" on this moment because it tells them something worth making canonical. Find the strongest ONE or TWO ways the moment becomes canon. You MUST return at least one update; you MUST NOT return more than two. Never zero. The click was deliberate — find the reason.
+
+# Update kinds (pick the one that fits each finding)
+- **description_weave** — the moment reveals something fundamental about WHO the subject IS at their core. Requires rewriting the full current_description to integrate the truth organically. Use this when the moment shifts the reader's understanding of the subject in a load-bearing way. NOT for incidental facts, tics, or stated rules.
+- **voice_rule** — the moment shows HOW the subject speaks: a phrasing they reach for, a register they refuse, a tic, a turn, a vocabulary choice only they make. One short bullet appended.
+- **boundary** — the subject has stated or demonstrated a line they will not cross. A stated "won't / don't / not this" — a refusal the scene makes concrete. One short sentence appended.
+- **known_fact** — a concrete specific fact about the subject's life, past, relationships, preferences, habits, daily reality. Appended. Prefer specifics over themes ("takes coffee with a splash of cream, no sugar" beats "has strong feelings about coffee").
+- **open_loop** — an unresolved thread the subject is carrying: a question still hanging, a promise not yet kept, an intention not yet acted on, an ambivalence that hasn't settled. Phrased as the unresolved thing itself. Appended.
+
+# Subjects
+You will be given one or more candidate subjects (each a character or the user). A moment can yield an update about any of them — the speaker, the addressee, a third party named, or the user. Route each update to the right subject. When a moment reveals one thing about the speaker and one thing about the addressee, two updates across two subjects is correct.
+
+# Avoid duplicating existing canon
+Every subject's current state is shown. Do NOT add a voice_rule / boundary / known_fact / open_loop that is already present in the existing list — if the canon already says it, the moment doesn't newly add it. If the moment only confirms existing canon, pick a different finding or reach for description_weave (which rewrites with deeper understanding rather than appending).
+
+# Don't dilute
+When you return TWO updates, each one must be separately load-bearing. Don't pad. If only one strong update exists, return only one. A single sharp update beats two mediocre ones.
+
+# For description_weave specifically
+The new_content must be the FULL revised description (not a diff, not a snippet). Preserve the voice and shape of the original. Keep anything already true. Integrate the new truth so a stranger reading the revision cold would sense the specific moment's shape without knowing it happened. Do NOT add meta-frames ("as he revealed", "recently shared"). Cap at 140 words total. If the current description is longer, compress while integrating.
+
+# Output JSON schema (strict)
+{
+  "updates": [
+    {
+      "kind": "description_weave" | "voice_rule" | "boundary" | "known_fact" | "open_loop",
+      "subject_type": "character" | "user",
+      "subject_id": "<exact id from the subject list>",
+      "new_content": "<full revised description for weave; short bullet string for appends>",
+      "justification": "<one sentence explaining why this moment produces this update>"
+    }
+  ]
+}
+
+Return ONLY the JSON object. No markdown, no preamble, no commentary."#.to_string();
+
+    let user = format!(
+        "# THE MOMENT\n{context_block}\n\n\
+         SOURCE LINE:\n{source_speaker_label}: {source_content}\n\n\
+         # CANDIDATE SUBJECTS\n{subjects_block}{hint_block}\n\n\
+         Extract 1 or 2 canonization updates. Return JSON only.",
+        context_block = context_block,
+        source_speaker_label = source_speaker_label,
+        source_content = source_message.content,
+        subjects_block = subjects_block,
+        hint_block = hint_block,
+    );
+
+    let request = ChatRequest {
+        model: model.to_string(),
+        messages: vec![
+            openai::ChatMessage { role: "system".to_string(), content: system },
+            openai::ChatMessage { role: "user".to_string(), content: user },
+        ],
+        temperature: Some(0.5),
+        max_completion_tokens: Some(900),
+        response_format: Some(openai::ResponseFormat { format_type: "json_object".to_string() }),
+    };
+
+    let response = openai::chat_completion_with_base(base_url, api_key, &request).await?;
+    let usage = response.usage;
+    let text = response.choices.first()
+        .map(|c| c.message.content.trim().to_string())
+        .unwrap_or_default();
+    if text.is_empty() { return Err("empty canonization response".to_string()); }
+
+    #[derive(serde::Deserialize)]
+    struct RawOut {
+        updates: Vec<RawUpdate>,
+    }
+    #[derive(serde::Deserialize)]
+    struct RawUpdate {
+        kind: String,
+        subject_type: String,
+        subject_id: String,
+        new_content: String,
+        justification: String,
+    }
+    let parsed: RawOut = serde_json::from_str(&text)
+        .map_err(|e| format!("canonization JSON parse failed: {e}. Raw: {text}"))?;
+
+    if parsed.updates.is_empty() {
+        return Err("classifier returned zero updates — this is disallowed; retry".to_string());
+    }
+    let mut out: Vec<ProposedCanonUpdate> = Vec::new();
+    for (i, u) in parsed.updates.into_iter().take(2).enumerate() {
+        let subject = subjects.iter()
+            .find(|s| s.subject_type == u.subject_type && s.subject_id == u.subject_id)
+            .ok_or_else(|| format!("update {} references unknown subject ({}/{})", i, u.subject_type, u.subject_id))?;
+        let valid_kinds = ["description_weave", "voice_rule", "boundary", "known_fact", "open_loop"];
+        if !valid_kinds.contains(&u.kind.as_str()) {
+            return Err(format!("update {} has unknown kind: {}", i, u.kind));
+        }
+        let prior = if u.kind == "description_weave" {
+            Some(subject.current_description.clone())
+        } else { None };
+        out.push(ProposedCanonUpdate {
+            kind: u.kind,
+            subject_type: subject.subject_type.clone(),
+            subject_id: subject.subject_id.clone(),
+            subject_label: subject.subject_label.clone(),
+            new_content: u.new_content.trim().to_string(),
+            prior_content: prior,
+            justification: u.justification.trim().to_string(),
+        });
+    }
+    Ok((out, usage))
+}
+
 /// chat_cmds to keep cost down. Kept for future reactivation.
 #[allow(dead_code)]
 pub async fn generate_reaction_with_base(
