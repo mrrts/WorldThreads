@@ -1,0 +1,47 @@
+#!/usr/bin/env bash
+# post-commit — nudge when reports/ is stale.
+#
+# Fires on every commit. Silent unless BOTH thresholds are crossed
+# since the most recent report in reports/:
+#   - commits since the report was added  >= MIN_COMMITS
+#   - days   since the report was added   >= MIN_DAYS
+#
+# If reports/ does not exist or contains no dated reports, the hook is
+# silent (first report is always user-initiated).
+#
+# Override thresholds by exporting PROJECT_REPORT_MIN_COMMITS and/or
+# PROJECT_REPORT_MIN_DAYS before committing.
+#
+# Post-commit exit codes are advisory — git does not abort on failure.
+# We still exit 0 explicitly so the commit UX stays clean on errors.
+
+MIN_COMMITS="${PROJECT_REPORT_MIN_COMMITS:-20}"
+MIN_DAYS="${PROJECT_REPORT_MIN_DAYS:-14}"
+
+repo_root=$(git rev-parse --show-toplevel 2>/dev/null) || exit 0
+reports_dir="$repo_root/reports"
+[ -d "$reports_dir" ] || exit 0
+
+latest=$(find "$reports_dir" -maxdepth 1 -type f \
+  -name "[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]-*.md" 2>/dev/null \
+  | sort | tail -1)
+[ -n "$latest" ] || exit 0
+
+# Use the commit that added the report as the anchor — robust against
+# same-day commits and avoids any date-format portability issues.
+anchor=$(git log -1 --format=%H -- "$latest" 2>/dev/null)
+[ -n "$anchor" ] || exit 0
+
+commits_since=$(git rev-list --count "${anchor}..HEAD" 2>/dev/null || echo 0)
+anchor_epoch=$(git log -1 --format=%ct "$anchor" 2>/dev/null || echo 0)
+[ "$anchor_epoch" -gt 0 ] || exit 0
+days_since=$(( ( $(date +%s) - anchor_epoch ) / 86400 ))
+
+if [ "$commits_since" -ge "$MIN_COMMITS" ] && [ "$days_since" -ge "$MIN_DAYS" ]; then
+  yellow=$'\033[33m'
+  reset=$'\033[0m'
+  printf "\n%s📝 [project-report]%s %d commits and %d days since %s.\n   Consider running %s/project-report%s for a reflective read.\n\n" \
+    "$yellow" "$reset" "$commits_since" "$days_since" "$(basename "$latest")" "$yellow" "$reset"
+fi
+
+exit 0

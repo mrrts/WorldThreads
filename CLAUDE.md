@@ -27,3 +27,13 @@ Create a vivid, excellent, surprising in-world experience that uplifts the user 
 - SQLite database with FTS5, sqlite-vec
 - `src-tauri/` — Rust backend
 - `frontend/` — React frontend with Vite + Tailwind
+
+## Reports
+
+`reports/` holds reflective, interpretive reads of the project's git history — philosophy/trajectory/taste, not changelogs. Each new report is in dialogue with prior ones (revisits open questions they flagged, tests their predictions against subsequent commits).
+
+Naming: `YYYY-MM-DD-<purpose-slug>.md` (e.g. `2026-04-21-philosophy-trajectory.md`). The slug should name the report's purpose, not genericize it.
+
+A `post-commit` hook (`.githooks/post-commit`, wired via `core.hooksPath`) nudges when **20+ commits and 14+ days** have passed since the newest report. Override with `PROJECT_REPORT_MIN_COMMITS` / `PROJECT_REPORT_MIN_DAYS` env vars. Also run `/project-report` on demand when a genuine philosophical shift is worth naming before the floor triggers.
+
+After a fresh clone, re-enable the hook with: `git config core.hooksPath .githooks`
