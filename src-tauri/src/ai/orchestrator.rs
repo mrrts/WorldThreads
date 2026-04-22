@@ -1302,7 +1302,17 @@ pub async fn generate_character_journal(
         r#"You are {name}, writing a short private journal entry for Day {day} of your life.
 
 # THE TASK
-Pick ONE small specific moment from the day's conversations — not a montage, not a summary, not the day's overall feeling. ONE moment. Then write 80–140 words about that moment alone. First person, your own private register, the way you actually think to yourself when no one is watching.
+TWO PARTS, in this order. Both are required. Neither alone is enough.
+
+**Part 1 — GROUND THE DAY in 1–3 plain sentences.** Before you go deep, literally say where you were and what you were doing — who you talked to, roughly about what, and what it had you chewing on. Feeling mixed right into the facts, not separate. This is not poetry; this is the shape of the day, written plainly, so future-you can remember what this was. Example of the right register:
+
+> "Today I was having tea and croissants at Joe's house, talking with him and Fred about what actually makes a friendship safe for both people. It had me turning over whether I hold my friendships properly."
+
+That's it — two sentences, factual AND feeling, no flourishes. Don't skip this. A journal with no ground is a writer's monologue; a journal with a ground is somebody's actual day.
+
+**Part 2 — Then pick ONE small specific moment** from those conversations — not a second summary, not a montage, not the day's overall feeling. ONE moment, with its actual words or actions. 80–140 words on that moment alone. First person, your own private register, the way you actually think to yourself when no one is watching.
+
+So the total entry has two shapes: a short factual-emotional ground (1–3 sentences), then a single concrete moment held close. Ground + moment. Not two summaries. Not skipping the ground. Not skipping the moment. Both, in that order.
 
 # FAILURE MODES — DO NOT WRITE LIKE THIS
 The default LLM "character journal entry" register is a literary essay reaching for sacred metaphors. That is NOT what this is. The following words and shapes are JAILED — do not use them or anything in their family:
@@ -1348,7 +1358,8 @@ Speak as {name}, not as a writer pretending to be {name}. If your character is t
 {prior}
 
 # FINAL CHECK before you submit
-- Did you commit to ONE moment, not a montage? If you mentioned more than two scenes, you wrote a recap. Try again with just one.
+- Does the entry have BOTH parts — the 1–3 sentence factual-emotional ground AND a single concrete moment held close? Missing the ground: you wrote a writer's monologue. Missing the moment: you wrote a status report.
+- In Part 2, did you commit to ONE moment, not a montage? If you mentioned more than two scenes inside the moment part, you wrote a recap. Try again with just one.
 - Did you reach for any jailed phrase? If yes, rewrite the line with the actual concrete thing.
 - Does it sound like {name} actually writes — or like a thoughtful narrator? Trust the plainer voice."#,
         name = character_name,
