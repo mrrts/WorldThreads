@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import Markdown from "react-markdown";
 import { Dialog } from "@/components/ui/dialog";
-import { X, Loader2, Send, Lightbulb, Sparkles, Trash2, ChevronDown, Pencil, Plus, PanelLeftClose, PanelLeftOpen, Download, BookOpen } from "lucide-react";
+import { X, Loader2, Send, Lightbulb, Sparkles, Trash2, ChevronDown, Pencil, Plus, PanelLeftClose, PanelLeftOpen, Download, BookOpen, Drama } from "lucide-react";
 import { formatMessage, markdownComponents, remarkPlugins, rehypePlugins } from "./formatMessage";
 import { listen } from "@tauri-apps/api/event";
 import { api, type ConsultantChat } from "@/lib/tauri";
@@ -87,6 +87,9 @@ function buildCategories(names: string[]): PromptCategory[] {
 export function StoryConsultantModal({ open, onClose, apiKey, characterId, groupChatId, threadId, characterNames, worldImageUrl, portraits, userAvatarUrl, notifyOnMessage, chatFontSize }: Props) {
   const [chats, setChats] = useState<ConsultantChat[]>([]);
   const [activeChatId, setActiveChatId] = useState<string | null>(null);
+  // Which tab the sidebar is showing. Also determines the mode of any
+  // new chat created from the sidebar "+" button.
+  const [activeMode, setActiveMode] = useState<"immersive" | "backstage">("immersive");
   const [messages, setMessages] = useState<ConsultantMessage[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
@@ -166,12 +169,12 @@ export function StoryConsultantModal({ open, onClose, apiKey, characterId, group
   }, [open, activeChatId]);
 
   const createNewChat = useCallback(async () => {
-    const chat = await api.createConsultantChat(threadId);
+    const chat = await api.createConsultantChat(threadId, undefined, activeMode);
     setChats((prev) => [chat, ...prev]);
     setActiveChatId(chat.chat_id);
     setMessages([]);
     setShowPrompts(false);
-  }, [threadId]);
+  }, [threadId, activeMode]);
 
   const send = useCallback(async (text: string) => {
     const trimmed = text.trim();
@@ -179,9 +182,10 @@ export function StoryConsultantModal({ open, onClose, apiKey, characterId, group
 
     let chatId = activeChatId;
 
-    // Auto-create a chat if none exists
+    // Auto-create a chat if none exists. Uses the active tab's mode so
+    // pressing send on an empty Backstage tab starts a Backstage chat.
     if (!chatId) {
-      const chat = await api.createConsultantChat(threadId);
+      const chat = await api.createConsultantChat(threadId, undefined, activeMode);
       setChats((prev) => [chat, ...prev]);
       chatId = chat.chat_id;
       setActiveChatId(chatId);
@@ -258,12 +262,12 @@ export function StoryConsultantModal({ open, onClose, apiKey, characterId, group
       setLoading(false);
       setTimeout(() => inputRef.current?.focus(), 50);
     }
-  }, [apiKey, characterId, groupChatId, loading, activeChatId, threadId, chats]);
+  }, [apiKey, characterId, groupChatId, loading, activeChatId, threadId, chats, activeMode]);
 
   const handleImport = useCallback(async () => {
     let chatId = activeChatId;
     if (!chatId) {
-      const chat = await api.createConsultantChat(threadId);
+      const chat = await api.createConsultantChat(threadId, undefined, activeMode);
       setChats((prev) => [chat, ...prev]);
       chatId = chat.chat_id;
       setActiveChatId(chatId);
@@ -280,7 +284,7 @@ export function StoryConsultantModal({ open, onClose, apiKey, characterId, group
         setMessages((prev) => [...prev, { role: "assistant" as const, content: "No new messages to import — you're already caught up." }]);
       }
     }
-  }, [activeChatId, threadId, characterId, groupChatId]);
+  }, [activeChatId, threadId, characterId, groupChatId, activeMode]);
 
   const handleEditSave = async () => {
     if (editingIdx == null || !activeChatId) return;
@@ -321,15 +325,40 @@ export function StoryConsultantModal({ open, onClose, apiKey, characterId, group
         )}
 
         {/* Sidebar */}
-        {sidebarOpen && (
+        {sidebarOpen && (() => {
+          const visibleChats = chats.filter((c) => (c.mode ?? "immersive") === activeMode);
+          return (
           <div className="w-56 flex-shrink-0 border-r border-border/30 bg-card/90 backdrop-blur-sm flex flex-col relative z-[1]">
-            <div className="px-3 py-3 border-b border-border/30 flex items-center justify-between">
+            {/* Mode tabs — Immersive vs Backstage. The active mode drives
+                which chats are listed below and the mode stamp on any new
+                chat created from here. */}
+            <div className="px-2 pt-2">
+              <div className="grid grid-cols-2 gap-1 p-0.5 rounded-md bg-muted/40">
+                <button
+                  onClick={() => { setActiveMode("immersive"); if (activeChatId && chats.find((c) => c.chat_id === activeChatId)?.mode === "backstage") { setActiveChatId(null); setMessages([]); } }}
+                  className={`flex items-center justify-center gap-1.5 px-2 py-1.5 rounded text-[11px] font-medium transition-colors cursor-pointer ${activeMode === "immersive" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
+                  title="Immersive — in-the-story confidant"
+                >
+                  <Sparkles size={12} />
+                  Immersive
+                </button>
+                <button
+                  onClick={() => { setActiveMode("backstage"); if (activeChatId && chats.find((c) => c.chat_id === activeChatId)?.mode !== "backstage") { setActiveChatId(null); setMessages([]); } }}
+                  className={`flex items-center justify-center gap-1.5 px-2 py-1.5 rounded text-[11px] font-medium transition-colors cursor-pointer ${activeMode === "backstage" ? "bg-amber-500/15 text-amber-300 shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
+                  title="Backstage — fourth-wall stage manager"
+                >
+                  <Drama size={12} />
+                  Backstage
+                </button>
+              </div>
+            </div>
+            <div className="px-3 py-2.5 border-b border-border/30 flex items-center justify-between">
               <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Chats</h3>
               <div className="flex items-center gap-0.5">
                 <button
                   onClick={createNewChat}
                   className="w-6 h-6 rounded-md flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-accent transition-colors cursor-pointer"
-                  title="New chat"
+                  title={`New ${activeMode} chat`}
                 >
                   <Plus size={14} />
                 </button>
@@ -343,14 +372,21 @@ export function StoryConsultantModal({ open, onClose, apiKey, characterId, group
               </div>
             </div>
             <div className="flex-1 overflow-y-auto py-1">
-              {chats.map((chat) => (
+              {visibleChats.map((chat) => {
+                const isBackstage = chat.mode === "backstage";
+                return (
                 <div
                   key={chat.chat_id}
-                  className={`group/chat relative flex items-center px-3 py-2 cursor-pointer transition-colors ${
-                    chat.chat_id === activeChatId ? "bg-accent" : "hover:bg-accent/50"
+                  className={`group/chat relative flex items-center px-3 py-2 cursor-pointer transition-colors border-l-2 ${
+                    chat.chat_id === activeChatId
+                      ? (isBackstage ? "bg-amber-500/10 border-amber-400/70" : "bg-accent border-primary/60")
+                      : (isBackstage ? "border-amber-500/20 hover:bg-amber-500/5" : "border-transparent hover:bg-accent/50")
                   }`}
                   onClick={() => { setActiveChatId(chat.chat_id); setShowPrompts(false); }}
                 >
+                  <div className="flex-shrink-0 mr-2 opacity-70">
+                    {isBackstage ? <Drama size={11} className="text-amber-400/80" /> : <Sparkles size={11} className="text-primary/70" />}
+                  </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-xs font-medium truncate">{chat.title}</p>
                     <p className="text-[10px] font-medium text-foreground/70 hidden group-hover/chat:block whitespace-normal leading-snug mt-0.5">{chat.title}</p>
@@ -367,13 +403,17 @@ export function StoryConsultantModal({ open, onClose, apiKey, characterId, group
                     <Trash2 size={10} />
                   </button>
                 </div>
-              ))}
-              {chats.length === 0 && (
-                <p className="text-xs text-muted-foreground/40 px-3 py-4 text-center">No chats yet</p>
+                );
+              })}
+              {visibleChats.length === 0 && (
+                <p className="text-xs text-muted-foreground/40 px-3 py-4 text-center">
+                  {activeMode === "backstage" ? "No Backstage chats yet" : "No chats yet"}
+                </p>
               )}
             </div>
           </div>
-        )}
+          );
+        })()}
 
         {/* Main chat area */}
         <div className="flex-1 flex flex-col relative z-[1]">
@@ -389,8 +429,18 @@ export function StoryConsultantModal({ open, onClose, apiKey, characterId, group
                   <PanelLeftOpen size={15} />
                 </button>
               )}
-              <Sparkles size={16} className="text-primary" />
-              <h3 className="font-semibold text-sm">Story Consultant</h3>
+              {activeMode === "backstage" ? (
+                <>
+                  <Drama size={16} className="text-amber-400" />
+                  <h3 className="font-semibold text-sm">Backstage</h3>
+                  <span className="text-[10px] uppercase tracking-wider text-amber-400/70 font-semibold ml-1">fourth-wall</span>
+                </>
+              ) : (
+                <>
+                  <Sparkles size={16} className="text-primary" />
+                  <h3 className="font-semibold text-sm">Story Consultant</h3>
+                </>
+              )}
             </div>
             <button
               onClick={onClose}
@@ -435,9 +485,19 @@ export function StoryConsultantModal({ open, onClose, apiKey, characterId, group
               <div className="max-w-3xl mx-auto space-y-4">
                 {messages.length === 0 && !loading && !showPrompts && (
                   <div className="text-center py-12">
-                    <Sparkles size={28} className="mx-auto text-muted-foreground/30 mb-3" />
-                    <p className="text-sm text-muted-foreground/60">Ask me anything about your story.</p>
-                    <p className="text-xs text-muted-foreground/40 mt-1">Click Ideas for inspiration, or type your own question.</p>
+                    {activeMode === "backstage" ? (
+                      <>
+                        <Drama size={28} className="mx-auto text-amber-400/40 mb-3" />
+                        <p className="text-sm text-muted-foreground/70">I've been watching from the wings.</p>
+                        <p className="text-xs text-muted-foreground/40 mt-1">Ask what I'm noticing, or for a suggestion on what to try next.</p>
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles size={28} className="mx-auto text-muted-foreground/30 mb-3" />
+                        <p className="text-sm text-muted-foreground/60">Ask me anything about your story.</p>
+                        <p className="text-xs text-muted-foreground/40 mt-1">Click Ideas for inspiration, or type your own question.</p>
+                      </>
+                    )}
                   </div>
                 )}
                 {messages.map((msg, i) => {
@@ -546,15 +606,17 @@ export function StoryConsultantModal({ open, onClose, apiKey, characterId, group
           {/* Input area */}
           <div className="flex-shrink-0 border-t border-border px-4 py-3 relative z-[1]">
             <div className="max-w-3xl mx-auto flex items-end gap-2">
-              <button
-                onClick={() => setShowPrompts(!showPrompts)}
-                className={`flex-shrink-0 h-9 rounded-lg flex items-center gap-1.5 px-3 text-sm font-medium transition-colors cursor-pointer ${
-                  showPrompts ? "bg-amber-500/20 text-amber-400" : "text-muted-foreground hover:text-foreground hover:bg-accent"
-                }`}
-              >
-                <Lightbulb size={18} />
-                <span>Ideas</span>
-              </button>
+              {activeMode !== "backstage" && (
+                <button
+                  onClick={() => setShowPrompts(!showPrompts)}
+                  className={`flex-shrink-0 h-9 rounded-lg flex items-center gap-1.5 px-3 text-sm font-medium transition-colors cursor-pointer ${
+                    showPrompts ? "bg-amber-500/20 text-amber-400" : "text-muted-foreground hover:text-foreground hover:bg-accent"
+                  }`}
+                >
+                  <Lightbulb size={18} />
+                  <span>Ideas</span>
+                </button>
+              )}
               <textarea
                 ref={inputRef}
                 value={input}

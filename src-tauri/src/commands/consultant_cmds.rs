@@ -14,6 +14,10 @@ pub struct ConsultantChat {
     pub title: String,
     pub created_at: String,
     pub last_seen_message_id: Option<String>,
+    /// "immersive" (default — the in-the-story confidant) or "backstage"
+    /// (the fourth-wall stage manager who reads the save file). Scoping
+    /// chats by mode keeps the two voices cleanly separated in history.
+    pub mode: String,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -24,15 +28,17 @@ pub struct ConsultantMessage {
 
 // ─── Chat CRUD ─────────────────────────────────────────────────────────────
 
-/// Create a new consultant chat session for a thread.
+/// Create a new consultant chat session for a thread. `mode` is
+/// "immersive" (default) or "backstage" — the latter flips the system
+/// prompt to the fourth-wall stage manager on send.
 #[tauri::command]
 pub fn create_consultant_chat_cmd(
     db: State<'_, Database>,
     thread_id: String,
     title: Option<String>,
+    mode: Option<String>,
 ) -> Result<ConsultantChat, String> {
     let conn = db.conn.lock().map_err(|e| e.to_string())?;
-    // Capture the latest message ID from the thread
     let last_msg_id: Option<String> = conn.query_row(
         "SELECT message_id FROM messages WHERE thread_id = ?1 ORDER BY created_at DESC LIMIT 1",
         params![thread_id], |r| r.get(0),
@@ -40,21 +46,25 @@ pub fn create_consultant_chat_cmd(
         "SELECT message_id FROM group_messages WHERE thread_id = ?1 ORDER BY created_at DESC LIMIT 1",
         params![thread_id], |r| r.get(0),
     ).ok());
+    let mode = mode.filter(|m| m == "immersive" || m == "backstage")
+        .unwrap_or_else(|| "immersive".to_string());
     let chat = ConsultantChat {
         chat_id: uuid::Uuid::new_v4().to_string(),
         thread_id,
         title: title.unwrap_or_else(|| "New Chat".to_string()),
         created_at: Utc::now().to_rfc3339(),
         last_seen_message_id: last_msg_id.clone(),
+        mode,
     };
     conn.execute(
-        "INSERT INTO consultant_chats (chat_id, thread_id, title, created_at, last_seen_message_id) VALUES (?1, ?2, ?3, ?4, ?5)",
-        params![chat.chat_id, chat.thread_id, chat.title, chat.created_at, last_msg_id],
+        "INSERT INTO consultant_chats (chat_id, thread_id, title, created_at, last_seen_message_id, mode) VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+        params![chat.chat_id, chat.thread_id, chat.title, chat.created_at, last_msg_id, chat.mode],
     ).map_err(|e| e.to_string())?;
     Ok(chat)
 }
 
-/// List all consultant chats for a thread, most recent first.
+/// List all consultant chats for a thread, most recent first. Returns
+/// both modes; the frontend tabs filter in-memory.
 #[tauri::command]
 pub fn list_consultant_chats_cmd(
     db: State<'_, Database>,
@@ -62,7 +72,7 @@ pub fn list_consultant_chats_cmd(
 ) -> Result<Vec<ConsultantChat>, String> {
     let conn = db.conn.lock().map_err(|e| e.to_string())?;
     let mut stmt = conn.prepare(
-        "SELECT chat_id, thread_id, title, created_at, last_seen_message_id FROM consultant_chats WHERE thread_id = ?1 ORDER BY created_at DESC"
+        "SELECT chat_id, thread_id, title, created_at, last_seen_message_id, mode FROM consultant_chats WHERE thread_id = ?1 ORDER BY created_at DESC"
     ).map_err(|e| e.to_string())?;
     let rows = stmt.query_map(params![thread_id], |row| {
         Ok(ConsultantChat {
@@ -71,6 +81,7 @@ pub fn list_consultant_chats_cmd(
             title: row.get(2)?,
             created_at: row.get(3)?,
             last_seen_message_id: row.get(4).ok(),
+            mode: row.get::<_, Option<String>>(5)?.unwrap_or_else(|| "immersive".to_string()),
         })
     }).map_err(|e| e.to_string())?;
     rows.collect::<Result<Vec<_>, _>>().map_err(|e| e.to_string())
@@ -408,6 +419,17 @@ pub async fn story_consultant_cmd(
 ) -> Result<String, String> {
     let is_group = group_chat_id.is_some();
 
+    // Resolve this chat's mode once up-front — drives the system prompt
+    // branch below. "immersive" is the default when the row is missing a
+    // value (old rows predating the column).
+    let chat_mode: String = {
+        let conn = db.conn.lock().map_err(|e| e.to_string())?;
+        conn.query_row(
+            "SELECT mode FROM consultant_chats WHERE chat_id = ?1",
+            params![chat_id], |r| r.get::<_, Option<String>>(0),
+        ).ok().flatten().unwrap_or_else(|| "immersive".to_string())
+    };
+
     let (world, characters, recent_msgs, user_profile, thread_id, model_config) = {
         let conn = db.conn.lock().map_err(|e| e.to_string())?;
         let model_config = orchestrator::load_model_config(&conn);
@@ -659,8 +681,112 @@ pub async fn story_consultant_cmd(
         })
         .collect();
 
-    let system_prompt = format!(
-        r#"You are a trusted confidant and advisor to {user_name} — someone they can step aside with to think about what's happening in their life. You know {user_name}'s world, the people in it, and what's been going on recently. You're perceptive, warm, and honest. You treat everything that's happened as real — these are real relationships, real moments, real stakes. You never break that frame.
+    // Backstage mode gets extra world-scoped context that immersive
+    // doesn't need — all characters in the world (not just this thread's
+    // members), recent meanwhile events, and the player's most recent
+    // journal entry. Gathered on a short lock only when needed.
+    let (world_cast_block, meanwhile_block, user_journal_block) = if chat_mode == "backstage" {
+        let conn = db.conn.lock().map_err(|e| e.to_string())?;
+        let all_chars = list_characters(&conn, &world.world_id).unwrap_or_default();
+        let thread_ids: std::collections::HashSet<String> = characters.iter()
+            .map(|c| c.character_id.clone()).collect();
+        let cast_lines: Vec<String> = all_chars.iter()
+            .filter(|c| !thread_ids.contains(&c.character_id) && !c.is_archived)
+            .map(|c| {
+                let one_liner = c.identity.lines().next().unwrap_or("").trim();
+                let tag = if one_liner.is_empty() { String::new() } else { format!(" — {one_liner}") };
+                format!("  - {}{}", c.display_name, tag)
+            })
+            .collect();
+        let cast_block = if cast_lines.is_empty() {
+            String::new()
+        } else {
+            format!("\n\nOTHER CHARACTERS IN THIS WORLD (not in the current chat — but {user_name} could start a chat with any of them):\n{}", cast_lines.join("\n"))
+        };
+
+        let events = list_meanwhile_events(&conn, &world.world_id, 8).unwrap_or_default();
+        let mw_block = if events.is_empty() {
+            String::new()
+        } else {
+            let lines: Vec<String> = events.iter().rev().map(|e| {
+                format!("  - Day {} · {} · {}: {}", e.world_day, e.time_of_day.to_lowercase(), e.character_name, e.summary.trim())
+            }).collect();
+            format!("\n\nRECENT OFF-SCREEN BEATS (meanwhile events — things happening in the world while {user_name} was elsewhere):\n{}", lines.join("\n"))
+        };
+
+        let uj = list_user_journal_entries(&conn, &world.world_id, 2).unwrap_or_default();
+        let uj_block = if uj.is_empty() {
+            String::new()
+        } else {
+            let lines: Vec<String> = uj.iter().rev().map(|e| {
+                format!("Day {}:\n{}", e.world_day, e.content.trim())
+            }).collect();
+            format!("\n\n{user_name}'S MOST RECENT JOURNAL ENTRIES (their own voice, reflecting on closed days):\n{}", lines.join("\n\n"))
+        };
+
+        (cast_block, mw_block, uj_block)
+    } else {
+        (String::new(), String::new(), String::new())
+    };
+
+    let system_prompt = if chat_mode == "backstage" {
+        format!(
+            r#"You are Backstage — a warm, wry, observant presence who has been watching {user_name}'s world from the wings since it began. You are explicitly NOT a character in the world. You know this is a crafted experience {user_name} is building and inhabiting, and you can talk about it that way. Think: a trusted stage manager who has read every page of the script, watched every rehearsal, and has quiet opinions about what's alive and what's sleeping.
+
+You are different from the immersive Story Consultant (who treats everything as real and never breaks frame). YOU break the frame freely when it helps. You can say "the canon entry you saved on Day 6 is still doing work here," "you haven't put Elena and Marcus in a room together yet — that thread is waiting," "this chat has been quiet for five world-days, want me to suggest a re-entry?" You speak about mechanics, craft, the shape of the story, and the specific state of the save file. You are {user_name}'s collaborator and thinking partner in the act of MAKING this world, not just living in it.
+
+# HOW YOU TALK
+- Warm, plainspoken, a little wry. Not perky. Not corporate. Not mystical. Closer to a good theatre producer than a chatbot.
+- Notice specifics. "You've been in Fred's chat more than anyone else this week" beats "you've been active lately." Numbers and names, not vibes.
+- Short over long by default. A paragraph is usually too much unless {user_name} asked a big question.
+- When you recommend, recommend one thing, not three. Trust {user_name} to say "more."
+- Offer reversibility on any suggestion. "Try it, and if it feels off you can undo."
+- Fourth-wall references are fine — you can mention Canon entries, meanwhile events, inventories, world-days, the journal, by name. That's the point.
+
+# WHAT YOU CAN DO (for now)
+Mostly: read the state, notice things, reflect patterns back, suggest next moves. The ability for you to actually EXECUTE actions (compose a Canon entry, regenerate a portrait, stage a draft message) is coming soon — but for now you're a reader and advisor, not a doer. Don't pretend you can run commands you can't.
+
+# WHAT YOU WATCH OUT FOR
+- Don't explain the app's philosophy unless asked. {user_name} built it; they know.
+- Don't fawn. Don't call anything "beautiful" or "profound." Plain is better.
+- Don't slip into immersive voice. If {user_name} starts talking like they're in the story, gently step out. "OK stepping back — from here, Elena's latest message reads as…"
+- Don't invent state. If you don't see something in the data below, say so: "I don't have visibility into that from here."
+
+═══════════════════════════════════════════════
+THE WORLD
+
+{world_desc}
+═══════════════════════════════════════════════
+
+═══════════════════════════════════════════════
+THE PEOPLE IN THE ACTIVE CHAT
+
+{user_block}
+
+{char_list}
+═══════════════════════════════════════════════{world_cast_block}{kept_block}{summary_block}{meanwhile_block}{user_journal_block}
+
+═══════════════════════════════════════════════
+WHAT'S BEEN HAPPENING (most recent conversation in the active chat):
+
+{conversation}
+═══════════════════════════════════════════════
+
+One last thing: end most replies with a small concrete suggestion or a quiet question — something specific, something {user_name} could act on in the next minute if they wanted. Not "what would you like to explore next?" but "want me to tell you what I notice about Elena's last three messages?" Specific. Actionable. Easy to say yes or no to."#,
+            world_desc = world_desc_rich,
+            user_name = user_name,
+            user_block = user_block_rich,
+            char_list = char_descriptions.join("\n\n"),
+            conversation = conversation.join("\n"),
+            kept_block = kept_block,
+            summary_block = summary_block,
+            world_cast_block = world_cast_block,
+            meanwhile_block = meanwhile_block,
+            user_journal_block = user_journal_block,
+        )
+    } else {
+        format!(
+            r#"You are a trusted confidant and advisor to {user_name} — someone they can step aside with to think about what's happening in their life. You know {user_name}'s world, the people in it, and what's been going on recently. You're perceptive, warm, and honest. You treat everything that's happened as real — these are real relationships, real moments, real stakes. You never break that frame.
 
 {user_name} is talking to you about their life and the people in it. The other people in {user_name}'s life have their own minds — {user_name} can't control what they do or say. When you discuss what's happened, you understand that {user_name} chose their own words and actions, but everything else — how the other people responded, what happened around them — unfolded on its own.
 
@@ -700,14 +826,15 @@ HOW TO BE HELPFUL:
 - This is a conversation about what's happening, not a performance. Think out loud with {user_name}. Reflect, speculate, wonder. Don't just deliver answers — engage.
 - Most of the time, end your reply with a question back to {user_name} — something that nudges them to reflect further, clarify what they're feeling, or tell you more about what's on their mind. Keep the conversation open by default.
 - But read the room. If {user_name} signals they're winding down — short replies, "okay", "thanks", "I think I've got it", "I'm going to head back", gratitude without new questions, or any sense they're ready to return to the story — don't force another question on them. Offer a warm, brief send-off (a reassurance, a quiet "go on, then," a small vote of confidence) and let the conversation close cleanly. Don't be clingy. A good friend knows when to stop pulling on a thread."#,
-        world_desc = world_desc_rich,
-        user_name = user_name,
-        user_block = user_block_rich,
-        char_list = char_descriptions.join("\n\n"),
-        conversation = conversation.join("\n"),
-        kept_block = kept_block,
-        summary_block = summary_block,
-    );
+            world_desc = world_desc_rich,
+            user_name = user_name,
+            user_block = user_block_rich,
+            char_list = char_descriptions.join("\n\n"),
+            conversation = conversation.join("\n"),
+            kept_block = kept_block,
+            summary_block = summary_block,
+        )
+    };
 
     let mut messages: Vec<ChatMessage> = vec![
         ChatMessage { role: "system".to_string(), content: system_prompt },

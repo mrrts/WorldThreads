@@ -669,6 +669,17 @@ pub fn run_migrations(conn: &Connection) -> Result<(), rusqlite::Error> {
         conn.execute("ALTER TABLE consultant_chats ADD COLUMN last_seen_message_id TEXT DEFAULT NULL", []).ok();
     }
 
+    // Add mode column to consultant_chats: 'immersive' (default — the
+    // in-the-story confidant) vs 'backstage' (fourth-wall stage manager
+    // that reads the save file). Existing chats default to immersive.
+    let has_mode: bool = conn.query_row(
+        "SELECT COUNT(*) FROM pragma_table_info('consultant_chats') WHERE name = 'mode'",
+        [], |r| r.get::<_, i64>(0),
+    ).unwrap_or(0) > 0;
+    if !has_mode {
+        conn.execute("ALTER TABLE consultant_chats ADD COLUMN mode TEXT NOT NULL DEFAULT 'immersive'", []).ok();
+    }
+
     // Illustration caption column — stores the human-readable text that
     // describes the illustration's subject. Source is either the user's
     // custom_instructions (verbatim) or a "memorable moment" caption that

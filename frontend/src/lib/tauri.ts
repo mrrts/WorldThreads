@@ -221,6 +221,9 @@ export interface ConsultantChat {
   title: string;
   created_at: string;
   last_seen_message_id: string | null;
+  /** "immersive" — in-the-story confidant (default). "backstage" —
+   *  fourth-wall stage manager that reads the save file. */
+  mode: "immersive" | "backstage";
 }
 
 export interface NovelEntry {
@@ -556,8 +559,8 @@ export const api = {
     invoke<void>("delete_novel_entry_cmd", { threadId, worldDay }),
 
   // Story consultant
-  createConsultantChat: (threadId: string, title?: string) =>
-    invoke<ConsultantChat>("create_consultant_chat_cmd", { threadId, title: title ?? null }),
+  createConsultantChat: (threadId: string, title?: string, mode?: "immersive" | "backstage") =>
+    invoke<ConsultantChat>("create_consultant_chat_cmd", { threadId, title: title ?? null, mode: mode ?? null }),
   listConsultantChats: (threadId: string) =>
     invoke<ConsultantChat[]>("list_consultant_chats_cmd", { threadId }),
   updateConsultantChatTitle: (chatId: string, title: string) =>
