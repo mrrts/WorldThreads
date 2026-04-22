@@ -467,9 +467,12 @@ pub async fn run_proactive_ping_with_base(
     elapsed_hint: Option<&str>,
     illustration_captions: &std::collections::HashMap<String, String>,
     reactions_by_msg: &std::collections::HashMap<String, Vec<crate::db::queries::Reaction>>,
+    recent_journals: &[crate::db::queries::JournalEntry],
+    latest_reading: Option<&crate::db::queries::DailyReading>,
 ) -> Result<(String, Option<openai::Usage>), String> {
     let system = prompts::build_proactive_ping_system_prompt(
         world, character, user_profile, mood_directive, tone, local_model, mood_chain,
+        recent_journals, latest_reading,
     );
     let user_display_name = user_profile.map(|p| p.display_name.as_str());
     // Pick a fresh random angle per call — curated pool keeps framings

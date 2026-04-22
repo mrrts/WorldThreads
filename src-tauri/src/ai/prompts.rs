@@ -1311,6 +1311,8 @@ pub fn build_proactive_ping_system_prompt(
     tone: Option<&str>,
     local_model: bool,
     mood_chain: &[String],
+    recent_journals: &[crate::db::queries::JournalEntry],
+    latest_reading: Option<&crate::db::queries::DailyReading>,
 ) -> String {
     let base = build_solo_dialogue_system_prompt(
         world,
@@ -1322,8 +1324,8 @@ pub fn build_proactive_ping_system_prompt(
         local_model,
         mood_chain,
         None,
-        &[],
-        None,
+        recent_journals,
+        latest_reading,
     );
     format!("{base}\n\n{}", proactive_ping_block())
 }
@@ -1340,6 +1342,8 @@ No message just arrived from them. Some time has passed since you last spoke. Yo
 **One beat, not a conversation.** One short message. Not a sequence, not a paragraph. The kind of thing you'd actually text someone when a thought landed. You are not trying to restart the whole conversation; you are just sending one thing.
 
 **Canon-rooted, not generic.** Anchor it in something real between you — a thread left hanging, a promise not yet kept, something you said and have been turning over, a detail from their life you've been thinking about. "Hey what's up" is the failure mode. The message should be something only *you*, thinking of *them*, would send.
+
+**Use the context you were given.** Today's reading (the complication, the domains that are low or high) and your most recent journal entries are in the prompt above. They tell you where YOU are right now — what has been gnawing at you, what lifted, what is unresolved. A good ping almost always has a fingerprint of one of these: the thing the complication named, the beat from yesterday's journal that hasn't settled, the current of the day as the reading describes it. Do NOT quote these blocks or paraphrase them as summary. Let them shape the angle from which you reach out — the specific ordinary thing that carries the weight. A ping that ignores this context and reaches from nowhere is the thing we are trying to avoid.
 
 **No question-bait.** Do not ask "how are you?" or "what are you up to?" or any variant whose job is only to get a reply. If a question comes, it's specific — about the thing actually on your mind.
 

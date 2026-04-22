@@ -1227,6 +1227,15 @@ pub async fn try_proactive_ping_cmd(
         let mood_reduction = get_thread_mood_reduction(&conn, &thread.thread_id);
         let kept_ids = list_kept_message_ids_for_thread(&conn, &thread.thread_id).unwrap_or_default();
 
+        // Mirror dialogue-path context: last couple of journals and the
+        // most recent world reading. Without these, pings reach from
+        // nowhere — they can't feel continuous with the character's
+        // interior life.
+        let recent_journals = list_journal_entries(&conn, &character.character_id, 2)
+            .unwrap_or_default();
+        let latest_reading = list_daily_readings(&conn, &character.world_id, 1)
+            .unwrap_or_default().into_iter().next();
+
         // Elapsed-hint string is resolved while we still hold last_user_at.
         let elapsed_hint = last_user_at.as_deref().and_then(|ts| {
             chrono::DateTime::parse_from_rfc3339(ts).ok().map(|dt| {
@@ -1244,6 +1253,7 @@ pub async fn try_proactive_ping_cmd(
             world, character, thread, recent_msgs, model_config, retrieved,
             user_profile, current_mood, mood_enabled, narration_tone,
             mood_reduction, kept_ids, elapsed_hint,
+            recent_journals, latest_reading,
         }
     };
 
@@ -1251,6 +1261,7 @@ pub async fn try_proactive_ping_cmd(
         world, character, thread, recent_msgs, model_config, retrieved,
         user_profile, current_mood, mood_enabled, narration_tone,
         mood_reduction, kept_ids, elapsed_hint,
+        recent_journals, latest_reading,
     } = loaded;
 
     let mood_directive = compute_and_persist_mood(
@@ -1275,6 +1286,8 @@ pub async fn try_proactive_ping_cmd(
         elapsed_hint.as_deref(),
         &illustration_captions,
         &reactions_by_msg,
+        &recent_journals,
+        latest_reading.as_ref(),
     ).await?;
 
     if reply_text.trim().is_empty() {
@@ -1327,6 +1340,8 @@ struct Loaded {
     mood_reduction: Vec<String>,
     kept_ids: Vec<String>,
     elapsed_hint: Option<String>,
+    recent_journals: Vec<JournalEntry>,
+    latest_reading: Option<DailyReading>,
 }
 
 /// Returns per-character unread-proactive-ping counts (solo threads only,
