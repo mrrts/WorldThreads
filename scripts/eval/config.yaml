@@ -1,0 +1,6 @@
+# Eval harness config
+samples_per_condition: 3      # bump to 10 for decisions you'd act on
+temperature: 0.9              # match production dialogue temperature
+max_tokens: 400               # cap for sampled replies; well above Medium target
+estimated_cost_per_1k_input: 0.015   # adjust for your model
+estimated_cost_per_1k_output: 0.060

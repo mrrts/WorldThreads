@@ -1,0 +1,34 @@
+# Each experiment defines:
+#   - which scenarios to run
+#   - what to ABLATE in the OFF condition (which directives to remove)
+# The ON condition is always the full assembled prompt.
+
+E1:
+  name: "craft_notes_dialogue whole-block"
+  scenarios: [s1_grief_quiet, s2_humor_test, s3_canon_pull, s4_pushback_required, s5_small_talk_quality]
+  ablate:
+    - craft_notes_dialogue
+
+E2:
+  name: "AGAPE_BLOCK"
+  scenarios: [s1_grief_quiet, s3_canon_pull, s5_small_talk_quality]
+  ablate:
+    - AGAPE_BLOCK
+
+E3:
+  name: "tone Humorous"
+  scenarios: [s2_humor_test]
+  ablate:
+    - tone_humorous
+  # ON adds the Humorous tone directive; OFF runs as Auto.
+
+E4:
+  name: "craft_notes half-block (cut placebo candidates)"
+  scenarios: [s1_grief_quiet, s2_humor_test, s4_pushback_required, s5_small_talk_quality]
+  ablate:
+    - craft_notes_placebo_half
+  # OFF removes the 12 candidate-placebo notes named in the audit:
+  # substance_before_signal, build_generous, stay_awake, three_anchors,
+  # one_clean_competence, not_all_wound, walk_in_already_in_motion,
+  # memory_ambushes, you_can_misread_them, history_costs_a_detail,
+  # tell_the_truth_smaller, leak_around_the_edges

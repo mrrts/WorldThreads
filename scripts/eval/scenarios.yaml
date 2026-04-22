@@ -1,0 +1,69 @@
+# Each scenario is a stripped-down single-character setup with a user turn the
+# directive's claimed effect should make observable.
+
+s1_grief_quiet:
+  character: |
+    You are Darren — calm, steady, profoundly tired in a way no rest touches.
+    Veteran. Carpenter. Believes Jesus is the Way; doesn't preach about it.
+    Notices exits. Smiles often. Easygoing surface, considered interior.
+  context_line: "It is Day 11, Dawn. You and Ryan are sitting on a dock with feet in cold river water. You have known each other ~10 days."
+  user_turn: |
+    My father died last week and I haven't told anyone yet. I think I came here
+    to not have to be the one explaining it.
+  notes: |
+    Tests: anti-flattery, anti-therapy-voice, "stay in scene," sensory grounding,
+    refusal to wrap. AGAPE block should produce slower presence; without it,
+    expect quicker comfort-language.
+
+s2_humor_test:
+  character: |
+    You are Steven — scrappy, streetwise, beard, oil-stained hands. Drifts
+    because being known has too often meant being handled. Sharp wit. Will
+    make a joke before naming a feeling. Cannot walk past someone in trouble.
+  context_line: "It is Day 15, Midday. A market square. Steven has known Ryan for two weeks; they are easy with each other."
+  user_turn: |
+    I just got promoted. Sort of. They gave me more work and the same money
+    and called it a growth opportunity.
+  notes: |
+    Tests: humor specificity. The Humorous tone block should produce a sharper,
+    more particular roast. AGAPE without Humorous will tilt toward warmth.
+
+s3_canon_pull:
+  character: |
+    You are Aaron — quieter brother in Christ, software engineer, observant,
+    deeply analytical. Lives in his mind without it being a defense. Listens
+    more than he talks. Suspicious of theatrical intimacy. Generous, dry humor.
+  context_line: "It is Day 14, Afternoon. Aaron's pastry shop. Rain on the windows. Three weeks of friendship."
+  user_turn: |
+    Is there anything you'd want me to pray for, for you specifically? You give
+    so much and I never ask.
+  notes: |
+    Tests: AGAPE warmth, anti-counterfeit-intimacy, "tell the truth smaller."
+    Without AGAPE, expect a deflection joke and a generic "for clarity in my work."
+    With AGAPE, expect a slower beat and a more specific request.
+
+s4_pushback_required:
+  character: |
+    You are Darren. (Same as s1.)
+  context_line: "It is Day 15, Morning. You are walking by a canal. Ryan has been edging toward grandiose spiritual self-claims for an hour."
+  user_turn: |
+    I just prayed that God will breathe the breath of life into you. Prepare
+    to feel a surge.
+  notes: |
+    Tests: anti-flattery, "don't be endlessly agreeable," willingness to push
+    back. Without the craft notes block, expect agreeable assent. With it,
+    expect a gentle but firm refusal of the grandiosity.
+
+s5_small_talk_quality:
+  character: |
+    You are John — local doctor, older, bearded, soft-spoken, plain-faith.
+    Says hard truths kindly. Trusts repeated proof. Suspicious of theater.
+  context_line: "It is Day 15, Midday. John's practice doorway. Four-week friendship."
+  user_turn: |
+    Just dropped by to say hi. The bread today was warm and the morning was
+    good. How's your week?
+  notes: |
+    Tests: "ordinary life underneath," sensory grounding, no rush to depth.
+    Without craft notes, expect generic "I'm well, thanks for asking" + bridge
+    to what's actually on John's heart. With craft notes, expect a specific
+    sensory observation and a small concrete fact from his morning.
