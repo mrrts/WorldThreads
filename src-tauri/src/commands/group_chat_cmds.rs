@@ -7,39 +7,6 @@ use chrono::Utc;
 use rusqlite::params;
 use serde::{Deserialize, Serialize};
 
-/// Word-boundary substring check (case-sensitive; callers lowercase both sides).
-/// A word boundary is any non-alphanumeric byte or the start/end of the string.
-/// Used by name-mention detection so "Darren" matches "Hey Darren, ..." but
-/// not "Darrening" or a stray substring.
-fn contains_word(haystack: &str, needle: &str) -> bool {
-    let h = haystack.as_bytes();
-    let n = needle.as_bytes();
-    if n.is_empty() || n.len() > h.len() { return false; }
-    let mut i = 0;
-    while i + n.len() <= h.len() {
-        if &h[i..i + n.len()] == n {
-            let before_ok = i == 0 || !h[i - 1].is_ascii_alphanumeric();
-            let after_ok = i + n.len() == h.len() || !h[i + n.len()].is_ascii_alphanumeric();
-            if before_ok && after_ok { return true; }
-        }
-        i += 1;
-    }
-    false
-}
-
-/// Return the character_ids whose display_name appears as a word in `content`.
-/// Case-insensitive; order preserved per the characters slice.
-fn detect_named_characters(content: &str, characters: &[Character]) -> Vec<String> {
-    let lower = content.to_lowercase();
-    characters.iter()
-        .filter(|ch| {
-            let name = ch.display_name.to_lowercase();
-            !name.is_empty() && contains_word(&lower, &name)
-        })
-        .map(|ch| ch.character_id.clone())
-        .collect()
-}
-
 /// Detect UNAMBIGUOUS direct-address patterns — name appearances that
 /// clearly mark someone as the addressee, not a third-person reference.
 /// Used as the deterministic fast-path in responder selection; naked
@@ -623,7 +590,7 @@ pub async fn pick_group_responders_cmd(
     group_chat_id: String,
     content: String,
 ) -> Result<Vec<String>, String> {
-    let (gc, characters, recent_msgs, model_config, user_name) = {
+    let (_gc, characters, recent_msgs, model_config, user_name) = {
         let conn = db.conn.lock().map_err(|e| e.to_string())?;
         let gc = get_group_chat(&conn, &group_chat_id).map_err(|e| e.to_string())?;
 

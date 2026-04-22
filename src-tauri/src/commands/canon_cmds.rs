@@ -436,12 +436,6 @@ pub fn commit_auto_canon_cmd(
 
     let conn = db.conn.lock().map_err(|e| e.to_string())?;
 
-    // Provenance block — resolve once; reused across all applied updates.
-    let (source_thread_id, source_world_day, source_created_at) = match find_message(&conn, &request.source_message_id) {
-        Some((m, _)) => (Some(m.thread_id), m.world_day, Some(m.created_at)),
-        None => (None, None, None),
-    };
-
     let mut applied: Vec<AppliedCanonUpdate> = Vec::new();
     for u in &request.updates {
         // Normalize fields for this update.
