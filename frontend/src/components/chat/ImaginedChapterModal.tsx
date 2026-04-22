@@ -156,13 +156,9 @@ export function ImaginedChapterModal({
     return () => { unlisteners.forEach((u) => u()); };
   }, [open, loadChapters]);
 
-  // Auto-scroll while writing
-  useEffect(() => {
-    if (phase !== "writing" && phase !== "done") return;
-    const el = scrollRef.current;
-    if (!el) return;
-    el.scrollTop = el.scrollHeight;
-  }, [streamContent, phase]);
+  // No auto-scroll during streaming — the user wants full control over
+  // their scroll position while reading. The chapter streams in; the
+  // viewport stays where the reader put it.
 
   async function handleGenerate() {
     if (generatingRef.current) return;
