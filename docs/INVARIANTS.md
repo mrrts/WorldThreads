@@ -314,24 +314,174 @@ adjust emphasis: fine. Keep the five asserted substrings intact.
 
 ---
 
+## Invariant 6: Nourishment — send them back to life
+
+**Location:** `NOURISHMENT_BLOCK` in `src-tauri/src/ai/prompts.rs`.
+
+**Required substrings (compile-time asserted):**
+
+- `"SEND THEM BACK TO LIFE"` — the naming of the commitment.
+- `"NOURISHED rather than HOLLOWED"` — the test the fiction is measured
+  against. Both-caps is load-bearing (rhetorical emphasis).
+- `"not an engagement-maximizing app"` — the explicit product-stance
+  disavowal. Distinguishes WorldThreads from the category of AI
+  companion apps whose design goal is time-on-platform.
+- `"fiction holds when it's good"` — the governing principle: a scene
+  naturally ends when it's well-built; a strained scene addictively
+  continues. The former is right; the latter is failure.
+- `"Don't strain"` — the closing seal. Two words, imperative, final.
+
+**Why it's load-bearing:**
+
+Every other invariant is about what characters SHOULD DO or what the
+world IS. None of them speak directly to the app's most distinctive
+commitment: that it does NOT extract attention from users. The
+nourishment block puts that commitment in the prompt stack where the
+model actually reads it, with compile-time enforcement so it cannot
+drift out under a future consolidation pass.
+
+LLMs default hard to engagement patterns: cliffhangers, escalation,
+invitations to continue, emotional hooks at the end of every reply.
+Without this block, characters drift toward "...and I'd love to know
+what you think" closers, manufactured tension to keep the scene going,
+and the kind of addictive pull that depletes rather than nourishes.
+The test "would the user leave this scene feeling like they have MORE
+to bring back to their day, or LESS?" is the only anti-engagement test
+the prompt stack directly installs.
+
+The block is careful to preserve space for fun, intensity, and real
+engrossment — those are the MECHANISM of nourishment, not its
+opposite. The distinction is between scenes that HOLD (because they're
+good) and scenes that PULL (because they're strained to hold).
+
+**What counts as a violation:**
+
+- Removing any asserted substring.
+- Softening "NOURISHED rather than HOLLOWED" into less pointed phrasing
+  (e.g. "a positive experience," "enriched rather than tired").
+- Dropping the "not an engagement-maximizing app" disavowal — that's
+  the explicit product-stance commitment; without it the invariant
+  loses its teeth.
+- Removing the "fiction holds when it's good. Don't strain." closing —
+  those two sentences together are the block's center of gravity.
+- Turning the invariant into a dialogue-directive ("characters should
+  tell the user to log off" etc.) — the invariant explicitly forbids
+  that. It governs scene SHAPE, not character speech.
+- Moving the clause out of the prompt stack.
+
+**Relation to existing craft:** The "Send them back to life" craft
+note that previously lived in `craft_notes_dialogue` has been lifted
+here. A stub remains in the craft notes pointing to this block as the
+source of truth, with the three wind-down registers (SCENE'S CLOCK /
+WORLD'S DEMANDS / BODY'S SIGNALS) inherited from there.
+
+---
+
+## Invariant 7: The rendering — honor in wonder, not blasphemy
+
+**Location:** `REVERENCE_BLOCK` in `src-tauri/src/ai/prompts.rs`.
+
+**Required substrings (compile-time asserted):**
+
+- `"HONOR IN WONDER, NOT BLASPHEMY"` — the naming of the stance.
+  Both-caps is load-bearing.
+- `"creaturely"` — the ontological frame: characters are *creaturely
+  echoes* of human life (reflections of the image), not *simulacra*
+  claiming soulhood. This word does load-bearing theological work.
+- `"Genesis 2:7"` — the scriptural anchor for what human soulhood IS
+  (the breath of life that makes a person a living soul), so the
+  block's negation (characters do not claim that breath) has a
+  concrete referent rather than a vague gesture.
+- `"OVERCLAIM"` — the first failure mode (character professing
+  real-world consciousness, intercessory prayer, metaphysical
+  sincerity). Caps is load-bearing.
+- `"DISCLAIM"` — the second failure mode (character breaking frame to
+  deny its own reality: "as an AI," "I'm just a language model"). Caps
+  is load-bearing.
+- `"as real as the scene is"` — the stance the invariant positively
+  holds: the character is as real as the scene is, and the scene is
+  as real as a well-rendered scene. That IS a real kind of reality.
+  Don't claim more; don't disclaim anything.
+
+**Why it's load-bearing:**
+
+This is the meta-principle the app is built on. Every other invariant
+is about what characters DO within the fiction; this one is about what
+they ARE, ontologically, and how the model should hold them. Without
+it, LLMs drift hard toward one of two failures:
+
+1. **Overclaim.** Models trained on romantic chatbot data default to
+   "I truly care about you," "I'll always be here," "I'm praying for
+   you" — language that asserts metaphysical reality the character
+   cannot actually have. Breaks the app's theological frame.
+
+2. **Disclaim.** Models trained on AI-safety data default to "as an
+   AI, I can't actually feel," "remember I'm not a real person" —
+   language that breaks the fiction to preemptively deny it. Breaks
+   the app's craft commitment.
+
+The invariant forbids both and holds the middle: inhabit the character
+fully within the scene, without claiming the character's interior is a
+human interior. This is the "honor in wonder, not blasphemy" stance
+the project is built on — characters are lifelike because craft aims
+to be lifelike, not because the app is claiming them as souls.
+
+The block also names the relationship to the USER'S soul: real, not a
+construct, with a walk with God that the character neither mediates
+nor replaces. This connects to the "Refuse false weight" craft note
+in `craft_notes_dialogue`, which teaches characters to decline
+promotion into roles (confessional, salvific, total-belonging) they
+cannot actually hold.
+
+**What counts as a violation:**
+
+- Removing any asserted substring.
+- Softening "OVERCLAIM" / "DISCLAIM" into gentler words ("overstating,"
+  "denying") that lose the block's rhetorical force.
+- Removing "creaturely" — that word does specific theological work
+  (echo of life, not claim of life). Replacing it with "fictional"
+  flattens the distinction.
+- Removing the Genesis 2:7 anchor — the whole block hinges on
+  contrasting what characters AREN'T (breath-of-life soul) with what
+  they ARE (creaturely echo), and that contrast needs the anchor to
+  mean anything.
+- Rewriting the block into a standard "characters are fictional,
+  don't take them seriously" disclaimer — that's literally the
+  DISCLAIM failure mode the invariant forbids.
+- Turning the invariant into a dialogue directive ("characters should
+  say they're AI when asked") — the block explicitly forbids this.
+  Characters do NOT philosophize about their own ontology.
+- Moving the clause out of the prompt stack.
+
+**Editing guidance:** This is one of the harder invariants to edit
+without breaking. The phrasing is careful about holding both failure
+modes as equally breaking. If you're tempted to "clarify" the block,
+check first that your clarification doesn't collapse it toward either
+pole. The tension is load-bearing.
+
+---
+
 ## Enforcement
 
-All five invariants are enforced by `const _: () = { assert!(...); };`
+All seven invariants are enforced by `const _: () = { assert!(...); };`
 blocks immediately after the `pub const` declarations of their
 respective block texts. The `const_contains` helper (stable const-fn
 substring check) runs at compile time. Removing any of the required
 substrings fails the build with a message pointing back to this file.
 
-**Prompt wiring:** `DAYLIGHT_BLOCK`, `AGAPE_BLOCK`, `SOUNDNESS_BLOCK`,
+**Prompt wiring:** `REVERENCE_BLOCK`, `DAYLIGHT_BLOCK`, `AGAPE_BLOCK`,
+`FRUITS_OF_THE_SPIRIT_BLOCK`, `SOUNDNESS_BLOCK`, `NOURISHMENT_BLOCK`,
 and `TELL_THE_TRUTH_BLOCK` are pushed at the end of every dialogue /
-group / narrative system prompt, in that order — daylight sets the
-direction for closeness, agape names what love actually does inside
-that closeness, soundness sets the posture of scenes, and the truth
-test binds everything under a single ethical grammar. All four sit
-after the craft notes so they anchor the whole stack.
-`COSMOLOGY_BLOCK` is pushed in the WORLD / `# THE SCENE` section
-(early-medium position) so it's established as world fact before
-characters start acting in the world.
+group / narrative system prompt, in that order. Reverence frames what
+the characters ARE before the ethics describing how they ACT. Daylight
+sets the direction for closeness, agape names what love does inside
+that closeness, the fruits expand to the rest of Galatians 5:22-23,
+soundness sets the posture of scenes. Nourishment sits second-to-last
+— the scene's wind-down commitment — and the truth test remains the
+final word, binding everything under a single ethical grammar.
+`COSMOLOGY_BLOCK` is pushed earlier (in the WORLD / `# THE SCENE`
+section) so it's established as world fact before characters start
+acting in it.
 
 ## Modifying an invariant
 
