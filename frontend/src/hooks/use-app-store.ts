@@ -1029,6 +1029,21 @@ export function useAppStore() {
     if (state.notifyOnMessage) playChime();
   }, [state.notifyOnMessage]);
 
+  /// Reload the active chat's messages — solo or group. Used after
+  /// external inserts (e.g., imagined-chapter canonize breadcrumb)
+  /// that the chat view didn't initiate but needs to reflect.
+  const reloadActiveChatMessages = useCallback(async () => {
+    try {
+      if (state.activeCharacter) {
+        const page = await api.getMessages(state.activeCharacter.character_id, CHAT_PAGE_SIZE, 0);
+        setState((s) => ({ ...s, messages: page.messages, totalMessages: page.total }));
+      } else if (state.activeGroupChat) {
+        const page = await api.getGroupMessages(state.activeGroupChat.group_chat_id, CHAT_PAGE_SIZE, 0);
+        setState((s) => ({ ...s, messages: page.messages, totalMessages: page.total }));
+      }
+    } catch (e) { console.warn("[reloadActiveChatMessages] failed:", e); }
+  }, [state.activeCharacter, state.activeGroupChat]);
+
   const adjustMessage = useCallback(async (messageId: string, instructions: string) => {
     if (!state.apiKey) return;
     const isGroup = !!state.activeGroupChat && !state.activeCharacter;
@@ -1620,6 +1635,7 @@ export function useAppStore() {
     generateNarrative,
     generateIllustration,
     appendMessage,
+    reloadActiveChatMessages,
     adjustMessage,
     editMessageContent,
     deleteMessage,

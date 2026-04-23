@@ -515,6 +515,21 @@ export function ChatView({ store, onNavigateToCharacter }: Props) {
     return () => window.removeEventListener("backstage:illustration-added", handler as EventListener);
   }, [store]);
 
+  // Listen for imagined-chapter canonize. The modal inserts a
+  // breadcrumb row into the chat's messages table; we reload this
+  // chat's messages so the new card shows up without a full
+  // chat-switch round-trip.
+  useEffect(() => {
+    const handler = async (e: Event) => {
+      const detail = (e as CustomEvent<{ threadId: string }>).detail;
+      const myThread = store.messages[0]?.thread_id;
+      if (!detail?.threadId || !myThread || detail.threadId !== myThread) return;
+      await store.reloadActiveChatMessages();
+    };
+    window.addEventListener("imagined-chapter-canonized", handler as EventListener);
+    return () => window.removeEventListener("imagined-chapter-canonized", handler as EventListener);
+  }, [store]);
+
   const openGallery = useCallback(async () => {
     const lastIllus = store.messages.filter((m) => m.role === "illustration").at(-1);
     if (!lastIllus || !store.activeCharacter) return;

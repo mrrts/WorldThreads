@@ -187,6 +187,16 @@ export function ImaginedChapterModal({
         } catch { /* non-fatal */ }
       }
       loadChapters();
+      // Tell the underlying chat view to reload its messages — the
+      // backend just inserted a breadcrumb row and the chat's visible
+      // history won't reflect it until we nudge it. Event-based so
+      // both ChatView and GroupChatView can listen without the modal
+      // needing to know which variant it's embedded in.
+      if (threadId) {
+        window.dispatchEvent(new CustomEvent("imagined-chapter-canonized", {
+          detail: { threadId },
+        }));
+      }
     } catch (e) {
       setError(String(e));
       throw e;
