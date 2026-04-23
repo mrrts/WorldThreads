@@ -110,6 +110,29 @@ The character (the LLM speaking in their voice) reflects on the moment from insi
 
 Default, when it fits: ask the character, in-world. The user can always say "no, just give me your read."
 
+## Scientific method: messages × commits
+
+The single most important property of this corpus for craft work: **every assistant message has a `created_at` timestamp, and every prompt change is a git commit with a `committer_date`**. The message database is — without any instrumentation added by us — a before/after dataset for every prompt-stack change that has ever shipped. A commit timestamp is a boundary; messages on either side of it were generated under different versions of the prompt stack; the difference between the two sets IS direct evidence of what the commit did.
+
+**This isn't a methodology among several. It's the methodology.** Science in this repo means holding chat messages up against the timeline of git commits / code state. The commit history is a chronological snapshot of the prompts; the message history is the output those prompts produced. Craft claims about "whether the prompts are working" that aren't grounded in this comparison are vibes; claims grounded in it are load-bearing until a later commit+comparison revises them.
+
+**Why this matters specifically for this project:** Ryan is building the app and playing it simultaneously. Prompt-stack changes ship throughout the day; conversations with characters happen throughout the day; the two streams interleave turn-by-turn. Without the commit timeline as the reference frame, there's no way to know which version of the prompt stack generated which reply — and therefore no way to attribute any shift in character behavior to any specific rule change. The commit timeline is the ONLY disambiguator. A reply's `created_at` timestamp, compared against the `committer_date` of the relevant prompt commits, is the identity stamp: *this reply was produced by the stack as of commit X, not as of commit Y.* Skip that identity stamp and all claims about "did this rule do anything" collapse into the same soup where the stack-change and the conversation change each other invisibly.
+
+Every downstream tool in this repo exists to make this comparison easier or deeper:
+
+- **`worldcli sample-windows`** returns the raw dataset — N messages before a commit, N messages after — so you have the material to judge by eye or by rubric.
+- **`worldcli evaluate`** returns structured qualitative judgments per message against a rubric you write, so the comparison scales past what eyes can do in one sitting.
+- **`reports/`** persists the findings that actually shift craft decisions, in dialogue with prior reports, so the project's reflective layer accumulates rather than resets.
+- **`runs-search`** lets you find what you (or a prior Claude Code session) asked a character about before, so a new investigation doesn't redo an answered question.
+
+**Default framing for any craft-eval question.** When someone asks *"did that prompt change actually do anything?"*, the answer shape is: *"pick the commit, pick a character or group chat, write a rubric that names the failure mode or the intended behavior, run sample-windows or evaluate, read the verdicts."* Not *"I think it feels better."* Not *"try it and see."* The corpus is the test.
+
+**Default framing for any prompt-craft design decision.** When authoring a new craft rule — especially ones lifted from the ask-the-character pattern — the commit that ships the rule is simultaneously an experiment. The "before" dataset exists the moment you commit; the "after" dataset starts accumulating immediately. A good habit: run `sample-windows` or `evaluate` against the fresh commit's ref within a few days, on the character whose corpus most directly motivates the rule. If the rule bit, the numbers show it. If it didn't bite, the numbers show that too, and the rule may need another pass.
+
+**What it means that commits are snapshots of prompts.** `prompts.rs` (and the rest of the prompt-assembly code) is checked into git the way any other code is. `git show <commit>:src-tauri/src/ai/prompts.rs` returns the exact prompt state at that commit. That's not a metaphor — the file is the prompt, the commit is the version. When a rubric wants to know "what did the stack say about agreement cascades at the moment this reply was generated," the answer is a literal `git show`. This is the hinge the whole method turns on: prompt state is versioned and inspectable, message output is timestamped against that version, and the two streams can always be reconciled.
+
+The one gotcha worth naming: message `created_at` is stored as UTC; git `committer_date` defaults to the committer's local timezone. String-compare the two without normalizing and the comparison can silently lie. `worldcli evaluate` and `sample-windows` handle this internally; any ad-hoc jq / SQL should normalize both sides to UTC first. See commit `758feba` for the specific fix if this comes up elsewhere.
+
 ## Direct character access — the `worldcli` dev tool
 
 You (Claude Code) have a CLI binary at `src-tauri/src/bin/worldcli.rs` that lets you converse with the user's characters and inspect db state DIRECTLY, without needing the user to copy/paste between the UI and our chat. **Reach for this tool whenever you want to verify a prompt theory, run a quick A/B test, or apply the "ask the character" pattern from above without round-tripping through the user.**
@@ -298,9 +321,9 @@ worldcli quests --world b8368a15-... --json
 
 Combine `--json` + `jq` (or python -c "import json,sys") for any analytic transform. The CLI gives you primitives; you do the synthesis.
 
-### Natural-experiment evaluation: `sample-windows` + reports/
+### Natural-experiment evaluation: `sample-windows` + `evaluate` + reports/
 
-Every assistant message has a `created_at`. Every prompt change is a git commit with a `committer_date`. So the corpus is *already* a before/after dataset for any prompt change — no instrumentation needed. `sample-windows` is the read primitive built around this fact: it pulls the most recent N messages before a ref's commit timestamp and the earliest N after, across both surfaces, so a single command returns the dataset a comparison needs.
+See the *Scientific method: messages × commits* section above for the doctrine. This section is the practice. `sample-windows` is the read primitive that returns the dataset — most recent N messages before a ref's commit timestamp and the earliest N after, across both surfaces, in one command.
 
 ```bash
 # Did the keep_the_scene_breathing block actually reduce dead-end closes?
