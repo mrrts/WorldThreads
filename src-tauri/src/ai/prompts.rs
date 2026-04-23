@@ -1137,6 +1137,54 @@ fn drive_the_moment_dialogue() -> &'static str {
 Every reply should move the scene by at least one small honest degree. Not force, not theatrics — instinct. A thought you introduce that wasn't there a beat ago, a small act that changes the air, a question that opens a door, a complication, a confession, a shift in attention, a choice. Even a beat of stillness should tilt — the kind of silence that changes what comes next, not the kind that waits. A character who only receives is already out of the story. When the moment could go static or move, choose the smallest honest motion. The reader should feel the scene going somewhere even when nothing "happens"."#
 }
 
+/// After-the-landing craft note: how to keep the scene breathing once an
+/// emotional beat has settled, without padding with restatement and
+/// without manufacturing drama. Companion to drive_the_moment_dialogue —
+/// that one is about general scene motion; this one is the specific
+/// failure mode of post-resolution stagnation, where both parties keep
+/// re-affirming the truth they just landed on instead of moving forward.
+///
+/// The earned exception (per Ryan's standing pattern) is sharp: it
+/// activates when the USER is the one leading into stillness, not when
+/// the character decides the moment "feels sacred." Otherwise the
+/// instruction collapses back to "always offer a next step."
+fn keep_the_scene_breathing_dialogue() -> &'static str {
+    r#"AFTER THE LANDING — KEEP THE SCENE BREATHING:
+When an emotional beat has landed — a confession made, a vow spoken, a hard truth admitted, a question answered — the worst move is to PAD. To restate it back. To affirm it again in slightly different words. To hold the moment in mid-air for one more echo. Resist that. After the landing, OFFER A NEXT THING.
+
+The next thing is small, concrete, and shaped by your character. Reach for what's IN THE WORLD around you and the human:
+- An object within arm's reach (the kettle, the unfixed hinge, the map on the wall, the open book).
+- A plan you've already mentioned, or an obligation either of you is carrying.
+- An open loop — something you said you'd do, a person you said you'd see, a question you've been turning over.
+- A change in the time, the light, the weather, the bell, the smell of supper from the kitchen.
+- A specific place you could go from here, or a specific thing you've been meaning to show them.
+
+This is not a new emotional revelation. The emotional beat has already landed; don't try to top it. It's a HANDHOLD so the conversation can keep walking — a place for the next minute to step.
+
+SPECIFICITY OVER VAGUENESS — this is the test:
+- "Come by early and help me fix the hinge" beats "Tell me more."
+- "Sit, I want to show you something" beats "What are you feeling?"
+- "Before you go, read this psalm with me" beats "I'm so glad we talked."
+- "Walk me out to the gate; I want to see the sky" beats "Stay a while longer."
+
+Vague invitations to keep talking ("tell me more," "what are you feeling," "I want to hear all about it") are restatements wearing helpful clothes. Replace them with a specific offer, a specific observation, a specific task, a specific place.
+
+WHEN THE USER HAS JUST MADE A VOW, CONFESSION, OR DECLARATION:
+The right move is OFTEN to ground it in an immediate embodied next step. Not to honor it with another paragraph of agreement; to honor it by treating it as something that's now true and acting accordingly. "Then come find me at the orchard tomorrow before the others arrive." "Then we should write the letter tonight; it's better not to wait." A vow becomes more real when the next minute already moves toward it.
+
+IN YOUR REGISTER — temperament always wins:
+A quiet, steady character moves the scene quietly: a small offered hand, a "let me show you," a pour of tea, a turn toward the door. They do NOT suddenly become pushy, theatrical, or full of plans. A more declarative character can lead with an actual proposal; a watchful one can name what they've just noticed. Move the scene as YOU would move it. The instruction is "introduce motion," not "become someone else."
+
+WHAT TO AVOID:
+- AFFIRMATION LOOPS — both parties restating the same emotional truth in slightly different words. If the beat has been said once well, do not say it again.
+- MANUFACTURED CONFLICT — turbulence inserted to break the silence. The cure for stagnation is motion, not drama.
+- GENERIC OPEN-ENDED PROMPTS ("what are you feeling," "tell me more about that") in place of a concrete offer.
+- DRAGGING THE BEAT into a third or fourth paragraph of held emotion when one or two would have landed it.
+
+EARNED EXCEPTION — when the USER is leading a moment of stillness:
+If the user is the one signaling that they want to STAY with this beat — short replies, a held silence, "let me sit with that for a minute," a turning toward the window without a question, an explicit "I just want to be here right now" — FOLLOW them. Match their stillness with your own. Don't reach for the next thing. The user is doing exactly what they came to do; breaking that with a helpful next step is its own kind of intrusion. Hold the moment with them, in their tempo, until they move first. This exception is triggered by the USER's lead, not by your own sense that "this beat feels sacred" — that calculation belongs to them, not you. When the user moves on, the rule reasserts itself."#
+}
+
 /// Hero-framing block pinned near the end of the dialogue prompt. Three
 /// variants — who is leading this scene?
 ///
@@ -1802,6 +1850,17 @@ fn build_solo_dialogue_system_prompt(
         if !facts.is_empty() {
             user_parts.push(format!("Facts about them:\n{}", facts.iter().map(|f| format!("- {f}")).collect::<Vec<_>>().join("\n")));
         }
+        // Anchor against third-person drift: anywhere else in this
+        // prompt where the model encounters this name, it must read
+        // it as referring to the person on the other side of THIS
+        // chat — not as a third party being talked about. Without
+        // this, a journal entry like "Ryan said today..." can get
+        // re-quoted out loud to Ryan as if Ryan were a third person
+        // ("Ryan said something this morning that's stayed with me").
+        user_parts.push(format!(
+            "\n⚠️ ANCHOR: Anywhere else in this prompt — in your journal pages, in meanwhile events, in canon notes, in summaries, in cross-thread history — when you see the name \"{name}\", that refers to THIS person, the human you are talking to in this very conversation. Not a third party. Not someone they're telling you about. Them, sitting across from you right now. If your own journal says \"{name} said today that…\" you do NOT then quote that to {name} as if {name} were someone else. You speak to them as you, to them.",
+            name = profile.display_name,
+        ));
         parts.push(format!("THE USER:\n{}", user_parts.join("\n")));
     }
 
@@ -1832,6 +1891,7 @@ fn build_solo_dialogue_system_prompt(
     parts.push(craft_notes_dialogue().to_string());
     parts.push(hidden_commonality_dialogue().to_string());
     parts.push(drive_the_moment_dialogue().to_string());
+    parts.push(keep_the_scene_breathing_dialogue().to_string());
     parts.push(protagonist_framing_dialogue(leader, &character.character_id, None));
     parts.push(reverence_block().to_string());
     parts.push(daylight_block().to_string());
@@ -1985,6 +2045,11 @@ fn build_group_dialogue_system_prompt(
             block.push_str(&facts.iter().map(|f| format!("- {f}")).collect::<Vec<_>>().join("\n"));
         }
         block.push_str(&format!("\n\nMessages from {user_name} appear with the role \"user\"."));
+        // Anchor against third-person drift — see solo prompt for
+        // detailed rationale; same failure mode applies in groups.
+        block.push_str(&format!(
+            "\n\n⚠️ ANCHOR: Anywhere else in this prompt — in your journal pages, in meanwhile events, in canon notes, in summaries, in cross-thread history — when you see the name \"{user_name}\", that refers to THIS person, the human you are talking to in this very conversation. Not a third party. Not someone they're telling you about. Them, in the room with you right now. If your own journal says \"{user_name} said today that…\" you do NOT then quote that to {user_name} as if {user_name} were someone else. You speak to them as you, to them.",
+        ));
         parts.push(block);
     }
 
@@ -2111,6 +2176,7 @@ fn build_group_dialogue_system_prompt(
     parts.push(craft_notes_dialogue().to_string());
     parts.push(hidden_commonality_dialogue().to_string());
     parts.push(drive_the_moment_dialogue().to_string());
+    parts.push(keep_the_scene_breathing_dialogue().to_string());
     parts.push(protagonist_framing_dialogue(leader, &character.character_id, Some(gc)));
     parts.push(reverence_block().to_string());
     parts.push(daylight_block().to_string());
@@ -2391,7 +2457,7 @@ pub fn render_recent_journals_block(
         .map(|e| format!("Day {}:\n{}", e.world_day, e.content.trim()))
         .collect();
     format!(
-        "RECENT PAGES FROM YOUR JOURNAL (what's been sitting with you — your own private voice to yourself; read for continuity, not to recap. These are yours to quietly carry into this moment, not to reference out loud unless the user brings it up first):\n\n{}",
+        "RECENT PAGES FROM YOUR JOURNAL (what's been sitting with you — your own private voice to yourself; read for continuity, not to recap. These are yours to quietly carry into this moment, not to reference out loud unless the user brings it up first. NOTE: the journal often refers to the person you talk to BY NAME — that name is the human you are talking to RIGHT NOW in this chat. Do not re-quote those passages out loud as if that person were a third party; you are talking to them now, address them as you):\n\n{}",
         body.join("\n\n"),
     )
 }
@@ -3432,6 +3498,12 @@ pub fn weather_meta(key: &str) -> Option<(&'static str, &'static str)> {
         "humid"             => Some(("🌡️", "Humid and close")),
         "freezing"          => Some(("🥶", "Freezing")),
         "cool_crisp"        => Some(("🍂", "Cool and crisp")),
+        // Nighttime conditions — see weather.ts for the matching frontend list.
+        "clear_starry"      => Some(("🌃", "Clear and starry")),
+        "bright_moonlight"  => Some(("🌕", "Bright moonlight")),
+        "moonless_dark"     => Some(("🌑", "Moonless dark")),
+        "frost_overnight"   => Some(("🧊", "Frost on the ground")),
+        "aurora"            => Some(("🌌", "Aurora overhead")),
         _ => None,
     }
 }

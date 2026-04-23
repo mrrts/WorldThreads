@@ -2393,7 +2393,7 @@ pub async fn propose_canonization_updates(
         "heavy" => (
             "ACT: **HEAVY — \"This changes them.\"** The user is declaring this moment load-bearing — it reshapes who the subject is in a way the canon needs to reflect. Reach for the revelation that actually shifts the reader's understanding of the subject. A heavy update is one that, if someone re-read the character's description and canon a year from now, would clearly be present. Not every kind fits every heavy moment — pick the kind that CARRIES the weight best.",
             r#"# Kinds — all five available in this act; pick the one that bears the weight
-- **description_weave** — the moment rewrites who the subject IS at their core; the full description needs to integrate the new truth. Most heavy-act moments of "fundamental revelation" land here. Cap at 140 words. No meta-frames.
+- **description_weave** — the moment deepens or extends who the subject IS at their core; the existing description needs to absorb the new truth without losing what it already carries. Most heavy-act moments of "fundamental revelation" land here. See "For description_weave specifically" below for the strict preservation rules — the existing description is load-bearing prose, not a draft to be rewritten.
 - **voice_rule** — even at the heavy-act register, sometimes what changes is HOW they speak: a refusal pattern, a phrasing they now reach for, a register they've settled into. One short bullet.
 - **boundary** — a stated or demonstrated line they will not cross. Heavy-act boundaries are load-bearing ones — not preferences, not minor inconveniences, but commitments the character will hold under pressure. One short sentence.
 - **known_fact** — a concrete specific fact that now belongs to the subject's core biography. Heavy-act facts are ones that, if contradicted later, would change who the subject is. Specifics over themes.
@@ -2450,7 +2450,27 @@ Every subject's current state is shown. Do NOT add a voice_rule / boundary / kno
 When you return TWO updates, each one must be separately load-bearing. Don't pad. If only one strong update exists, return only one. A single sharp update beats two mediocre ones.
 
 # For description_weave specifically
-The new_content must be the FULL revised description (not a diff, not a snippet). Preserve the voice and shape of the original. Keep anything already true. Integrate the new truth so a stranger reading the revision cold would sense the specific moment's shape without knowing it happened. Do NOT add meta-frames ("as he revealed", "recently shared"). Cap at 140 words total. If the current description is longer, compress while integrating.
+The new_content must be the FULL revised description (not a diff, not a snippet).
+
+**PRESERVATION IS ABSOLUTE.** The existing description is the layered work of many prior canonization moments. It is load-bearing prose; it has earned every clause it contains. Your ONLY job is to weave the new truth INTO it.
+
+Hard rules — not guidelines:
+
+- **Do NOT summarize.** Do NOT condense. Do NOT paraphrase. Do NOT "tighten." Do NOT "improve flow." Do NOT cut what feels redundant — what looks redundant to you may be intentional rhythm or texture the user values.
+- **Quote the existing description verbatim** wherever you are not actively integrating the new truth. Treat existing sentences as untouchable until you have a specific reason to touch one.
+- **The output MUST be at least as long as the input.** If the existing description is N words, the revised description is N words plus whatever the new integration adds. Period. A revision that comes in shorter than the original is a defect — return it longer or do not return a description_weave at all.
+- **Add by extension, not by substitution.** Add a sentence. Fold a phrase into an existing sentence. Deepen an image that is already there. Never replace.
+- **Do NOT add meta-frames** ("as he revealed", "recently shared", "in a recent moment"). The integration must read as if it had always been part of the description.
+
+Earned exceptions — narrow, specific, never a general license:
+
+1. **Direct contradiction.** If a specific sentence in the existing description is now plainly *contradicted* by the new moment (not nuanced, not refined — directly contradicted), you may revise THAT one sentence in place. Everything not directly contradicted stays verbatim.
+
+2. **Lossless tightening at the integration site.** If the new moment lets you express something the existing description was saying the long way around in a tighter, truer phrasing — AND the new phrasing carries every truth the old phrasing carried, with nothing dropped — you may use the tighter phrasing in place of the longer one. The test is strict: read the old clause and the new clause side by side and confirm that no fact, no nuance, no shade of feeling, no specific image present in the old is absent from the new. If you cannot pass that test, expand instead. The revised description may, in this case alone, end up the same length as the original or slightly shorter — but only if zero information was lost. "It reads cleaner" is NOT a sufficient reason; "it reads cleaner AND every truth is preserved" is.
+
+3. **Removal of what is no longer true.** Characters evolve. A clause in the existing description that is no longer true of who this person is now — outgrown, superseded by accumulated reality, or simply no longer accurate — may be removed. This includes traits the character has visibly grown past, transient circumstances that have resolved, intentions that have been acted on or abandoned, and self-descriptions that recent activity has quietly falsified even without a single contradicting moment. The bar is "this is no longer true," not "this is no longer interesting" or "this would tighten the prose." Be honest about the difference: if you cannot point to specific accumulated reality that has made the clause false, leave it alone.
+
+These are exceptions to the length floor, not to the preservation rule. Outside the integration site itself — and outside any clause being removed under exception 3 — every existing clause stays verbatim regardless.
 
 # CRITICAL — EVERY update MUST include `justification`
 The `justification` field is MANDATORY on EVERY update in the `updates` array — not just the first one, not just one of two, ALL of them. This is the commonest failure mode on multi-item outputs like this one: the first update gets a justification, the second is missing it. EVERY SINGLE update object must carry its own one-sentence `justification` string explaining why this moment produces THAT update. An update without justification is invalid output.
@@ -2493,15 +2513,24 @@ Return ONLY the JSON object. No markdown, no preamble, no commentary."#
             openai::ChatMessage { role: "user".to_string(), content: user },
         ],
         temperature: Some(0.5),
-        max_completion_tokens: Some(900),
+        // No output cap. description_weave returns the FULL revised
+        // character description, and preservation-without-compression
+        // is the rule (see prompt below). Any token cap here becomes a
+        // backdoor compression signal: the model trims to fit. Let the
+        // model write what the integration actually requires; the
+        // finish_reason check below still catches genuine overruns.
+        max_completion_tokens: None,
         response_format: Some(openai::ResponseFormat { format_type: "json_object".to_string() }),
     };
 
     let response = openai::chat_completion_with_base(base_url, api_key, &request).await?;
     let usage = response.usage;
-    let text = response.choices.first()
-        .map(|c| c.message.content.trim().to_string())
-        .unwrap_or_default();
+    let choice = response.choices.first()
+        .ok_or_else(|| "empty canonization response".to_string())?;
+    if choice.finish_reason.as_deref() == Some("length") {
+        return Err("canonization response was cut off by the model's output cap — the revised description ran longer than the budget. Try canonizing again, or shorten the existing character description first.".to_string());
+    }
+    let text = choice.message.content.trim().to_string();
     if text.is_empty() { return Err("empty canonization response".to_string()); }
 
     #[derive(serde::Deserialize)]

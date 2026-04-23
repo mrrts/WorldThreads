@@ -35,6 +35,15 @@ export const WEATHER_OPTIONS: readonly WeatherOption[] = [
   { id: "humid",             emoji: "🌡️", label: "Humid and close" },
   { id: "freezing",          emoji: "🥶",  label: "Freezing" },
   { id: "cool_crisp",        emoji: "🍂",  label: "Cool and crisp" },
+  // Nighttime conditions — the daylight set above can co-occur with night
+  // (a steady rain at 2am still reads as steady rain), but these are
+  // specifically night-shaped: sky / moon / dark-quality states that
+  // don't make sense during the day.
+  { id: "clear_starry",      emoji: "🌃",  label: "Clear and starry" },
+  { id: "bright_moonlight",  emoji: "🌕",  label: "Bright moonlight" },
+  { id: "moonless_dark",     emoji: "🌑",  label: "Moonless dark" },
+  { id: "frost_overnight",   emoji: "🧊",  label: "Frost on the ground" },
+  { id: "aurora",            emoji: "🌌",  label: "Aurora overhead" },
 ];
 
 export function weatherById(id: string | null | undefined): WeatherOption | null {
