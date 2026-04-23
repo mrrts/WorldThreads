@@ -6,6 +6,10 @@ authors = ["you"]
 license = "MIT"
 edition = "2021"
 rust-version = "1.77.2"
+# With the worldcli binary present, `cargo run` (which Tauri's dev
+# command issues without a --bin flag) needs to know which to default
+# to. The desktop app is the obvious primary; worldcli is a dev tool.
+default-run = "world-threads"
 
 [lib]
 name = "app_lib"
