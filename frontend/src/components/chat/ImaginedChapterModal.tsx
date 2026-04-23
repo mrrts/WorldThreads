@@ -437,7 +437,10 @@ export function ImaginedChapterModal({
                     No chapters yet. Start one above.
                   </div>
                 ) : (
-                  chapters.map((c) => (
+                  chapters.map((c) => {
+                    const isCanonized = c.canonized || canonizedThisSession.has(c.chapter_id);
+                    const isActive = activeChapterId === c.chapter_id;
+                    return (
                     <div
                       key={c.chapter_id}
                       role="button"
@@ -449,14 +452,27 @@ export function ImaginedChapterModal({
                           handleSelectChapter(c);
                         }
                       }}
-                      className={`w-full text-left px-2 py-1.5 rounded-md text-xs transition-colors group/item cursor-pointer ${
-                        activeChapterId === c.chapter_id
-                          ? "bg-primary/15 text-foreground"
-                          : "hover:bg-accent text-muted-foreground hover:text-foreground"
+                      className={`w-full text-left px-2.5 py-2 rounded-md text-xs transition-all group/item cursor-pointer border ${
+                        isCanonized
+                          ? (isActive
+                              // Canonized + selected: brighter glow, thicker border.
+                              ? "bg-gradient-to-br from-amber-400/25 via-amber-500/15 to-amber-500/10 border-amber-400/70 shadow-[0_0_14px_rgba(251,191,36,0.35)] text-amber-50"
+                              // Canonized + idle: steady golden presence.
+                              : "bg-gradient-to-br from-amber-500/15 via-amber-500/10 to-amber-500/5 border-amber-400/40 shadow-[0_0_8px_rgba(251,191,36,0.18)] text-amber-100/95 hover:from-amber-400/20 hover:via-amber-500/15 hover:to-amber-500/10 hover:border-amber-400/60 hover:shadow-[0_0_12px_rgba(251,191,36,0.28)]")
+                          : (isActive
+                              ? "bg-primary/15 text-foreground border-transparent"
+                              : "hover:bg-accent text-muted-foreground hover:text-foreground border-transparent")
                       }`}
                     >
                       <div className="flex items-start justify-between gap-1">
-                        <span className="line-clamp-2 flex-1 font-medium">{c.title || "(untitled)"}</span>
+                        <div className="flex items-start gap-1.5 flex-1 min-w-0">
+                          {isCanonized && (
+                            <Sparkles size={11} className="text-amber-400 mt-[3px] flex-shrink-0 drop-shadow-[0_0_4px_rgba(251,191,36,0.6)]" />
+                          )}
+                          <span className={`line-clamp-2 flex-1 ${isCanonized ? "font-semibold" : "font-medium"}`}>
+                            {c.title || "(untitled)"}
+                          </span>
+                        </div>
                         <button
                           onClick={(e) => handleDelete(c.chapter_id, e)}
                           className="opacity-0 group-hover/item:opacity-60 hover:opacity-100 transition-opacity"
@@ -465,14 +481,15 @@ export function ImaginedChapterModal({
                           <Trash2 size={11} />
                         </button>
                       </div>
-                      <div className="text-[10px] text-muted-foreground/60 mt-0.5 flex items-center gap-1.5">
-                        <span>{new Date(c.created_at).toLocaleString()}</span>
-                        {(c.canonized || canonizedThisSession.has(c.chapter_id)) && (
-                          <span className="text-emerald-700/70 dark:text-emerald-400/70" title="Canonized">●</span>
+                      <div className={`text-[10px] mt-1 flex items-center gap-1.5 ${isCanonized ? "text-amber-300/70" : "text-muted-foreground/60"}`}>
+                        {isCanonized && (
+                          <span className="text-[9px] uppercase tracking-wider font-semibold text-amber-400">Canon</span>
                         )}
+                        <span>{new Date(c.created_at).toLocaleString()}</span>
                       </div>
                     </div>
-                  ))
+                    );
+                  })
                 )}
               </div>
               {/* Bulk reset — one-shot cleanup for the migration's
