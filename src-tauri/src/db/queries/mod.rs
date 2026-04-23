@@ -17,6 +17,7 @@ mod user_journal;
 mod meanwhile;
 mod daily_reading;
 mod imagined_chapters;
+mod quest;
 
 pub use world::*;
 pub use user_profile::*;
@@ -37,3 +38,4 @@ pub use user_journal::*;
 pub use meanwhile::*;
 pub use daily_reading::*;
 pub use imagined_chapters::*;
+pub use quest::*;

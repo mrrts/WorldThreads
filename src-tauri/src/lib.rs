@@ -16,6 +16,7 @@ use commands::user_journal_cmds::*;
 use commands::meanwhile_cmds::*;
 use commands::daily_reading_cmds::*;
 use commands::imagined_chapter_cmds::*;
+use commands::quest_cmds::*;
 use commands::memory_cmds::*;
 use commands::mood_cmds::*;
 use commands::novel_cmds::*;
@@ -263,6 +264,15 @@ pub fn run() {
             canonize_imagined_chapter_cmd,
             decanonize_imagined_chapter_cmd,
             bulk_decanonize_imagined_chapters_for_thread_cmd,
+            create_quest_cmd,
+            list_quests_cmd,
+            get_quest_cmd,
+            update_quest_cmd,
+            update_quest_notes_cmd,
+            complete_quest_cmd,
+            abandon_quest_cmd,
+            reopen_quest_cmd,
+            delete_quest_cmd,
             generate_group_illustration_cmd,
             preview_backstage_illustration_cmd,
             attach_previewed_illustration_cmd,

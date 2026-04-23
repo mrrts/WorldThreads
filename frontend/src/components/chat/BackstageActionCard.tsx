@@ -1,6 +1,7 @@
 import { useState } from "react";
-import { Check, X, Loader2, Feather, Send, ImagePlus, Palette, Users } from "lucide-react";
+import { Check, X, Loader2, Feather, Send, ImagePlus, Palette, Users, Compass } from "lucide-react";
 import { api } from "@/lib/tauri";
+import { QuestAcceptanceDialog } from "./QuestAcceptanceDialog";
 
 /// A parsed Backstage action — extracted from a ```action fenced block
 /// in the assistant's response. Two flavors are shipping in v1:
@@ -52,6 +53,21 @@ export type BackstageActionBlock =
       /// Exactly two character ids — backend rejects anything else.
       character_ids: string[];
       label: string;
+    }
+  | {
+      type: "propose_quest";
+      /// Short title for the pursuit.
+      title: string;
+      /// 1-3 sentence framing of what the pursuit is about. Plainspoken,
+      /// resists objective-with-steps language.
+      description: string;
+      /// Optional label — most propose_quest blocks won't have one, but
+      /// the parser accepts it for visual consistency with other cards.
+      label?: string;
+      /// Optional originating message or event id. The commitment-
+      /// ceremony dialog records this as the origin_ref when the user
+      /// accepts.
+      origin_ref?: string;
     }
   | {
       type: string;
@@ -111,6 +127,7 @@ export function BackstageActionCard({ block, ctx }: Props) {
       block.type === "portrait_regen" ? "Portrait painted — find it in the character editor." :
       block.type === "illustration" ? "Illustration added to the chat." :
       block.type === "new_group_chat" ? "Group chat created — find it in your sidebar." :
+      block.type === "propose_quest" ? "Quest accepted — it's on the books." :
       "Applied.";
     return (
       <div className="my-3 px-3 py-2 rounded-lg border border-emerald-500/30 bg-emerald-500/10 text-[11px] text-emerald-400 flex items-center gap-2">
@@ -468,6 +485,67 @@ export function BackstageActionCard({ block, ctx }: Props) {
           </div>
         </div>
       </div>
+    );
+  }
+
+  // Propose-quest card — opens the commitment-ceremony dialog on
+  // "Accept." The acceptance is not one-tap; the dialog is a small vow
+  // with title/description the user can edit, and a reflection prompt
+  // ("what are you reaching for here?") before the actual commit.
+  if (block.type === "propose_quest") {
+    const [dialogOpen, setDialogOpen] = useState(false);
+    const onOpen = () => setDialogOpen(true);
+    const onCommitted = () => {
+      setState("applied");
+      setTimeout(() => ctx.onAppliedClose(), 600);
+    };
+    return (
+      <>
+        <div className="my-3 rounded-xl border border-amber-400/40 bg-amber-500/5 overflow-hidden">
+          <div className="px-4 py-2.5 border-b border-amber-400/20 bg-amber-500/10 flex items-center gap-2">
+            <Compass size={13} className="text-amber-400" />
+            <span className="text-[11px] uppercase tracking-wider font-semibold text-amber-300">
+              A quest worth accepting?
+            </span>
+          </div>
+          <div className="px-4 py-3">
+            <p className="text-sm font-medium text-foreground/95 mb-1.5">{block.title}</p>
+            <div className="text-sm leading-relaxed whitespace-pre-wrap text-foreground/85 bg-background/40 rounded-md p-3 border border-border/40">
+              {block.description}
+            </div>
+            <p className="text-[10px] text-muted-foreground/70 italic mt-2">
+              Accepting is a small vow. You can abandon it later if it stops fitting.
+            </p>
+            <div className="flex items-center gap-2 mt-3">
+              <button
+                onClick={onOpen}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-amber-500/90 hover:bg-amber-500 text-black text-xs font-medium transition-colors cursor-pointer"
+              >
+                <Compass size={12} />
+                Consider accepting
+              </button>
+              <button
+                onClick={() => setState("dismissed")}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-border/50 text-muted-foreground hover:text-foreground hover:bg-accent text-xs transition-colors cursor-pointer"
+              >
+                <X size={12} />
+                Not now
+              </button>
+            </div>
+          </div>
+        </div>
+        {dialogOpen && (
+          <QuestAcceptanceDialog
+            worldId={ctx.worldId}
+            initialTitle={block.title}
+            initialDescription={block.description}
+            originKind="backstage"
+            originRef={block.origin_ref}
+            onClose={() => setDialogOpen(false)}
+            onAccepted={() => { setDialogOpen(false); onCommitted(); }}
+          />
+        )}
+      </>
     );
   }
 

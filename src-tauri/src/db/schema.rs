@@ -1393,6 +1393,57 @@ pub fn run_migrations(conn: &Connection) -> Result<(), rusqlite::Error> {
             ON user_journals(world_id, world_day DESC);
     ").ok();
 
+    // ── Quests ───────────────────────────────────────────────────────────
+    //
+    // User-accepted pursuits for a world. The model (via Backstage)
+    // proposes; the user ratifies by accepting. One row per quest. Active
+    // quests have completed_at = NULL; completion is a user act (or a
+    // Backstage proposal the user ratifies). Intentionally NOT a quest-
+    // system-with-mechanics: no deadlines, no progress bars, no auto-
+    // completion. Active quests show up in the dialogue-prompt world
+    // context so characters know them implicitly; they surface in
+    // dialogue only when the moment is right.
+    conn.execute_batch("
+        CREATE TABLE IF NOT EXISTS quests (
+            quest_id TEXT PRIMARY KEY,
+            world_id TEXT NOT NULL REFERENCES worlds(world_id) ON DELETE CASCADE,
+            title TEXT NOT NULL DEFAULT '',
+            description TEXT NOT NULL DEFAULT '',
+            notes TEXT NOT NULL DEFAULT '',
+            accepted_at TEXT NOT NULL DEFAULT (datetime('now')),
+            accepted_world_day INTEGER,
+            completed_at TEXT,
+            completed_world_day INTEGER,
+            completion_note TEXT NOT NULL DEFAULT '',
+            abandoned_at TEXT,
+            abandoned_world_day INTEGER,
+            abandonment_note TEXT NOT NULL DEFAULT '',
+            origin_kind TEXT NOT NULL DEFAULT 'user_authored',
+            origin_ref TEXT
+        );
+        CREATE INDEX IF NOT EXISTS idx_quests_world_active
+            ON quests(world_id, completed_at, abandoned_at);
+    ").ok();
+
+    // Non-destructive ADD COLUMN migrations for databases created under
+    // an earlier shape of the quests table.
+    let cols: Vec<(&str, &str)> = vec![
+        ("abandoned_at", "TEXT"),
+        ("abandoned_world_day", "INTEGER"),
+        ("abandonment_note", "TEXT NOT NULL DEFAULT ''"),
+        ("origin_kind", "TEXT NOT NULL DEFAULT 'user_authored'"),
+        ("origin_ref", "TEXT"),
+    ];
+    for (name, ty) in cols {
+        let has: bool = conn.query_row(
+            "SELECT COUNT(*) FROM pragma_table_info('quests') WHERE name = ?1",
+            rusqlite::params![name], |r| r.get::<_, i64>(0),
+        ).unwrap_or(0) > 0;
+        if !has {
+            conn.execute(&format!("ALTER TABLE quests ADD COLUMN {name} {ty}"), []).ok();
+        }
+    }
+
     // One-shot wipe of existing journal entries so every character
     // re-generates under the new world-day-bounded logic (history feed
     // strictly today's messages; prior entries strictly before today).

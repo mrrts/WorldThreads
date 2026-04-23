@@ -1619,11 +1619,12 @@ pub fn build_dialogue_system_prompt(
     latest_reading: Option<&crate::db::queries::DailyReading>,
     own_voice_samples: &[String],
     latest_meanwhile: Option<&crate::db::queries::MeanwhileEvent>,
+    active_quests: &[crate::db::queries::Quest],
 ) -> String {
     if group_context.is_some() {
-        build_group_dialogue_system_prompt(world, character, user_profile, mood_directive, response_length, group_context.unwrap(), tone, local_model, mood_chain, leader, recent_journals, latest_reading, own_voice_samples, latest_meanwhile)
+        build_group_dialogue_system_prompt(world, character, user_profile, mood_directive, response_length, group_context.unwrap(), tone, local_model, mood_chain, leader, recent_journals, latest_reading, own_voice_samples, latest_meanwhile, active_quests)
     } else {
-        build_solo_dialogue_system_prompt(world, character, user_profile, mood_directive, response_length, tone, local_model, mood_chain, leader, recent_journals, latest_reading, own_voice_samples, latest_meanwhile)
+        build_solo_dialogue_system_prompt(world, character, user_profile, mood_directive, response_length, tone, local_model, mood_chain, leader, recent_journals, latest_reading, own_voice_samples, latest_meanwhile, active_quests)
     }
 }
 
@@ -1644,6 +1645,7 @@ pub fn build_proactive_ping_system_prompt(
     latest_reading: Option<&crate::db::queries::DailyReading>,
     own_voice_samples: &[String],
     latest_meanwhile: Option<&crate::db::queries::MeanwhileEvent>,
+    active_quests: &[crate::db::queries::Quest],
 ) -> String {
     let base = build_solo_dialogue_system_prompt(
         world,
@@ -1659,6 +1661,7 @@ pub fn build_proactive_ping_system_prompt(
         latest_reading,
         own_voice_samples,
         latest_meanwhile,
+        active_quests,
     );
     format!("{base}\n\n{}", proactive_ping_block())
 }
@@ -1699,6 +1702,7 @@ fn build_solo_dialogue_system_prompt(
     latest_reading: Option<&crate::db::queries::DailyReading>,
     own_voice_samples: &[String],
     latest_meanwhile: Option<&crate::db::queries::MeanwhileEvent>,
+    active_quests: &[crate::db::queries::Quest],
 ) -> String {
     let mut parts = Vec::new();
 
@@ -1830,6 +1834,11 @@ fn build_solo_dialogue_system_prompt(
         }
     }
 
+    {
+        let block = render_active_quests_block(active_quests);
+        if !block.is_empty() { parts.push(block); }
+    }
+
     if let Some(weather) = world_weather_block(world) {
         parts.push(weather);
     }
@@ -1922,6 +1931,7 @@ fn build_group_dialogue_system_prompt(
     latest_reading: Option<&crate::db::queries::DailyReading>,
     own_voice_samples: &[String],
     latest_meanwhile: Option<&crate::db::queries::MeanwhileEvent>,
+    active_quests: &[crate::db::queries::Quest],
 ) -> String {
     let mut parts = Vec::new();
     parts.push(FUNDAMENTAL_SYSTEM_PREAMBLE.to_string());
@@ -2113,6 +2123,13 @@ fn build_group_dialogue_system_prompt(
         if !state.is_empty() {
             scene.push_str("\n\nCurrent world state:\n");
             scene.push_str(&serde_json::to_string_pretty(&world.state).unwrap_or_default());
+        }
+    }
+    {
+        let block = render_active_quests_block(active_quests);
+        if !block.is_empty() {
+            scene.push_str("\n\n");
+            scene.push_str(&block);
         }
     }
     if let Some(weather) = world_weather_block(world) {
@@ -2411,6 +2428,39 @@ pub fn render_inventory_update_for_prompt(content: &str) -> String {
         }
     }).collect();
     parts.join("; ")
+}
+
+/// Render active quests as a prompt block characters can know
+/// implicitly. Framing deliberately resists the Zelda-coded register:
+/// a quest here is "a promise the world has made to itself that the
+/// human has agreed to witness," not a mechanical objective. The
+/// "you are not the narrator of this quest" clause is load-bearing —
+/// it forbids characters from announcing, recapping, or performing
+/// the quest even as it colors what they notice and bring up.
+/// Returns "" if there are no active quests.
+pub fn render_active_quests_block(
+    quests: &[crate::db::queries::Quest],
+) -> String {
+    if quests.is_empty() { return String::new(); }
+    let lines: Vec<String> = quests.iter().map(|q| {
+        let title = q.title.trim();
+        let desc = q.description.trim();
+        let notes = q.notes.trim();
+        let notes_line = if notes.is_empty() {
+            String::new()
+        } else {
+            format!("\n     (what has happened with it so far: {notes})")
+        };
+        if desc.is_empty() {
+            format!("  - {title}{notes_line}")
+        } else {
+            format!("  - {title} — {desc}{notes_line}")
+        }
+    }).collect();
+    format!(
+        "ACTIVE QUESTS IN THIS WORLD (pursuits the human has accepted as worth doing, listed for your awareness):\n{}\n\nYou are NOT the narrator of these quests. You are a person living in the world they touch. Let them color what you notice, what you bring up, what's in the air — but do NOT perform them, do NOT recap them, do NOT announce them, do NOT produce quest-completion language. A quest is a promise the world has made to itself that the human has agreed to witness; your job is to be in that world honestly, not to narrate its arc.",
+        lines.join("\n"),
+    )
 }
 
 /// Render the latest daily reading as a prompt block. Meant as

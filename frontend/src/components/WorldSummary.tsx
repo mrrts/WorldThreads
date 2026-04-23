@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { MessageSquare, Settings, Loader2, User, ChevronLeft, ChevronRight, Play, Pause, Square, BookOpen, X, Volume2, VolumeX } from "lucide-react";
+import { MessageSquare, Settings, Loader2, User, ChevronLeft, ChevronRight, Play, Pause, Square, BookOpen, X, Volume2, VolumeX, Compass } from "lucide-react";
+import { QuestsModal } from "@/components/QuestsModal";
 import type { useAppStore } from "@/hooks/use-app-store";
 import { api, type Character, type PortraitInfo, type GalleryItem } from "@/lib/tauri";
 import { useSlideshow } from "@/hooks/use-slideshow";
@@ -31,6 +32,7 @@ export function WorldSummary({ store, onChat, onSettings }: Props) {
   const [groupDialogueCounts, setGroupDialogueCounts] = useState<Record<string, number>>({});
   const [portraitCharId, setPortraitCharId] = useState<string | null>(null);
   const [showCarouselModal, setShowCarouselModal] = useState(false);
+  const [showQuests, setShowQuests] = useState(false);
   const [videoMuted, setVideoMuted] = useState(true);
   const [illustrations, setIllustrations] = useState<Array<{ id: string; data_url: string }>>([]);
   const [loadingCarousel, setLoadingCarousel] = useState(true);
@@ -220,8 +222,15 @@ export function WorldSummary({ store, onChat, onSettings }: Props) {
         )}
 
         {/* Content */}
-        {/* Characters */}
         <div className="px-8 py-6 w-full space-y-6">
+          {/* Top-level world actions */}
+          <div className="flex items-center justify-end gap-2">
+            <Button variant="outline" size="sm" onClick={() => setShowQuests(true)}>
+              <Compass size={14} className="mr-1.5 text-amber-400" />
+              Quests
+            </Button>
+          </div>
+          {/* Characters */}
           <h2 className="text-lg font-semibold">Characters</h2>
 
           {loading && charInfos.length === 0 ? (
@@ -514,6 +523,15 @@ export function WorldSummary({ store, onChat, onSettings }: Props) {
         characterName={portraitCharId ? store.characters.find((c) => c.character_id === portraitCharId)?.display_name : undefined}
         onClose={() => setPortraitCharId(null)}
       />
+
+      {world && (
+        <QuestsModal
+          open={showQuests}
+          onClose={() => setShowQuests(false)}
+          worldId={world.world_id}
+          worldName={world.name}
+        />
+      )}
     </div>
   );
 }

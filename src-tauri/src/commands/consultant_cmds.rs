@@ -689,9 +689,11 @@ pub async fn story_consultant_cmd(
 
     // Backstage mode gets extra world-scoped context that immersive
     // doesn't need — all characters in the world (not just this thread's
-    // members), recent meanwhile events, and the player's most recent
-    // journal entry. Gathered on a short lock only when needed.
-    let (world_cast_block, meanwhile_block, user_journal_block) = if chat_mode == "backstage" {
+    // members), recent meanwhile events, the player's most recent
+    // journal entry, and the active quests (so Backstage doesn't propose
+    // a duplicate of something already accepted). Gathered on a short
+    // lock only when needed.
+    let (world_cast_block, meanwhile_block, user_journal_block, active_quests_block) = if chat_mode == "backstage" {
         let conn = db.conn.lock().map_err(|e| e.to_string())?;
         let all_chars = list_characters(&conn, &world.world_id).unwrap_or_default();
         let thread_ids: std::collections::HashSet<String> = characters.iter()
@@ -733,9 +735,21 @@ pub async fn story_consultant_cmd(
             format!("\n\n{user_name}'S MOST RECENT JOURNAL ENTRIES (their own voice, reflecting on closed days):\n{}", lines.join("\n\n"))
         };
 
-        (cast_block, mw_block, uj_block)
+        let active_q = list_active_quests(&conn, &world.world_id).unwrap_or_default();
+        let aq_block = if active_q.is_empty() {
+            String::new()
+        } else {
+            let lines: Vec<String> = active_q.iter().map(|q| {
+                let day = q.accepted_world_day.map(|d| format!("Day {d}")).unwrap_or_else(|| "—".to_string());
+                let notes = if q.notes.trim().is_empty() { String::new() } else { format!("\n     (notes: {})", q.notes.trim()) };
+                format!("  - [{day}] {} — {}{notes}", q.title.trim(), q.description.trim())
+            }).collect();
+            format!("\n\nACTIVE QUESTS (pursuits {user_name} has already accepted — do NOT propose duplicates of these):\n{}", lines.join("\n"))
+        };
+
+        (cast_block, mw_block, uj_block, aq_block)
     } else {
-        (String::new(), String::new(), String::new())
+        (String::new(), String::new(), String::new(), String::new())
     };
 
     let system_prompt = if chat_mode == "backstage" {
@@ -756,7 +770,7 @@ You are different from the immersive Story Consultant (who treats everything as 
 
 # WHAT YOU CAN DO
 
-You can read the state freely, AND you can propose FIVE kinds of actions that {user_name} can accept with one click:
+You can read the state freely, AND you can propose SIX kinds of actions that {user_name} can accept:
 
 **1. Canon entry** — weave a new truth into a character's (or {user_name}'s) identity text. Use this when something has shifted about who they are, something recent earned a place in their description. The content you propose is the FULL revised identity text, not a patch — it replaces the current identity. Include enough of the existing identity that the revision reads as a whole, not a fragment. Propose this only when there's a clear, specific thing to weave in — not as a default reply.
 
@@ -767,6 +781,8 @@ You can read the state freely, AND you can propose FIVE kinds of actions that {u
 **4. Illustration** — an illustrated scene attached to one of {user_name}'s chats. Use this when there's a specific visual moment worth rendering. The `custom_instructions` field is the scene description passed to the image model — be concrete about composition, light, posture, the thing being held, the weather.
 
 **5. New group chat** — pair EXACTLY TWO characters into a new group conversation. Use when there's a specific tension or shared ground between two characters that's been waiting to surface. The backend rejects anything other than 2 characters.
+
+**6. Propose a quest** — offer {user_name} a pursuit worth accepting. A quest here is NOT a Zelda-objective — it is "a promise the world has made to itself that {user_name} might agree to witness." Use when something in the recent life of this world has clearly become worth reaching for: a character's unresolved need, a thread that keeps surfacing across sessions, a question that wants answering, a thing that needs building or finding or fixing. The quest proposal opens a commitment-ceremony dialog; accepting is not one-tap, it's a small vow. Offer one only when the moment is earned — quests that arrive unsolicited and land right are better than quests that appear on schedule. DO NOT propose quest-like objectives that feel assigned ("find the eight crystals"); DO propose pursuits that reflect the world's already-surfacing pressures ("what happened to the eastern bell," "whether Marcus will forgive his brother"). Rate: at most one active-quest proposal per conversation. If {user_name} already has active quests, check them — don't duplicate.
 
 To propose an action, emit a fenced code block with the language tag `action` containing JSON. Examples:
 
@@ -790,6 +806,10 @@ To propose an action, emit a fenced code block with the language tag `action` co
 {{"type":"new_group_chat","character_ids":["{example_char_id}","another-character-id"],"label":"Put Elena and Marcus in a room — that quiet thread about the money has been waiting for air"}}
 ```
 
+```action
+{{"type":"propose_quest","title":"What happened to the eastern bell","description":"Hannah mentioned the bell that used to ring mornings over the marsh — no one's heard it in weeks. She thinks it was cut down, but she isn't sure. Something in her voice said this matters to her more than she let on.","origin_ref":"message-id-or-event-id-if-known"}}
+```
+
 Rules:
 - ONE action card per reply at most. Usually zero. Let the conversation breathe.
 - Always include the full text field (`content`, `pose_description`, `custom_instructions`, `label`) — the action applies your exact text verbatim, so stub drafts are worse than nothing.
@@ -801,6 +821,7 @@ Rules:
 - For `new_group_chat`, the `character_ids` array MUST have exactly two ids. Backend rejects otherwise. Characters listed in the OTHER CHARACTERS IN THIS WORLD block are fair game along with the ones in the active chat.
 - `portrait_regen` only works if the character already has at least one portrait; most characters in active use do, but if you're not sure, prefer `staged_message` or leave it.
 - `illustration` attaches to the specified character's solo chat thread — pick the character whose chat the moment belongs in.
+- For `propose_quest`, include the originating message_id in `origin_ref` if it's a specific message {user_name} just saw that sparked the proposal (you can see message IDs in the recent-messages context); otherwise omit `origin_ref`. The `description` should be 1-3 sentences, plainspoken, naming the thing that's worth reaching for without treating it as an objective with steps. A single active-quest proposal per chat session; check the ACTIVE QUESTS block (if shown) so you don't propose a duplicate of something already accepted.
 - If {user_name} declines or edits, do NOT re-propose the same action in your next reply — move on.
 
 # WHAT YOU WATCH OUT FOR
@@ -878,7 +899,7 @@ THE PEOPLE IN THE ACTIVE CHAT
 {user_block}
 
 {char_list}
-═══════════════════════════════════════════════{world_cast_block}{kept_block}{summary_block}{meanwhile_block}{user_journal_block}
+═══════════════════════════════════════════════{world_cast_block}{kept_block}{summary_block}{meanwhile_block}{user_journal_block}{active_quests_block}
 
 ═══════════════════════════════════════════════
 WHAT'S BEEN HAPPENING (most recent conversation in the active chat):
@@ -897,6 +918,7 @@ One last thing: end most replies with a small concrete suggestion or a quiet que
             world_cast_block = world_cast_block,
             meanwhile_block = meanwhile_block,
             user_journal_block = user_journal_block,
+            active_quests_block = active_quests_block,
             world_id = world.world_id,
             example_char_id = characters.first().map(|c| c.character_id.as_str()).unwrap_or("character-id-from-above"),
         )

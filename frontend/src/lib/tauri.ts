@@ -871,7 +871,46 @@ export const api = {
     invoke<void>("decanonize_imagined_chapter_cmd", { chapterId }),
   bulkDecanonizeImaginedChaptersForThread: (threadId: string) =>
     invoke<{ decanonizedCount: number }>("bulk_decanonize_imagined_chapters_for_thread_cmd", { threadId }),
+
+  // Quests
+  createQuest: (worldId: string, title: string, description: string, originKind?: "user_authored" | "message" | "meanwhile" | "backstage", originRef?: string) =>
+    invoke<Quest>("create_quest_cmd", { worldId, title, description, originKind: originKind ?? null, originRef: originRef ?? null }),
+  listQuests: (worldId: string) =>
+    invoke<Quest[]>("list_quests_cmd", { worldId }),
+  getQuest: (questId: string) =>
+    invoke<Quest>("get_quest_cmd", { questId }),
+  updateQuest: (questId: string, title: string, description: string) =>
+    invoke<Quest>("update_quest_cmd", { questId, title, description }),
+  updateQuestNotes: (questId: string, notes: string) =>
+    invoke<Quest>("update_quest_notes_cmd", { questId, notes }),
+  completeQuest: (questId: string, completionNote: string) =>
+    invoke<Quest>("complete_quest_cmd", { questId, completionNote }),
+  abandonQuest: (questId: string, abandonmentNote: string) =>
+    invoke<Quest>("abandon_quest_cmd", { questId, abandonmentNote }),
+  reopenQuest: (questId: string) =>
+    invoke<Quest>("reopen_quest_cmd", { questId }),
+  deleteQuest: (questId: string) =>
+    invoke<void>("delete_quest_cmd", { questId }),
 };
+
+export interface Quest {
+  quest_id: string;
+  world_id: string;
+  title: string;
+  description: string;
+  notes: string;
+  accepted_at: string;
+  accepted_world_day: number | null;
+  completed_at: string | null;
+  completed_world_day: number | null;
+  completion_note: string;
+  abandoned_at: string | null;
+  abandoned_world_day: number | null;
+  abandonment_note: string;
+  /** "user_authored" | "message" | "meanwhile" | "backstage" */
+  origin_kind: string;
+  origin_ref: string | null;
+}
 
 export interface ImaginedChapter {
   chapter_id: string;
