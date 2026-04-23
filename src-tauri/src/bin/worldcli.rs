@@ -1286,10 +1286,22 @@ async fn evaluate_one(
 /// nearest preceding user turn from the FULL chronological thread —
 /// the user turn might be paginated outside the working-set window
 /// if filtering dropped the nearest one.
+/// What's being evaluated. The Character variant spans BOTH the
+/// character's solo thread AND their replies in every group chat
+/// they're a member of (joined via sender_character_id); the Group
+/// variant is a single group thread, every assistant reply inside
+/// it regardless of sender. This is the character-vs-surface
+/// distinction that matters for craft evaluation: when you ask
+/// "what has this character been saying lately," you want all of
+/// their surfaces combined.
+enum EvalScope {
+    Character { character_id: String, solo_thread_id: String },
+    Group     { thread_id: String },
+}
+
 fn pull_eval_window(
     conn: &rusqlite::Connection,
-    thread_id: &str,
-    is_group: bool,
+    scope: &EvalScope,
     cutoff_ts: &str,
     direction: &str,  // "before" or "after"
     role: &str,
@@ -1311,51 +1323,86 @@ fn pull_eval_window(
     };
     let noise_clause = "AND role NOT IN ('illustration','video','inventory_update','imagined_chapter','settings_update','system')";
     let (op, order) = if direction == "before" { ("<", "DESC") } else { (">=", "ASC") };
-    let messages_table = if is_group { "group_messages" } else { "messages" };
 
-    let query = format!(
-        "SELECT message_id, thread_id, role, content, tokens_estimate, sender_character_id,
-                created_at, world_day, world_time, address_to, mood_chain, is_proactive
-         FROM {tbl}
-         WHERE thread_id = ?1 AND created_at {op} ?2 {role_clause} {noise_clause}
-         ORDER BY created_at {order} LIMIT ?3",
-        tbl = messages_table, op = op, order = order,
-        role_clause = role_clause, noise_clause = noise_clause,
-    );
-    let mut stmt = conn.prepare(&query)?;
-    let rows = stmt.query_map(
-        rusqlite::params![thread_id, cutoff, limit],
-        |r| Ok(app_lib::db::queries::Message {
-            message_id: r.get(0)?,
-            thread_id: r.get(1)?,
-            role: r.get(2)?,
-            content: r.get(3)?,
-            tokens_estimate: r.get(4)?,
-            sender_character_id: r.get(5)?,
-            created_at: r.get(6)?,
-            world_day: r.get(7)?,
-            world_time: r.get(8)?,
-            address_to: r.get(9)?,
-            mood_chain: r.get(10)?,
-            is_proactive: r.get::<_, Option<i64>>(11)?.map(|v| v != 0).unwrap_or(false),
-        }),
-    )?;
-    let targets: Vec<app_lib::db::queries::Message> = rows.filter_map(|r| r.ok()).collect();
+    // Each target gets tagged with its source table ('solo' vs 'group')
+    // so the preceding-user-turn lookup can query the right table.
+    // For Character scope we UNION ALL over the solo-thread table AND
+    // the group_messages table filtered to this character's sender_id
+    // — that surfaces the character's replies wherever they occurred.
+    let cols = "message_id, thread_id, role, content, tokens_estimate, sender_character_id,
+                created_at, world_day, world_time, address_to, mood_chain, is_proactive";
+    let targets: Vec<(app_lib::db::queries::Message, String)> = match scope {
+        EvalScope::Character { character_id, solo_thread_id } => {
+            let sql = format!(
+                "SELECT {cols}, 'solo' AS src FROM messages
+                 WHERE thread_id = ?1 AND created_at {op} ?2 {role_clause} {noise_clause}
+                 UNION ALL
+                 SELECT {cols}, 'group' AS src FROM group_messages
+                 WHERE sender_character_id = ?3 AND created_at {op} ?2 {role_clause} {noise_clause}
+                 ORDER BY created_at {order} LIMIT ?4"
+            );
+            let mut stmt = conn.prepare(&sql)?;
+            let rows = stmt.query_map(
+                rusqlite::params![solo_thread_id, cutoff, character_id, limit],
+                |r| Ok((app_lib::db::queries::Message {
+                    message_id: r.get(0)?,
+                    thread_id: r.get(1)?,
+                    role: r.get(2)?,
+                    content: r.get(3)?,
+                    tokens_estimate: r.get(4)?,
+                    sender_character_id: r.get(5)?,
+                    created_at: r.get(6)?,
+                    world_day: r.get(7)?,
+                    world_time: r.get(8)?,
+                    address_to: r.get(9)?,
+                    mood_chain: r.get(10)?,
+                    is_proactive: r.get::<_, Option<i64>>(11)?.map(|v| v != 0).unwrap_or(false),
+                }, r.get::<_, String>(12)?)),
+            )?;
+            rows.filter_map(|r| r.ok()).collect()
+        }
+        EvalScope::Group { thread_id } => {
+            let sql = format!(
+                "SELECT {cols}, 'group' AS src FROM group_messages
+                 WHERE thread_id = ?1 AND created_at {op} ?2 {role_clause} {noise_clause}
+                 ORDER BY created_at {order} LIMIT ?3"
+            );
+            let mut stmt = conn.prepare(&sql)?;
+            let rows = stmt.query_map(
+                rusqlite::params![thread_id, cutoff, limit],
+                |r| Ok((app_lib::db::queries::Message {
+                    message_id: r.get(0)?,
+                    thread_id: r.get(1)?,
+                    role: r.get(2)?,
+                    content: r.get(3)?,
+                    tokens_estimate: r.get(4)?,
+                    sender_character_id: r.get(5)?,
+                    created_at: r.get(6)?,
+                    world_day: r.get(7)?,
+                    world_time: r.get(8)?,
+                    address_to: r.get(9)?,
+                    mood_chain: r.get(10)?,
+                    is_proactive: r.get::<_, Option<i64>>(11)?.map(|v| v != 0).unwrap_or(false),
+                }, r.get::<_, String>(12)?)),
+            )?;
+            rows.filter_map(|r| r.ok()).collect()
+        }
+    };
 
     // For each target, find the nearest preceding user turn in the
-    // FULL thread (not constrained to the working-set window).
-    let prev_query = format!(
-        "SELECT message_id, thread_id, role, content, tokens_estimate, sender_character_id,
-                created_at, world_day, world_time, address_to, mood_chain, is_proactive
-         FROM {tbl}
-         WHERE thread_id = ?1 AND role = 'user' AND created_at < ?2
-         ORDER BY created_at DESC LIMIT 1",
-        tbl = messages_table,
-    );
+    // correct table (src tells us which).
     let mut pairs: Vec<(app_lib::db::queries::Message, Option<app_lib::db::queries::Message>)> = Vec::new();
-    for m in targets {
+    for (m, src) in targets {
+        let tbl = if src == "group" { "group_messages" } else { "messages" };
+        let prev_sql = format!(
+            "SELECT message_id, thread_id, role, content, tokens_estimate, sender_character_id,
+                    created_at, world_day, world_time, address_to, mood_chain, is_proactive
+             FROM {tbl}
+             WHERE thread_id = ?1 AND role = 'user' AND created_at < ?2
+             ORDER BY created_at DESC LIMIT 1"
+        );
         let prev: Option<app_lib::db::queries::Message> = conn.query_row(
-            &prev_query,
+            &prev_sql,
             rusqlite::params![m.thread_id, m.created_at],
             |r| Ok(app_lib::db::queries::Message {
                 message_id: r.get(0)?,
@@ -1424,29 +1471,37 @@ async fn cmd_evaluate(
     };
 
     // ─── Pull windows + model config + display label ─────────────────
-    let (model_config, before_pairs, after_pairs, display_label, is_group) = {
+    let (model_config, before_pairs, after_pairs, display_label) = {
         let conn = r.db.conn.lock().unwrap();
         let mut mc = orchestrator::load_model_config(&conn);
         if let Some(m) = model_override { mc.memory_model = m.to_string(); }
 
-        let (thread_id, is_group, display) = if let Some(cid) = character_id {
+        let (scope, display) = if let Some(cid) = character_id {
             let thread = get_thread_for_character(&conn, cid)?;
             let ch = get_character(&conn, cid)?;
-            (thread.thread_id, false, format!("{} (solo)", ch.display_name))
+            (
+                EvalScope::Character {
+                    character_id: cid.to_string(),
+                    solo_thread_id: thread.thread_id,
+                },
+                format!("{} (solo + groups)", ch.display_name),
+            )
         } else {
             let gcid = group_chat_id.unwrap();
             let gc = get_group_chat(&conn, gcid)
                 .map_err(|e| Box::<dyn std::error::Error>::from(
                     format!("group_chat {}: {}", gcid, e)))?;
             r.check_world(&gc.world_id)?;
-            (gc.thread_id, true, format!("{} (group)", gc.display_name))
+            (
+                EvalScope::Group { thread_id: gc.thread_id },
+                format!("{} (group)", gc.display_name),
+            )
         };
 
-        let before = pull_eval_window(&conn, &thread_id, is_group, &before_ts, "before", role, limit)?;
-        let after  = pull_eval_window(&conn, &thread_id, is_group, &after_ts,  "after",  role, limit)?;
-        (mc, before, after, display, is_group)
+        let before = pull_eval_window(&conn, &scope, &before_ts, "before", role, limit)?;
+        let after  = pull_eval_window(&conn, &scope, &after_ts,  "after",  role, limit)?;
+        (mc, before, after, display)
     };
-    let _ = is_group; // referenced below only indirectly; here for readability
     let character_name = display_label;
 
     let total_msgs = before_pairs.len() + after_pairs.len();
