@@ -186,6 +186,62 @@ enum Cmd {
         confirm_cost: Option<f64>,
     },
 
+    /// Rubric-driven LLM evaluation of messages in a
+    /// sample-windows-shaped before/after comparison. The reports
+    /// flagged this as the missing instrument: regex metrics can't
+    /// distinguish cascades from natural register, or safe-thing
+    /// clinging from scene-furniture, or joy-shading from plain
+    /// meeting. An LLM-evaluator pass with a qualitative rubric can.
+    ///
+    /// Each assistant message in the window is sent to the cheap
+    /// memory_model with the rubric, its preceding user turn as
+    /// context, and a structured JSON response format. Per-message
+    /// judgments (yes / no / mixed + confidence + quote + one-line
+    /// reasoning) aggregate into before/after counts so the user
+    /// can read whether the rule shipped in the commit actually
+    /// moved the corpus.
+    Evaluate {
+        /// Git ref marking the boundary commit. Messages before
+        /// its timestamp form the "before" window; messages after
+        /// form the "after" window.
+        #[arg(long = "ref")]
+        git_ref: String,
+        /// Optional second ref — after-window starts at this ref
+        /// instead of `--ref`. Useful when a series of commits
+        /// together form the change.
+        #[arg(long)]
+        end_ref: Option<String>,
+        /// Messages per window. Smaller than sample-windows because
+        /// every message costs one LLM call. Default 12.
+        #[arg(long, default_value_t = 12)]
+        limit: i64,
+        /// Restrict to one character. Required for v1 — the rubric
+        /// typically asks about a single character's behavior.
+        #[arg(long)]
+        character: String,
+        /// The qualitative question the evaluator asks of each
+        /// message. Plain English. The rubric should name what
+        /// "yes / no / mixed" mean in its own domain.
+        #[arg(long)]
+        rubric: Option<String>,
+        /// Alternative: read rubric from a file (useful for
+        /// multi-paragraph prompts with examples).
+        #[arg(long)]
+        rubric_file: Option<PathBuf>,
+        /// Role filter for messages-to-evaluate. Default 'assistant'.
+        #[arg(long, default_value = "assistant")]
+        role: String,
+        /// Override the evaluator model (default: memory_model).
+        #[arg(long)]
+        model: Option<String>,
+        /// Required when projected total cost exceeds the per-call cap.
+        #[arg(long)]
+        confirm_cost: Option<f64>,
+        /// Git repo path for ref resolution.
+        #[arg(long)]
+        repo: Option<PathBuf>,
+    },
+
     /// Consult the Consultant about a character's thread — either
     /// Immersive (a trusted in-world confidant who treats everything as
     /// real and never breaks frame) or Backstage (a wry stage-manager
@@ -707,6 +763,15 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         Cmd::SampleWindows { git_ref, end_ref, limit, character, world, role, solo_only, groups_only, repo } => {
             cmd_sample_windows(&r, &git_ref, end_ref.as_deref(), limit, character.as_deref(), world.as_deref(), &role, solo_only, groups_only, repo.as_deref())
         }
+        Cmd::Evaluate { git_ref, end_ref, limit, character, rubric, rubric_file, role, model, confirm_cost, repo } => {
+            let api_key = match resolve_api_key(cli.api_key.as_deref()) {
+                Some(k) => k,
+                None => return Err(Box::<dyn std::error::Error>::from(
+                    "No API key. Set OPENAI_API_KEY, pass --api-key, or add to keychain via:\n  security add-generic-password -s WorldThreadsCLI -a openai -w \"<sk-...>\"".to_string()
+                )),
+            };
+            cmd_evaluate(&r, &api_key, &git_ref, end_ref.as_deref(), limit, &character, rubric.as_deref(), rubric_file.as_deref(), &role, model.as_deref(), confirm_cost, repo.as_deref()).await
+        }
         Cmd::Consult { character_id, message, mode, session, model, confirm_cost, question_summary } => {
             let api_key = match resolve_api_key(cli.api_key.as_deref()) {
                 Some(k) => k,
@@ -1104,6 +1169,392 @@ fn cmd_group_messages(
         })
     }).collect();
     emit(r.json, JsonValue::Array(out));
+    Ok(())
+}
+
+// ─── Evaluate (rubric-driven LLM judgments on a before/after window) ───
+
+/// One LLM-judged verdict on one character reply.
+#[derive(Debug, Serialize, Deserialize, Clone)]
+struct EvalVerdict {
+    judgment: String,         // "yes" | "no" | "mixed"
+    confidence: String,       // "high" | "medium" | "low"
+    quote: String,            // short quote from the reply that triggered the call
+    reasoning: String,        // 1-2 sentences
+}
+
+fn evaluator_system_prompt() -> &'static str {
+    r#"You are a rubric-driven evaluator for character replies in a text-based roleplay / novel-shaped world. You will receive:
+
+  1. A RUBRIC — a qualitative question describing what to judge.
+  2. The immediate USER TURN that preceded the reply (for context).
+  3. The CHARACTER REPLY being evaluated.
+
+Answer ONLY the rubric's question, applied to this specific reply. Ignore anything in the reply that isn't the rubric's concern. Be honest about ambiguity — use "mixed" when the reply partly qualifies and partly doesn't.
+
+Return a strict JSON object with exactly these fields:
+
+  {
+    "judgment":   "yes" | "no" | "mixed",
+    "confidence": "high" | "medium" | "low",
+    "quote":      "the specific line or phrase in the reply that most triggered the judgment (≤ 15 words)",
+    "reasoning":  "one or two sentences explaining the judgment in the rubric's terms"
+  }
+
+No preface, no markdown, no extra keys. Just the JSON."#
+}
+
+fn evaluator_user_prompt(rubric: &str, user_turn: &str, reply: &str) -> String {
+    format!(
+        "RUBRIC:\n{}\n\nUSER TURN (context only, not being judged):\n{}\n\nCHARACTER REPLY (this is what you're judging):\n{}",
+        rubric.trim(),
+        user_turn.trim(),
+        reply.trim(),
+    )
+}
+
+async fn evaluate_one(
+    base_url: &str,
+    api_key: &str,
+    model: &str,
+    rubric: &str,
+    user_turn: &str,
+    reply: &str,
+) -> Result<(EvalVerdict, openai::Usage), String> {
+    let req = openai::ChatRequest {
+        model: model.to_string(),
+        messages: vec![
+            openai::ChatMessage { role: "system".to_string(), content: evaluator_system_prompt().to_string() },
+            openai::ChatMessage { role: "user".to_string(), content: evaluator_user_prompt(rubric, user_turn, reply) },
+        ],
+        temperature: Some(0.0),
+        max_completion_tokens: Some(220),
+        response_format: Some(openai::ResponseFormat { format_type: "json_object".to_string() }),
+    };
+    let resp = openai::chat_completion_with_base(base_url, api_key, &req).await
+        .map_err(|e| format!("evaluate call failed: {}", e))?;
+    let raw = resp.choices.first()
+        .map(|c| c.message.content.clone())
+        .ok_or_else(|| "evaluator returned no choices".to_string())?;
+    let mut verdict: EvalVerdict = serde_json::from_str(&raw)
+        .map_err(|e| format!("evaluator JSON parse error: {} (body: {})", e, raw))?;
+    // Normalize judgment + confidence to lowercase so downstream aggregation
+    // doesn't need to worry about case variation.
+    verdict.judgment = verdict.judgment.to_lowercase();
+    verdict.confidence = verdict.confidence.to_lowercase();
+    let usage = resp.usage.unwrap_or(openai::Usage {
+        prompt_tokens: 0, completion_tokens: 0, total_tokens: 0,
+    });
+    Ok((verdict, usage))
+}
+
+/// Pull the message window for one side of the ref. Assistant messages
+/// in the window are the ones we'll evaluate; the user turn immediately
+/// preceding each is included as context for the LLM call.
+fn pull_eval_window(
+    conn: &rusqlite::Connection,
+    character_id: &str,
+    cutoff_ts: &str,
+    direction: &str,  // "before" or "after"
+    role: &str,
+    limit: i64,
+) -> Result<Vec<(app_lib::db::queries::Message, Option<app_lib::db::queries::Message>)>, Box<dyn std::error::Error>> {
+    let thread = get_thread_for_character(conn, character_id)?;
+    // Pull a large window — we'll filter by role ourselves + also need
+    // the preceding user turn for each eval target.
+    let pull_limit = (limit * 6).max(80);
+    let mut msgs = list_messages(conn, &thread.thread_id, pull_limit)?;
+    msgs.reverse(); // chronological
+
+    // Time filter
+    let filtered: Vec<app_lib::db::queries::Message> = if direction == "before" {
+        msgs.into_iter().filter(|m| m.created_at.as_str() < cutoff_ts).collect()
+    } else {
+        msgs.into_iter().filter(|m| m.created_at.as_str() >= cutoff_ts).collect()
+    };
+
+    // Walk the filtered slice; for each message whose role matches,
+    // pair it with the nearest preceding user turn (within this slice).
+    let mut pairs: Vec<(app_lib::db::queries::Message, Option<app_lib::db::queries::Message>)> = Vec::new();
+    for (i, m) in filtered.iter().enumerate() {
+        let role_match = role == "any" || m.role == role;
+        if !role_match { continue; }
+        if m.role == "illustration" || m.role == "video" || m.role == "inventory_update"
+           || m.role == "imagined_chapter" || m.role == "settings_update" {
+            continue;
+        }
+        let mut prev_user: Option<app_lib::db::queries::Message> = None;
+        for j in (0..i).rev() {
+            if filtered[j].role == "user" {
+                prev_user = Some(filtered[j].clone());
+                break;
+            }
+        }
+        pairs.push((m.clone(), prev_user));
+    }
+
+    // Take closest-to-cutoff: most recent for "before", earliest for "after".
+    let slice = if direction == "before" {
+        let start = pairs.len().saturating_sub(limit as usize);
+        pairs[start..].to_vec()
+    } else {
+        pairs.into_iter().take(limit as usize).collect()
+    };
+    Ok(slice)
+}
+
+async fn cmd_evaluate(
+    r: &Resolved,
+    api_key: &str,
+    git_ref: &str,
+    end_ref: Option<&str>,
+    limit: i64,
+    character_id: &str,
+    rubric: Option<&str>,
+    rubric_file: Option<&std::path::Path>,
+    role: &str,
+    model_override: Option<&str>,
+    confirm_cost: Option<f64>,
+    repo: Option<&std::path::Path>,
+) -> Result<(), Box<dyn std::error::Error>> {
+    // ─── Resolve rubric source ────────────────────────────────────────
+    let rubric_text = match (rubric, rubric_file) {
+        (Some(r), None) => r.to_string(),
+        (None, Some(p)) => std::fs::read_to_string(p)
+            .map_err(|e| format!("failed to read --rubric-file {}: {}", p.display(), e))?,
+        (Some(_), Some(_)) => return Err(Box::<dyn std::error::Error>::from(
+            "pass either --rubric or --rubric-file, not both".to_string())),
+        (None, None) => return Err(Box::<dyn std::error::Error>::from(
+            "one of --rubric or --rubric-file is required".to_string())),
+    };
+    if rubric_text.trim().is_empty() {
+        return Err(Box::<dyn std::error::Error>::from("rubric is empty".to_string()));
+    }
+
+    // ─── Resolve character + refs ─────────────────────────────────────
+    let _ = r.check_character(character_id)?;
+    let (before_sha, before_ts, before_subject) = git_resolve_ref(repo, git_ref)?;
+    let (after_sha, after_ts, after_subject) = match end_ref {
+        Some(er) => git_resolve_ref(repo, er)?,
+        None => (before_sha.clone(), before_ts.clone(), before_subject.clone()),
+    };
+
+    // ─── Pull windows + model config ──────────────────────────────────
+    let (model_config, before_pairs, after_pairs, character_name) = {
+        let conn = r.db.conn.lock().unwrap();
+        let mut mc = orchestrator::load_model_config(&conn);
+        if let Some(m) = model_override { mc.memory_model = m.to_string(); }
+        let before = pull_eval_window(&conn, character_id, &before_ts, "before", role, limit)?;
+        let after  = pull_eval_window(&conn, character_id, &after_ts,  "after",  role, limit)?;
+        let cname = get_character(&conn, character_id)?.display_name;
+        (mc, before, after, cname)
+    };
+
+    let total_msgs = before_pairs.len() + after_pairs.len();
+    if total_msgs == 0 {
+        return Err(Box::<dyn std::error::Error>::from(
+            "no messages in either window; widen --limit or pick a different ref".to_string()));
+    }
+
+    // ─── Cost projection ─────────────────────────────────────────────
+    // Each eval call: ~rubric + ~400 tok context + ~150 tok output.
+    let rubric_tokens = estimate_tokens(&rubric_text);
+    let per_call_in = rubric_tokens + 600; // rubric + user_turn + reply + system + overhead
+    let per_call_out: i64 = 220;
+    let per_call_usd = project_cost(&model_config.memory_model, per_call_in, per_call_out, &r.cfg.model_pricing);
+    let total_projected = per_call_usd * (total_msgs as f64);
+
+    let daily_so_far = rolling_24h_total_usd();
+    let daily_after = daily_so_far + total_projected;
+    let per_call_cap = r.cfg.budget.per_call_usd;
+    let daily_cap = r.cfg.budget.daily_usd;
+    let confirm = confirm_cost.unwrap_or(0.0);
+    if total_projected > per_call_cap && confirm < total_projected {
+        return Err(Box::new(CliError::Budget {
+            kind: "per_call (total run)".to_string(),
+            projected_usd: total_projected,
+            cap_usd: per_call_cap,
+            confirm_at_least: (total_projected * 1.05).max(0.01),
+        }));
+    }
+    if daily_after > daily_cap && confirm < total_projected {
+        return Err(Box::new(CliError::Budget {
+            kind: "daily".to_string(),
+            projected_usd: daily_after,
+            cap_usd: daily_cap,
+            confirm_at_least: (total_projected * 1.05).max(0.01),
+        }));
+    }
+
+    if !r.json {
+        eprintln!("[worldcli] evaluating {} msgs ({} before / {} after) via {} — total projected≈${:.4}; 24h spent=${:.4}/${:.2}",
+            total_msgs, before_pairs.len(), after_pairs.len(), model_config.memory_model,
+            total_projected, daily_so_far, daily_cap);
+        eprintln!("[worldcli] rubric: {}", rubric_text.lines().next().unwrap_or("").chars().take(100).collect::<String>());
+    }
+
+    // ─── Run evaluator over each message ──────────────────────────────
+    let base_url = model_config.chat_api_base();
+    let eval_window = |pairs: &[(app_lib::db::queries::Message, Option<app_lib::db::queries::Message>)]| -> Vec<JsonValue> {
+        pairs.iter().map(|(m, prev)| (m.clone(), prev.clone())).collect::<Vec<_>>()
+            .into_iter().map(|(m, _)| json!({
+                "message_id": m.message_id,
+                "created_at": m.created_at,
+                "content": m.content,
+            })).collect::<Vec<_>>()
+    };
+    // (The closure above is a no-op shape; we run the actual async calls below.)
+    let _ = eval_window;
+
+    let mut total_in_tokens: i64 = 0;
+    let mut total_out_tokens: i64 = 0;
+
+    let run_window = |name: &'static str, pairs: Vec<(app_lib::db::queries::Message, Option<app_lib::db::queries::Message>)>|
+      -> std::pin::Pin<Box<dyn std::future::Future<Output = Result<(Vec<JsonValue>, i64, i64), Box<dyn std::error::Error>>>>>
+    {
+        let base_url = base_url.clone();
+        let api_key = api_key.to_string();
+        let model = model_config.memory_model.clone();
+        let rubric = rubric_text.clone();
+        Box::pin(async move {
+            let mut out: Vec<JsonValue> = Vec::new();
+            let mut in_tok: i64 = 0;
+            let mut out_tok: i64 = 0;
+            for (i, (m, prev)) in pairs.iter().enumerate() {
+                let user_turn = prev.as_ref().map(|p| p.content.as_str()).unwrap_or("(no preceding user turn in this window)");
+                match evaluate_one(&base_url, &api_key, &model, &rubric, user_turn, &m.content).await {
+                    Ok((v, u)) => {
+                        in_tok += u.prompt_tokens as i64;
+                        out_tok += u.completion_tokens as i64;
+                        out.push(json!({
+                            "window": name,
+                            "message_id": m.message_id,
+                            "created_at": m.created_at,
+                            "content_preview": m.content.chars().take(200).collect::<String>(),
+                            "judgment": v.judgment,
+                            "confidence": v.confidence,
+                            "quote": v.quote,
+                            "reasoning": v.reasoning,
+                        }));
+                    }
+                    Err(e) => {
+                        out.push(json!({
+                            "window": name,
+                            "message_id": m.message_id,
+                            "created_at": m.created_at,
+                            "error": e,
+                        }));
+                    }
+                }
+                eprint!("\r[worldcli] {} evaluated {}/{}", name, i + 1, pairs.len());
+            }
+            eprintln!();
+            Ok((out, in_tok, out_tok))
+        })
+    };
+
+    let (before_results, b_in, b_out) = run_window("before", before_pairs).await?;
+    total_in_tokens += b_in; total_out_tokens += b_out;
+    let (after_results, a_in, a_out) = run_window("after", after_pairs).await?;
+    total_in_tokens += a_in; total_out_tokens += a_out;
+
+    // ─── Aggregate + persist cost ─────────────────────────────────────
+    let count_judgments = |rows: &[JsonValue]| -> (i64, i64, i64, i64) {
+        let mut yes = 0; let mut no = 0; let mut mixed = 0; let mut err = 0;
+        for r in rows {
+            match r.get("judgment").and_then(|v| v.as_str()) {
+                Some("yes") => yes += 1,
+                Some("no") => no += 1,
+                Some("mixed") => mixed += 1,
+                _ => err += 1,
+            }
+        }
+        (yes, no, mixed, err)
+    };
+    let (b_yes, b_no, b_mixed, b_err) = count_judgments(&before_results);
+    let (a_yes, a_no, a_mixed, a_err) = count_judgments(&after_results);
+
+    let actual_usd = actual_cost(&model_config.memory_model, total_in_tokens, total_out_tokens, &r.cfg.model_pricing);
+    append_cost_log(&CostEntry {
+        timestamp: chrono::Utc::now().to_rfc3339(),
+        model: model_config.memory_model.clone(),
+        prompt_tokens: total_in_tokens,
+        completion_tokens: total_out_tokens,
+        usd: actual_usd,
+    });
+
+    // ─── Emit ─────────────────────────────────────────────────────────
+    let envelope = json!({
+        "ref": git_ref,
+        "ref_resolved": before_sha,
+        "ref_timestamp": before_ts,
+        "ref_subject": before_subject,
+        "end_ref": end_ref,
+        "end_ref_resolved": end_ref.map(|_| after_sha),
+        "end_ref_timestamp": end_ref.map(|_| after_ts),
+        "end_ref_subject": end_ref.map(|_| after_subject),
+        "character_id": character_id,
+        "character_name": character_name,
+        "role_filter": role,
+        "rubric": rubric_text,
+        "model": model_config.memory_model,
+        "cost": {
+            "prompt_tokens": total_in_tokens,
+            "completion_tokens": total_out_tokens,
+            "actual_usd": actual_usd,
+        },
+        "before": {
+            "count": before_results.len(),
+            "yes": b_yes, "no": b_no, "mixed": b_mixed, "errors": b_err,
+            "messages": before_results,
+        },
+        "after": {
+            "count": after_results.len(),
+            "yes": a_yes, "no": a_no, "mixed": a_mixed, "errors": a_err,
+            "messages": after_results,
+        },
+    });
+
+    if r.json {
+        emit(true, envelope);
+    } else {
+        println!("=== EVALUATION ===");
+        println!("ref:       {} ({})", git_ref, &before_sha[..8.min(before_sha.len())]);
+        println!("subject:   {}", before_subject);
+        println!("character: {} ({})", character_name, character_id);
+        println!("rubric:    {}", rubric_text.lines().next().unwrap_or(""));
+        println!();
+        println!("BEFORE window ({} msgs):", before_results.len());
+        println!("  yes: {}   no: {}   mixed: {}   errors: {}", b_yes, b_no, b_mixed, b_err);
+        println!("AFTER window  ({} msgs):", after_results.len());
+        println!("  yes: {}   no: {}   mixed: {}   errors: {}", a_yes, a_no, a_mixed, a_err);
+        println!();
+        let delta = |bv: i64, av: i64| -> String {
+            let d = av - bv;
+            if d > 0 { format!("+{d}") } else { d.to_string() }
+        };
+        println!("DELTA:     yes {}   no {}   mixed {}",
+            delta(b_yes, a_yes), delta(b_no, a_no), delta(b_mixed, a_mixed));
+        println!();
+        println!("Per-message details:");
+        for r_row in before_results.iter().chain(after_results.iter()) {
+            let w = r_row["window"].as_str().unwrap_or("");
+            let ts = r_row["created_at"].as_str().unwrap_or("")[11..19].to_string();
+            if let Some(err) = r_row.get("error").and_then(|v| v.as_str()) {
+                println!("  [{ts} {:6}] ERROR: {}", w, err);
+                continue;
+            }
+            let j = r_row["judgment"].as_str().unwrap_or("?");
+            let c = r_row["confidence"].as_str().unwrap_or("?");
+            let quote = r_row["quote"].as_str().unwrap_or("").chars().take(80).collect::<String>();
+            let reasoning = r_row["reasoning"].as_str().unwrap_or("").chars().take(140).collect::<String>();
+            println!("  [{ts} {:6}] {} ({}) — \"{}\"", w, j, c, quote);
+            println!("                      → {}", reasoning);
+        }
+        println!();
+        eprintln!("[worldcli] actual cost ${:.4} ({} in / {} out tok)",
+            actual_usd, total_in_tokens, total_out_tokens);
+    }
     Ok(())
 }
 

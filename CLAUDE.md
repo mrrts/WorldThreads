@@ -216,6 +216,21 @@ worldcli consult <char-id> "<message>" \
     [--confirm-cost <usd>] \
     [--json]
 
+# Rubric-driven qualitative evaluation of messages across a commit
+# boundary — the companion to sample-windows. Each message in the
+# before/after window is judged by the cheap memory_model against
+# your qualitative rubric; per-message yes/no/mixed + confidence +
+# quote + one-line reasoning, aggregated into window totals with
+# deltas. The instrument the reports keep flagging as missing.
+worldcli evaluate --ref <sha> --character <id> \
+    --rubric "<qualitative question>" \    # OR --rubric-file <path>
+    [--end-ref <sha>] \
+    [--limit N]                             # default: 12 per window
+    [--role assistant|user|any] \
+    [--model <override>] \
+    [--confirm-cost <usd>] \
+    [--json]
+
 # Read your own prior runs (avoid redoing answered questions):
 worldcli runs-list [--limit N] [--json]
 worldcli runs-show <id-or-prefix> [--json]
