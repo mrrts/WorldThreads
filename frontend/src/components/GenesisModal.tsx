@@ -1,0 +1,375 @@
+import { useState, useEffect, useRef } from "react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogBody, DialogFooter } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { Compass, Loader2, Sparkles, X } from "lucide-react";
+import { listen } from "@tauri-apps/api/event";
+import { api, type GenesisStageEvent, type GenesisResult } from "@/lib/tauri";
+
+interface Props {
+  open: boolean;
+  onClose: () => void;
+  apiKey: string;
+  onWorldAccepted: (worldId: string) => void;
+}
+
+type Phase = "idle" | "generating" | "error" | "reaching";
+
+interface CharacterReveal {
+  character_id: string;
+  name: string;
+  identity: string;
+  avatar_color: string;
+  portraitUrl?: string;
+}
+
+interface WorldReveal {
+  name: string;
+  description: string;
+  imageUrl?: string;
+}
+
+/// The first-run experience + on-demand "dream me a world" path. The
+/// user meets their world progressively as it's rendered — name + two
+/// character names appear first (from the LLM's JSON), then the world
+/// landscape image fades in, then each character's portrait as it
+/// finishes painting. By the time generation completes, the user has
+/// spent the wait meeting the place rather than staring at a spinner.
+///
+/// On completion the modal pivots to a commitment-ceremony phase —
+/// "what are you reaching for here?" — the same question
+/// QuestAcceptanceDialog uses. The answer is saved as the world's
+/// first user-authored quest, turning a model-generated world into a
+/// chosen home.
+export function GenesisModal({ open, onClose, apiKey, onWorldAccepted }: Props) {
+  const [phase, setPhase] = useState<Phase>("idle");
+  const [stageDetail, setStageDetail] = useState("Sketching the shape of a world…");
+  const [progress, setProgress] = useState(0);
+  const [history, setHistory] = useState<string[]>([]);
+  const [error, setError] = useState<string | null>(null);
+  const [result, setResult] = useState<GenesisResult | null>(null);
+  const [world, setWorld] = useState<WorldReveal | null>(null);
+  const [characters, setCharacters] = useState<CharacterReveal[]>([]);
+  const [reaching, setReaching] = useState("");
+  const [committing, setCommitting] = useState(false);
+  const unlistenRef = useRef<(() => void) | null>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    setPhase("idle");
+    setStageDetail("Sketching the shape of a world…");
+    setProgress(0);
+    setHistory([]);
+    setError(null);
+    setResult(null);
+    setWorld(null);
+    setCharacters([]);
+    setReaching("");
+    setCommitting(false);
+  }, [open]);
+
+  useEffect(() => () => {
+    if (unlistenRef.current) { unlistenRef.current(); unlistenRef.current = null; }
+  }, []);
+
+  const startGeneration = async () => {
+    if (!apiKey) { setError("No API key configured. Set one in Settings first."); setPhase("error"); return; }
+    setPhase("generating");
+    setError(null);
+    setHistory([]);
+    setProgress(0);
+    setStageDetail("Sketching the shape of a world…");
+    setWorld(null);
+    setCharacters([]);
+
+    const unlisten = await listen<GenesisStageEvent>("genesis-stage", (event) => {
+      const { detail, progress: p, reveal } = event.payload;
+      setStageDetail(detail);
+      setProgress(p);
+      setHistory((prev) => prev[prev.length - 1] === detail ? prev : [...prev, detail]);
+
+      if (reveal) {
+        if (reveal.kind === "world_named") {
+          setWorld({ name: reveal.name, description: reveal.description });
+        } else if (reveal.kind === "character_named") {
+          setCharacters((prev) => {
+            if (prev.some((c) => c.character_id === reveal.character_id)) return prev;
+            return [...prev, {
+              character_id: reveal.character_id,
+              name: reveal.name,
+              identity: reveal.identity,
+              avatar_color: reveal.avatar_color,
+            }];
+          });
+        } else if (reveal.kind === "world_image_ready") {
+          // Fetch the world image and reveal it in the card
+          api.getActiveWorldImage(reveal.world_id).then((img) => {
+            if (img?.data_url) setWorld((w) => w ? { ...w, imageUrl: img.data_url } : w);
+          }).catch(() => {});
+        } else if (reveal.kind === "portrait_ready") {
+          const charId = reveal.character_id;
+          api.getActivePortrait(charId).then((p) => {
+            if (p?.data_url) {
+              setCharacters((prev) => prev.map((c) =>
+                c.character_id === charId ? { ...c, portraitUrl: p.data_url } : c
+              ));
+            }
+          }).catch(() => {});
+        }
+      }
+    });
+    unlistenRef.current = unlisten;
+
+    try {
+      const res = await api.autoGenerateWorldWithCharacters(apiKey);
+      setResult(res);
+      setPhase("reaching");
+    } catch (e: any) {
+      setError(String(e));
+      setPhase("error");
+    } finally {
+      if (unlistenRef.current) { unlistenRef.current(); unlistenRef.current = null; }
+    }
+  };
+
+  const onCommit = async () => {
+    if (!result || committing) return;
+    setCommitting(true);
+    const text = reaching.trim();
+    try {
+      if (text) {
+        await api.createQuest(
+          result.world_id,
+          "What I'm reaching for here",
+          text,
+          "user_authored",
+          undefined,
+        );
+      }
+      onWorldAccepted(result.world_id);
+      onClose();
+    } catch (e: any) {
+      setError(String(e));
+      setCommitting(false);
+    }
+  };
+
+  const onSkip = () => {
+    if (!result) return;
+    onWorldAccepted(result.world_id);
+    onClose();
+  };
+
+  return (
+    <Dialog open={open} onClose={phase === "generating" ? () => {} : onClose} className="max-w-2xl">
+      <DialogContent>
+        {phase === "idle" && (
+          <>
+            <DialogHeader onClose={onClose}>
+              <DialogTitle>
+                <Sparkles size={16} className="inline mr-2 text-amber-400" />
+                A world is waiting to be dreamt
+              </DialogTitle>
+            </DialogHeader>
+            <DialogBody className="space-y-4">
+              <p className="text-sm text-foreground/90 leading-relaxed">
+                In about a minute, this will dream up a new world — somewhere with weather and
+                invariants and two people living in it. A hand-painted portrait for each.
+                A landscape for the world itself. Their interior lives already populated.
+                It'll surprise you; that's the point.
+              </p>
+              <div className="rounded-md border border-amber-400/30 bg-amber-500/5 p-3">
+                <p className="text-xs text-muted-foreground/90 leading-relaxed italic">
+                  The register the app reaches for: compelling, dramatic, varied, gently holy,
+                  deeply fun. You can keep it or discard it and try another. You can edit
+                  anything afterward.
+                </p>
+              </div>
+              <p className="text-xs text-muted-foreground/70">
+                Uses your OpenAI key. Takes 30-90 seconds.
+              </p>
+            </DialogBody>
+            <DialogFooter>
+              <Button variant="ghost" onClick={onClose}>Not yet</Button>
+              <Button
+                onClick={startGeneration}
+                disabled={!apiKey}
+                className="bg-amber-500/90 hover:bg-amber-500 text-black"
+              >
+                <Sparkles size={14} className="mr-1.5" />
+                Dream a world
+              </Button>
+            </DialogFooter>
+          </>
+        )}
+
+        {phase === "generating" && (
+          <>
+            <DialogHeader onClose={() => {}}>
+              <DialogTitle>
+                <Loader2 size={16} className="inline mr-2 text-amber-400 animate-spin" />
+                {stageDetail}
+              </DialogTitle>
+            </DialogHeader>
+            <DialogBody className="space-y-4">
+              <div className="w-full h-1.5 rounded-full bg-muted/40 overflow-hidden">
+                <div
+                  className="h-full bg-amber-500 transition-all duration-500 ease-out"
+                  style={{ width: `${Math.max(5, Math.round(progress * 100))}%` }}
+                />
+              </div>
+
+              {/* Progressive reveal. The user meets their world as it
+                  lands — not waiting on a load bar, but reading names
+                  and descriptions that materialize in order. */}
+              <div className="space-y-3">
+                {world && (
+                  <div className="rounded-xl overflow-hidden border border-amber-400/30 bg-amber-500/5 animate-in fade-in slide-in-from-bottom-2 duration-500">
+                    {world.imageUrl ? (
+                      <div className="relative w-full h-32 overflow-hidden">
+                        <img src={world.imageUrl} alt="" className="w-full h-full object-cover animate-in fade-in duration-700" />
+                        <div className="absolute inset-0 bg-gradient-to-t from-background/80 via-transparent to-transparent" />
+                      </div>
+                    ) : (
+                      <div className="w-full h-24 bg-gradient-to-br from-amber-500/20 to-amber-500/5 flex items-center justify-center">
+                        <div className="text-xs text-amber-300/60 italic flex items-center gap-2">
+                          <Loader2 size={11} className="animate-spin" />
+                          the land is being painted…
+                        </div>
+                      </div>
+                    )}
+                    <div className="p-3">
+                      <p className="text-sm font-semibold text-amber-300">{world.name}</p>
+                      <p className="text-xs text-foreground/80 mt-1 leading-relaxed">{world.description}</p>
+                    </div>
+                  </div>
+                )}
+
+                {characters.length > 0 && (
+                  <div className="space-y-2">
+                    {characters.map((c) => (
+                      <div
+                        key={c.character_id}
+                        className="flex items-start gap-3 rounded-lg border border-border/50 bg-card/50 p-3 animate-in fade-in slide-in-from-bottom-2 duration-500"
+                      >
+                        {c.portraitUrl ? (
+                          <img
+                            src={c.portraitUrl}
+                            alt=""
+                            className="w-14 h-14 rounded-lg object-cover flex-shrink-0 ring-1 ring-border animate-in fade-in duration-700"
+                          />
+                        ) : (
+                          <div
+                            className="w-14 h-14 rounded-lg flex-shrink-0 ring-1 ring-white/10 flex items-center justify-center"
+                            style={{ backgroundColor: c.avatar_color }}
+                          >
+                            <Loader2 size={14} className="animate-spin text-white/70" />
+                          </div>
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-foreground">{c.name}</p>
+                          <p className="text-xs text-foreground/75 mt-0.5 leading-snug italic">
+                            {c.identity.length > 180 ? `${c.identity.slice(0, 180).trimEnd()}…` : c.identity}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {!world && characters.length === 0 && (
+                  <div className="flex items-center justify-center py-12 text-xs text-muted-foreground/60 italic">
+                    {history[history.length - 1] ?? "Sketching…"}
+                  </div>
+                )}
+              </div>
+
+              <p className="text-[11px] text-muted-foreground/50 italic text-center">
+                You're meeting them while they come into focus. This takes about a minute.
+              </p>
+            </DialogBody>
+          </>
+        )}
+
+        {phase === "error" && (
+          <>
+            <DialogHeader onClose={onClose}>
+              <DialogTitle>Something didn't land</DialogTitle>
+            </DialogHeader>
+            <DialogBody>
+              <p className="text-sm text-destructive">{error ?? "Unknown error."}</p>
+              <p className="text-xs text-muted-foreground mt-2">
+                You can try again; each attempt samples fresh seeds, so the world will be different.
+              </p>
+            </DialogBody>
+            <DialogFooter>
+              <Button variant="ghost" onClick={onClose}>Close</Button>
+              <Button onClick={startGeneration}>Try again</Button>
+            </DialogFooter>
+          </>
+        )}
+
+        {phase === "reaching" && world && (
+          <>
+            <DialogHeader onClose={onSkip}>
+              <DialogTitle>
+                <Compass size={16} className="inline mr-2 text-amber-400" />
+                What are you reaching for here?
+              </DialogTitle>
+            </DialogHeader>
+            <DialogBody className="space-y-4">
+              {/* Keep the world card visible — the user's looking at
+                  the place they're about to commit to, not a blank prompt. */}
+              <div className="rounded-xl overflow-hidden border border-amber-400/30 bg-amber-500/5">
+                {world.imageUrl && (
+                  <div className="relative w-full h-28 overflow-hidden">
+                    <img src={world.imageUrl} alt="" className="w-full h-full object-cover" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-background/80 via-transparent to-transparent" />
+                  </div>
+                )}
+                <div className="p-3">
+                  <p className="text-sm font-semibold text-amber-300">{world.name}</p>
+                  {characters.length > 0 && (
+                    <p className="text-[11px] text-muted-foreground mt-0.5">
+                      with {characters.map((c) => c.name).join(" and ")}
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              <p className="text-sm text-foreground/90 leading-relaxed">
+                Before you step in: one honest sentence about what pulls you toward this place.
+              </p>
+              <p className="text-xs text-muted-foreground italic leading-relaxed">
+                Not a goal — a desire. Whatever you write becomes the first quest in this world,
+                waiting there for you. You can skip if nothing's ready to say yet.
+              </p>
+              <Textarea
+                autoFocus
+                className="min-h-[100px]"
+                value={reaching}
+                onChange={(e) => setReaching(e.target.value)}
+                placeholder="Plain, specific, honest. Doesn't have to be clever."
+              />
+              {error && <p className="text-xs text-destructive">{error}</p>}
+            </DialogBody>
+            <DialogFooter>
+              <Button variant="ghost" onClick={onSkip} disabled={committing}>
+                <X size={14} className="mr-1.5" />
+                Skip — just let me in
+              </Button>
+              <Button
+                onClick={onCommit}
+                disabled={committing}
+                className="bg-amber-500/90 hover:bg-amber-500 text-black"
+              >
+                {committing ? <Loader2 size={14} className="animate-spin mr-1.5" /> : <Compass size={14} className="mr-1.5" />}
+                {committing ? "Entering…" : reaching.trim() ? "Commit and enter" : "Enter the world"}
+              </Button>
+            </DialogFooter>
+          </>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+}

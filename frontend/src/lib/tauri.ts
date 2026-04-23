@@ -872,6 +872,12 @@ export const api = {
   bulkDecanonizeImaginedChaptersForThread: (threadId: string) =>
     invoke<{ decanonizedCount: number }>("bulk_decanonize_imagined_chapters_for_thread_cmd", { threadId }),
 
+  // Genesis — auto-generate a full starter world + 2 characters with
+  // hi-def portraits, world image, inventories, and all data populated.
+  // Streams `genesis-stage` events for progress.
+  autoGenerateWorldWithCharacters: (apiKey: string) =>
+    invoke<GenesisResult>("auto_generate_world_with_characters_cmd", { apiKey }),
+
   // Quests
   createQuest: (worldId: string, title: string, description: string, originKind?: "user_authored" | "message" | "meanwhile" | "backstage", originRef?: string) =>
     invoke<Quest>("create_quest_cmd", { worldId, title, description, originKind: originKind ?? null, originRef: originRef ?? null }),
@@ -892,6 +898,24 @@ export const api = {
   deleteQuest: (questId: string) =>
     invoke<void>("delete_quest_cmd", { questId }),
 };
+
+export interface GenesisResult {
+  world_id: string;
+  character_ids: string[];
+}
+
+export type GenesisReveal =
+  | { kind: "world_named"; name: string; description: string }
+  | { kind: "character_named"; character_id: string; name: string; identity: string; avatar_color: string }
+  | { kind: "world_image_ready"; world_id: string }
+  | { kind: "portrait_ready"; character_id: string };
+
+export interface GenesisStageEvent {
+  stage: string;
+  detail: string;
+  progress: number;
+  reveal?: GenesisReveal;
+}
 
 export interface Quest {
   quest_id: string;

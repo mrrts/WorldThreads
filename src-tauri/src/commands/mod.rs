@@ -25,3 +25,4 @@ pub mod meanwhile_cmds;
 pub mod daily_reading_cmds;
 pub mod imagined_chapter_cmds;
 pub mod quest_cmds;
+pub mod genesis_cmds;

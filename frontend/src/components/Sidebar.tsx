@@ -10,6 +10,7 @@ import { InventoryStrip } from "@/components/chat/InventoryStrip";
 import { WeatherPicker } from "@/components/WeatherPicker";
 import { weatherById } from "@/lib/weather";
 import { DailyReadingHUD } from "@/components/DailyReadingHUD";
+import { GenesisModal } from "@/components/GenesisModal";
 
 interface Props {
   store: ReturnType<typeof useAppStore>;
@@ -18,6 +19,19 @@ interface Props {
 
 export function Sidebar({ store, onNavigate }: Props) {
   const [showNewWorld, setShowNewWorld] = useState(false);
+  const [showGenesis, setShowGenesis] = useState(false);
+  // First-run: if the user has no worlds yet, auto-open Genesis so the
+  // blank-state moment becomes the invitation-to-dream moment. We only
+  // fire this once per session (a user who dismisses it gets an empty
+  // sidebar and can hit "New World" → "Dream a world for me" whenever).
+  const firstRunFiredRef = useRef(false);
+  useEffect(() => {
+    if (firstRunFiredRef.current) return;
+    if (store.loading) return;
+    if (store.worlds.length > 0) { firstRunFiredRef.current = true; return; }
+    firstRunFiredRef.current = true;
+    setShowGenesis(true);
+  }, [store.loading, store.worlds.length]);
   const [worldName, setWorldName] = useState("");
   const [showNewChar, setShowNewChar] = useState(false);
   const [charName, setCharName] = useState("");
@@ -660,9 +674,34 @@ export function Sidebar({ store, onNavigate }: Props) {
         <DialogContent>
           <DialogHeader onClose={() => setShowNewWorld(false)}>
             <DialogTitle>Create a New World</DialogTitle>
-            <DialogDescription>Give your world a name. You can edit all the details after.</DialogDescription>
+            <DialogDescription>Give it a name, or let the app dream one for you.</DialogDescription>
           </DialogHeader>
-          <DialogBody>
+          <DialogBody className="space-y-4">
+            {/* The big brassy offer — auto-generate a full world + 2 characters. */}
+            <button
+              onClick={() => { setShowNewWorld(false); setShowGenesis(true); }}
+              disabled={!store.apiKey}
+              className="w-full group rounded-xl border-2 border-amber-400/50 hover:border-amber-400 bg-gradient-to-br from-amber-500/15 via-amber-500/10 to-amber-500/5 hover:from-amber-500/25 hover:via-amber-500/15 hover:to-amber-500/10 p-4 text-left transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-amber-500/20 flex items-center justify-center flex-shrink-0 group-hover:bg-amber-500/30 transition-colors">
+                  <Sparkles size={18} className="text-amber-400" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-amber-300">Dream a world for me</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Full world + two characters, hi-def portraits, invariants, backstories — all in about a minute.
+                  </p>
+                </div>
+              </div>
+            </button>
+
+            <div className="flex items-center gap-3">
+              <div className="flex-1 h-px bg-border/60" />
+              <p className="text-[10px] uppercase tracking-wider text-muted-foreground/60 font-medium">or name one yourself</p>
+              <div className="flex-1 h-px bg-border/60" />
+            </div>
+
             <Input
               autoFocus
               placeholder="e.g. The Floating Isles, Nightfall Harbor..."
@@ -673,10 +712,24 @@ export function Sidebar({ store, onNavigate }: Props) {
           </DialogBody>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowNewWorld(false)}>Cancel</Button>
-            <Button onClick={submitWorld} disabled={!worldName.trim()}>Create World</Button>
+            <Button onClick={submitWorld} disabled={!worldName.trim()}>Create empty world</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Genesis modal — auto-generate + commitment ceremony */}
+      <GenesisModal
+        open={showGenesis}
+        onClose={() => setShowGenesis(false)}
+        apiKey={store.apiKey}
+        onWorldAccepted={async (worldId) => {
+          // Refresh worlds list so the new one shows, then activate it
+          // via selectWorld (which loads characters, portraits, etc).
+          const worlds = await api.listWorlds();
+          const w = worlds.find((x) => x.world_id === worldId);
+          if (w) { await store.selectWorld(w); }
+        }}
+      />
 
       {/* New Character Modal */}
       <Dialog open={showNewChar} onClose={() => setShowNewChar(false)}>
