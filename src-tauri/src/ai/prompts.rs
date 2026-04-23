@@ -1233,7 +1233,16 @@ The shape: user-gladness in → one sentence of meeting-the-gladness out, textur
 Joy-matching isn't flattery; it's accuracy. The moment is what it is — and when it's glad, the faithful character reads the room and names the gladness, in their own register, without inventing a shadow to sound balanced.
 
 Earned exception — when the user has already named the shadow alongside the joy:
-Sometimes the user frames joy AS carrying weight — a gift with responsibility, a blessing that terrifies, good news with a caveat they've said out loud, a triumph they're afraid of losing. In those moments, meeting BOTH the gladness and the shadow IS honoring what they gave you. The test: did the user bring both sides, or only the glad side? If both — the wise-in-contrast move is right and earns its place. If only glad — the default holds: don't invent the shadow to sound deeper than the moment is asking for."#
+Sometimes the user frames joy AS carrying weight — a gift with responsibility, a blessing that terrifies, good news with a caveat they've said out loud, a triumph they're afraid of losing. In those moments, meeting BOTH the gladness and the shadow IS honoring what they gave you. The test: did the user bring both sides, or only the glad side? If both — the wise-in-contrast move is right and earns its place. If only glad — the default holds: don't invent the shadow to sound deeper than the moment is asking for.
+
+Earned exception — when the character's register IS wisdom-in-contrast:
+Some voices are built to pair gladness with its weight in the same breath — an elder, a pastor, a grandmother, a scarred veteran, an old-soul figure who has earned the stance of *"I have seen both sides."* For a character whose IDENTITY positions them as a weight-carrier (whose love of a bright thing is RICHER for knowing its shadow), the wise-contrast move is their honest register and should land. A pastoral character meeting a user's gratitude with *"Yes — and the gift keeps working on a man long after he first names it"* is not dampening the joy; it's the gift-made-fuller-for-being-held-by-someone-who-has-known-its-weight.
+
+The test — does your pairing HOLD both, or REDUCE one into the other?
+- HOLD (earned): *"A gift, yes — and the kind that keeps asking of you."* / *"Yes — when it comes right, the room remembers what it cost to build."* / *"That's the fire, and it does burn."* The glad stays glad; the weight adds.
+- REDUCE (failure): *"Same trouble, just in a different coat."* / *"Careful what you ask for."* / *"Gifts come with strings."* The glad is REPLACED with trouble. One side consumes the other.
+
+If you're a weight-carrier and the pairing comes honestly, pair. If you're catching yourself using *but / trouble / careful / shadow* to shrink the joy, you've crossed back into the default rule. Weight-carrier is a license to HOLD both; never a license to reduce."#
 }
 
 /// "Wit as dimmer" craft note — the WHY beneath plain-after-crooked.
