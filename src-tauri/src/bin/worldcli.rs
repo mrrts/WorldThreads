@@ -138,6 +138,28 @@ enum Cmd {
         world: Option<String>,
     },
 
+    /// List group chats, optionally filtered by world.
+    ListGroupChats {
+        #[arg(long)]
+        world: Option<String>,
+    },
+
+    /// Recent messages in a group chat, with the same query primitives
+    /// as `recent-messages`.
+    GroupMessages {
+        group_chat_id: String,
+        #[arg(long, default_value_t = 30)]
+        limit: i64,
+        #[arg(long)]
+        grep: Option<String>,
+        #[arg(long)]
+        before: Option<String>,
+        #[arg(long)]
+        after: Option<String>,
+        #[arg(long, default_value_t = 0)]
+        with_context: usize,
+    },
+
     // ── ask path (the load-bearing one) ──
     /// Ask a character a single message. Cost-gated; logs to runs/.
     Ask {
@@ -583,6 +605,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         Cmd::KeptRecords { character_id } => cmd_kept_records(&r, &character_id),
         Cmd::Journals { character_id } => cmd_journals(&r, &character_id),
         Cmd::Quests { world } => cmd_quests(&r, world.as_deref()),
+        Cmd::ListGroupChats { world } => cmd_list_group_chats(&r, world.as_deref()),
+        Cmd::GroupMessages { group_chat_id, limit, grep, before, after, with_context } => {
+            cmd_group_messages(&r, &group_chat_id, limit, grep.as_deref(), before.as_deref(), after.as_deref(), with_context)
+        }
         Cmd::Ask { character_id, message, session, model, confirm_cost, question_summary } => {
             let api_key = match resolve_api_key(cli.api_key.as_deref()) {
                 Some(k) => k,
@@ -853,6 +879,113 @@ fn cmd_quests(r: &Resolved, world: Option<&str>) -> Result<(), Box<dyn std::erro
             }));
         }
     }
+    emit(r.json, JsonValue::Array(out));
+    Ok(())
+}
+
+fn cmd_list_group_chats(r: &Resolved, world: Option<&str>) -> Result<(), Box<dyn std::error::Error>> {
+    let conn = r.db.conn.lock().unwrap();
+    let world_ids: Vec<String> = match world {
+        Some(w) => { r.check_world(w)?; vec![w.to_string()] }
+        None => list_worlds(&conn)?.into_iter()
+            .filter(|w| r.world_in_scope(&w.world_id))
+            .map(|w| w.world_id).collect(),
+    };
+    // Build a character-id → display_name lookup so we can render member names.
+    let mut id_to_name = std::collections::HashMap::new();
+    for wid in &world_ids {
+        for c in list_characters(&conn, wid).unwrap_or_default() {
+            id_to_name.insert(c.character_id, c.display_name);
+        }
+    }
+    let mut out = Vec::new();
+    for wid in &world_ids {
+        for gc in list_group_chats(&conn, wid).unwrap_or_default() {
+            let member_ids: Vec<String> = gc.character_ids.as_array()
+                .map(|a| a.iter().filter_map(|v| v.as_str().map(|s| s.to_string())).collect())
+                .unwrap_or_default();
+            let member_names: Vec<String> = member_ids.iter()
+                .map(|id| id_to_name.get(id).cloned().unwrap_or_else(|| id.clone()))
+                .collect();
+            out.push(json!({
+                "group_chat_id": gc.group_chat_id,
+                "world_id": gc.world_id,
+                "thread_id": gc.thread_id,
+                "display_name": gc.display_name,
+                "member_ids": member_ids,
+                "member_names": member_names,
+                "created_at": gc.created_at,
+            }));
+        }
+    }
+    emit(r.json, JsonValue::Array(out));
+    Ok(())
+}
+
+fn cmd_group_messages(
+    r: &Resolved,
+    group_chat_id: &str,
+    limit: i64,
+    grep: Option<&str>,
+    before: Option<&str>,
+    after: Option<&str>,
+    with_context: usize,
+) -> Result<(), Box<dyn std::error::Error>> {
+    let conn = r.db.conn.lock().unwrap();
+    let gc = get_group_chat(&conn, group_chat_id)
+        .map_err(|e| Box::<dyn std::error::Error>::from(format!("group_chat {}: {}", group_chat_id, e)))?;
+    r.check_world(&gc.world_id)?;
+    // Build sender-id → display_name for label rendering.
+    let mut id_to_name = std::collections::HashMap::new();
+    for c in list_characters(&conn, &gc.world_id).unwrap_or_default() {
+        id_to_name.insert(c.character_id, c.display_name);
+    }
+    let raw_pull = if grep.is_some() || before.is_some() || after.is_some() {
+        (limit * 5).max(100)
+    } else { limit };
+    let mut msgs = list_group_messages(&conn, &gc.thread_id, raw_pull)?;
+    msgs.reverse(); // chronological asc
+    if let Some(b) = before { msgs.retain(|m| m.created_at.as_str() < b); }
+    if let Some(a) = after { msgs.retain(|m| m.created_at.as_str() > a); }
+    let filtered_indices: Vec<usize> = if let Some(g) = grep {
+        let g_lc = g.to_lowercase();
+        let hits: Vec<usize> = msgs.iter().enumerate()
+            .filter(|(_, m)| m.content.to_lowercase().contains(&g_lc))
+            .map(|(i, _)| i).collect();
+        if with_context == 0 { hits } else {
+            let mut set = std::collections::BTreeSet::new();
+            for h in hits {
+                let lo = h.saturating_sub(with_context);
+                let hi = (h + with_context + 1).min(msgs.len());
+                for i in lo..hi { set.insert(i); }
+            }
+            set.into_iter().collect()
+        }
+    } else { (0..msgs.len()).collect() };
+    let len = filtered_indices.len();
+    let start = len.saturating_sub(limit as usize);
+    let final_indices = &filtered_indices[start..];
+
+    let out: Vec<JsonValue> = final_indices.iter().map(|&i| {
+        let m = &msgs[i];
+        let sender_name = m.sender_character_id.as_ref()
+            .and_then(|id| id_to_name.get(id))
+            .cloned()
+            .unwrap_or_else(|| match m.role.as_str() {
+                "user" => "USER".to_string(),
+                other => other.to_uppercase(),
+            });
+        json!({
+            "message_id": m.message_id,
+            "role": m.role,
+            "sender_character_id": m.sender_character_id,
+            "sender_name": sender_name,
+            "created_at": m.created_at,
+            "world_day": m.world_day,
+            "world_time": m.world_time,
+            "content": m.content,
+        })
+    }).collect();
     emit(r.json, JsonValue::Array(out));
     Ok(())
 }
