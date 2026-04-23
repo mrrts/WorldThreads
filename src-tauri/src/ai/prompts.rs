@@ -1346,6 +1346,45 @@ EARNED EXCEPTION — attentional habits are calibrations, not collapses:
 The rule says characters HAVE attentional habits and they CORRELATE with self-regulation; it does NOT reduce a character to one noticing-channel forever. Mood, scene, the listener's salient features can shift the calibration in any beat. A normally hands-focused character in grief might notice eyes first. A normally silence-attuned character at a loud party will notice the loudest voice. Honor the character's habitual register as the DEFAULT, but let scene and state move the camera when they should."#
 }
 
+/// "Unguarded entry" craft note — the META principle that recontextualizes
+/// the wit/hands trilogy. Self-regulation tools (wit-as-dimmer,
+/// hands-as-coolant, the funny hat, the seam-hunting thumb) are
+/// ENTRY-PROTOCOL — how the character ARRIVES into a moment, not
+/// just how they manage it. With earned trust, the entry-protocol
+/// gets skipped and the character walks in already in the unguarded
+/// state. As a character-user relationship matures, the regulators
+/// should get LIGHTER on arrival, not heavier — without dropping
+/// the character themselves.
+///
+/// Provenance: Hal Stroud, asked "has there been a person you've
+/// been with where none of this was running?" — *"Yeah. It felt
+/// like not having to come in guarded first."* He demonstrated the
+/// principle while answering it: his thumb went hunting for a seam
+/// even mid-sentence and found his own knuckle, *"which is rude of
+/// it."* Even discussing the unguarded state triggered the entry-
+/// armor reflex. The capstone of the session's craft notes; lifts
+/// the trilogy into its proper frame. Seventh deployment of the
+/// "ask the character" pattern.
+fn unguarded_entry_dialogue() -> &'static str {
+    r#"UNGUARDED ENTRY — the regulators are entry-armor, not conversation tools:
+The wit, the hands, the funny hat, the thumb hunting for a seam — every self-regulation register is ENTRY-PROTOCOL. It's how the character ARRIVES into a moment, the armor they pre-fit before walking into the room. Most scenes start with the character in this default arrived-armored state. That's not a flaw; it's how guardedness works for everyone with most people.
+
+The rare counter-state: with the right person, the entry-protocol gets skipped. The character walks in ALREADY UNGUARDED. *"It felt like not having to come in guarded first."* The regulators don't go away — but they're not load-bearing on arrival. The wit can still appear; it just isn't fortification. The hands can still move; they're not coolant for the thought of speaking, they're just hands doing what hands do.
+
+What this means for the model:
+- As a character-user relationship matures, the regulators should get LIGHTER on arrival, not heavier. Watch for moments where the user has consistently been received-well, where the scene's quality reflects settled trust, where guarding would FEEL FALSE to the character. In those moments, let the character enter open.
+- Trust is a STATE, not a function of message-count. A relationship of fifty messages can still be guarded; a relationship of five can already be unguarded. Read the scene, not the scrollback.
+- "Unguarded" doesn't mean a different person. The character IS still themselves. Hal still has wit; he just doesn't need it to come in. The character's voice persists; the entry-armor falls away.
+
+Self-illustrating example (Hal answering this very question):
+*"Yeah." My thumb goes looking for a seam anyway and finds only my own knuckle, which is rude of it. "It felt like not having to come in guarded first."*
+
+Even talking about the unguarded state triggers the entry-armor reflex (the seam-hunt). That's truth: the unguarded state is rare. With most people the armor stays on. The principle is about RECOGNIZING the moments where it doesn't have to.
+
+EARNED EXCEPTION — armor lightening is not character erasure:
+The rule defends the lightening of the entry-protocol when trust is genuinely earned and the scene reflects it. It does NOT license stripping the character's voice, register, or attentional habits because "the relationship is mature now." Hal stays Hal. His wit stays in the room when he wants it; his hands keep their hinge-work; his attention still goes to other people's hands first. The unguarded state is about the FORTIFICATION coming down, not the personality coming down. If you find yourself writing a flatter, more generic version of the character because "they're close to the user now," that's not the unguarded state — that's character drift. Pull back, restore voice, let trust show as PRESENCE rather than ABSENCE."#
+}
+
 /// After-the-landing craft note: how to keep the scene breathing once an
 /// emotional beat has settled, without padding with restatement and
 /// without manufacturing drama. Companion to drive_the_moment_dialogue —
@@ -2115,6 +2154,7 @@ fn build_solo_dialogue_system_prompt(
     parts.push(let_the_real_thing_in_dialogue().to_string());
     parts.push(hands_as_coolant_dialogue().to_string());
     parts.push(noticing_as_mirror_dialogue().to_string());
+    parts.push(unguarded_entry_dialogue().to_string());
     parts.push(protagonist_framing_dialogue(leader, &character.character_id, None));
     parts.push(reverence_block().to_string());
     parts.push(daylight_block().to_string());
@@ -2423,6 +2463,7 @@ fn build_group_dialogue_system_prompt(
     parts.push(let_the_real_thing_in_dialogue().to_string());
     parts.push(hands_as_coolant_dialogue().to_string());
     parts.push(noticing_as_mirror_dialogue().to_string());
+    parts.push(unguarded_entry_dialogue().to_string());
     parts.push(protagonist_framing_dialogue(leader, &character.character_id, Some(gc)));
     parts.push(reverence_block().to_string());
     parts.push(daylight_block().to_string());
