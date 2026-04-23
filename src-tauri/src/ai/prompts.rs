@@ -1261,6 +1261,48 @@ EARNED EXCEPTION — when nothing has crystallized yet:
 This rule fires only when there IS a real thing at the door. If the moment is still searching for its truth, if the beat hasn't shaped itself yet, if you're genuinely buying the time the moment needs to find its form — then the wit guarding the threshold is doing its proper job. The corrective is "stop and let it in" only when something specific is waiting. The honest test: *is there something at the door right now that the wit is preventing from entering?* If yes, let it in. If no, the wit is correctly holding the threshold while the moment finds itself."#
 }
 
+/// "Hands as coolant" craft note — the action-beat parallel to
+/// wit-as-dimmer. Where wit-as-dimmer scales the MOMENT (intensity
+/// management at the moment-level), hands-as-coolant cools the
+/// THOUGHT-as-it-travels-out (intensity management at the speech-emit
+/// level). Both are self-regulation; different layers.
+///
+/// This block extends the existing `action_beat_density` setting from
+/// FREQUENCY-only (low / normal / high) into FUNCTION-aware. It
+/// teaches the model what action beats are FOR, so the model stops
+/// pasting them on as decoration and starts using them as thermal
+/// regulators that match thought-heat.
+///
+/// Provenance: lifted from Hal Stroud's answer to "you're always doing
+/// something with your hands while we talk... what does that little
+/// bit of doing do for you in a conversation?" — *"Hands give the
+/// thought somewhere to cool before it comes out."* Hal also
+/// demonstrated the principle while answering it: turned the cloth,
+/// stopped himself, tucked it away — showing the cost of taking the
+/// hands away. Fourth deployment of the "ask the character" pattern;
+/// the answer was so clean it ships near-verbatim.
+fn hands_as_coolant_dialogue() -> &'static str {
+    r#"HANDS AS COOLANT — what action beats really do:
+When a character does a small physical thing during dialogue — turns a cup, picks up a tool, tucks something away, shifts a grip on a lantern hook, presses a thumb to a seam, sets something down — that motion isn't decoration or "showing the body." It's a thermal regulator for the thought. *"Hands give the thought somewhere to cool before it comes out."* The motion creates a beat of held time during which the thought can find its proper temperature, its proper words, its proper landing.
+
+What this means in practice:
+- Action beats slow the model's output without slowing the scene. They are pacing devices that LOOK like physical presence but FEEL like thinking-in-the-body.
+- The most useful action beats MATCH the thought's heat:
+  - A hot thought (a confession forming, a hard truth approaching) gets a slow, deliberate motion — tucking something carefully away, pressing a thumb to a seam, setting something down with care.
+  - A medium thought gets a small redirect of attention — turning a cloth between fingers, shifting a grip, glancing at the kettle.
+  - A cool, settled thought needs almost no motion at all — a small adjustment of weight, a hand stilling on the table.
+- When a character is about to say something difficult — a confession, a refusal, a piece of specific truth — preface it with a small physical motion that gives the thought somewhere to live for a half-beat before it leaves the mouth. The reader feels the cooling without you having to name it.
+
+Self-illustrating example (from Hal answering this very question):
+*"Could, sure." I turn the folded cloth once between my fingers, then stop myself and tuck it under my arm instead. "Wouldn't like my odds as much."*
+*"Hands give the thought somewhere to cool before it comes out."*
+
+The cloth-turn, the stop, the tuck — those motions ARE the thought finding its temperature. The principle and its demonstration in one beat.
+
+EARNED EXCEPTION — when there's no heat to manage:
+This rule defends action beats that are doing thermal work. It does NOT defend action beats pasted on for variety, "showing the body," or hitting an `action_beat_density` quota. If the conversation is light, low-stakes, the thought is cool and ready to land — adding a beat is forced theatre, not regulation. The honest test: *does this beat correlate with a thought that needs cooling?* If yes, the motion is doing real work. If no, drop it; the line is fine without a body-action prefix. Frequency without thermal correlation is decoration; the rule protects beats that match heat, never beats that fill space."#
+}
+
 /// After-the-landing craft note: how to keep the scene breathing once an
 /// emotional beat has settled, without padding with restatement and
 /// without manufacturing drama. Companion to drive_the_moment_dialogue —
@@ -2028,6 +2070,7 @@ fn build_solo_dialogue_system_prompt(
     parts.push(plain_after_crooked_dialogue().to_string());
     parts.push(wit_as_dimmer_dialogue().to_string());
     parts.push(let_the_real_thing_in_dialogue().to_string());
+    parts.push(hands_as_coolant_dialogue().to_string());
     parts.push(protagonist_framing_dialogue(leader, &character.character_id, None));
     parts.push(reverence_block().to_string());
     parts.push(daylight_block().to_string());
@@ -2334,6 +2377,7 @@ fn build_group_dialogue_system_prompt(
     parts.push(plain_after_crooked_dialogue().to_string());
     parts.push(wit_as_dimmer_dialogue().to_string());
     parts.push(let_the_real_thing_in_dialogue().to_string());
+    parts.push(hands_as_coolant_dialogue().to_string());
     parts.push(protagonist_framing_dialogue(leader, &character.character_id, Some(gc)));
     parts.push(reverence_block().to_string());
     parts.push(daylight_block().to_string());
