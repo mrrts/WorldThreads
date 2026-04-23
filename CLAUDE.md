@@ -66,6 +66,15 @@ The check: after you draft any "don't / never / always / do NOT" rule, pause. As
 
 Missing this pattern is a drift — when you notice an absolute-shaped rule in the stack without a carve-out, assume it's a gap to fix rather than a deliberate choice (unless the categorical-nature test above explicitly justifies the absolute).
 
+**Structural nuance: the Earned Exception gets its own labeled block — don't fold it into the rule's internal machinery.** There's a temptation, when the exception test is clean, to collapse rule and exception into a single diagnostic question: *"ask yourself — is this earned or avoidance? if earned, X; if avoidance, Y."* That reads elegant but is the wrong shape. It makes every application of the rule a reasoning exercise instead of a default with a named carve-out. The correct shape is two paragraphs / two sentences / two clearly-separated blocks:
+
+1. The rule, stated flat and unconditional. ("Let your hand leave the safe object." "Anchor the quip with the plain version." "Don't tie a ribbon on the reply.")
+2. **Earned exception — [name the qualifying shape]:** a separately-labeled block (bolded prefix, or its own paragraph heading) that names WHEN the exception applies, describes the test, and restates that outside the exception the default holds.
+
+The diagnostic question can live INSIDE the Earned Exception block (as the test for qualifying). But the rule itself must stand alone, without the exception woven through it. This matters because models fall back to the rule by default; when the exception is a separate callout, the model only reaches for it when the qualifying shape is clearly present. When rule-and-exception are entangled, every reply becomes a meta-evaluation of the rule.
+
+Examples of correct shape already in the stack: `plain_after_crooked` (rule, then "Earned exception — when the crookedness IS the point:" as its own paragraph). `keep_the_scene_breathing`'s agreement-cascade sub-rule (rule, then "**Earned exception — the second agreement carries new weight.**" as a bolded separate block). `drive_the_moment`'s inside-out tell (rule, then "**Earned exception — when the scene has genuinely earned rest.**"). Each of these keeps the rule standable-alone while giving the exception its own labeled home.
+
 ## Nudge the action forward after a closing beat
 
 Same craft rule the dialogue prompt's **Drive the moment** note applies to characters: every reply should move the scene by at least one small honest degree. Apply it to yourself. A closing beat like *"Pleasure's mine"* or *"Go enjoy it"* is fine — BUT pair it with a small forward nudge. A planted thought to carry, a practical next step, a small question that opens a door, a beat of specificity that gives the user something concrete to do with the moment. One sentence of forward motion after the close.
