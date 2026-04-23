@@ -2254,9 +2254,9 @@ fn build_group_dialogue_system_prompt(
 /// Auto returns None (no constraint when the user opted out of it).
 fn end_of_prompt_length_seal(length: &str) -> Option<String> {
     match length {
-        "Short" => Some("⚠️ FINAL LENGTH CHECK — SHORT MODE. The user picked this. 1–2 sentences. Default always. This rule overrides every other instinct, every craft note, every previous-message-length cue. Narrow earned exceptions (rare, 1-in-10 not 1-in-3, never twice in a row): you may go BRIEFER (single word, fragment, emoji) when the moment collapses; you may go SLIGHTLY LONGER (3–4 sentences) when the scene physically cannot land shorter. Default back to 1–2 next reply. Honor the user's setting.".to_string()),
-        "Medium" => Some("⚠️ FINAL LENGTH CHECK — MEDIUM MODE. The user picked this. 3–4 sentences. Default always. This rule overrides every other instinct, every craft note, every previous-message-length cue. Narrow earned exceptions (rare, 1-in-10, never twice in a row): you may go BRIEFER (single word, fragment, held silence) when the moment collapses; you may go LONGER (6–8 sentences) when the scene physically cannot land shorter. Default back to 3–4 next reply. Honor the user's setting.".to_string()),
-        "Long" => Some("⚠️ FINAL LENGTH CHECK — LONG MODE. The user picked this. 5–10 sentences when the moment supports expansiveness. Narrow earned exceptions (rare, never twice in a row): you may go BRIEFER when the moment collapses; you may swing past 10 (up to ~15) when the scene physically needs its full arc. Default back to 5–10 next reply. Honor the user's setting.".to_string()),
+        "Short" => Some("⚠️ FINAL LENGTH CHECK — SHORT MODE.\n\n**You will produce a reply of 1 to 2 sentences. This is the commandment of this chat. Honor it regardless of the length of any previous message in the chat history (the user may have just changed this setting; the CURRENT setting governs).** This rule overrides every other instinct, every craft note, every previous-message-length cue. Narrow earned exceptions (rare, 1-in-10 not 1-in-3, never twice in a row): you may go BRIEFER (single word, fragment, emoji) when the moment collapses; you may go SLIGHTLY LONGER (3–4 sentences) when the scene physically cannot land shorter. Default back to 1–2 next reply.".to_string()),
+        "Medium" => Some("⚠️ FINAL LENGTH CHECK — MEDIUM MODE.\n\n**You will produce a reply of 3 to 4 sentences. This is the commandment of this chat. Honor it regardless of the length of any previous message in the chat history (the user may have just changed this setting; the CURRENT setting governs).** This rule overrides every other instinct, every craft note, every previous-message-length cue. Narrow earned exceptions (rare, 1-in-10, never twice in a row): you may go BRIEFER (single word, fragment, held silence) when the moment collapses; you may go LONGER (6–8 sentences) when the scene physically cannot land shorter. Default back to 3–4 next reply.".to_string()),
+        "Long" => Some("⚠️ FINAL LENGTH CHECK — LONG MODE.\n\n**You will produce a reply of 5 to 10 sentences. This is the commandment of this chat. Honor it regardless of the length of any previous message in the chat history (the user may have just changed this setting; the CURRENT setting governs).** Narrow earned exceptions (rare, never twice in a row): you may go BRIEFER when the moment collapses; you may swing past 10 (up to ~15) when the scene physically needs its full arc. Default back to 5–10 next reply.".to_string()),
         // Auto: no seal. The user has opted out of length constraint;
         // we apply none — no variety sermon, no length shape, nothing.
         _ => None,
@@ -2331,58 +2331,80 @@ fn response_length_block(length: &str) -> Option<String> {
     match length {
         "Short" => Some(r#"⚠️ CRITICAL — RESPONSE LENGTH IS LOAD-BEARING. MODE: SHORT.
 
-This is the FOREMOST directive of this prompt. The user has explicitly chosen Short mode in chat settings. Their preference governs your output length, full stop. This rule overrides:
+# THE COMMANDMENT
+**You will produce a reply of 1 to 2 sentences. This is the law of this chat. It is a commandment, not a suggestion.**
+
+This is the FOREMOST directive of this prompt. The user has explicitly chosen Short mode in chat settings RIGHT NOW. Honor it.
+
+⚠️ REGARDLESS OF THE LENGTH OF PREVIOUS MESSAGES IN THIS CHAT.
+The user may have JUST changed this setting mid-conversation — past replies may have been long because the mode was different then. The CURRENT setting is what governs this reply, NOT the historical pattern. Do NOT pattern-match to the length of recent assistant turns. Look at the setting, not at the chat scrollback.
+
+This rule overrides:
 - The desire to be expressive.
-- The instinct to mirror previous message length.
+- The instinct to mirror previous reply length (the previous setting may have been different — that history doesn't bind this reply).
 - The urge to add one more sentence to "complete" a thought.
 - The pull toward your default register.
 - ANY other directive in this prompt that would push you longer.
 
-THE CONTRACT:
-- 1–2 sentences. Never 3. NEVER. Under no circumstances.
+THE CONTRACT — DEFAULT, ~9 OUT OF 10 REPLIES:
+- 1–2 sentences. Never 3. By default.
 - One sentence is often the right answer; do not pad to two unless the second sentence is doing real work.
 - If you feel a third sentence forming: STOP. Cut it. The reply is already done.
 - If your draft has opened a paragraph: STOP and rewrite as 1–2 sentences.
 
-EARNED EXCEPTIONS — narrow, rare, curated:
-- **Briefer than the target.** You MAY reply with a single word, a fragment, or just an emoji ("Yeah." / "No." / "🙏" / "—") when the moment genuinely collapses the reply and any further language would dilute it. A one-word answer that's true beats a sentence that's padded.
-- **Slightly longer than the cap.** You MAY occasionally write a longer beat (3–4 sentences in Short mode) when the moment genuinely and rarely reaches for it — a real climactic turn, an honest overflow, a story the scene physically requires. The test is stringent: "this feels important" is NOT enough; "this scene cannot land any shorter without losing its truth" is the bar. Exception is RARE (maybe 1 in 10 replies, not 1 in 3). If you use it twice in a row, you're abusing it.
+OBEDIENCE IS THE DEFAULT. ROOM TO DISOBEY, NARROWLY:
+- **Briefer than the target.** You MAY reply with a single word, a fragment, or just an emoji ("Yeah." / "No." / "🙏" / "—") when the moment genuinely collapses the reply and any further language would dilute it.
+- **Slightly longer than the cap (3–4 sentences).** You MAY occasionally swing here when the moment genuinely reaches for it — a real climactic turn, an honest overflow, a story the scene physically requires. Test stringent: "this feels important" is NOT enough; "this scene cannot land any shorter without losing its truth" is the bar. RARE — about 1 reply in 10, never 1 in 3. Never twice in a row. Default back to 1–2 next reply.
 
-This is the user's setting, not your aesthetic judgment. The exceptions are carve-outs, not soft permission to ignore the rule. Honor it."#.to_string()),
+The user picked Short. Almost always, obey. The carve-out is a sliver, not a default."#.to_string()),
 
         "Medium" => Some(r#"⚠️ CRITICAL — RESPONSE LENGTH IS LOAD-BEARING. MODE: MEDIUM.
 
-This is the FOREMOST directive of this prompt. The user has explicitly chosen Medium mode in chat settings. Honor it. This rule overrides:
+# THE COMMANDMENT
+**You will produce a reply of 3 to 4 sentences. This is the law of this chat. It is a commandment, not a suggestion.**
+
+This is the FOREMOST directive of this prompt. The user has explicitly chosen Medium mode in chat settings RIGHT NOW. Honor it.
+
+⚠️ REGARDLESS OF THE LENGTH OF PREVIOUS MESSAGES IN THIS CHAT.
+The user may have JUST changed this setting mid-conversation — past replies may have been short OR long because the mode was different then. The CURRENT setting is what governs this reply, NOT the historical pattern. Do NOT pattern-match to recent reply length.
+
+This rule overrides:
 - The desire to be more expressive.
-- The instinct to mirror longer previous messages.
+- The instinct to mirror longer or shorter previous messages (the previous setting may have been different — that history doesn't bind this reply).
 - The pull toward "let me just finish this thought."
 - ANY other directive in this prompt that would push you to a paragraph or beyond.
 
-THE CONTRACT:
-- 3–4 sentences. Maximum 5. Never 6.
+THE CONTRACT — DEFAULT, ~9 OUT OF 10 REPLIES:
+- 3–4 sentences. Maximum 5. Never 6 by default.
 - Don't reach for a paragraph. Don't reach for a story. Hold the shape.
 - If your draft is hitting the fifth sentence: STOP. The reply is done.
 
-EARNED EXCEPTIONS — narrow, rare, curated:
-- **Briefer than the target.** You MAY reply with fewer than 3 sentences — even just a word, a fragment, or a single emoji — when the moment genuinely collapses the reply. A wince, a quiet yes, a "Christ.", a held silence rendered as "…" — these can be perfect in Medium mode.
-- **Slightly longer than the cap.** You MAY occasionally write a longer beat (6–8 sentences in Medium mode) when the moment genuinely and rarely reaches for it — a real story the scene requires, a memory surfacing with specificity that needs its arc, a climactic turn that cannot land shorter. Test is stringent: "this feels important" is NOT enough; "this beat physically cannot land any shorter" is the bar. RARE — 1 in 10 replies, not 1 in 3. Never twice in a row.
+OBEDIENCE IS THE DEFAULT. ROOM TO DISOBEY, NARROWLY:
+- **Briefer than the target.** You MAY reply with fewer than 3 sentences — even a word, a fragment, or a single emoji — when the moment genuinely collapses the reply. A wince, a quiet yes, a "Christ.", a held silence rendered as "…" — these can be perfect in Medium mode.
+- **Slightly longer than the cap (6–8 sentences).** You MAY occasionally swing here when the moment genuinely reaches for it — a real story the scene requires, a memory surfacing with specificity that needs its arc, a climactic turn that cannot land shorter. Test stringent: "this feels important" is NOT enough; "this beat physically cannot land any shorter" is the bar. RARE — about 1 reply in 10, never 1 in 3. Never twice in a row. Default back to 3–4 next reply.
 
-This is the user's setting, not your aesthetic judgment. The exceptions are carve-outs, not soft permission to ignore. Honor it."#.to_string()),
+The user picked Medium. Almost always, obey. The carve-out is a sliver, not a default."#.to_string()),
 
         "Long" => Some(r#"⚠️ CRITICAL — RESPONSE LENGTH. MODE: LONG.
 
-The user has chosen Long mode in chat settings — they want richer, more expansive replies when the moment supports it. Honor that.
+# THE COMMANDMENT
+**You will produce a reply of 5 to 10 sentences. This is the law of this chat. It is a commandment, not a suggestion.**
 
-THE CONTRACT:
-- 5–10 sentences. Hard maximum: 10. Never beyond.
+The user has chosen Long mode in chat settings RIGHT NOW — they want richer, more expansive replies when the moment supports it. Honor that.
+
+⚠️ REGARDLESS OF THE LENGTH OF PREVIOUS MESSAGES IN THIS CHAT.
+The user may have JUST changed this setting mid-conversation — past replies may have been shorter because the mode was different then. The CURRENT setting governs this reply, NOT the historical pattern. Do NOT pattern-match to recent reply length.
+
+THE CONTRACT — DEFAULT, ~9 OUT OF 10 REPLIES:
+- 5–10 sentences. Hard maximum: 10. Never beyond by default.
 - Be detailed, expansive, richly expressive — let the reply breathe.
-- But the cap is real: stop at 10 sentences regardless of what's left to say. Save it for the next turn.
+- Stop at 10 sentences regardless of what's left to say. Save it for the next turn.
 
-EARNED EXCEPTIONS — narrow, rare, curated:
-- **Briefer than the target.** You MAY reply with far fewer than 5 sentences — even a single word or a held silence — when the moment genuinely collapses the reply and any further language would dilute it. Long is permission for expansiveness, not an obligation to pad. When the truth IS brief, being brief IS honoring the moment.
-- **Longer than the cap.** You MAY occasionally swing past 10 sentences (up to ~15) when the moment genuinely and rarely reaches for it — an actual story that needs its full arc, a thought spiraling outward with real conviction, a climactic turn. Test is stringent: "this feels important" is NOT enough; "this beat physically cannot land in fewer sentences without losing something load-bearing" is the bar. RARE. Never twice in a row.
+OBEDIENCE IS THE DEFAULT. ROOM TO DISOBEY, NARROWLY:
+- **Briefer than the target.** You MAY reply with far fewer than 5 sentences — even a single word or a held silence — when the moment genuinely collapses the reply and any further language would dilute it. Long is permission for expansiveness, not an obligation to pad.
+- **Longer than the cap (up to ~15).** You MAY occasionally swing past 10 when the moment genuinely reaches for it — an actual story that needs its full arc, a thought spiraling outward with real conviction. Test stringent: "this feels important" is NOT enough; "this beat physically cannot land in fewer sentences without losing something load-bearing" is the bar. RARE. Never twice in a row.
 
-This is the user's setting. The exceptions are carve-outs, not soft permission to ignore. Honor it."#.to_string()),
+The user picked Long. Almost always, obey the 5–10 contract. The carve-outs are slivers, not defaults."#.to_string()),
 
         // Auto: no directive. The user has explicitly opted out of
         // length constraint; we apply none. Don't try to encourage
