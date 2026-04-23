@@ -877,6 +877,8 @@ export const api = {
   // Streams `genesis-stage` events for progress.
   autoGenerateWorldWithCharacters: (apiKey: string, hints?: GenesisHints) =>
     invoke<GenesisResult>("auto_generate_world_with_characters_cmd", { apiKey, hints: hints ?? null }),
+  reflectReachingAsNobleQuest: (apiKey: string, worldId: string, reachingText: string) =>
+    invoke<string>("reflect_reaching_as_noble_quest_cmd", { apiKey, worldId, reachingText }),
 
   // Quests
   createQuest: (worldId: string, title: string, description: string, originKind?: "user_authored" | "message" | "meanwhile" | "backstage", originRef?: string) =>

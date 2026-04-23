@@ -266,6 +266,7 @@ pub fn run() {
             decanonize_imagined_chapter_cmd,
             bulk_decanonize_imagined_chapters_for_thread_cmd,
             auto_generate_world_with_characters_cmd,
+            reflect_reaching_as_noble_quest_cmd,
             create_quest_cmd,
             list_quests_cmd,
             get_quest_cmd,

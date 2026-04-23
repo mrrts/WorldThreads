@@ -24,7 +24,7 @@ interface Props {
   onWorldAccepted: (worldId: string) => void;
 }
 
-type Phase = "idle" | "generating" | "error" | "reaching";
+type Phase = "idle" | "generating" | "error" | "reaching" | "reflecting" | "offering";
 
 interface CharacterReveal {
   character_id: string;
@@ -62,6 +62,7 @@ export function GenesisModal({ open, onClose, apiKey, onWorldAccepted }: Props) 
   const [world, setWorld] = useState<WorldReveal | null>(null);
   const [characters, setCharacters] = useState<CharacterReveal[]>([]);
   const [reaching, setReaching] = useState("");
+  const [nobleOffering, setNobleOffering] = useState("");
   const [committing, setCommitting] = useState(false);
   const unlistenRef = useRef<(() => void) | null>(null);
 
@@ -82,6 +83,7 @@ export function GenesisModal({ open, onClose, apiKey, onWorldAccepted }: Props) 
     setWorld(null);
     setCharacters([]);
     setReaching("");
+    setNobleOffering("");
     setCommitting(false);
     setShowHints(false);
     setToneHint("");
@@ -159,26 +161,52 @@ export function GenesisModal({ open, onClose, apiKey, onWorldAccepted }: Props) 
     }
   };
 
-  const onCommit = async () => {
+  const onOfferForReflection = async () => {
+    if (!result || committing) return;
+    const text = reaching.trim();
+    if (!text) return;
+    setCommitting(true);
+    setError(null);
+    setPhase("reflecting");
+    try {
+      const offering = await api.reflectReachingAsNobleQuest(apiKey, result.world_id, text);
+      setNobleOffering(offering);
+      setPhase("offering");
+    } catch (e: any) {
+      setError(String(e));
+      setPhase("reaching");
+    } finally {
+      setCommitting(false);
+    }
+  };
+
+  const onAccept = async () => {
     if (!result || committing) return;
     setCommitting(true);
-    const text = reaching.trim();
     try {
-      if (text) {
-        await api.createQuest(
-          result.world_id,
-          "What I'm reaching for here",
-          text,
-          "user_authored",
-          undefined,
-        );
-      }
+      // Title = the noble reflection (the dignified naming that gets
+      // shown in the Quests list). Description = the user's own words
+      // (so their voice persists alongside the reflection that named
+      // them back).
+      await api.createQuest(
+        result.world_id,
+        nobleOffering.trim() || "What I'm reaching for here",
+        reaching.trim(),
+        "user_authored",
+        undefined,
+      );
       onWorldAccepted(result.world_id);
       onClose();
     } catch (e: any) {
       setError(String(e));
       setCommitting(false);
     }
+  };
+
+  const onRevise = () => {
+    setPhase("reaching");
+    setNobleOffering("");
+    setError(null);
   };
 
   const onSkip = () => {
@@ -442,12 +470,74 @@ export function GenesisModal({ open, onClose, apiKey, onWorldAccepted }: Props) 
                 Skip — just let me in
               </Button>
               <Button
-                onClick={onCommit}
+                onClick={onOfferForReflection}
+                disabled={committing || !reaching.trim()}
+                className="bg-amber-500/90 hover:bg-amber-500 text-black"
+              >
+                {committing ? <Loader2 size={14} className="animate-spin mr-1.5" /> : <Compass size={14} className="mr-1.5" />}
+                {committing ? "Offering…" : "Offer this as a quest"}
+              </Button>
+            </DialogFooter>
+          </>
+        )}
+
+        {phase === "reflecting" && world && (
+          <>
+            <DialogHeader onClose={() => {}}>
+              <DialogTitle>
+                <Loader2 size={16} className="inline mr-2 text-amber-400 animate-spin" />
+                Hearing it named back to you…
+              </DialogTitle>
+            </DialogHeader>
+            <DialogBody className="space-y-4">
+              <p className="text-sm text-muted-foreground italic leading-relaxed">
+                What you wrote is being spoken back as a real pursuit.
+              </p>
+              <div className="rounded-md border border-border/40 bg-card/30 p-3">
+                <p className="text-[11px] uppercase tracking-wider text-muted-foreground/70 mb-1">In your own words</p>
+                <p className="text-sm text-foreground/80 italic">{reaching.trim()}</p>
+              </div>
+            </DialogBody>
+          </>
+        )}
+
+        {phase === "offering" && world && (
+          <>
+            <DialogHeader onClose={onRevise}>
+              <DialogTitle>
+                <Compass size={16} className="inline mr-2 text-amber-400" />
+                The quest, named
+              </DialogTitle>
+            </DialogHeader>
+            <DialogBody className="space-y-4">
+              <p className="text-xs text-muted-foreground italic leading-relaxed">
+                Here is what you wrote, named as a real pursuit. Accept it, or revise.
+              </p>
+              <div className="rounded-xl border-2 border-amber-400/50 bg-gradient-to-br from-amber-500/10 via-amber-500/5 to-transparent p-5">
+                <p
+                  className="text-amber-100 leading-relaxed"
+                  style={{ fontSize: "1.05rem", fontWeight: 500, letterSpacing: "0.005em" }}
+                >
+                  {nobleOffering}
+                </p>
+              </div>
+              <div className="rounded-md border border-border/40 bg-card/30 p-3">
+                <p className="text-[11px] uppercase tracking-wider text-muted-foreground/70 mb-1">From what you wrote</p>
+                <p className="text-sm text-foreground/80 italic">{reaching.trim()}</p>
+              </div>
+              {error && <p className="text-xs text-destructive">{error}</p>}
+            </DialogBody>
+            <DialogFooter>
+              <Button variant="ghost" onClick={onRevise} disabled={committing}>
+                Let me revise
+              </Button>
+              <Button
+                onClick={onAccept}
                 disabled={committing}
                 className="bg-amber-500/90 hover:bg-amber-500 text-black"
               >
                 {committing ? <Loader2 size={14} className="animate-spin mr-1.5" /> : <Compass size={14} className="mr-1.5" />}
-                {committing ? "Entering…" : reaching.trim() ? "Commit and enter" : "Enter the world"}
+                {committing ? "Entering…" : "I accept"}
               </Button>
             </DialogFooter>
           </>

@@ -652,3 +652,75 @@ pub async fn auto_generate_world_with_characters_cmd(
     emit_stage(&app_handle, "done", &format!("{world_name_for_log} is awake."), 1.0);
     Ok(GenesisResult { world_id, character_ids })
 }
+
+/// Reflect the user's "what are you reaching for here?" answer back to
+/// them as a noble offering — the quest named as a real pursuit, in
+/// the spirit of a king's commission but NOT in medieval register. One
+/// or two sentences, contemporary prose, weighted and specific, phrased
+/// as a THING TO BE DONE rather than a feeling to be had. The user then
+/// accepts the offering (or rewrites) before it becomes their world's
+/// first quest.
+#[tauri::command]
+pub async fn reflect_reaching_as_noble_quest_cmd(
+    db: State<'_, Database>,
+    api_key: String,
+    world_id: String,
+    reaching_text: String,
+) -> Result<String, String> {
+    if api_key.trim().is_empty() { return Err("no API key".to_string()); }
+    let reaching_text = reaching_text.trim().to_string();
+    if reaching_text.is_empty() { return Err("empty reaching text".to_string()); }
+
+    let (world, model_config) = {
+        let conn = db.conn.lock().map_err(|e| e.to_string())?;
+        let w = get_world(&conn, &world_id).map_err(|e| e.to_string())?;
+        let mc = orchestrator::load_model_config(&conn);
+        (w, mc)
+    };
+
+    let system = r##"You are helping a user commit to a quest in a world they are about to step into. They have written one sentence naming what they hope to find, build, reach toward, or untangle in this world. Your job is to reflect that desire back to them as a NOBLE OFFERING — named and weighted, the way a trusted elder or a ceremonial herald might formally speak a person's chosen pursuit into the room before they accept it.
+
+Register — carefully:
+
+- **Noble in SPIRIT, not in register.** You are NOT writing medieval fantasy. No "thou," no "henceforth," no "thy pursuit," no "let it be known," no archaic constructions. Contemporary English. The nobility comes from WEIGHT, not from period costume.
+- **Named as a thing to be done, not a feeling to be had.** The user might have written "I want to feel less lonely here." Your reflection names the pursuit underneath: "To find, in this place, the companions whose presence makes the loneliness smaller." Not "to chase a feeling" — a concrete reach.
+- **Specific to their actual words.** Don't generalize their sentence into a generic quest. Anchor to what they actually said. If they mentioned a character, name the character. If they named a concrete thing, keep the concrete thing.
+- **One or two sentences. Short.** Offering, not speech.
+- **First person or second person.** "To find…" or "That you would come to…" Both work. Pick what fits.
+- **Honor the register of the world you're being offered within.** If the world is quiet and weathered, the offering should be too. If the world is dramatic, the offering carries that weight. Match.
+
+Failure modes — avoid all:
+- "Your quest is to…" (too video-game)
+- "Behold, thy task…" (medieval pastiche — the register the user specifically forbade)
+- Generic poetic phrasing that could fit any sentence ("to walk the path that opens before you")
+- Paragraph-length — if it's more than two sentences it's a speech, not an offering
+
+Return ONLY the offering text. No quotes, no preface, no "Here is your noble reflection:" — just the one or two sentences that will be spoken back to the user before they accept."##;
+
+    let user = format!(
+        "World: {} — {}\n\nWhat the user wrote when asked 'what are you reaching for here?':\n\n\"{}\"\n\nReflect it back as a noble offering.",
+        world.name,
+        world.description.lines().next().unwrap_or(&world.description).chars().take(240).collect::<String>(),
+        reaching_text,
+    );
+
+    let request = ChatRequest {
+        model: model_config.memory_model.clone(),
+        messages: vec![
+            ChatMessage { role: "system".to_string(), content: system.to_string() },
+            ChatMessage { role: "user".to_string(), content: user },
+        ],
+        temperature: Some(0.85),
+        max_completion_tokens: Some(240),
+        response_format: None,
+    };
+
+    let response = openai::chat_completion_with_base(
+        &model_config.chat_api_base(), &api_key, &request,
+    ).await?;
+    let raw = response.choices.first()
+        .map(|c| c.message.content.trim().trim_matches('"').trim().to_string())
+        .unwrap_or_default();
+    if raw.is_empty() { return Err("empty reflection".to_string()); }
+    Ok(raw)
+}
