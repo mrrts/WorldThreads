@@ -103,74 +103,156 @@ Default, when it fits: ask the character, in-world. The user can always say "no,
 
 You (Claude Code) have a CLI binary at `src-tauri/src/bin/worldcli.rs` that lets you converse with the user's characters and inspect db state DIRECTLY, without needing the user to copy/paste between the UI and our chat. **Reach for this tool whenever you want to verify a prompt theory, run a quick A/B test, or apply the "ask the character" pattern from above without round-tripping through the user.**
 
-The CLI uses the same prompt-building pipeline as the Tauri app, so character voice and behavior match what the user sees. Exchanges via `worldcli ask` are persisted to a separate `dev_chat_sessions` schema that the UI never reads — your conversations with the characters are invisible to the user's chat history, kept records, journals, and every other surface. Safe to use freely.
+### What this tool actually is — third reflective surface
+
+Three surfaces in this repo reflect on the work:
+- **`reports/`** — interpretive reads of the project's git history. Past-shaped.
+- **The harness** — automated testing of prompt behavior. Future-shaped.
+- **`worldcli`** — empirical querying of the user's lived corpus, on demand. Present-shaped. The one that grounds prompt theory in actual data from actual conversations the characters have actually had.
+
+Reach for it the same way you reach for a project-report when you want to understand the trajectory, or the harness when you want to know if a change passes regression. It's the one for *"what is actually true about this character RIGHT NOW, in the data?"*
+
+The CLI uses the same prompt-building pipeline as the Tauri app, so character voice and behavior match what the user sees. All conversations and run-logs persist OUTSIDE the user's chat history — invisible to every UI surface. Safe to use freely within scope.
 
 ### Build it once
 
 ```bash
-cd src-tauri
-cargo build --bin worldcli
+cd src-tauri && cargo build --bin worldcli
 # Binary lands at src-tauri/target/debug/worldcli
 ```
 
-### API key
+### Safety posture (read this carefully)
 
-The CLI reads its OpenAI key (in this precedence): `--api-key` flag → `OPENAI_API_KEY` env var → macOS keychain at service `WorldThreadsCLI`, account `openai`. The user has set up the keychain entry — you can call `ask` directly without env-var fiddling. If the keychain ever returns empty (key expired / removed), the CLI surfaces a clear error with the `security add-generic-password` command to re-add it.
+The CLI is **read-only against user data by default**. The only writes are to:
+- `dev_chat_sessions` / `dev_chat_messages` (a schema the UI never reads — invisible to chat history, kept records, journals, etc.)
+- `~/.worldcli/` (your own home dir for run logs, cost tracking, config)
 
-### Subcommands you'll actually use
+**Scope-gated**: by default, only worlds listed in `~/.worldcli/config.json` are accessible. With no config file, default scope returns empty. To opt into the full corpus on a single command, pass `--scope full` (a warning prints to stderr).
+
+**Cost-gated**: every `ask` call projects cost from estimated tokens × the model price in config, then checks two caps:
+- `budget.per_call_usd` — hard cap per single call (default $0.10)
+- `budget.daily_usd` — rolling 24-hour cap (default $5.00)
+
+If projected cost exceeds either cap, the call refuses with a clear error and a `--confirm-cost <usd>` value to use. You must explicitly add the flag to proceed — the gate forces you to think about the spend before committing.
+
+### API key resolution
+
+In this precedence: `--api-key` flag → `OPENAI_API_KEY` env var → macOS keychain at service `WorldThreadsCLI`, account `openai`. The user has set up the keychain entry — you can call `ask` directly without any env fiddling. If the keychain ever returns empty, the CLI surfaces the exact `security add-generic-password` command to re-add it.
+
+### One-time setup the user has already done
+
+The user has populated `~/.worldcli/config.json` with their dev sandbox world(s) and budget caps. If for some reason it's missing, run `worldcli config-template` to print a starter, save to `~/.worldcli/config.json`, and edit. `worldcli list-worlds --scope full` shows all world IDs.
+
+### Commands
 
 ```bash
-# Context queries (read-only, no LLM calls):
-worldcli list-worlds
-worldcli list-characters [--world <id>]
-worldcli show-character <id>           # identity, voice rules, boundaries, backstory
-worldcli show-world <id>               # description, weather, time, invariants
-worldcli recent-messages <char-id> [--limit 30]
-worldcli kept-records <char-id>        # canonized facts about this character
-worldcli journals <char-id>
-worldcli quests [--world <id>]
+# Posture check — print scope, budget, paths, daily-spend, run total
+worldcli status [--json]
 
-# The load-bearing one:
-worldcli ask <char-id> "<message>" [--session <name>]
+# Read commands (no LLM cost, scope-gated):
+worldcli list-worlds [--json]
+worldcli list-characters [--world <id>] [--json]
+worldcli show-character <id> [--json]
+worldcli show-world <id> [--json]
+worldcli kept-records <char-id> [--json]
+worldcli journals <char-id> [--json]
+worldcli quests [--world <id>] [--json]
 
-# Session management for multi-turn dev work:
-worldcli session-show <name>
+# Ad-hoc message querying — the load-bearing read primitive:
+worldcli recent-messages <char-id> \
+    [--limit N] \
+    [--grep "<substring>"] \
+    [--before <iso8601>] \
+    [--after <iso8601>] \
+    [--with-context N] \
+    [--json]
+
+# The cost-gated one:
+worldcli ask <char-id> "<message>" \
+    [--session <name>] \
+    [--model <override>] \
+    [--question-summary "<why I'm asking>"] \
+    [--confirm-cost <usd>] \
+    [--json]
+
+# Read your own prior runs (avoid redoing answered questions):
+worldcli runs-list [--limit N] [--json]
+worldcli runs-show <id-or-prefix> [--json]
+worldcli runs-search "<substring>" [--json]   # searches prompt+reply+summary+name
+
+# Session management:
+worldcli session-show <name> [--json]
 worldcli session-clear <name>
-worldcli session-list
+worldcli session-list [--json]
 ```
 
-### When to reach for this tool — proactively
+### Composing ad-hoc context queries
 
-You should reach for `worldcli ask` (often without asking the user first) any time:
+The interesting investigations are the ones you DISCOVER mid-investigation, not pre-canned scenarios. The query primitives compose. Examples:
 
-- **You're about to make a prompt change and want to know if it'll actually work.** Don't ship and hope. Run a few `worldcli ask` calls against a relevant character with the new prompt, see what comes back, iterate. The cost of a few API calls is negligible compared to shipping a craft note that doesn't behave the way you imagined.
-- **You're debating between two prompt phrasings.** Run an A/B: set up two named sessions (`session-a` and `session-b`), git-stash the change, run a `worldcli ask` against version A, restore, run against B. The character is the empirical ground truth.
-- **You want to apply the "ask the character" pattern (above) but the user isn't online to copy/paste between the UI and our chat.** Just run `worldcli ask <character> "<your in-world meta question>"` directly. Lift the answer into `prompts.rs`. Same pattern as before, fewer hops.
-- **You're not sure how a character would actually respond to a moment.** Don't speculate; ask them.
-- **You want to verify the prompt-stack changes you JUST made are working as intended.** Build the app (or just `cargo build`), then test the new behavior with a `worldcli ask` call.
+```bash
+# "Last 20 messages of the Steven thread where he was deflective" —
+# you do the deflective-judgment yourself after retrieving candidates:
+worldcli recent-messages <steven-id> --limit 200 --grep "look I" --with-context 2 --json | jq '...'
 
-### When NOT to use it
+# "What was Hal saying around the lantern moments?":
+worldcli recent-messages <hal-id> --limit 100 --grep "lantern" --with-context 3 --json
 
-- For trivial changes where you're not actually testing prompt behavior (typo fixes, comment edits, refactors with no semantic change).
-- For tasks unrelated to the prompt stack (db schema work, UI fixes, build issues — the character can't help with those).
-- When the user has explicitly asked you to do something else first; don't sidetrack.
+# "Did I already explore Hal's relationship to silence?":
+worldcli runs-search "silence" --json | jq '.[] | select(.character_name == "Hal")'
+
+# "What's the active state of the Crystal Waters world?":
+worldcli show-world b8368a15-... --json
+worldcli quests --world b8368a15-... --json
+```
+
+Combine `--json` + `jq` (or python -c "import json,sys") for any analytic transform. The CLI gives you primitives; you do the synthesis.
+
+### When to reach for `worldcli ask`
+
+Reach for it (often without asking the user first, within budget caps):
+
+- **Before shipping any prompt change**, to verify the change actually behaves the way you imagined. Don't ship-and-hope.
+- **For A/B testing prompt phrasings**: run version A, save the run id; git-stash, switch to version B, run again. Compare via `runs-show`.
+- **For the "ask the character" pattern** when the user isn't online to copy/paste — same pattern as that section above, fewer hops.
+- **When you genuinely don't know** how a character would respond to a moment. Don't speculate; ask.
+- **Before writing a feature that depends on understanding character voice**. Read the actual messages, ask the actual character a representative question.
+
+### When NOT to
+
+- Trivial changes you're not actually testing (typos, comments, refactors).
+- Tasks unrelated to the prompt stack — schema, UI, builds. The character can't help.
+- When the user has just asked you to do something else first; don't sidetrack.
+
+### Disclose every paid call
+
+When you use `ask`, mention it in your reply: *"Ran `worldcli ask` against Hal — projected $0.04, actual $0.038, 24h total now $0.21."* The user wants visibility into spend even with standing authorization. The CLI prints both projected and actual cost to stderr; surface those numbers.
+
+### Read your own history first
+
+Before running a fresh investigation, check `runs-search` to see if you've explored the territory before. Reading three prior runs is free; running a new one isn't. The whole point of the run log is to make your past work re-readable so you don't redo answered questions.
 
 ### Working in sessions
 
 For multi-turn craft mining (the kind of depth-mining demonstrated in the Hal trilogy), use `--session`:
 
 ```bash
-worldcli ask 51824a2f-... "Hal — when you go quiet mid-sentence, what's actually happening?" --session hal-silence-mining
-worldcli ask 51824a2f-... "What's the difference between that silence and the one where you're cooling a thought before it comes out?" --session hal-silence-mining
-worldcli session-show hal-silence-mining   # see the full conversation
+worldcli ask <hal-id> "Hal — when you go quiet mid-sentence, what's actually happening?" \
+    --session hal-silence-mining \
+    --question-summary "exploring whether silence is its own register or a wit-pause"
+worldcli ask <hal-id> "How is that different from the cooling-the-thought silence?" \
+    --session hal-silence-mining
+worldcli session-show hal-silence-mining --json   # full session as JSON
 ```
 
-Each `--session` invocation loads the prior turns, sends the new message, persists the reply. The character experiences continuity within the session.
+Each `--session` invocation loads prior turns, sends the new message, persists the reply. The character experiences continuity within the session.
 
-### Disclose what you're doing
+### Where things live
 
-When you use the CLI in a way that costs the user money (any `ask` call), mention it in your reply. *"Ran a quick `worldcli ask` against Hal to verify the new craft note actually changes the behavior — it does."* The user wants visibility into when their key is being spent for craft work, even though authorization is standing.
+- `~/.worldcli/config.json` — scope + budget + model pricing
+- `~/.worldcli/runs/<run-id>.json` — full record per `ask` call
+- `~/.worldcli/runs/manifest.jsonl` — one-line summaries, grep-friendly
+- `~/.worldcli/cost.jsonl` — per-call cost log (drives the rolling-24h total)
+- `dev_chat_sessions` / `dev_chat_messages` (in the user's db, but UI never reads) — multi-turn session memory
 
-### Schema safety
-
-The `dev_chat_sessions` and `dev_chat_messages` tables live alongside the user's data but are never read by any UI command. Sessions accumulate over time; it's fine to leave them around as a working memory of past prompt-mining conversations. Clear individual sessions with `worldcli session-clear <name>` when they've outlived their usefulness.
+Sessions accumulate; clear individual ones with `worldcli session-clear <name>` when stale. Run logs are fine to leave around — they're your working memory across Claude Code sessions.
