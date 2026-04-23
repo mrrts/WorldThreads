@@ -1270,9 +1270,17 @@ async fn evaluate_one(
     Ok((verdict, usage))
 }
 
-/// Pull the message window for one side of the ref. Assistant messages
-/// in the window are the ones we'll evaluate; the user turn immediately
-/// preceding each is included as context for the LLM call.
+/// Pull the message window for one side of the ref via direct SQL so
+/// the time filter happens at the database (not after pulling a
+/// fixed-size recent slice). Otherwise a thread with more than
+/// ~pull_limit post-commit messages leaves the before-window empty
+/// because everything recent lives in the after window.
+///
+/// We pull a generous working set of role-matching messages on the
+/// correct side of the cutoff, then for each eval target attach the
+/// nearest preceding user turn from the FULL chronological thread —
+/// the user turn might be paginated outside the working-set window
+/// if filtering dropped the nearest one.
 fn pull_eval_window(
     conn: &rusqlite::Connection,
     character_id: &str,
@@ -1282,47 +1290,83 @@ fn pull_eval_window(
     limit: i64,
 ) -> Result<Vec<(app_lib::db::queries::Message, Option<app_lib::db::queries::Message>)>, Box<dyn std::error::Error>> {
     let thread = get_thread_for_character(conn, character_id)?;
-    // Pull a large window — we'll filter by role ourselves + also need
-    // the preceding user turn for each eval target.
-    let pull_limit = (limit * 6).max(80);
-    let mut msgs = list_messages(conn, &thread.thread_id, pull_limit)?;
-    msgs.reverse(); // chronological
 
-    // Time filter
-    let filtered: Vec<app_lib::db::queries::Message> = if direction == "before" {
-        msgs.into_iter().filter(|m| m.created_at.as_str() < cutoff_ts).collect()
-    } else {
-        msgs.into_iter().filter(|m| m.created_at.as_str() >= cutoff_ts).collect()
+    // Normalize the cutoff to the same UTC-with-microseconds shape the
+    // messages table stores — "YYYY-MM-DDTHH:MM:SS.ffffff+00:00" —
+    // so string comparison matches real-time ordering. git commit
+    // timestamps come in with the committer's timezone offset
+    // ("T10:16:41-05:00"), which breaks character-wise comparison
+    // against stored UTC strings ("T15:16:41+00:00"). Parse, convert
+    // to UTC, re-serialize.
+    let cutoff = chrono::DateTime::parse_from_rfc3339(cutoff_ts)
+        .map(|dt| dt.with_timezone(&chrono::Utc)
+            .to_rfc3339_opts(chrono::SecondsFormat::Micros, true))
+        .unwrap_or_else(|_| cutoff_ts.to_string());
+
+    let role_clause = if role == "any" { String::new() } else {
+        format!("AND role = '{}'", role.replace('\'', ""))
     };
+    let noise_clause = "AND role NOT IN ('illustration','video','inventory_update','imagined_chapter','settings_update','system')";
+    let (op, order) = if direction == "before" { ("<", "DESC") } else { (">=", "ASC") };
 
-    // Walk the filtered slice; for each message whose role matches,
-    // pair it with the nearest preceding user turn (within this slice).
+    let query = format!(
+        "SELECT message_id, thread_id, role, content, tokens_estimate, sender_character_id,
+                created_at, world_day, world_time, address_to, mood_chain, is_proactive
+         FROM messages
+         WHERE thread_id = ?1 AND created_at {op} ?2 {role_clause} {noise_clause}
+         ORDER BY created_at {order} LIMIT ?3",
+        op = op, order = order,
+        role_clause = role_clause, noise_clause = noise_clause,
+    );
+    let mut stmt = conn.prepare(&query)?;
+    let rows = stmt.query_map(
+        rusqlite::params![thread.thread_id, cutoff, limit],
+        |r| Ok(app_lib::db::queries::Message {
+            message_id: r.get(0)?,
+            thread_id: r.get(1)?,
+            role: r.get(2)?,
+            content: r.get(3)?,
+            tokens_estimate: r.get(4)?,
+            sender_character_id: r.get(5)?,
+            created_at: r.get(6)?,
+            world_day: r.get(7)?,
+            world_time: r.get(8)?,
+            address_to: r.get(9)?,
+            mood_chain: r.get(10)?,
+            is_proactive: r.get::<_, Option<i64>>(11)?.map(|v| v != 0).unwrap_or(false),
+        }),
+    )?;
+    let targets: Vec<app_lib::db::queries::Message> = rows.filter_map(|r| r.ok()).collect();
+
+    // For each target, find the nearest preceding user turn in the
+    // FULL thread (not constrained to the working-set window).
     let mut pairs: Vec<(app_lib::db::queries::Message, Option<app_lib::db::queries::Message>)> = Vec::new();
-    for (i, m) in filtered.iter().enumerate() {
-        let role_match = role == "any" || m.role == role;
-        if !role_match { continue; }
-        if m.role == "illustration" || m.role == "video" || m.role == "inventory_update"
-           || m.role == "imagined_chapter" || m.role == "settings_update" {
-            continue;
-        }
-        let mut prev_user: Option<app_lib::db::queries::Message> = None;
-        for j in (0..i).rev() {
-            if filtered[j].role == "user" {
-                prev_user = Some(filtered[j].clone());
-                break;
-            }
-        }
-        pairs.push((m.clone(), prev_user));
+    for m in targets {
+        let prev: Option<app_lib::db::queries::Message> = conn.query_row(
+            "SELECT message_id, thread_id, role, content, tokens_estimate, sender_character_id,
+                    created_at, world_day, world_time, address_to, mood_chain, is_proactive
+             FROM messages
+             WHERE thread_id = ?1 AND role = 'user' AND created_at < ?2
+             ORDER BY created_at DESC LIMIT 1",
+            rusqlite::params![m.thread_id, m.created_at],
+            |r| Ok(app_lib::db::queries::Message {
+                message_id: r.get(0)?,
+                thread_id: r.get(1)?,
+                role: r.get(2)?,
+                content: r.get(3)?,
+                tokens_estimate: r.get(4)?,
+                sender_character_id: r.get(5)?,
+                created_at: r.get(6)?,
+                world_day: r.get(7)?,
+                world_time: r.get(8)?,
+                address_to: r.get(9)?,
+                mood_chain: r.get(10)?,
+                is_proactive: r.get::<_, Option<i64>>(11)?.map(|v| v != 0).unwrap_or(false),
+            }),
+        ).ok();
+        pairs.push((m, prev));
     }
-
-    // Take closest-to-cutoff: most recent for "before", earliest for "after".
-    let slice = if direction == "before" {
-        let start = pairs.len().saturating_sub(limit as usize);
-        pairs[start..].to_vec()
-    } else {
-        pairs.into_iter().take(limit as usize).collect()
-    };
-    Ok(slice)
+    Ok(pairs)
 }
 
 async fn cmd_evaluate(
