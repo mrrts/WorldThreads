@@ -299,6 +299,7 @@ pub async fn generate_imagined_chapter_cmd(
             content: String::new(),
             created_at: now.clone(),
             breadcrumb_message_id: None,
+            canonized: false,
         };
         create_imagined_chapter(&conn, &row).map_err(|e| e.to_string())?;
     }
@@ -564,48 +565,15 @@ pub async fn generate_imagined_chapter_cmd(
         "imagined-chapter-token",
     ).await?;
 
-    // Save the final content + insert a chat-history breadcrumb message
-    // so the chapter shows up in-thread (collapsed rendering is a frontend
-    // follow-up; for now the row exists so it persists in the timeline).
-    let now2 = Utc::now().to_rfc3339();
+    // Save the final content. Note: NO breadcrumb is inserted here — the
+    // chapter starts in the pre-canon state. The breadcrumb (and the
+    // chat-history footprint that goes with it) only gets written when
+    // the user explicitly canonizes via canonize_imagined_chapter_cmd.
     {
         let conn = db.conn.lock().map_err(|e| e.to_string())?;
         let _ = update_imagined_chapter(&conn, &chapter_id, &invented.title, &chapter_text);
-
-        // Determine which messages table this thread lives in.
-        let is_group: bool = conn.query_row(
-            "SELECT 1 FROM group_chats WHERE thread_id = ?1",
-            params![request.thread_id], |_| Ok(true),
-        ).unwrap_or(false);
-        let table = if is_group { "group_messages" } else { "messages" };
-        let breadcrumb_id = uuid::Uuid::new_v4().to_string();
-        // Content carries chapter_id + title so the frontend renderer
-        // (when added) can resolve back to the full chapter, plus a short
-        // first-line excerpt for quick scanning in the chat list.
-        let first_line: String = chapter_text.lines()
-            .find(|l| !l.trim().is_empty())
-            .unwrap_or("")
-            .chars().take(200).collect();
-        let content = serde_json::json!({
-            "chapter_id": chapter_id,
-            "title": invented.title,
-            "image_id": image_id,
-            "first_line": first_line,
-        }).to_string();
-        let world_time_str = world.state.get("time")
-            .and_then(|t| t.get("time_of_day"))
-            .and_then(|v| v.as_str())
-            .unwrap_or("")
-            .to_string();
-        let _ = conn.execute(
-            &format!(
-                "INSERT INTO {table} (message_id, thread_id, role, content, tokens_estimate, sender_character_id, created_at, world_day, world_time)
-                 VALUES (?1, ?2, 'imagined_chapter', ?3, 0, NULL, ?4, ?5, ?6)"
-            ),
-            params![breadcrumb_id, request.thread_id, content, now2, world_day, world_time_str],
-        );
-        let _ = set_imagined_chapter_breadcrumb(&conn, &chapter_id, &breadcrumb_id);
     }
+    let _ = world_day; // silence unused warning when breadcrumb is moved out
 
     let _ = app_handle.emit("imagined-chapter-done", ChapterDoneEvent {
         chapter_id: chapter_id.clone(),
@@ -678,4 +646,83 @@ pub fn get_imagined_chapter_image_url_cmd(
     if !path.exists() { return Ok(String::new()); }
     let bytes = std::fs::read(&path).map_err(|e| format!("Failed to read image: {e}"))?;
     Ok(format!("data:image/png;base64,{}", orchestrator::base64_encode_bytes(&bytes)))
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CanonizeImaginedChapterResponse {
+    /// The newly-inserted breadcrumb's message_id, so the frontend can
+    /// hand it directly to the existing canon-classifier flow if it
+    /// wants to chain the chapter into character-data evolution.
+    pub breadcrumb_message_id: String,
+}
+
+/// Bless a chapter into canon: insert the chat-history breadcrumb
+/// row AND set canonized=true on the chapter record. Idempotent on
+/// canonized chapters (returns the existing breadcrumb_message_id
+/// without inserting a second one).
+#[tauri::command]
+pub fn canonize_imagined_chapter_cmd(
+    db: State<Database>,
+    chapter_id: String,
+) -> Result<CanonizeImaginedChapterResponse, String> {
+    let conn = db.conn.lock().map_err(|e| e.to_string())?;
+    let chapter = get_imagined_chapter(&conn, &chapter_id).map_err(|e| e.to_string())?;
+
+    // Idempotent: if already canonized AND the breadcrumb still exists,
+    // return its id without writing again.
+    if chapter.canonized {
+        if let Some(existing_id) = chapter.breadcrumb_message_id.as_deref() {
+            return Ok(CanonizeImaginedChapterResponse {
+                breadcrumb_message_id: existing_id.to_string(),
+            });
+        }
+    }
+
+    // Insert the breadcrumb row into the right messages table.
+    let is_group: bool = conn.query_row(
+        "SELECT 1 FROM group_chats WHERE thread_id = ?1",
+        params![chapter.thread_id], |_| Ok(true),
+    ).unwrap_or(false);
+    let table = if is_group { "group_messages" } else { "messages" };
+    let breadcrumb_id = uuid::Uuid::new_v4().to_string();
+    let first_line: String = chapter.content.lines()
+        .find(|l| !l.trim().is_empty())
+        .unwrap_or("")
+        .chars().take(200).collect();
+    let content = serde_json::json!({
+        "chapter_id": chapter.chapter_id,
+        "title": chapter.title,
+        "image_id": chapter.image_id,
+        "first_line": first_line,
+    }).to_string();
+    let now = Utc::now().to_rfc3339();
+    // World-day/time at canon time (which is when the chapter "enters" the chat).
+    let (world_day, world_time): (Option<i64>, String) = conn.query_row(
+        "SELECT w.state FROM threads t JOIN worlds w ON w.world_id = t.world_id WHERE t.thread_id = ?1
+         UNION ALL
+         SELECT w.state FROM group_chats gc JOIN worlds w ON w.world_id = gc.world_id WHERE gc.thread_id = ?1
+         LIMIT 1",
+        params![chapter.thread_id], |r| {
+            let s: String = r.get(0)?;
+            let v: serde_json::Value = serde_json::from_str(&s).unwrap_or_default();
+            let day = v.get("time").and_then(|t| t.get("day_index")).and_then(|x| x.as_i64());
+            let time = v.get("time").and_then(|t| t.get("time_of_day"))
+                .and_then(|x| x.as_str()).unwrap_or("").to_string();
+            Ok((day, time))
+        },
+    ).unwrap_or((chapter.world_day, String::new()));
+
+    conn.execute(
+        &format!(
+            "INSERT INTO {table} (message_id, thread_id, role, content, tokens_estimate, sender_character_id, created_at, world_day, world_time)
+             VALUES (?1, ?2, 'imagined_chapter', ?3, 0, NULL, ?4, ?5, ?6)"
+        ),
+        params![breadcrumb_id, chapter.thread_id, content, now, world_day, world_time],
+    ).map_err(|e| format!("Failed to insert breadcrumb: {e}"))?;
+
+    set_imagined_chapter_breadcrumb(&conn, &chapter_id, &breadcrumb_id).map_err(|e| e.to_string())?;
+    set_imagined_chapter_canonized(&conn, &chapter_id, true).map_err(|e| e.to_string())?;
+
+    Ok(CanonizeImaginedChapterResponse { breadcrumb_message_id: breadcrumb_id })
 }

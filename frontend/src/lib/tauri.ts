@@ -856,6 +856,8 @@ export const api = {
     invoke<void>("rename_imagined_chapter_cmd", { chapterId, title }),
   getImaginedChapterImageUrl: (chapterId: string) =>
     invoke<string>("get_imagined_chapter_image_url_cmd", { chapterId }),
+  canonizeImaginedChapter: (chapterId: string) =>
+    invoke<{ breadcrumbMessageId: string }>("canonize_imagined_chapter_cmd", { chapterId }),
 };
 
 export interface ImaginedChapter {
@@ -869,9 +871,12 @@ export interface ImaginedChapter {
   content: string;
   created_at: string;
   /** message_id of the role='imagined_chapter' chat-history breadcrumb
-   *  inserted when the chapter was generated. Used by the canon flow
-   *  to canonize a chapter via the standard KeepRecordModal path. */
+   *  inserted when the chapter was canonized. Null until canonization. */
   breadcrumb_message_id: string | null;
+  /** Whether this chapter has been blessed into canon. Pre-canon
+   *  chapters live in the modal sidebar but don't appear in chat
+   *  history and don't reach the dialogue prompt's history block. */
+  canonized: boolean;
 }
 
 export interface GenerateImaginedChapterRequest {

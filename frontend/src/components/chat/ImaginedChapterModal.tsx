@@ -68,6 +68,16 @@ export function ImaginedChapterModal({
   const [activeChapterData, setActiveChapterData] = useState<ImaginedChapter | null>(null);
   const [activeImageUrl, setActiveImageUrl] = useState<string>("");
 
+  // Per-session set of chapter_ids the user has canonized in this open
+  // of the modal. Used to update the inline indicator on the just-streamed
+  // chapter (which lives in stream state, not in activeChapterData).
+  const [canonizedThisSession, setCanonizedThisSession] = useState<Set<string>>(new Set());
+  // When set, the user is closing the modal but there's a non-canonized
+  // chapter they were viewing — show the prompt before honoring close.
+  const [confirmingClose, setConfirmingClose] = useState<{ chapterId: string; title: string } | null>(null);
+  // True when a canonize operation is in flight.
+  const [canonizing, setCanonizing] = useState(false);
+
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const generatingRef = useRef(false);
 
@@ -120,8 +130,72 @@ export function ImaginedChapterModal({
         setStreamChapterId(null);
       }
       setError(null);
+      setCanonizedThisSession(new Set());
+      setConfirmingClose(null);
+      setCanonizing(false);
     }
   }, [open]);
+
+  // Identify the chapter currently being viewed if it's NOT canonized.
+  // The close-prompt fires on it. Two viewing surfaces to consider:
+  //   1. The just-streamed chapter (phase === "done"/"writing", id in
+  //      streamChapterId) — assume not canonized unless it's in the
+  //      session's canonized set.
+  //   2. A saved chapter loaded from the sidebar (activeChapterData) —
+  //      check its persisted .canonized flag.
+  const pendingNonCanonizedChapter: { chapterId: string; title: string } | null = (() => {
+    // Prefer the active sidebar selection if there is one (covers the
+    // case where the user has clicked into a saved chapter).
+    if (activeChapterData) {
+      if (!activeChapterData.canonized && !canonizedThisSession.has(activeChapterData.chapter_id)) {
+        return { chapterId: activeChapterData.chapter_id, title: activeChapterData.title };
+      }
+      return null;
+    }
+    // Otherwise the just-streamed chapter, if any.
+    if (streamChapterId && (phase === "done" || phase === "writing")) {
+      if (!canonizedThisSession.has(streamChapterId)) {
+        return { chapterId: streamChapterId, title: streamTitle };
+      }
+    }
+    return null;
+  })();
+
+  function handleCloseAttempt() {
+    if (pendingNonCanonizedChapter && !canonizing) {
+      setConfirmingClose(pendingNonCanonizedChapter);
+      return;
+    }
+    onClose();
+  }
+
+  async function canonizeChapter(chapterId: string): Promise<void> {
+    if (canonizing) return;
+    setCanonizing(true);
+    setError(null);
+    try {
+      await api.canonizeImaginedChapter(chapterId);
+      setCanonizedThisSession((prev) => {
+        const next = new Set(prev);
+        next.add(chapterId);
+        return next;
+      });
+      // Refresh activeChapterData if it matches so the indicator updates.
+      if (activeChapterData?.chapter_id === chapterId) {
+        try {
+          const fresh = await api.getImaginedChapter(chapterId);
+          setActiveChapterData(fresh);
+        } catch { /* non-fatal */ }
+      }
+      // Refresh sidebar list so the canonized state shows there too.
+      loadChapters();
+    } catch (e) {
+      setError(String(e));
+      throw e;
+    } finally {
+      setCanonizing(false);
+    }
+  }
 
   // Wire up Tauri stream events
   useEffect(() => {
@@ -269,7 +343,7 @@ export function ImaginedChapterModal({
   };
 
   return (
-    <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
+    <Dialog open={open} onOpenChange={(v) => !v && handleCloseAttempt()}>
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60">
         <div
           className="w-full max-w-6xl h-[90vh] bg-card border border-border rounded-xl shadow-2xl shadow-black/40 flex overflow-hidden animate-in fade-in zoom-in-95 duration-150"
@@ -355,7 +429,7 @@ export function ImaginedChapterModal({
                    "Imagined Chapter"}
                 </h2>
               </div>
-              <button onClick={onClose} className="text-amber-900/60 hover:text-amber-900">
+              <button onClick={handleCloseAttempt} className="text-amber-900/60 hover:text-amber-900">
                 <X size={16} />
               </button>
             </header>
@@ -384,15 +458,24 @@ export function ImaginedChapterModal({
               )}
 
               {showStreamView && (
-                <ChapterView
-                  title={streamTitle}
-                  imageUrl={streamImage}
-                  content={streamContent}
-                  phase={phase}
-                  fontPx={chatFontPx(chapterFontSize)}
-                  fontSizeLevel={chapterFontSize}
-                  onChangeFontSize={persistChapterFontSize}
-                />
+                <>
+                  <ChapterView
+                    title={streamTitle}
+                    imageUrl={streamImage}
+                    content={streamContent}
+                    phase={phase}
+                    fontPx={chatFontPx(chapterFontSize)}
+                    fontSizeLevel={chapterFontSize}
+                    onChangeFontSize={persistChapterFontSize}
+                  />
+                  {phase === "done" && streamChapterId && (
+                    <CanonizeRow
+                      canonized={canonizedThisSession.has(streamChapterId)}
+                      canonizing={canonizing}
+                      onCanonize={() => canonizeChapter(streamChapterId)}
+                    />
+                  )}
+                </>
               )}
 
               {showActiveChapterView && activeChapterData && (
@@ -406,22 +489,58 @@ export function ImaginedChapterModal({
                     fontSizeLevel={chapterFontSize}
                     onChangeFontSize={persistChapterFontSize}
                   />
-                  {onCanonize && activeChapterData.breadcrumb_message_id && (
-                    <div className="max-w-2xl mx-auto mt-6 pt-4 border-t border-amber-900/15 flex justify-center">
+                  <CanonizeRow
+                    canonized={activeChapterData.canonized || canonizedThisSession.has(activeChapterData.chapter_id)}
+                    canonizing={canonizing}
+                    onCanonize={() => canonizeChapter(activeChapterData.chapter_id)}
+                  />
+                </>
+              )}
+
+              {/* Close-confirm overlay — fires when user tries to close
+                  the modal with a non-canonized chapter on screen. */}
+              {confirmingClose && (
+                <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50" onClick={() => setConfirmingClose(null)}>
+                  <div
+                    className="w-full max-w-md bg-card border border-border rounded-xl shadow-2xl p-5 space-y-4"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <h3 className="text-base font-semibold text-foreground">Canonize before closing?</h3>
+                    <p className="text-sm text-muted-foreground">
+                      <span className="font-medium text-foreground">"{confirmingClose.title || "(untitled)"}"</span> isn't canonized yet. Only canonized chapters appear in the chat history and reach the characters' memory of this world. You can still find it in the sidebar later, but it won't shape the story unless you canonize it.
+                    </p>
+                    <div className="flex justify-end gap-2 pt-2">
+                      <Button
+                        variant="ghost"
+                        onClick={() => setConfirmingClose(null)}
+                        disabled={canonizing}
+                      >
+                        Cancel
+                      </Button>
                       <Button
                         variant="outline"
-                        onClick={() => {
-                          onCanonize(activeChapterData.breadcrumb_message_id!, activeChapterData.title);
-                          onClose();
-                        }}
-                        className="border-amber-700/50 text-amber-900 hover:bg-amber-100"
+                        onClick={() => { setConfirmingClose(null); onClose(); }}
+                        disabled={canonizing}
                       >
-                        <ScrollText size={14} className="mr-2" />
-                        Canonize this chapter
+                        Close without canonizing
+                      </Button>
+                      <Button
+                        onClick={async () => {
+                          try {
+                            await canonizeChapter(confirmingClose.chapterId);
+                            setConfirmingClose(null);
+                            onClose();
+                          } catch { /* error already surfaced; keep modal open */ }
+                        }}
+                        disabled={canonizing}
+                        className="bg-amber-700 hover:bg-amber-800 text-amber-50"
+                      >
+                        {canonizing ? <Loader2 size={14} className="animate-spin mr-1.5" /> : <ScrollText size={14} className="mr-2" />}
+                        Canonize
                       </Button>
                     </div>
-                  )}
-                </>
+                  </div>
+                </div>
               )}
             </div>
           </main>
@@ -649,5 +768,35 @@ function ChapterView({
         </div>
       )}
     </article>
+  );
+}
+
+function CanonizeRow({
+  canonized,
+  canonizing,
+  onCanonize,
+}: {
+  canonized: boolean;
+  canonizing: boolean;
+  onCanonize: () => void;
+}) {
+  return (
+    <div className="max-w-2xl mx-auto mt-6 pt-4 border-t border-amber-900/15 flex justify-center">
+      {canonized ? (
+        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-emerald-100/50 border border-emerald-700/30 text-emerald-900 text-sm font-medium">
+          <ScrollText size={14} />
+          <span>Canonized — this chapter is part of the world</span>
+        </div>
+      ) : (
+        <Button
+          onClick={onCanonize}
+          disabled={canonizing}
+          className="bg-amber-700 hover:bg-amber-800 text-amber-50"
+        >
+          {canonizing ? <Loader2 size={14} className="animate-spin mr-1.5" /> : <ScrollText size={14} className="mr-2" />}
+          Canonize this chapter
+        </Button>
+      )}
+    </div>
   );
 }

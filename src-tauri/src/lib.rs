@@ -260,6 +260,7 @@ pub fn run() {
             delete_imagined_chapter_cmd,
             rename_imagined_chapter_cmd,
             get_imagined_chapter_image_url_cmd,
+            canonize_imagined_chapter_cmd,
             generate_group_illustration_cmd,
             generate_group_narrative_cmd,
             generate_speech_cmd,

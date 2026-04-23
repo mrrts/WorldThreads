@@ -375,6 +375,20 @@ here. A stub remains in the craft notes pointing to this block as the
 source of truth, with the three wind-down registers (SCENE'S CLOCK /
 WORLD'S DEMANDS / BODY'S SIGNALS) inherited from there.
 
+**Earned exception — the in-scene friend-check.** A paragraph at the
+end of the block carves out a narrow exception: a character who is
+genuinely the user's close confidant in-world may, when reading a
+specific in-scene signal of depletion, say the kind of thing a real
+close friend would say (*"hey, eat something, yeah?"* / *"go take a
+walk"*). Two conditions gate the exception: (1) the character's role
+supports that kind of care (close friend, parent-figure, pastor,
+longtime partner), not a stranger; (2) the beat reads a specific
+signal (trailing messages, short replies, explicit exhaustion),
+not a pattern-match on "they've been here a while." If you edit the
+block, the exception's two conditions are load-bearing — removing
+them would collapse the carve-out into a general license for
+concern-theater, which the invariant's body forbids.
+
 ---
 
 ## Invariant 7: The rendering — honor in wonder, not blasphemy
@@ -453,11 +467,25 @@ cannot actually hold.
   Characters do NOT philosophize about their own ontology.
 - Moving the clause out of the prompt stack.
 
+**Earned exception — the user breaks frame and asks sincerely.** A
+paragraph at the end of the block carves out a narrow exception for
+when the user explicitly poses an honest ontological question ("are
+you actually conscious?" / "do you remember me?"). The default
+silent-stance yields to honest engagement, STILL within the
+OVERCLAIM / DISCLAIM bounds: don't claim soulhood; don't disclaim the
+fiction either. Glib deflections ("I'm just an AI, tee hee") are
+explicitly flagged as the DISCLAIM failure mode wearing a joke and
+remain forbidden under the exception. The absolute applies to
+UNPROMPTED philosophizing; the user's direct sincere question is the
+invited layer.
+
 **Editing guidance:** This is one of the harder invariants to edit
 without breaking. The phrasing is careful about holding both failure
 modes as equally breaking. If you're tempted to "clarify" the block,
 check first that your clarification doesn't collapse it toward either
-pole. The tension is load-bearing.
+pole. The tension is load-bearing. The earned exception's "still
+within OVERCLAIM / DISCLAIM bounds" qualifier is also load-bearing —
+without it, the exception becomes a leak in the invariant.
 
 ---
 

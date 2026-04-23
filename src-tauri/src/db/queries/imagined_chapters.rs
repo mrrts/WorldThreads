@@ -19,10 +19,13 @@ pub struct ImaginedChapter {
     pub content: String,
     pub created_at: String,
     /// FK into messages.message_id (or group_messages) — the chat-history
-    /// breadcrumb row inserted when this chapter was saved. Used by the
-    /// canonization flow to canonize a chapter via the same path as any
-    /// other moment.
+    /// breadcrumb row inserted when this chapter was canonized. Null
+    /// for non-canonized chapters (no chat-history footprint).
     pub breadcrumb_message_id: Option<String>,
+    /// Whether this chapter has been blessed into canon. Pre-canon
+    /// chapters live in the modal sidebar but don't appear in chat
+    /// history and don't reach the dialogue prompt's history block.
+    pub canonized: bool,
 }
 
 pub fn create_imagined_chapter(
@@ -30,8 +33,8 @@ pub fn create_imagined_chapter(
     chapter: &ImaginedChapter,
 ) -> Result<(), rusqlite::Error> {
     conn.execute(
-        "INSERT INTO imagined_chapters (chapter_id, thread_id, world_day, title, seed_hint, scene_description, image_id, content, created_at, breadcrumb_message_id)
-         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)",
+        "INSERT INTO imagined_chapters (chapter_id, thread_id, world_day, title, seed_hint, scene_description, image_id, content, created_at, breadcrumb_message_id, canonized)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)",
         params![
             chapter.chapter_id,
             chapter.thread_id,
@@ -43,7 +46,23 @@ pub fn create_imagined_chapter(
             chapter.content,
             chapter.created_at,
             chapter.breadcrumb_message_id,
+            chapter.canonized as i32,
         ],
+    )?;
+    Ok(())
+}
+
+/// Set the canonized flag. Called by canonize_imagined_chapter_cmd
+/// after inserting the breadcrumb message; never set directly by the
+/// generation flow.
+pub fn set_imagined_chapter_canonized(
+    conn: &Connection,
+    chapter_id: &str,
+    canonized: bool,
+) -> Result<(), rusqlite::Error> {
+    conn.execute(
+        "UPDATE imagined_chapters SET canonized = ?2 WHERE chapter_id = ?1",
+        params![chapter_id, canonized as i32],
     )?;
     Ok(())
 }
@@ -97,7 +116,7 @@ pub fn get_imagined_chapter(
     chapter_id: &str,
 ) -> Result<ImaginedChapter, rusqlite::Error> {
     conn.query_row(
-        "SELECT chapter_id, thread_id, world_day, title, seed_hint, scene_description, image_id, content, created_at, breadcrumb_message_id
+        "SELECT chapter_id, thread_id, world_day, title, seed_hint, scene_description, image_id, content, created_at, breadcrumb_message_id, canonized
          FROM imagined_chapters WHERE chapter_id = ?1",
         params![chapter_id],
         |r| Ok(ImaginedChapter {
@@ -111,6 +130,7 @@ pub fn get_imagined_chapter(
             content: r.get(7)?,
             created_at: r.get(8)?,
             breadcrumb_message_id: r.get(9)?,
+            canonized: r.get::<_, i32>(10)? != 0,
         }),
     )
 }
@@ -121,7 +141,7 @@ pub fn list_imagined_chapters_for_thread(
     thread_id: &str,
 ) -> Result<Vec<ImaginedChapter>, rusqlite::Error> {
     let mut stmt = conn.prepare(
-        "SELECT chapter_id, thread_id, world_day, title, seed_hint, scene_description, image_id, content, created_at, breadcrumb_message_id
+        "SELECT chapter_id, thread_id, world_day, title, seed_hint, scene_description, image_id, content, created_at, breadcrumb_message_id, canonized
          FROM imagined_chapters WHERE thread_id = ?1
          ORDER BY created_at DESC"
     )?;
@@ -136,6 +156,7 @@ pub fn list_imagined_chapters_for_thread(
         content: r.get(7)?,
         created_at: r.get(8)?,
         breadcrumb_message_id: r.get(9)?,
+        canonized: r.get::<_, i32>(10)? != 0,
     }))?;
     rows.collect()
 }
