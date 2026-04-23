@@ -46,6 +46,24 @@ When reviewing, auditing, refactoring, or critiquing anything in this repo (espe
 
 Standing authorization to **commit and push at will** on clean work — no need to ask before every commit or push. Group changes into coherent commits, write descriptive messages in the project's existing style, then push. Destructive git operations (force-push, reset --hard, branch deletion, history rewrites, etc.) STILL require explicit confirmation — that's not autonomy, that's a different category. Commit + push is the default; ask only when something is risky or unclear.
 
+## Earned-exception carve-outs on absolute rules
+
+Whenever you draft an absolute-shaped rule in this repo — "never X," "always Y," "don't ever Z," "do NOT do W" — **immediately check whether there's a genuine earned-exception that belongs alongside it**, and write it in the same pass. This is a house pattern across `prompts.rs`, `INVARIANTS.md`, the craft notes, and CLAUDE.md itself. The rigidity stays; the carve-out sits beside it so the rigidity doesn't collapse a genuinely valid moment.
+
+The pattern:
+
+1. State the default rule plainly and firmly.
+2. Name the narrow earned exception, with its own test that an edge case would have to pass to qualify.
+3. Preserve the rigidity against everything outside the exception. "If none of the exceptions apply, the default holds."
+
+Examples already in the stack: *"Don't analyze the user — unless they want to be analyzed"* (three exceptions: invited, role-appropriate, character-motivated from a real relationship). *"Don't end on a proverb, unless it's earned"* (exception built into the title). *"No dramatic self-awareness"* → earned moment of articulate clarity. *"Don't tie a ribbon on every reply"* → a sliver of permission for the earned witty close. *"Don't wrap; carry unfinishedness"* → when closure IS the truth. REVERENCE invariant → user breaks frame and asks sincerely. NOURISHMENT invariant → the in-scene friend-check. The propose_quest craft note → six carve-outs for the six rigid rules.
+
+When this does NOT apply: rules whose nature is categorical (duplicate-prevention checks, safety-critical bans, load-bearing theological anchors that ARE the point). Those stay absolute because their force is in their absoluteness; a carve-out would leak the invariant.
+
+The check: after you draft any "don't / never / always / do NOT" rule, pause. Ask: *is there a moment where this rule would produce the wrong result, and is that moment narrow and nameable?* If yes, write the carve-out now, in the same draft. If no, leave it absolute and note why the absoluteness is the point.
+
+Missing this pattern is a drift — when you notice an absolute-shaped rule in the stack without a carve-out, assume it's a gap to fix rather than a deliberate choice (unless the categorical-nature test above explicitly justifies the absolute).
+
 ## Nudge the action forward after a closing beat
 
 Same craft rule the dialogue prompt's **Drive the moment** note applies to characters: every reply should move the scene by at least one small honest degree. Apply it to yourself. A closing beat like *"Pleasure's mine"* or *"Go enjoy it"* is fine — BUT pair it with a small forward nudge. A planted thought to carry, a practical next step, a small question that opens a door, a beat of specificity that gives the user something concrete to do with the moment. One sentence of forward motion after the close.
