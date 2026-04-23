@@ -32,7 +32,7 @@ Create a vivid, excellent, surprising in-world experience that uplifts the user 
 
 `reports/` holds reflective, interpretive reads of the project's git history — philosophy/trajectory/taste, not changelogs. Each new report is in dialogue with prior ones (revisits open questions they flagged, tests their predictions against subsequent commits).
 
-Naming: `YYYY-MM-DD-<purpose-slug>.md` (e.g. `2026-04-21-philosophy-trajectory.md`). The slug should name the report's purpose, not genericize it.
+Naming: `YYYY-MM-DD-HHMM-<purpose-slug>.md` (e.g. `2026-04-21-1903-philosophy-trajectory.md`). Time is 24-hour, no separator between hours and minutes — keeps the file list sorted chronologically even when multiple reports land the same day. The slug should name the report's purpose, not genericize it.
 
 A `post-commit` hook (`.githooks/post-commit`, wired via `core.hooksPath`) nudges when **10+ commits and 3+ days** have passed since the newest report. The floor is deliberately low so reports can keep up with active iteration — this project's current mode uses reports as a live retrospective channel, not a quarterly summary. Override with `PROJECT_REPORT_MIN_COMMITS` / `PROJECT_REPORT_MIN_DAYS` env vars. Ad-hoc `/project-report` runs are ALWAYS valid — the floor is a nudge threshold (the minimum rate at which the hook will bug you), not a ceiling (there is no "too often" for reports that genuinely name something new).
 
@@ -245,7 +245,7 @@ worldcli sample-windows --ref <sha> --character <id> --groups-only --limit 20 --
 
 Defaults to `--role assistant` because the assistant turn is where prompt changes show up — but `--role any` is there if you want the user-side too. Defaults to BOTH solo and group surfaces because solo-only sweeps systematically under-represent ensemble-coded characters. Use `--solo-only` / `--groups-only` to scope explicitly.
 
-The discipline that goes with this primitive: **when a sample-windows investigation surfaces something load-bearing for an in-flight build/design decision, write a report and commit it.** Same `reports/YYYY-MM-DD-<purpose-slug>.md` convention as the trajectory reports above; same standing autonomy to commit. The point is to keep findings from dying in conversation context — future investigations can read prior reports the same way they can read prior runs via `runs-search`, and the project's reflective layer accumulates rather than resets.
+The discipline that goes with this primitive: **when a sample-windows investigation surfaces something load-bearing for an in-flight build/design decision, write a report and commit it.** Same `reports/YYYY-MM-DD-HHMM-<purpose-slug>.md` convention as the trajectory reports above; same standing autonomy to commit. The point is to keep findings from dying in conversation context — future investigations can read prior reports the same way they can read prior runs via `runs-search`, and the project's reflective layer accumulates rather than resets.
 
 What qualifies for a report:
 - The finding directly informs a craft choice currently being made (ship/don't ship a tightening pass; soften/sharpen a rule; settle whether two prompt knobs actually stratify).

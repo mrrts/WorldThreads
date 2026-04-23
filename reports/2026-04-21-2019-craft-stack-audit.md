@@ -2,7 +2,7 @@
 
 *Generated 2026-04-21 from a static read of the 3,024-line prompt file. No live generation diffs yet — those are what the eval harness in `scripts/eval/` is for.*
 
-This is the second report in `reports/`. The first (`2026-04-21-philosophy-trajectory.md`) named what the craft stack *is* and how it got that way. This one asks the harder, less-flattering question: **does the craft stack do what you think it does, or does it just feel like it does?**
+This is the second report in `reports/`. The first (`2026-04-21-1903-philosophy-trajectory.md`) named what the craft stack *is* and how it got that way. This one asks the harder, less-flattering question: **does the craft stack do what you think it does, or does it just feel like it does?**
 
 The honest summary up front: the file is in the top decile of prompts I've read. Many of the directives are doing real work, the compile-time invariants are an unusual and load-bearing move, and the file as a whole encodes a coherent theory of LLM failure modes. The flip side is that 39% of the prompt's tokens live in one block (`craft_notes_dialogue`), several directives appear to be load-bearing only to *you*, three different blocks all claim to be "the NORTH STAR INVARIANT," and at least one directive (the SIGNATURE EMOJI frequency clause) is mathematically unenforceable. Below is the breakdown.
 

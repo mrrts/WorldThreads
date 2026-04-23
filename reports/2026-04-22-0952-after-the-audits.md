@@ -1,6 +1,6 @@
 # After the Audits: 30 Hours of the Project Being Changed by Its Own Description
 
-*Generated 2026-04-22 covering 36 commits since `e2cecd9` (the philosophy-trajectory report yesterday). Second report in `reports/`. Read the first three (`2026-04-21-philosophy-trajectory.md`, `-craft-stack-audit.md`, `-mission-audit.md`) for context — this report is in dialogue with their findings.*
+*Generated 2026-04-22 covering 36 commits since `e2cecd9` (the philosophy-trajectory report yesterday). Second report in `reports/`. Read the first three (`2026-04-21-1903-philosophy-trajectory.md`, `-2019-craft-stack-audit.md`, `-2009-mission-audit.md`) for context — this report is in dialogue with their findings.*
 
 ## The shape
 
