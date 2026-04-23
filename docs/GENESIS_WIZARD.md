@@ -30,7 +30,7 @@ Related ceremonies in the app that share this shape: quest acceptance, quest com
 
 ---
 
-## The seven phases
+## The eight phases
 
 The wizard is a finite state machine of named phases. Each phase has required content, required register, and required transitions. Phases must not be skipped, reordered, or collapsed without a documented exception.
 
@@ -105,11 +105,33 @@ The wizard is a finite state machine of named phases. Each phase has required co
 12. `first_glimpse_1` / `first_glimpse_2` (~0.88-0.92) — low-tier illustration per character
 13. `done` (1.0) — world complete
 
-**Transition:** on success → Phase 4. On error → error sub-phase with "Try again" / "Close."
+**Transition:** on success → Phase 4 (define-self). On error → error sub-phase with "Try again" / "Close."
 
-### Phase 4 — Reaching
+### Phase 4 — Define self
 
-**Entry condition:** generation succeeded.
+**Entry condition:** generation succeeded; the world, its two characters, portraits, inventories, and first meanwhile event + illustration all exist.
+
+**Required content:**
+- Title: "And you? Who walks in?" (or close in register; the point is naming the USER's entry into the world just-met).
+- Framing copy: "The world's been dreamt. The people in it are waiting. One small piece left — you, in their eyes."
+- A primary "What do you look like?" textarea — appearance-first, short-and-easy by design.
+- A "Paint me" button that calls `generate_user_avatar_cmd` using the appearance text as description. If a portrait already exists, the button reads "Paint again."
+- Live preview of the generated portrait (or a placeholder tile with a spinner while painting).
+- An advanced section, **collapsed by default**, labeled "More about me (optional)". Expanded, contains: name field, freeform "about you" paragraph, and a facts list (same shape as `UserProfileEditor`).
+- A "Continue" button that saves the profile (whatever state it's in) and advances.
+
+**Forbidden:**
+- Requiring any field. The entire phase must be skippable via Continue without any input — the user is allowed to be unnamed in their own world for now.
+- Showing advanced fields by default. The "short and easy" contract breaks if the modal immediately demands name / description / facts.
+- Blocking advance on portrait generation. A user who doesn't want to paint themselves can Continue with no avatar.
+
+**Data invariant:** by the time this phase exits, the `user_profiles` row for this world_id exists. If the user filled nothing, it's a default `{ display_name: "Me", description: "", facts: [] }`. If they filled the appearance field, `description` carries it. If they also filled the advanced "about you," both are composed into `description` separated by a paragraph break.
+
+**Transition:** on Continue → Phase 5 (reaching).
+
+### Phase 5 — Reaching
+
+**Entry condition:** user clicked Continue in the define-self phase (user profile row for this world now exists).
 
 **Required content:**
 - Title: "What are you reaching for here?" (canonical phrasing, asserted below).
@@ -125,9 +147,9 @@ The wizard is a finite state machine of named phases. Each phase has required co
 - Gating entry on a non-empty answer. Skipping is a legitimate choice.
 - Replacing "What are you reaching for here?" with goal-shaped language ("What's your goal?" / "Set an objective"). Desire over checkbox is the pattern.
 
-**Transition:** on "Offer this as a quest" → Phase 5. On "Skip" → world is entered directly without creating a quest.
+**Transition:** on "Offer this as a quest" → Phase 6. On "Skip" → world is entered directly without creating a quest.
 
-### Phase 5 — Reflecting
+### Phase 6 — Reflecting
 
 **Entry condition:** user clicked "Offer this as a quest."
 
@@ -140,9 +162,9 @@ The wizard is a finite state machine of named phases. Each phase has required co
 - Any UI that suggests the user has submitted something irrevocable. This phase is the model speaking; the user hasn't committed yet.
 - Allowing dismiss during this phase (call is in flight).
 
-**Transition:** on reflection return → Phase 6. On error → back to Phase 4 with the error displayed.
+**Transition:** on reflection return → Phase 7. On error → back to Phase 5 with the error displayed.
 
-### Phase 6 — The Noble Reflection (offering)
+### Phase 7 — The Noble Reflection (offering)
 
 **Entry condition:** reflection LLM call returned.
 
@@ -167,11 +189,11 @@ The wizard is a finite state machine of named phases. Each phase has required co
 - *"To walk the path that opens before you"* — generic poetic phrasing that fits any sentence.
 - *Paragraph-length* — if it's more than two sentences it's a speech, not an offering.
 
-**Transition:** on "I accept" → quest created with title=noble reflection, description=user's original words → Phase 7. On "Let me revise" → Phase 4 with original text preserved.
+**Transition:** on "I accept" → quest created with title=noble reflection, description=user's original words → Phase 8. On "Let me revise" → Phase 5 with original text preserved.
 
-### Phase 7 — Enter
+### Phase 8 — Enter
 
-**Entry condition:** user accepted the offering (or skipped from Phase 4).
+**Entry condition:** user accepted the offering (or skipped from Phase 5).
 
 **Required actions (atomic, in order):**
 1. If an offering was accepted: create a quest row with `origin_kind="user_authored"`, `title = noble reflection`, `description = user's reaching text`.
@@ -198,6 +220,8 @@ After a successful Genesis, the following must all be true:
 - Exactly two new rows in `threads`, one per character.
 - Exactly two new rows in `meanwhile_events` (one per character).
 - Up to two new `illustration`-role rows in `messages` (one per character's solo thread, pointing at the low-tier illustration).
+- Exactly one new row in `user_profiles` for this world_id, carrying whatever the user entered in the define-self phase (or defaults if they skipped — `display_name: "Me"`, empty description, empty facts).
+- Zero or one new `avatar_file` reference on that user_profiles row — present iff the user clicked "Paint me" during define-self.
 - Exactly zero or one new row in `quests` (zero if user skipped; one with `origin_kind="user_authored"` if they accepted the reflection).
 
 Partial failures in optional stages (portrait, illustration, inventory, meanwhile) are logged as warnings but do not fail the overall command. Required rows (world, 2 characters, 2 threads) must never be partial — if any of those fails, the whole command fails.

@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogBody, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Compass, Loader2, Sparkles, X, ChevronDown, ChevronRight } from "lucide-react";
+import { Compass, Loader2, Sparkles, X, ChevronDown, ChevronRight, User, ImagePlus, Plus } from "lucide-react";
 import { listen } from "@tauri-apps/api/event";
 import { Input } from "@/components/ui/input";
 import { api, type GenesisStageEvent, type GenesisResult, type GenesisHints } from "@/lib/tauri";
@@ -27,7 +27,7 @@ interface Props {
   onWorldAccepted: (worldId: string) => void;
 }
 
-type Phase = "keys" | "idle" | "generating" | "error" | "reaching" | "reflecting" | "offering";
+type Phase = "keys" | "idle" | "generating" | "error" | "define_self" | "reaching" | "reflecting" | "offering";
 
 interface CharacterReveal {
   character_id: string;
@@ -71,6 +71,20 @@ export function GenesisModal({ open, onClose, apiKey, googleApiKey, setApiKey, s
   const [result, setResult] = useState<GenesisResult | null>(null);
   const [world, setWorld] = useState<WorldReveal | null>(null);
   const [characters, setCharacters] = useState<CharacterReveal[]>([]);
+  // Define-self phase state. The primary "what do you look like?" is
+  // kept distinct from the advanced "about you" so users who skip the
+  // advanced section still get a clean appearance-only description
+  // driving the avatar generation.
+  const [selfAppearance, setSelfAppearance] = useState("");
+  const [selfName, setSelfName] = useState("");
+  const [selfAbout, setSelfAbout] = useState("");
+  const [selfFacts, setSelfFacts] = useState<string[]>([]);
+  const [selfFactInput, setSelfFactInput] = useState("");
+  const [showAdvancedSelf, setShowAdvancedSelf] = useState(false);
+  const [userAvatarUrl, setUserAvatarUrl] = useState("");
+  const [painting, setPainting] = useState(false);
+  const [selfError, setSelfError] = useState<string | null>(null);
+
   const [reaching, setReaching] = useState("");
   const [nobleOffering, setNobleOffering] = useState("");
   const [committing, setCommitting] = useState(false);
@@ -96,6 +110,15 @@ export function GenesisModal({ open, onClose, apiKey, googleApiKey, setApiKey, s
     setResult(null);
     setWorld(null);
     setCharacters([]);
+    setSelfAppearance("");
+    setSelfName("");
+    setSelfAbout("");
+    setSelfFacts([]);
+    setSelfFactInput("");
+    setShowAdvancedSelf(false);
+    setUserAvatarUrl("");
+    setPainting(false);
+    setSelfError(null);
     setReaching("");
     setNobleOffering("");
     setCommitting(false);
@@ -166,12 +189,88 @@ export function GenesisModal({ open, onClose, apiKey, googleApiKey, setApiKey, s
       const anyHint = !!(hints.tone || hints.time_of_day || hints.weather_key);
       const res = await api.autoGenerateWorldWithCharacters(apiKey, anyHint ? hints : undefined);
       setResult(res);
-      setPhase("reaching");
+      // Ensure a default UserProfile row exists for this world so the
+      // subsequent avatar-generation call has something to update.
+      // Quiet-safe — if profile already exists (shouldn't here, but), upsert
+      // just overwrites with defaults before the user edits them.
+      try {
+        await api.updateUserProfile({
+          world_id: res.world_id,
+          display_name: "Me",
+          description: "",
+          facts: [],
+          avatar_file: "",
+          updated_at: "",
+        });
+      } catch (err) { console.warn("[Genesis] could not seed default user profile:", err); }
+      setPhase("define_self");
     } catch (e: any) {
       setError(String(e));
       setPhase("error");
     } finally {
       if (unlistenRef.current) { unlistenRef.current(); unlistenRef.current = null; }
+    }
+  };
+
+  // Merge the primary appearance field with the optional advanced
+  // "about you" into a single description — the avatar prompt reads
+  // the description field, and a user who only fills the primary
+  // appearance field shouldn't have to also duplicate it into advanced.
+  const composedSelfDescription = () => {
+    const appearance = selfAppearance.trim();
+    const about = selfAbout.trim();
+    if (appearance && about) return `${appearance}\n\n${about}`;
+    return appearance || about;
+  };
+
+  const saveSelfProfile = async (): Promise<void> => {
+    if (!result) return;
+    await api.updateUserProfile({
+      world_id: result.world_id,
+      display_name: selfName.trim() || "Me",
+      description: composedSelfDescription(),
+      facts: selfFacts.filter((f) => f.trim()),
+      avatar_file: "",
+      updated_at: "",
+    });
+  };
+
+  const onPaintSelf = async () => {
+    if (!result || painting) return;
+    if (!selfAppearance.trim()) {
+      setSelfError("Tell me what you look like first, then I'll paint you.");
+      return;
+    }
+    setPainting(true);
+    setSelfError(null);
+    try {
+      await saveSelfProfile();
+      await api.generateUserAvatar(apiKey, result.world_id, {
+        display_name: selfName.trim() || "Me",
+        description: composedSelfDescription(),
+      });
+      // Fetch the freshly-generated data URL so we can render it in-place.
+      const url = await api.getUserAvatar(result.world_id).catch(() => "");
+      setUserAvatarUrl(url || "");
+    } catch (e: any) {
+      setSelfError(String(e));
+    } finally {
+      setPainting(false);
+    }
+  };
+
+  const onContinueFromSelf = async () => {
+    if (!result || committing) return;
+    setCommitting(true);
+    try {
+      // Save whatever the user has entered (safe even if they didn't
+      // click Paint — the profile just has no avatar).
+      await saveSelfProfile();
+      setPhase("reaching");
+    } catch (e: any) {
+      setSelfError(String(e));
+    } finally {
+      setCommitting(false);
     }
   };
 
@@ -532,6 +631,159 @@ export function GenesisModal({ open, onClose, apiKey, googleApiKey, setApiKey, s
             <DialogFooter>
               <Button variant="ghost" onClick={onClose}>Close</Button>
               <Button onClick={startGeneration}>Try again</Button>
+            </DialogFooter>
+          </>
+        )}
+
+        {phase === "define_self" && world && result && (
+          <>
+            <DialogHeader onClose={onContinueFromSelf}>
+              <DialogTitle>
+                <User size={16} className="inline mr-2 text-amber-400" />
+                And you? Who walks in?
+              </DialogTitle>
+            </DialogHeader>
+            <DialogBody className="space-y-4">
+              <p className="text-sm text-foreground/90 leading-relaxed">
+                The world's been dreamt. The people in it are waiting. One small piece left —
+                you, in their eyes. Short and easy; fuller if you want.
+              </p>
+
+              {/* Primary: appearance + paint action */}
+              <div className="rounded-xl border border-amber-400/40 bg-amber-500/5 p-4 space-y-3">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-foreground/90">What do you look like?</label>
+                  <Textarea
+                    autoFocus
+                    className="min-h-[80px]"
+                    value={selfAppearance}
+                    onChange={(e) => { setSelfAppearance(e.target.value); setSelfError(null); }}
+                    placeholder="A sentence or two — a face, a posture, a way of dressing. Plain description works."
+                  />
+                </div>
+
+                <div className="flex items-start gap-4">
+                  {userAvatarUrl ? (
+                    <img
+                      src={userAvatarUrl}
+                      alt=""
+                      className="w-28 h-28 rounded-xl object-cover ring-2 ring-amber-400/40 flex-shrink-0 animate-in fade-in duration-700"
+                    />
+                  ) : (
+                    <div className="w-28 h-28 rounded-xl bg-muted/30 flex items-center justify-center flex-shrink-0 ring-1 ring-border">
+                      {painting ? <Loader2 size={20} className="animate-spin text-amber-400" /> : <User size={26} className="text-muted-foreground/40" />}
+                    </div>
+                  )}
+                  <div className="flex-1 space-y-1.5">
+                    <Button
+                      onClick={onPaintSelf}
+                      disabled={painting || !selfAppearance.trim()}
+                      className="bg-amber-500/90 hover:bg-amber-500 text-black"
+                    >
+                      {painting ? <Loader2 size={14} className="animate-spin mr-1.5" /> : <ImagePlus size={14} className="mr-1.5" />}
+                      {painting ? "Painting you…" : userAvatarUrl ? "Paint again" : "Paint me"}
+                    </Button>
+                    <p className="text-[11px] text-muted-foreground/70 leading-relaxed">
+                      Uses what you wrote above. You can rewrite and repaint as many times as you want.
+                    </p>
+                  </div>
+                </div>
+
+                {selfError && <p className="text-xs text-destructive">{selfError}</p>}
+              </div>
+
+              {/* Advanced (collapsed by default) */}
+              <div>
+                <button
+                  onClick={() => setShowAdvancedSelf((v) => !v)}
+                  className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+                >
+                  {showAdvancedSelf ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
+                  More about me
+                  <span className="text-[10px] text-muted-foreground/60">(optional)</span>
+                </button>
+                {showAdvancedSelf && (
+                  <div className="mt-3 space-y-3 rounded-lg border border-border/50 bg-card/40 p-3">
+                    <div className="space-y-1">
+                      <label className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Your name</label>
+                      <Input
+                        value={selfName}
+                        onChange={(e) => setSelfName(e.target.value)}
+                        placeholder='What characters will call you (default: "Me")'
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Anything else about you</label>
+                      <Textarea
+                        className="min-h-[80px]"
+                        value={selfAbout}
+                        onChange={(e) => setSelfAbout(e.target.value)}
+                        placeholder="Personality, vibe, what matters to you. Gets folded into your portrait and shown to characters."
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Things characters should know</label>
+                      <div className="space-y-1.5">
+                        {selfFacts.map((f, i) => (
+                          <div key={i} className="flex items-center gap-2 group">
+                            <span className="w-1.5 h-1.5 rounded-full bg-primary/40 flex-shrink-0" />
+                            <Input
+                              className="flex-1"
+                              value={f}
+                              onChange={(e) => setSelfFacts(selfFacts.map((v, j) => j === i ? e.target.value : v))}
+                            />
+                            <button
+                              onClick={() => setSelfFacts(selfFacts.filter((_, j) => j !== i))}
+                              className="h-7 w-7 rounded-md flex items-center justify-center text-muted-foreground/50 hover:text-destructive opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                            >
+                              <X size={12} />
+                            </button>
+                          </div>
+                        ))}
+                        <div className="flex items-center gap-2">
+                          <span className="w-1.5 h-1.5 rounded-full bg-border flex-shrink-0" />
+                          <Input
+                            className="flex-1"
+                            value={selfFactInput}
+                            onChange={(e) => setSelfFactInput(e.target.value)}
+                            placeholder="e.g. Lives near the coast. Writes with a fountain pen."
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter" && selfFactInput.trim()) {
+                                e.preventDefault();
+                                setSelfFacts([...selfFacts, selfFactInput.trim()]);
+                                setSelfFactInput("");
+                              }
+                            }}
+                          />
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-9 flex-shrink-0"
+                            disabled={!selfFactInput.trim()}
+                            onClick={() => {
+                              if (!selfFactInput.trim()) return;
+                              setSelfFacts([...selfFacts, selfFactInput.trim()]);
+                              setSelfFactInput("");
+                            }}
+                          >
+                            <Plus size={12} />
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </DialogBody>
+            <DialogFooter>
+              <Button
+                onClick={onContinueFromSelf}
+                disabled={committing}
+                className="bg-amber-500/90 hover:bg-amber-500 text-black"
+              >
+                {committing ? <Loader2 size={14} className="animate-spin mr-1.5" /> : <Compass size={14} className="mr-1.5" />}
+                Continue
+              </Button>
             </DialogFooter>
           </>
         )}
