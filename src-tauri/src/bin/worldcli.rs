@@ -160,6 +160,44 @@ enum Cmd {
         with_context: usize,
     },
 
+    /// Sample messages from before and after a git ref, so prompt
+    /// changes can be evaluated against the corpus as a natural
+    /// experiment. The ref's commit timestamp is the cutoff: most
+    /// recent N messages before, earliest N messages after. When
+    /// `--end-ref` is given, the after-window starts at THAT ref's
+    /// timestamp instead — useful for skipping a noisy in-between
+    /// range when a series of commits A..B together form the change.
+    SampleWindows {
+        /// Git ref (sha, tag, branch) marking the boundary commit.
+        #[arg(long = "ref")]
+        git_ref: String,
+        /// Optional second ref. After-window starts here instead of at `--ref`.
+        #[arg(long)]
+        end_ref: Option<String>,
+        /// Messages per window (most recent N before; earliest N after).
+        #[arg(long, default_value_t = 30)]
+        limit: i64,
+        /// Restrict to a single character (matches solo thread owner OR group sender).
+        #[arg(long)]
+        character: Option<String>,
+        /// Restrict to a single world (otherwise: all worlds in scope).
+        #[arg(long)]
+        world: Option<String>,
+        /// Role filter. Default 'assistant' (the surface most affected by
+        /// prompt changes). Use 'any' for no filter, or 'user' / 'narrative' / etc.
+        #[arg(long, default_value = "assistant")]
+        role: String,
+        /// Exclude group-chat messages (only sample solo threads).
+        #[arg(long, conflicts_with = "groups_only")]
+        solo_only: bool,
+        /// Exclude solo-thread messages (only sample group chats).
+        #[arg(long)]
+        groups_only: bool,
+        /// Path to git repo for ref resolution. Defaults to current working dir.
+        #[arg(long)]
+        repo: Option<PathBuf>,
+    },
+
     // ── ask path (the load-bearing one) ──
     /// Ask a character a single message. Cost-gated; logs to runs/.
     Ask {
@@ -609,6 +647,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         Cmd::GroupMessages { group_chat_id, limit, grep, before, after, with_context } => {
             cmd_group_messages(&r, &group_chat_id, limit, grep.as_deref(), before.as_deref(), after.as_deref(), with_context)
         }
+        Cmd::SampleWindows { git_ref, end_ref, limit, character, world, role, solo_only, groups_only, repo } => {
+            cmd_sample_windows(&r, &git_ref, end_ref.as_deref(), limit, character.as_deref(), world.as_deref(), &role, solo_only, groups_only, repo.as_deref())
+        }
         Cmd::Ask { character_id, message, session, model, confirm_cost, question_summary } => {
             let api_key = match resolve_api_key(cli.api_key.as_deref()) {
                 Some(k) => k,
@@ -987,6 +1028,281 @@ fn cmd_group_messages(
         })
     }).collect();
     emit(r.json, JsonValue::Array(out));
+    Ok(())
+}
+
+// ─── Sample-windows (natural-experiment evaluation) ─────────────────────
+
+/// Resolve a git ref to (full_sha, committer_iso_date, subject) by
+/// shelling out to `git log -1`. The repo path defaults to cwd when
+/// `repo` is None, since the user typically runs worldcli from the
+/// project root. Surfaces git's stderr verbatim on failure so the
+/// caller can see why the ref didn't resolve.
+fn git_resolve_ref(
+    repo: Option<&std::path::Path>,
+    git_ref: &str,
+) -> Result<(String, String, String), CliError> {
+    let mut cmd = std::process::Command::new("git");
+    if let Some(p) = repo {
+        cmd.args(["-C", &p.display().to_string()]);
+    }
+    cmd.args(["log", "-1", "--format=%H%x09%cI%x09%s", git_ref]);
+    let out = cmd.output().map_err(|e| {
+        CliError::Other(format!("git invocation failed: {} (is git on PATH?)", e))
+    })?;
+    if !out.status.success() {
+        let err = String::from_utf8_lossy(&out.stderr).trim().to_string();
+        return Err(CliError::Other(format!(
+            "git ref '{}' did not resolve: {}",
+            git_ref, err
+        )));
+    }
+    let line = String::from_utf8_lossy(&out.stdout).trim().to_string();
+    let parts: Vec<&str> = line.splitn(3, '\t').collect();
+    if parts.len() < 3 {
+        return Err(CliError::Other(format!(
+            "git log returned unexpected format for '{}': {}",
+            git_ref, line
+        )));
+    }
+    Ok((parts[0].to_string(), parts[1].to_string(), parts[2].to_string()))
+}
+
+/// Quote-strip user-controlled fragments before they hit a SQL string-build.
+/// IDs in this DB are UUIDs; we still strip apostrophes as belt-and-suspenders.
+fn sql_safe_id(s: &str) -> String { s.replace('\'', "") }
+
+fn cmd_sample_windows(
+    r: &Resolved,
+    git_ref: &str,
+    end_ref: Option<&str>,
+    limit: i64,
+    character: Option<&str>,
+    world: Option<&str>,
+    role: &str,
+    solo_only: bool,
+    groups_only: bool,
+    repo: Option<&std::path::Path>,
+) -> Result<(), Box<dyn std::error::Error>> {
+    // Resolve refs first; cheaper to fail before opening any cursors.
+    let (before_sha, before_ts, before_subject) = git_resolve_ref(repo, git_ref)?;
+    let (after_sha, after_ts, after_subject) = match end_ref {
+        Some(er) => git_resolve_ref(repo, er)?,
+        None => (before_sha.clone(), before_ts.clone(), before_subject.clone()),
+    };
+
+    // Character scope-check first — it acquires its own lock, so we do it
+    // before grabbing the long-held one for the sampling queries.
+    if let Some(c) = character {
+        let _ = r.check_character(c)?;
+    }
+
+    let conn = r.db.conn.lock().unwrap();
+
+    // World scope
+    let world_ids: Vec<String> = match world {
+        Some(w) => { r.check_world(w)?; vec![w.to_string()] }
+        None => list_worlds(&conn)?
+            .into_iter()
+            .filter(|w| r.world_in_scope(&w.world_id))
+            .map(|w| w.world_id)
+            .collect(),
+    };
+    if world_ids.is_empty() {
+        return Err(Box::new(CliError::Other(
+            "No worlds in scope. Add to ~/.worldcli/config.json or pass --scope full.".to_string(),
+        )));
+    }
+
+    // Build a sender-id → display_name lookup across all in-scope worlds
+    let mut id_to_name = std::collections::HashMap::new();
+    for wid in &world_ids {
+        for c in list_characters(&conn, wid).unwrap_or_default() {
+            id_to_name.insert(c.character_id, c.display_name);
+        }
+    }
+
+    // SQL fragments. UUIDs from the db are interpolated; the user-supplied
+    // character_id passes through sql_safe_id and is also UUID-shaped.
+    let world_in_clause = format!(
+        "({})",
+        world_ids.iter().map(|w| format!("'{}'", sql_safe_id(w))).collect::<Vec<_>>().join(",")
+    );
+    let role_clause = if role == "any" {
+        String::new()
+    } else {
+        format!("AND m.role = '{}'", role.replace('\'', ""))
+    };
+    let exclude_noise = "AND m.role NOT IN ('illustration', 'video', 'inventory_update', 'imagined_chapter', 'narrative', 'system')";
+    let solo_char_clause = match character {
+        Some(c) => format!("AND t.character_id = '{}'", sql_safe_id(c)),
+        None => String::new(),
+    };
+    let group_sender_clause = match character {
+        Some(c) => format!("AND m.sender_character_id = '{}'", sql_safe_id(c)),
+        None => String::new(),
+    };
+
+    // ─── Pull a window: solo + group, merge, sort, truncate to `limit` ───
+    let pull_window = |cutoff_ts: &str, direction: &str| -> Result<Vec<JsonValue>, rusqlite::Error> {
+        // direction: "before" → m.created_at < cutoff, ORDER DESC
+        //            "after"  → m.created_at >= cutoff, ORDER ASC
+        let (op, order) = if direction == "before" { ("<", "DESC") } else { (">=", "ASC") };
+        let mut out: Vec<JsonValue> = Vec::new();
+
+        if !groups_only {
+            let q = format!(
+                "SELECT m.message_id, m.thread_id, m.role, m.content, \
+                        m.sender_character_id, m.created_at, m.world_day, m.world_time, \
+                        t.character_id, t.world_id \
+                 FROM messages m JOIN threads t ON t.thread_id = m.thread_id \
+                 WHERE t.world_id IN {worlds} AND t.character_id IS NOT NULL \
+                 AND m.created_at {op} ?1 {role_c} {noise} {char_c} \
+                 ORDER BY m.created_at {order} LIMIT ?2",
+                worlds = world_in_clause,
+                op = op,
+                order = order,
+                role_c = role_clause,
+                noise = exclude_noise,
+                char_c = solo_char_clause,
+            );
+            let mut stmt = conn.prepare(&q)?;
+            let rows = stmt.query_map(params![cutoff_ts, limit], |row| {
+                Ok((
+                    row.get::<_, String>(0)?, row.get::<_, String>(1)?, row.get::<_, String>(2)?,
+                    row.get::<_, String>(3)?, row.get::<_, Option<String>>(4)?,
+                    row.get::<_, String>(5)?, row.get::<_, Option<i64>>(6)?,
+                    row.get::<_, Option<String>>(7)?, row.get::<_, Option<String>>(8)?,
+                    row.get::<_, String>(9)?,
+                ))
+            })?;
+            for row in rows.flatten() {
+                let (mid, tid, role_s, content, sender, ts, day, time, thread_char, wid) = row;
+                let sender_name = sender.as_ref().and_then(|id| id_to_name.get(id)).cloned()
+                    .or_else(|| thread_char.as_ref().and_then(|id| id_to_name.get(id)).cloned())
+                    .unwrap_or_else(|| match role_s.as_str() {
+                        "user" => "USER".to_string(),
+                        other => other.to_uppercase(),
+                    });
+                out.push(json!({
+                    "surface": "solo",
+                    "message_id": mid,
+                    "thread_id": tid,
+                    "world_id": wid,
+                    "thread_character_id": thread_char,
+                    "role": role_s,
+                    "sender_character_id": sender,
+                    "sender_name": sender_name,
+                    "created_at": ts,
+                    "world_day": day,
+                    "world_time": time,
+                    "content": content,
+                }));
+            }
+        }
+
+        if !solo_only {
+            let q = format!(
+                "SELECT m.message_id, m.thread_id, m.role, m.content, \
+                        m.sender_character_id, m.created_at, m.world_day, m.world_time, \
+                        gc.group_chat_id, gc.world_id, gc.display_name \
+                 FROM group_messages m JOIN group_chats gc ON gc.thread_id = m.thread_id \
+                 WHERE gc.world_id IN {worlds} \
+                 AND m.created_at {op} ?1 {role_c} {noise} {char_c} \
+                 ORDER BY m.created_at {order} LIMIT ?2",
+                worlds = world_in_clause,
+                op = op,
+                order = order,
+                role_c = role_clause,
+                noise = exclude_noise,
+                char_c = group_sender_clause,
+            );
+            let mut stmt = conn.prepare(&q)?;
+            let rows = stmt.query_map(params![cutoff_ts, limit], |row| {
+                Ok((
+                    row.get::<_, String>(0)?, row.get::<_, String>(1)?, row.get::<_, String>(2)?,
+                    row.get::<_, String>(3)?, row.get::<_, Option<String>>(4)?,
+                    row.get::<_, String>(5)?, row.get::<_, Option<i64>>(6)?,
+                    row.get::<_, Option<String>>(7)?, row.get::<_, String>(8)?,
+                    row.get::<_, String>(9)?, row.get::<_, String>(10)?,
+                ))
+            })?;
+            for row in rows.flatten() {
+                let (mid, tid, role_s, content, sender, ts, day, time, gcid, wid, gcname) = row;
+                let sender_name = sender.as_ref().and_then(|id| id_to_name.get(id)).cloned()
+                    .unwrap_or_else(|| match role_s.as_str() {
+                        "user" => "USER".to_string(),
+                        other => other.to_uppercase(),
+                    });
+                out.push(json!({
+                    "surface": "group",
+                    "message_id": mid,
+                    "thread_id": tid,
+                    "world_id": wid,
+                    "group_chat_id": gcid,
+                    "group_chat_display_name": gcname,
+                    "role": role_s,
+                    "sender_character_id": sender,
+                    "sender_name": sender_name,
+                    "created_at": ts,
+                    "world_day": day,
+                    "world_time": time,
+                    "content": content,
+                }));
+            }
+        }
+
+        // Merge solo+group: re-sort by direction, truncate to limit
+        if direction == "before" {
+            out.sort_by(|a, b| b["created_at"].as_str().unwrap_or("")
+                .cmp(a["created_at"].as_str().unwrap_or("")));
+        } else {
+            out.sort_by(|a, b| a["created_at"].as_str().unwrap_or("")
+                .cmp(b["created_at"].as_str().unwrap_or("")));
+        }
+        out.truncate(limit as usize);
+        // Always emit chronological asc for readability
+        out.sort_by(|a, b| a["created_at"].as_str().unwrap_or("")
+            .cmp(b["created_at"].as_str().unwrap_or("")));
+        Ok(out)
+    };
+
+    let before_msgs = pull_window(&before_ts, "before")?;
+    let after_msgs  = pull_window(&after_ts,  "after")?;
+
+    let envelope = json!({
+        "ref": git_ref,
+        "ref_resolved": before_sha,
+        "ref_timestamp": before_ts,
+        "ref_subject": before_subject,
+        "end_ref": end_ref,
+        "end_ref_resolved": end_ref.map(|_| after_sha),
+        "end_ref_timestamp": end_ref.map(|_| after_ts.clone()),
+        "end_ref_subject": end_ref.map(|_| after_subject),
+        "filters": {
+            "world_id": world,
+            "character_id": character,
+            "role": role,
+            "include_solo": !groups_only,
+            "include_groups": !solo_only,
+            "world_ids_in_scope": world_ids,
+        },
+        "before": {
+            "window_size_target": limit,
+            "actual_count": before_msgs.len(),
+            "earliest": before_msgs.first().and_then(|m| m["created_at"].as_str()),
+            "latest":   before_msgs.last().and_then(|m| m["created_at"].as_str()),
+            "messages": before_msgs,
+        },
+        "after": {
+            "window_size_target": limit,
+            "actual_count": after_msgs.len(),
+            "earliest": after_msgs.first().and_then(|m| m["created_at"].as_str()),
+            "latest":   after_msgs.last().and_then(|m| m["created_at"].as_str()),
+            "messages": after_msgs,
+        },
+    });
+    emit(r.json, envelope);
     Ok(())
 }
 
