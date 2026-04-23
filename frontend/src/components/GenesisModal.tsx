@@ -51,10 +51,12 @@ interface WorldReveal {
 /// spent the wait meeting the place rather than staring at a spinner.
 ///
 /// On completion the modal pivots to a commitment-ceremony phase —
-/// "what are you reaching for here?" — the same question
-/// QuestAcceptanceDialog uses. The answer is saved as the world's
-/// first user-authored quest, turning a model-generated world into a
-/// chosen home.
+/// "What do you want to build while you're here?" — agency-shaped,
+/// builder-shaped (deliberately distinct from QuestAcceptanceDialog's
+/// yearning-shaped "what are you reaching for here?"; the asymmetry
+/// matches the asymmetry between accepting a pursuit and authoring
+/// a place). The answer is saved as the world's first user-authored
+/// quest, turning a model-generated world into a chosen home.
 export function GenesisModal({ open, onClose, apiKey, googleApiKey, setApiKey, setGoogleApiKey, onWorldAccepted }: Props) {
   // If no OpenAI key is stored, start in the keys phase — the user
   // must provide one before they can dream a world. Google key is
@@ -303,7 +305,7 @@ export function GenesisModal({ open, onClose, apiKey, googleApiKey, setApiKey, s
       // them back).
       await api.createQuest(
         result.world_id,
-        nobleOffering.trim() || "What I'm reaching for here",
+        nobleOffering.trim() || "What I want to build while I'm here",
         reaching.trim(),
         "user_authored",
         undefined,
@@ -793,7 +795,7 @@ export function GenesisModal({ open, onClose, apiKey, googleApiKey, setApiKey, s
             <DialogHeader onClose={onSkip}>
               <DialogTitle>
                 <Compass size={16} className="inline mr-2 text-amber-400" />
-                What are you reaching for here?
+                What do you want to build while you're here?
               </DialogTitle>
             </DialogHeader>
             <DialogBody className="space-y-4">
@@ -817,10 +819,10 @@ export function GenesisModal({ open, onClose, apiKey, googleApiKey, setApiKey, s
               </div>
 
               <p className="text-sm text-foreground/90 leading-relaxed">
-                Before you step in: one honest sentence about what pulls you toward this place.
+                Before you step in: one honest sentence about what you want to build, do, or make happen here.
               </p>
               <p className="text-xs text-muted-foreground italic leading-relaxed">
-                Not a goal — a desire. Whatever you write becomes the first quest in this world,
+                Not a goal — a project worth your attention. Whatever you write becomes the first quest in this world,
                 waiting there for you. You can skip if nothing's ready to say yet.
               </p>
               <Textarea

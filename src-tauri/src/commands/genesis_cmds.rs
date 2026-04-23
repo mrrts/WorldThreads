@@ -867,13 +867,13 @@ const _: () = {
     );
 };
 
-/// Reflect the user's "what are you reaching for here?" answer back to
-/// them as a noble offering — the quest named as a real pursuit, in
-/// the spirit of a king's commission but NOT in medieval register. One
-/// or two sentences, contemporary prose, weighted and specific, phrased
-/// as a THING TO BE DONE rather than a feeling to be had. The user then
-/// accepts the offering (or rewrites) before it becomes their world's
-/// first quest.
+/// Reflect the user's "what do you want to build while you're here?"
+/// answer back to them as a noble offering — the quest named as a
+/// real pursuit, in the spirit of a king's commission but NOT in
+/// medieval register. One or two sentences, contemporary prose,
+/// weighted and specific, phrased as a THING TO BE DONE rather than
+/// a feeling to be had. The user then accepts the offering (or
+/// rewrites) before it becomes their world's first quest.
 #[tauri::command]
 pub async fn reflect_reaching_as_noble_quest_cmd(
     db: State<'_, Database>,
@@ -893,7 +893,7 @@ pub async fn reflect_reaching_as_noble_quest_cmd(
     };
 
     let user = format!(
-        "World: {} — {}\n\nWhat the user wrote when asked 'what are you reaching for here?':\n\n\"{}\"\n\nReflect it back as a noble offering.",
+        "World: {} — {}\n\nWhat the user wrote when asked 'What do you want to build while you're here?':\n\n\"{}\"\n\nReflect it back as a noble offering.",
         world.name,
         world.description.lines().next().unwrap_or(&world.description).chars().take(240).collect::<String>(),
         reaching_text,

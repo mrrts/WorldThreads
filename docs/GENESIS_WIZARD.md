@@ -134,10 +134,10 @@ The wizard is a finite state machine of named phases. Each phase has required co
 **Entry condition:** user clicked Continue in the define-self phase (user profile row for this world now exists).
 
 **Required content:**
-- Title: "What are you reaching for here?" (canonical phrasing, asserted below).
+- Title: "What do you want to build while you're here?" (canonical phrasing). Builder-shaped, agency-shaped — deliberately asymmetric with QuestAcceptanceDialog's yearning-shaped "What are you reaching for here?". The asymmetry matches the asymmetry between accepting a pursuit and authoring a place.
 - The world card (image + name + character names) stays visible — the user is looking at the place they're about to commit to.
-- Framing copy: "Before you step in: one honest sentence about what pulls you toward this place."
-- Register callout: "Not a goal — a desire. Whatever you write becomes the first quest in this world."
+- Framing copy: "Before you step in: one honest sentence about what you want to build, do, or make happen here."
+- Register callout: "Not a goal — a project worth your attention. Whatever you write becomes the first quest in this world."
 - Permission to skip: "You can skip if nothing's ready to say yet."
 - A textarea with guiding placeholder copy.
 - A primary "Offer this as a quest" button (disabled while the textarea is empty).
@@ -145,7 +145,7 @@ The wizard is a finite state machine of named phases. Each phase has required co
 
 **Forbidden:**
 - Gating entry on a non-empty answer. Skipping is a legitimate choice.
-- Replacing "What are you reaching for here?" with goal-shaped language ("What's your goal?" / "Set an objective"). Desire over checkbox is the pattern.
+- Replacing "What do you want to build while you're here?" with goal-shaped or checkbox language ("What's your goal?" / "Set an objective" / "Track this"). Builder-as-chooser, not builder-as-task-clearer.
 
 **Transition:** on "Offer this as a quest" → Phase 6. On "Skip" → world is entered directly without creating a quest.
 
