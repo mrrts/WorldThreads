@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Sparkles, ScrollText, ImageOff } from "lucide-react";
 import { type Message, api } from "@/lib/tauri";
 
@@ -28,9 +28,6 @@ export function ImaginedChapterMessage({ message, onOpen }: Props) {
 
   const [imageUrl, setImageUrl] = useState<string>("");
   const [imageFailed, setImageFailed] = useState(false);
-  // Guard against setState after unmount when the async fetch resolves late.
-  const aliveRef = useRef(true);
-  useEffect(() => () => { aliveRef.current = false; }, []);
 
   useEffect(() => {
     if (!parsed?.chapter_id || !parsed.image_id) {
@@ -40,9 +37,27 @@ export function ImaginedChapterMessage({ message, onOpen }: Props) {
     }
     setImageUrl("");
     setImageFailed(false);
+    // Local-variable cleanup pattern (StrictMode-safe). The previous
+    // aliveRef pattern broke under React 18 StrictMode's double-invoke:
+    // the cleanup set aliveRef.current = false, but the remount never
+    // reset it to true (useRef only initializes once), so every async
+    // resolution found `!alive` and silently dropped its setImageUrl
+    // call. Result was infinite loading even though the backend was
+    // returning correct data.
+    let alive = true;
     api.getImaginedChapterImageUrl(parsed.chapter_id)
-      .then((url) => { if (aliveRef.current) setImageUrl(url); })
-      .catch(() => { if (aliveRef.current) setImageFailed(true); });
+      .then((url) => {
+        if (!alive) return;
+        // Backend returns "" for "image not available" (chapter has no
+        // image_id on record, the world_images row is missing, or the
+        // file is missing on disk). Treat that as failed rather than
+        // still-loading — otherwise the card pulses forever instead of
+        // falling through to the ImageOff fallback.
+        if (url) setImageUrl(url);
+        else setImageFailed(true);
+      })
+      .catch(() => { if (alive) setImageFailed(true); });
+    return () => { alive = false; };
   }, [parsed?.chapter_id, parsed?.image_id]);
 
   if (!parsed) {
