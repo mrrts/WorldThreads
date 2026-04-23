@@ -205,7 +205,30 @@ struct GenesisOutput {
 
 // ── The prompt ─────────────────────────────────────────────────────────────
 
-fn build_genesis_prompt(setting: &str, mood: &str, hook: &str) -> (String, String) {
+fn build_genesis_prompt(setting: &str, mood: &str, hook: &str, hints: &GenesisHints) -> (String, String) {
+    // When the user has set explicit hints in the wizard, inject them
+    // as directives that OVERRIDE the random seed's choices. Empty-hint
+    // fields leave the LLM free to pick.
+    let hints_block = {
+        let mut parts: Vec<String> = Vec::new();
+        if let Some(t) = hints.tone.as_deref().map(str::trim).filter(|s| !s.is_empty()) {
+            parts.push(format!("- **Tone override:** the user has specified the tone — \"{t}\". Honor this register over the random mood cue above. Let this shape the world's flavor and the characters' voices."));
+        }
+        if let Some(tod) = hints.time_of_day.as_deref().map(str::trim).filter(|s| !s.is_empty()) {
+            parts.push(format!("- **Time of day override:** output `initial_time_of_day` as exactly \"{tod}\" (one of: morning / midday / afternoon / evening / late night). The user wants to enter the scene at that time."));
+        }
+        if let Some(w) = hints.weather_key.as_deref().map(str::trim).filter(|s| !s.is_empty()) {
+            parts.push(format!("- **Weather override:** output `weather_key` as exactly \"{w}\". The user specifically wants this weather on entry; the world's description and the characters' current state should fit it."));
+        }
+        if parts.is_empty() {
+            String::new()
+        } else {
+            format!(
+                "\n\n**USER-SPECIFIED OVERRIDES — honor these verbatim:**\n{}\n\nAll other choices (setting specifics, names, invariants, the hook) remain yours. The overrides narrow the world's atmosphere; they don't constrain its substance.",
+                parts.join("\n"),
+            )
+        }
+    };
     let system = format!(
         r###"You are a world-builder helping a user step into a new fictional world they can inhabit with AI-rendered characters. Your job: invent ONE specific world and TWO specific characters who live there, such that the user could open a chat with either of them tomorrow and the scene would already be alive.
 
@@ -221,7 +244,7 @@ You are writing the CONTENT of the world, not the app's machinery. Don't use app
 The setting seed you've been given:
 **Place:** {setting}
 **Mood register:** {mood}
-**Dramatic undercurrent:** {hook}
+**Dramatic undercurrent:** {hook}{hints_block}
 
 Take these as PROMPTS, not rails. Expand freely. The hook does not need to be the overt topic — it can be ambient, a thing the reader feels rather than reads about. Specificity wins over scope; a small exact world beats a sprawling vague one.
 
@@ -280,6 +303,7 @@ Return ONLY valid JSON matching this exact shape:
         setting = setting,
         mood = mood,
         hook = hook,
+        hints_block = hints_block,
     );
     let user = "Generate the world and the two characters. Specificity, particularity, warmth, surprise. JSON only.".to_string();
     (system, user)
@@ -295,23 +319,43 @@ pub struct GenesisResult {
 
 // ── The command ────────────────────────────────────────────────────────────
 
+/// Optional pre-generation hints the user can set in the wizard to
+/// steer the world without giving up the dream-it-for-me surprise.
+/// Any field left None is decided by the LLM based on the random seed.
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct GenesisHints {
+    #[serde(default)]
+    pub tone: Option<String>,
+    /// One of "morning" / "midday" / "afternoon" / "evening" / "late night"
+    #[serde(default)]
+    pub time_of_day: Option<String>,
+    /// Weather id from WEATHER_OPTIONS (e.g. "steady_rain", "frost_overnight").
+    #[serde(default)]
+    pub weather_key: Option<String>,
+}
+
 #[tauri::command]
 pub async fn auto_generate_world_with_characters_cmd(
     db: State<'_, Database>,
     portraits_dir: State<'_, PortraitsDir>,
     app_handle: AppHandle,
     api_key: String,
+    hints: Option<GenesisHints>,
 ) -> Result<GenesisResult, String> {
+    let hints = hints.unwrap_or_default();
     if api_key.trim().is_empty() {
         return Err("no API key configured".to_string());
     }
 
     // ── Stage 1: sample seeds + LLM call ─────────────────────────────
     let (setting, mood, hook) = pick_seed();
-    log::info!("[Genesis] seed → place={setting} · mood={mood} · hook={hook}");
+    log::info!(
+        "[Genesis] seed → place={setting} · mood={mood} · hook={hook} · hints={}",
+        serde_json::to_string(&hints).unwrap_or_default(),
+    );
     emit_stage(&app_handle, "dreaming", "Sketching the shape of a world…", 0.05);
 
-    let (system, user) = build_genesis_prompt(&setting, &mood, &hook);
+    let (system, user) = build_genesis_prompt(&setting, &mood, &hook, &hints);
     let model_config = {
         let conn = db.conn.lock().map_err(|e| e.to_string())?;
         orchestrator::load_model_config(&conn)
@@ -356,8 +400,20 @@ pub async fn auto_generate_world_with_characters_cmd(
     );
     let world_id = uuid::Uuid::new_v4().to_string();
     let now = Utc::now().to_rfc3339();
-    let tod_upper = parsed.world.initial_time_of_day.as_deref().unwrap_or("MORNING").to_uppercase();
-    let weather_key = parsed.world.weather_key.as_deref().unwrap_or("clear").to_string();
+    // Hints win over LLM output for the two hint-able state fields;
+    // the LLM may have honored them anyway but this is belt-and-suspenders.
+    let tod_upper = hints.time_of_day.as_deref()
+        .map(str::trim)
+        .filter(|s| !s.is_empty())
+        .or(parsed.world.initial_time_of_day.as_deref())
+        .unwrap_or("MORNING")
+        .to_uppercase();
+    let weather_key = hints.weather_key.as_deref()
+        .map(str::trim)
+        .filter(|s| !s.is_empty())
+        .or(parsed.world.weather_key.as_deref())
+        .unwrap_or("sunny_clear")
+        .to_string();
     let state = json!({
         "time": { "day_index": 1, "time_of_day": tod_upper },
         "global_arcs": [],

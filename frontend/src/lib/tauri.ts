@@ -875,8 +875,8 @@ export const api = {
   // Genesis — auto-generate a full starter world + 2 characters with
   // hi-def portraits, world image, inventories, and all data populated.
   // Streams `genesis-stage` events for progress.
-  autoGenerateWorldWithCharacters: (apiKey: string) =>
-    invoke<GenesisResult>("auto_generate_world_with_characters_cmd", { apiKey }),
+  autoGenerateWorldWithCharacters: (apiKey: string, hints?: GenesisHints) =>
+    invoke<GenesisResult>("auto_generate_world_with_characters_cmd", { apiKey, hints: hints ?? null }),
 
   // Quests
   createQuest: (worldId: string, title: string, description: string, originKind?: "user_authored" | "message" | "meanwhile" | "backstage", originRef?: string) =>
@@ -902,6 +902,15 @@ export const api = {
 export interface GenesisResult {
   world_id: string;
   character_ids: string[];
+}
+
+export interface GenesisHints {
+  /** Freeform tone description. Empty / omitted → LLM picks from its mood seed. */
+  tone?: string | null;
+  /** One of "morning" | "midday" | "afternoon" | "evening" | "late night". */
+  time_of_day?: string | null;
+  /** Weather id from WEATHER_OPTIONS. */
+  weather_key?: string | null;
 }
 
 export type GenesisReveal =

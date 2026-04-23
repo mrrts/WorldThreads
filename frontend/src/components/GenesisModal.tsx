@@ -2,9 +2,20 @@ import { useState, useEffect, useRef } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogBody, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Compass, Loader2, Sparkles, X } from "lucide-react";
+import { Compass, Loader2, Sparkles, X, ChevronDown, ChevronRight } from "lucide-react";
 import { listen } from "@tauri-apps/api/event";
-import { api, type GenesisStageEvent, type GenesisResult } from "@/lib/tauri";
+import { Input } from "@/components/ui/input";
+import { api, type GenesisStageEvent, type GenesisResult, type GenesisHints } from "@/lib/tauri";
+import { WEATHER_OPTIONS } from "@/lib/weather";
+
+const TIME_OF_DAY_OPTIONS: Array<{ id: string; label: string }> = [
+  { id: "",            label: "Any (let the world decide)" },
+  { id: "morning",     label: "Morning" },
+  { id: "midday",      label: "Midday" },
+  { id: "afternoon",   label: "Afternoon" },
+  { id: "evening",     label: "Evening" },
+  { id: "late night",  label: "Late night" },
+];
 
 interface Props {
   open: boolean;
@@ -54,6 +65,12 @@ export function GenesisModal({ open, onClose, apiKey, onWorldAccepted }: Props) 
   const [committing, setCommitting] = useState(false);
   const unlistenRef = useRef<(() => void) | null>(null);
 
+  // Pre-gen hint controls (optional, collapsed by default).
+  const [showHints, setShowHints] = useState(false);
+  const [toneHint, setToneHint] = useState("");
+  const [timeHint, setTimeHint] = useState("");
+  const [weatherHint, setWeatherHint] = useState("");
+
   useEffect(() => {
     if (!open) return;
     setPhase("idle");
@@ -66,6 +83,10 @@ export function GenesisModal({ open, onClose, apiKey, onWorldAccepted }: Props) 
     setCharacters([]);
     setReaching("");
     setCommitting(false);
+    setShowHints(false);
+    setToneHint("");
+    setTimeHint("");
+    setWeatherHint("");
   }, [open]);
 
   useEffect(() => () => {
@@ -121,7 +142,13 @@ export function GenesisModal({ open, onClose, apiKey, onWorldAccepted }: Props) 
     unlistenRef.current = unlisten;
 
     try {
-      const res = await api.autoGenerateWorldWithCharacters(apiKey);
+      const hints: GenesisHints = {
+        tone: toneHint.trim() || null,
+        time_of_day: timeHint.trim() || null,
+        weather_key: weatherHint.trim() || null,
+      };
+      const anyHint = !!(hints.tone || hints.time_of_day || hints.weather_key);
+      const res = await api.autoGenerateWorldWithCharacters(apiKey, anyHint ? hints : undefined);
       setResult(res);
       setPhase("reaching");
     } catch (e: any) {
@@ -184,6 +211,62 @@ export function GenesisModal({ open, onClose, apiKey, onWorldAccepted }: Props) 
                   deeply fun. You can keep it or discard it and try another. You can edit
                   anything afterward.
                 </p>
+              </div>
+              {/* Optional, collapsed by default. Users who just want a
+                  surprise skip this entirely; users who have a specific
+                  vibe in mind can steer without losing randomness on
+                  everything else. */}
+              <div>
+                <button
+                  onClick={() => setShowHints((v) => !v)}
+                  className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+                >
+                  {showHints ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
+                  Set tone, time of day, or weather
+                  <span className="text-[10px] text-muted-foreground/60">(optional)</span>
+                </button>
+                {showHints && (
+                  <div className="mt-3 space-y-3 rounded-lg border border-border/50 bg-card/40 p-3">
+                    <div className="space-y-1">
+                      <label className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Tone</label>
+                      <Input
+                        value={toneHint}
+                        onChange={(e) => setToneHint(e.target.value)}
+                        placeholder='e.g. "melancholy winter" or "warm and musical"'
+                      />
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-1">
+                        <label className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Time of day</label>
+                        <select
+                          value={timeHint}
+                          onChange={(e) => setTimeHint(e.target.value)}
+                          className="w-full h-9 px-3 rounded-md border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                        >
+                          {TIME_OF_DAY_OPTIONS.map((o) => (
+                            <option key={o.id} value={o.id}>{o.label}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Weather</label>
+                        <select
+                          value={weatherHint}
+                          onChange={(e) => setWeatherHint(e.target.value)}
+                          className="w-full h-9 px-3 rounded-md border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                        >
+                          <option value="">Any (let the world decide)</option>
+                          {WEATHER_OPTIONS.map((w) => (
+                            <option key={w.id} value={w.id}>{w.emoji} {w.label}</option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+                    <p className="text-[10px] text-muted-foreground/60 italic">
+                      Anything you leave as "Any" stays a surprise.
+                    </p>
+                  </div>
+                )}
               </div>
               <p className="text-xs text-muted-foreground/70">
                 Uses your OpenAI key. Takes 30-90 seconds.
