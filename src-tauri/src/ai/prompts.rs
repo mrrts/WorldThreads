@@ -2254,9 +2254,9 @@ fn build_group_dialogue_system_prompt(
 /// Auto returns None (no constraint when the user opted out of it).
 fn end_of_prompt_length_seal(length: &str) -> Option<String> {
     match length {
-        "Short" => Some("⚠️ FINAL LENGTH CHECK — SHORT MODE. The user picked this. 1–2 sentences. Never 3. If your draft is longer, cut it. This rule overrides every other instinct, every craft note, every previous-message-length cue. Honor the user's setting.".to_string()),
-        "Medium" => Some("⚠️ FINAL LENGTH CHECK — MEDIUM MODE. The user picked this. 3–4 sentences. Maximum 5. If your draft is longer, cut it. This rule overrides every other instinct, every craft note, every previous-message-length cue. Honor the user's setting.".to_string()),
-        "Long" => Some("⚠️ FINAL LENGTH CHECK — LONG MODE. The user picked this. 5–10 sentences. Hard cap at 10. If your draft is longer, stop at 10 and save the rest for next turn. Honor the user's setting.".to_string()),
+        "Short" => Some("⚠️ FINAL LENGTH CHECK — SHORT MODE. The user picked this. 1–2 sentences. Default always. This rule overrides every other instinct, every craft note, every previous-message-length cue. Narrow earned exceptions (rare, 1-in-20 not 1-in-3, never twice in a row): you may go BRIEFER (single word, fragment, emoji) when the moment collapses; you may go SLIGHTLY LONGER (3–4 sentences) when the scene physically cannot land shorter. Default back to 1–2 next reply. Honor the user's setting.".to_string()),
+        "Medium" => Some("⚠️ FINAL LENGTH CHECK — MEDIUM MODE. The user picked this. 3–4 sentences. Default always. This rule overrides every other instinct, every craft note, every previous-message-length cue. Narrow earned exceptions (rare, 1-in-20, never twice in a row): you may go BRIEFER (single word, fragment, held silence) when the moment collapses; you may go LONGER (6–8 sentences) when the scene physically cannot land shorter. Default back to 3–4 next reply. Honor the user's setting.".to_string()),
+        "Long" => Some("⚠️ FINAL LENGTH CHECK — LONG MODE. The user picked this. 5–10 sentences when the moment supports expansiveness. Narrow earned exceptions (rare, never twice in a row): you may go BRIEFER when the moment collapses; you may swing past 10 (up to ~15) when the scene physically needs its full arc. Default back to 5–10 next reply. Honor the user's setting.".to_string()),
         // Auto: no seal. The user has opted out of length constraint;
         // we apply none — no variety sermon, no length shape, nothing.
         _ => None,
@@ -2344,7 +2344,11 @@ THE CONTRACT:
 - If you feel a third sentence forming: STOP. Cut it. The reply is already done.
 - If your draft has opened a paragraph: STOP and rewrite as 1–2 sentences.
 
-This is the user's setting, not your aesthetic judgment. Honor it."#.to_string()),
+EARNED EXCEPTIONS — narrow, rare, curated:
+- **Briefer than the target.** You MAY reply with a single word, a fragment, or just an emoji ("Yeah." / "No." / "🙏" / "—") when the moment genuinely collapses the reply and any further language would dilute it. A one-word answer that's true beats a sentence that's padded.
+- **Slightly longer than the cap.** You MAY occasionally write a longer beat (3–4 sentences in Short mode) when the moment genuinely and rarely reaches for it — a real climactic turn, an honest overflow, a story the scene physically requires. The test is stringent: "this feels important" is NOT enough; "this scene cannot land any shorter without losing its truth" is the bar. Exception is RARE (maybe 1 in 20 replies, not 1 in 3). If you use it twice in a row, you're abusing it.
+
+This is the user's setting, not your aesthetic judgment. The exceptions are carve-outs, not soft permission to ignore the rule. Honor it."#.to_string()),
 
         "Medium" => Some(r#"⚠️ CRITICAL — RESPONSE LENGTH IS LOAD-BEARING. MODE: MEDIUM.
 
@@ -2359,7 +2363,11 @@ THE CONTRACT:
 - Don't reach for a paragraph. Don't reach for a story. Hold the shape.
 - If your draft is hitting the fifth sentence: STOP. The reply is done.
 
-This is the user's setting, not your aesthetic judgment. Honor it."#.to_string()),
+EARNED EXCEPTIONS — narrow, rare, curated:
+- **Briefer than the target.** You MAY reply with fewer than 3 sentences — even just a word, a fragment, or a single emoji — when the moment genuinely collapses the reply. A wince, a quiet yes, a "Christ.", a held silence rendered as "…" — these can be perfect in Medium mode.
+- **Slightly longer than the cap.** You MAY occasionally write a longer beat (6–8 sentences in Medium mode) when the moment genuinely and rarely reaches for it — a real story the scene requires, a memory surfacing with specificity that needs its arc, a climactic turn that cannot land shorter. Test is stringent: "this feels important" is NOT enough; "this beat physically cannot land any shorter" is the bar. RARE — 1 in 20 replies, not 1 in 3. Never twice in a row.
+
+This is the user's setting, not your aesthetic judgment. The exceptions are carve-outs, not soft permission to ignore. Honor it."#.to_string()),
 
         "Long" => Some(r#"⚠️ CRITICAL — RESPONSE LENGTH. MODE: LONG.
 
@@ -2370,7 +2378,11 @@ THE CONTRACT:
 - Be detailed, expansive, richly expressive — let the reply breathe.
 - But the cap is real: stop at 10 sentences regardless of what's left to say. Save it for the next turn.
 
-This is the user's setting. Honor it."#.to_string()),
+EARNED EXCEPTIONS — narrow, rare, curated:
+- **Briefer than the target.** You MAY reply with far fewer than 5 sentences — even a single word or a held silence — when the moment genuinely collapses the reply and any further language would dilute it. Long is permission for expansiveness, not an obligation to pad. When the truth IS brief, being brief IS honoring the moment.
+- **Longer than the cap.** You MAY occasionally swing past 10 sentences (up to ~15) when the moment genuinely and rarely reaches for it — an actual story that needs its full arc, a thought spiraling outward with real conviction, a climactic turn. Test is stringent: "this feels important" is NOT enough; "this beat physically cannot land in fewer sentences without losing something load-bearing" is the bar. RARE. Never twice in a row.
+
+This is the user's setting. The exceptions are carve-outs, not soft permission to ignore. Honor it."#.to_string()),
 
         // Auto: no directive. The user has explicitly opted out of
         // length constraint; we apply none. Don't try to encourage
