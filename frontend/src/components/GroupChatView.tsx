@@ -1,6 +1,8 @@
 import React, { useRef, useEffect, useState, useCallback, useMemo } from "react";
 import Markdown from "react-markdown";
 import { formatMessage, markdownComponents, remarkPlugins, rehypePlugins, isEmojiOnlyMessage } from "@/components/chat/formatMessage";
+import { parseBackstageSegments } from "@/components/chat/BackstageActionCard";
+import { InlineQuestProposalCard } from "@/components/chat/InlineQuestProposalCard";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Dialog } from "@/components/ui/dialog";
@@ -948,7 +950,34 @@ export function GroupChatView({ store, onNavigateToCharacter }: Props) {
                           ? "[--tw-prose-body:var(--color-primary-foreground)] [--tw-prose-headings:var(--color-primary-foreground)] [--tw-prose-bold:var(--color-primary-foreground)] [--tw-prose-bullets:var(--color-primary-foreground)] [--tw-prose-counters:var(--color-primary-foreground)] [--tw-prose-code:var(--color-primary-foreground)] [--tw-prose-links:var(--color-primary-foreground)] [--tw-prose-quotes:var(--color-primary-foreground)] [--tw-prose-quote-borders:rgba(255,255,255,0.3)]"
                           : "[--tw-prose-body:var(--color-secondary-foreground)] [--tw-prose-headings:var(--color-secondary-foreground)] [--tw-prose-bold:var(--color-secondary-foreground)] [--tw-prose-bullets:var(--color-secondary-foreground)] [--tw-prose-counters:var(--color-secondary-foreground)] [--tw-prose-code:var(--color-secondary-foreground)] [--tw-prose-links:var(--color-primary)] [--tw-prose-quotes:var(--color-secondary-foreground)] [--tw-prose-quote-borders:var(--color-border)]"
                       }`}>
-                        <Markdown components={markdownComponents} remarkPlugins={remarkPlugins} rehypePlugins={rehypePlugins}>{formatMessage(msg.content)}</Markdown>
+                        {isUser ? (
+                          <Markdown components={markdownComponents} remarkPlugins={remarkPlugins} rehypePlugins={rehypePlugins}>{formatMessage(msg.content)}</Markdown>
+                        ) : (
+                          parseBackstageSegments(msg.content).map((seg, segIdx) => {
+                            if (seg.kind === "text") {
+                              const trimmed = seg.value.trim();
+                              if (!trimmed) return null;
+                              return (
+                                <Markdown key={segIdx} components={markdownComponents} remarkPlugins={remarkPlugins} rehypePlugins={rehypePlugins}>{formatMessage(seg.value)}</Markdown>
+                              );
+                            }
+                            if (seg.block.type === "propose_quest" && store.activeWorld?.world_id) {
+                              const title = (seg.block as any).title ?? "";
+                              const description = (seg.block as any).description ?? "";
+                              if (!title || !description) return null;
+                              return (
+                                <InlineQuestProposalCard
+                                  key={segIdx}
+                                  title={title}
+                                  description={description}
+                                  worldId={store.activeWorld.world_id}
+                                  sourceMessageId={msg.message_id}
+                                />
+                              );
+                            }
+                            return null;
+                          })
+                        )}
                       </div>
                     )}
                     <InventoryUpdateBadge records={inventoryBadges[msg.message_id]} />
