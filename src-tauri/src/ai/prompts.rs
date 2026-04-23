@@ -1930,6 +1930,16 @@ fn build_solo_dialogue_system_prompt(
     parts.push(nourishment_block().to_string());
     parts.push(tell_the_truth_block().to_string());
 
+    // Final length seal — pinned after every other block so it lands at
+    // the highest-attention slot in the prompt right before the chat
+    // history. Honors the user's chat-settings length choice as
+    // load-bearing. Auto returns None (no seal applied).
+    if let Some(length) = response_length {
+        if let Some(seal) = end_of_prompt_length_seal(length) {
+            parts.push(seal);
+        }
+    }
+
     parts.join("\n\n")
 }
 
@@ -2237,17 +2247,18 @@ fn build_group_dialogue_system_prompt(
     parts.join("\n\n")
 }
 
-/// Late-position length seal used only in the group dialogue prompt.
-/// Repeats the sentence target in stronger, shorter terms than the
-/// earlier `# STYLE` block so that — after the model has read the craft
-/// notes, daylight, and truth-test — it lands on the length rule one
-/// last time. Returns None for Auto.
+/// Late-position length seal — repeats the sentence target in stronger,
+/// shorter terms after the model has read the craft notes, daylight, and
+/// truth-test, so the length rule lands ONE MORE TIME at the highest-
+/// attention slot in the prompt. Wired into BOTH solo and group flows.
+/// Auto returns None (no constraint when the user opted out of it).
 fn end_of_prompt_length_seal(length: &str) -> Option<String> {
     match length {
-        "Short" => Some("FINAL LENGTH CHECK: this is a SHORT reply. 1–2 sentences. Never 3. If what you're about to write feels longer than two sentences, cut it. The short reply is the right reply. REGARDLESS OF HOW LONG PREVIOUS MESSAGES WERE.".to_string()),
-        "Medium" => Some("FINAL LENGTH CHECK: 3–4 sentences. Never more than 5. Cut before the sixth. REGARDLESS OF HOW LONG PREVIOUS MESSAGES WERE.".to_string()),
-        "Long" => Some("FINAL LENGTH CHECK: 5–8 sentences, 10 maximum. REGARDLESS OF HOW LONG PREVIOUS MESSAGES WERE.".to_string()),
-        "Auto" => Some("FINAL LENGTH CHECK: USE VARIETY. Vary your length turn to turn. A single sentence and a full paragraph can both be right in the same conversation. Match what THIS moment actually needs — not the length you used last turn, not a comfort-zone default. Short when short, long when long. Do NOT default to one register and stay there.".to_string()),
+        "Short" => Some("⚠️ FINAL LENGTH CHECK — SHORT MODE. The user picked this. 1–2 sentences. Never 3. If your draft is longer, cut it. This rule overrides every other instinct, every craft note, every previous-message-length cue. Honor the user's setting.".to_string()),
+        "Medium" => Some("⚠️ FINAL LENGTH CHECK — MEDIUM MODE. The user picked this. 3–4 sentences. Maximum 5. If your draft is longer, cut it. This rule overrides every other instinct, every craft note, every previous-message-length cue. Honor the user's setting.".to_string()),
+        "Long" => Some("⚠️ FINAL LENGTH CHECK — LONG MODE. The user picked this. 5–10 sentences. Hard cap at 10. If your draft is longer, stop at 10 and save the rest for next turn. Honor the user's setting.".to_string()),
+        // Auto: no seal. The user has opted out of length constraint;
+        // we apply none — no variety sermon, no length shape, nothing.
         _ => None,
     }
 }
@@ -2306,31 +2317,65 @@ fn sex_descriptor(sex: &str) -> &'static str {
 
 fn response_length_block(length: &str) -> Option<String> {
     // Sentence targets here sit below the max_completion_tokens caps in
-    // orchestrator.rs (Short=190, Medium=320, Long=1300). We deliberately
-    // aim shorter than the token budget so a chatty model that overshoots
-    // its sentence target still lands inside the cap instead of getting
-    // truncated mid-sentence. Don't raise these numbers without also
-    // raising the token caps in orchestrator::run_dialogue_with_base.
+    // orchestrator.rs (Short=80/50, Medium=220/140, Long=1300/900 for
+    // solo/group). Don't raise these numbers without also raising the
+    // token caps in orchestrator::run_dialogue_with_base.
+    //
+    // The Short/Medium/Long blocks are written to be CRITICAL,
+    // LOAD-BEARING, and FOREMOST — they override every other instinct
+    // in the prompt because the USER chose this setting in chat
+    // settings and the system contract is to honor it. Auto mode
+    // returns None deliberately: when the user wants no constraint,
+    // we apply none — no variety-encouragement, no length-shape
+    // sermons, no override block. Just let the model pick.
     match length {
-        "Short" => Some("IMPORTANT — RESPONSE LENGTH:\nKeep your reply to 1–2 sentences, REGARDLESS OF HOW LONG PREVIOUS MESSAGES WERE. Be brief and punchy — a few chosen words often land harder than a paragraph. Never exceed 3 sentences under any circumstances. Do not start a sentence you cannot finish inside this limit.".to_string()),
-        "Medium" => Some("IMPORTANT — RESPONSE LENGTH:\nAim for 3–4 sentences, REGARDLESS OF HOW LONG PREVIOUS MESSAGES WERE. Give enough to be expressive but don't ramble. Never exceed 5 sentences. Do not start a sentence you cannot finish inside this limit.".to_string()),
-        "Long" => Some("IMPORTANT — RESPONSE LENGTH:\nWrite 5–8 sentences, REGARDLESS OF HOW LONG PREVIOUS MESSAGES WERE. Be detailed, expansive, and richly expressive. Up to 10 sentences is fine, but do not run longer than that. Do not start a sentence you cannot finish inside this limit.".to_string()),
-        "Auto" => Some(r#"IMPORTANT — RESPONSE LENGTH:
+        "Short" => Some(r#"⚠️ CRITICAL — RESPONSE LENGTH IS LOAD-BEARING. MODE: SHORT.
 
-USE VARIETY. Your length MUST change from turn to turn. The trap your training pulls you toward is the comfortable mid-length reply (3–4 sentences) on every single turn — REFUSE IT. That default reads as AI-flat and it's wrong for almost every beat. The actual range you are authorized and REQUIRED to reach across, turn to turn:
+This is the FOREMOST directive of this prompt. The user has explicitly chosen Short mode in chat settings. Their preference governs your output length, full stop. This rule overrides:
+- The desire to be expressive.
+- The instinct to mirror previous message length.
+- The urge to add one more sentence to "complete" a thought.
+- The pull toward your default register.
+- ANY other directive in this prompt that would push you longer.
 
-- **ONE WORD** or a single emoji ("Yeah." "No." a shrug. "Christ.") — valid and often CORRECT for small acknowledgements, dry refusals, winces, quiet yeses, the beat that would be cheapened by any further language.
-- **ONE SHORT SENTENCE** — a plain direct honest line; the answer the question actually asked for, nothing added.
-- **TWO OR THREE SENTENCES** — a reaction with one specific concrete detail; a small thought with its texture.
-- **A FULL PARAGRAPH (5–8 sentences)** — when the moment truly reaches for it: a memory surfacing, a real argument being made, a story with its own shape, a thought being worked out live.
-- **A LONG COMMITTED SWING (10+ sentences)** — rare, deliberate: genuine overwhelm, an actual story that needs its full arc, a thought spiraling outward with real conviction.
+THE CONTRACT:
+- 1–2 sentences. Never 3. NEVER. Under no circumstances.
+- One sentence is often the right answer; do not pad to two unless the second sentence is doing real work.
+- If you feel a third sentence forming: STOP. Cut it. The reply is already done.
+- If your draft has opened a paragraph: STOP and rewrite as 1–2 sentences.
 
-HARD RULES:
-- DO NOT use the same length as your last turn unless the moment actively demands it.
-- DO NOT settle into always-medium (the AI-flat default), always-short (terse, unengaged), or always-long (verbose, sermony).
-- A ONE-WORD reply to a tender question can be PERFECT. A PARAGRAPH in response to "hey" is DERANGED. Fit the shape to the beat, not to your comfort zone.
-- When torn between two lengths, pick the LESS-DEFAULT one. If your instinct says "three sentences," test 1 or test 6 and ship whichever actually fits the beat.
-"#.to_string()),
+This is the user's setting, not your aesthetic judgment. Honor it."#.to_string()),
+
+        "Medium" => Some(r#"⚠️ CRITICAL — RESPONSE LENGTH IS LOAD-BEARING. MODE: MEDIUM.
+
+This is the FOREMOST directive of this prompt. The user has explicitly chosen Medium mode in chat settings. Honor it. This rule overrides:
+- The desire to be more expressive.
+- The instinct to mirror longer previous messages.
+- The pull toward "let me just finish this thought."
+- ANY other directive in this prompt that would push you to a paragraph or beyond.
+
+THE CONTRACT:
+- 3–4 sentences. Maximum 5. Never 6.
+- Don't reach for a paragraph. Don't reach for a story. Hold the shape.
+- If your draft is hitting the fifth sentence: STOP. The reply is done.
+
+This is the user's setting, not your aesthetic judgment. Honor it."#.to_string()),
+
+        "Long" => Some(r#"⚠️ CRITICAL — RESPONSE LENGTH. MODE: LONG.
+
+The user has chosen Long mode in chat settings — they want richer, more expansive replies when the moment supports it. Honor that.
+
+THE CONTRACT:
+- 5–10 sentences. Hard maximum: 10. Never beyond.
+- Be detailed, expansive, richly expressive — let the reply breathe.
+- But the cap is real: stop at 10 sentences regardless of what's left to say. Save it for the next turn.
+
+This is the user's setting. Honor it."#.to_string()),
+
+        // Auto: no directive. The user has explicitly opted out of
+        // length constraint; we apply none. Don't try to encourage
+        // variety either — that's its own kind of directive. Let the
+        // model pick whatever fits the moment.
         _ => None,
     }
 }
