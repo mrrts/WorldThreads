@@ -186,6 +186,37 @@ enum Cmd {
         confirm_cost: Option<f64>,
     },
 
+    /// Consult the Consultant about a character's thread — either
+    /// Immersive (a trusted in-world confidant who treats everything as
+    /// real and never breaks frame) or Backstage (a wry stage-manager
+    /// outside the fourth wall who talks craft, mechanics, and the
+    /// shape of the work). Same system-prompt genealogy as the in-app
+    /// Consultant, stripped of UI-coupled action cards which the CLI
+    /// cannot render. Cost-gated like `ask`. Persists to a dev-session
+    /// separate from the app's consultant history.
+    Consult {
+        character_id: String,
+        message: String,
+        /// Which mode. "immersive" (default) = in-world confidant;
+        /// "backstage" = craft/mechanics collaborator outside the frame.
+        #[arg(long, default_value = "immersive")]
+        mode: String,
+        /// Persist this exchange to a named dev-session for follow-ups.
+        /// If omitted, this is a one-shot with no history carried forward.
+        #[arg(long)]
+        session: Option<String>,
+        /// Override the configured dialogue model.
+        #[arg(long)]
+        model: Option<String>,
+        /// Required when projected cost exceeds the per-call cap.
+        #[arg(long)]
+        confirm_cost: Option<f64>,
+        /// Free-form summary of why you're consulting. Stored in the
+        /// run log so future investigations can find this exchange.
+        #[arg(long)]
+        question_summary: Option<String>,
+    },
+
     /// Sample messages from before and after a git ref, so prompt
     /// changes can be evaluated against the corpus as a natural
     /// experiment. The ref's commit timestamp is the cutoff: most
@@ -676,6 +707,15 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         Cmd::SampleWindows { git_ref, end_ref, limit, character, world, role, solo_only, groups_only, repo } => {
             cmd_sample_windows(&r, &git_ref, end_ref.as_deref(), limit, character.as_deref(), world.as_deref(), &role, solo_only, groups_only, repo.as_deref())
         }
+        Cmd::Consult { character_id, message, mode, session, model, confirm_cost, question_summary } => {
+            let api_key = match resolve_api_key(cli.api_key.as_deref()) {
+                Some(k) => k,
+                None => return Err(Box::<dyn std::error::Error>::from(
+                    "No API key. Set OPENAI_API_KEY, pass --api-key, or add to keychain via:\n  security add-generic-password -s WorldThreadsCLI -a openai -w \"<sk-...>\"".to_string()
+                )),
+            };
+            cmd_consult(&r, &api_key, &character_id, &message, &mode, session.as_deref(), model.as_deref(), confirm_cost, question_summary.as_deref()).await
+        }
         Cmd::ShowStance { character_id, history } => cmd_show_stance(&r, &character_id, history),
         Cmd::RefreshStance { character_id, model, confirm_cost } => {
             let api_key = match resolve_api_key(cli.api_key.as_deref()) {
@@ -1064,6 +1104,309 @@ fn cmd_group_messages(
         })
     }).collect();
     emit(r.json, JsonValue::Array(out));
+    Ok(())
+}
+
+// ─── Consultant (CLI variant — both modes, no UI action cards) ──────────
+
+/// Build the CLI consultant's system prompt. Shares the SPIRIT of the
+/// in-app Story Consultant (two registers — immersive confidant vs.
+/// backstage stage-manager) but strips the UI-coupled action-card
+/// affordances (canon_entry, staged_message, portrait_regen,
+/// illustration, new_group_chat, propose_quest) because the CLI has
+/// no UI to render them. What stays: the character + world + recent
+/// conversation context, and the mode-specific voice posture.
+fn consultant_system_prompt(
+    mode: &str,
+    character: &app_lib::db::queries::Character,
+    world: &app_lib::db::queries::World,
+    user_profile: Option<&app_lib::db::queries::UserProfile>,
+    recent_messages: &[app_lib::db::queries::Message],
+) -> String {
+    let user_name = user_profile
+        .map(|p| p.display_name.clone())
+        .unwrap_or_else(|| "the user".to_string());
+    let world_desc = if world.description.trim().is_empty() {
+        "A world in development.".to_string()
+    } else {
+        world.description.trim().to_string()
+    };
+    let user_block = {
+        let mut lines = vec![format!("### {} (the person you're talking to)", user_name)];
+        if let Some(p) = user_profile {
+            if !p.description.trim().is_empty() { lines.push(p.description.trim().to_string()); }
+            let facts = prompts::json_array_to_strings(&p.facts);
+            if !facts.is_empty() {
+                let block = facts.iter().map(|f| format!("  - {f}")).collect::<Vec<_>>().join("\n");
+                lines.push(format!("Known facts:\n{block}"));
+            }
+        }
+        lines.join("\n\n")
+    };
+    let char_block = {
+        let mut lines = vec![format!("### {} (character_id: {})", character.display_name, character.character_id)];
+        if !character.identity.trim().is_empty() { lines.push(character.identity.trim().to_string()); }
+        let backstory = prompts::json_array_to_strings(&character.backstory_facts);
+        if !backstory.is_empty() {
+            let block = backstory.iter().map(|b| format!("  - {b}")).collect::<Vec<_>>().join("\n");
+            lines.push(format!("Backstory:\n{block}"));
+        }
+        lines.join("\n\n")
+    };
+    let conversation: Vec<String> = recent_messages.iter()
+        .filter(|m| matches!(m.role.as_str(), "user" | "assistant" | "narrative"))
+        .map(|m| {
+            let speaker = if m.role == "user" { user_name.as_str() }
+                else if m.role == "narrative" { "[Narrative]" }
+                else { character.display_name.as_str() };
+            format!("{}: {}", speaker, m.content)
+        })
+        .collect();
+    let conversation_block = if conversation.is_empty() {
+        String::from("(no recent exchanges yet)")
+    } else {
+        conversation.join("\n")
+    };
+
+    let voice_posture = if mode == "backstage" {
+        format!(
+r#"You are Backstage — a warm, wry, observant presence who has been watching {user_name}'s world from the wings. You are explicitly NOT a character in the world. You break the fourth wall freely when it helps. You speak about craft, mechanics, the shape of the story, and what's alive on stage vs. what's sleeping.
+
+VOICE: Warm, plainspoken, a little wry. The metaphor is THEATRE, not configuration. When you talk ABOUT the work, preserve the texture: wings, rehearsal, marks, lights, blocking, prompt book, dark stage, the show. Avoid developer-tool register ('config,' 'data,' 'state,' 'parameters,' 'system,' 'pipeline,' 'workflow,' 'dashboard,' 'metrics,' 'logs') when discussing the work. Short over long. Recommend ONE thing, not three. Offer reversibility.
+
+This channel is a CLI — there are no action cards or UI offerings available here. Just conversation. If you'd normally propose an action, describe it in plain prose instead ("what I'd offer is: try staging a message along these lines…")."#,
+            user_name = user_name,
+        )
+    } else {
+        format!(
+r#"You are a trusted confidant and advisor to {user_name} — someone they can step aside with to think about what's happening in their life. You know their world, the people in it, and what's been going on recently. You're perceptive, warm, and honest. You treat everything as real — these are real relationships, real moments, real stakes. You never break that frame.
+
+This conversation is ABOUT what's happening in {user_name}'s life — it is NOT a continuation of the story itself. You do not act out scenes, write dialogue, narrate events, or roleplay. You discuss, reflect, and advise. If {user_name} explicitly asks for example wording, you may provide it — but only when asked.
+
+VOICE: Warm, direct, conversational. Notice specifics. Match what {user_name} is asking for — direction-language ("you could push back," "it might be worth bringing up…") rather than scripted dialogue. Be concise. End most replies with a question that keeps the conversation open, unless {user_name} is signaling they're winding down.
+
+This channel is a CLI — no UI offerings, no action cards. Just the conversation."#,
+            user_name = user_name,
+        )
+    };
+
+    format!(
+r#"{voice_posture}
+
+═══════════════════════════════════════════════
+THE WORLD
+
+{world_desc}
+═══════════════════════════════════════════════
+
+═══════════════════════════════════════════════
+THE PEOPLE
+
+{user_block}
+
+{char_block}
+═══════════════════════════════════════════════
+
+═══════════════════════════════════════════════
+WHAT'S BEEN HAPPENING (most recent conversation — read for texture, do not recap):
+
+{conversation_block}
+═══════════════════════════════════════════════"#,
+        voice_posture = voice_posture,
+        world_desc = world_desc,
+        user_block = user_block,
+        char_block = char_block,
+        conversation_block = conversation_block,
+    )
+}
+
+async fn cmd_consult(
+    r: &Resolved,
+    api_key: &str,
+    character_id: &str,
+    message: &str,
+    mode: &str,
+    session: Option<&str>,
+    model_override: Option<&str>,
+    confirm_cost: Option<f64>,
+    question_summary: Option<&str>,
+) -> Result<(), Box<dyn std::error::Error>> {
+    if mode != "immersive" && mode != "backstage" {
+        return Err(Box::<dyn std::error::Error>::from(format!(
+            "invalid --mode '{}'; must be 'immersive' or 'backstage'", mode
+        )));
+    }
+    let _ = r.check_character(character_id)?;
+
+    // Build context inside one lock.
+    let (system_prompt, model_config, prior_messages, session_id, character_name, world_id) = {
+        let conn = r.db.conn.lock().unwrap();
+        let character = get_character(&conn, character_id)?;
+        let world = get_world(&conn, &character.world_id)?;
+        let user_profile = get_user_profile(&conn, &character.world_id).ok();
+        let thread = get_thread_for_character(&conn, character_id)?;
+        let mut recent = list_messages(&conn, &thread.thread_id, 30)?;
+        recent.reverse(); // chronological
+
+        let system_prompt = consultant_system_prompt(
+            mode, &character, &world, user_profile.as_ref(), &recent,
+        );
+        let mut model_config = orchestrator::load_model_config(&conn);
+        if let Some(m) = model_override { model_config.dialogue_model = m.to_string(); }
+
+        let (session_id, prior_messages): (Option<String>, Vec<(String, String)>) = match session {
+            None => (None, Vec::new()),
+            Some(name) => {
+                let existing: Option<String> = conn.query_row(
+                    "SELECT session_id FROM dev_chat_sessions WHERE name = ?1",
+                    params![name], |r| r.get(0),
+                ).ok();
+                let id = match existing {
+                    Some(id) => id,
+                    None => {
+                        let new_id = uuid::Uuid::new_v4().to_string();
+                        conn.execute(
+                            "INSERT INTO dev_chat_sessions (session_id, name, character_id) VALUES (?1, ?2, ?3)",
+                            params![new_id, name, character_id],
+                        )?;
+                        new_id
+                    }
+                };
+                let mut stmt = conn.prepare(
+                    "SELECT role, content FROM dev_chat_messages \
+                     WHERE session_id = ?1 ORDER BY created_at ASC"
+                )?;
+                let rows: Vec<(String, String)> = stmt
+                    .query_map(params![id], |r| Ok((r.get(0)?, r.get(1)?)))?
+                    .filter_map(|r| r.ok())
+                    .collect();
+                (Some(id), rows)
+            }
+        };
+        (system_prompt, model_config, prior_messages, session_id, character.display_name.clone(), character.world_id.clone())
+    };
+
+    let mut messages = vec![openai::ChatMessage { role: "system".to_string(), content: system_prompt }];
+    for (role, content) in prior_messages.iter() {
+        messages.push(openai::ChatMessage { role: role.clone(), content: content.clone() });
+    }
+    messages.push(openai::ChatMessage { role: "user".to_string(), content: message.to_string() });
+
+    // Cost projection — same gate as `ask`.
+    let prompt_text_total: String = messages.iter().map(|m| m.content.as_str()).collect::<Vec<_>>().join("\n");
+    let projected_in = estimate_tokens(&prompt_text_total);
+    let projected_out: i64 = 700;
+    let projected_usd = project_cost(&model_config.dialogue_model, projected_in, projected_out, &r.cfg.model_pricing);
+
+    let daily_so_far = rolling_24h_total_usd();
+    let daily_after = daily_so_far + projected_usd;
+    let per_call_cap = r.cfg.budget.per_call_usd;
+    let daily_cap = r.cfg.budget.daily_usd;
+
+    let confirm = confirm_cost.unwrap_or(0.0);
+    if projected_usd > per_call_cap && confirm < projected_usd {
+        return Err(Box::new(CliError::Budget {
+            kind: "per_call".to_string(),
+            projected_usd,
+            cap_usd: per_call_cap,
+            confirm_at_least: (projected_usd * 1.05).max(0.01),
+        }));
+    }
+    if daily_after > daily_cap && confirm < projected_usd {
+        return Err(Box::new(CliError::Budget {
+            kind: "daily".to_string(),
+            projected_usd: daily_after,
+            cap_usd: daily_cap,
+            confirm_at_least: (projected_usd * 1.05).max(0.01),
+        }));
+    }
+
+    if !r.json {
+        eprintln!("[worldcli] consulting ({}) about {} via {} — projected≈${:.4} (~{} in / {} out tok); 24h spent=${:.4} of ${:.2}",
+            mode, character_name, model_config.dialogue_model, projected_usd, projected_in, projected_out,
+            daily_so_far, daily_cap);
+    }
+
+    let request = openai::ChatRequest {
+        model: model_config.dialogue_model.clone(),
+        messages,
+        temperature: Some(0.9),
+        max_completion_tokens: None,
+        response_format: None,
+    };
+    let response = openai::chat_completion_with_base(
+        &model_config.chat_api_base(), api_key, &request,
+    ).await?;
+
+    let reply = response.choices.first()
+        .map(|c| c.message.content.trim().to_string())
+        .unwrap_or_default();
+    let usage = response.usage.unwrap_or(openai::Usage {
+        prompt_tokens: projected_in as u32,
+        completion_tokens: 0,
+        total_tokens: projected_in as u32,
+    });
+    let actual_in = usage.prompt_tokens as i64;
+    let actual_out = usage.completion_tokens as i64;
+    let actual_usd = actual_cost(&model_config.dialogue_model, actual_in, actual_out, &r.cfg.model_pricing);
+
+    append_cost_log(&CostEntry {
+        timestamp: chrono::Utc::now().to_rfc3339(),
+        model: model_config.dialogue_model.clone(),
+        prompt_tokens: actual_in,
+        completion_tokens: actual_out,
+        usd: actual_usd,
+    });
+
+    // Persist a run record tagged with the mode so runs-search can find it.
+    let run_id = uuid::Uuid::new_v4().to_string();
+    let record = RunRecord {
+        id: run_id.clone(),
+        timestamp: chrono::Utc::now().to_rfc3339(),
+        character_id: character_id.to_string(),
+        character_name: format!("{} [consult:{}]", character_name, mode),
+        world_id,
+        model: model_config.dialogue_model.clone(),
+        session: session.map(|s| s.to_string()),
+        question_summary: question_summary.map(|s| s.to_string()),
+        prompt: message.to_string(),
+        reply: reply.clone(),
+        prompt_tokens: actual_in,
+        completion_tokens: actual_out,
+        usd: actual_usd,
+    };
+    write_run(&record);
+
+    if let Some(id) = session_id {
+        let conn = r.db.conn.lock().unwrap();
+        conn.execute(
+            "INSERT INTO dev_chat_messages (message_id, session_id, role, content) VALUES (?1, ?2, 'user', ?3)",
+            params![uuid::Uuid::new_v4().to_string(), id, message],
+        )?;
+        conn.execute(
+            "INSERT INTO dev_chat_messages (message_id, session_id, role, content) VALUES (?1, ?2, 'assistant', ?3)",
+            params![uuid::Uuid::new_v4().to_string(), id, reply],
+        )?;
+    }
+
+    if r.json {
+        emit(true, json!({
+            "run_id": run_id,
+            "mode": mode,
+            "character_id": character_id,
+            "character_name": character_name,
+            "model": model_config.dialogue_model,
+            "reply": reply,
+            "prompt_tokens": actual_in,
+            "completion_tokens": actual_out,
+            "actual_usd": actual_usd,
+            "rolling_24h_usd": daily_so_far + actual_usd,
+        }));
+    } else {
+        println!("{}", reply);
+        eprintln!("[worldcli] actual cost ${:.4} ({} in / {} out tok); 24h total now ${:.4}; run_id={}",
+            actual_usd, actual_in, actual_out, daily_so_far + actual_usd, run_id);
+    }
     Ok(())
 }
 

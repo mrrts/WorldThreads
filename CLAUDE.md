@@ -195,6 +195,18 @@ worldcli ask <char-id> "<message>" \
     [--confirm-cost <usd>] \
     [--json]
 
+# Consult the Consultant — either mode. Same system-prompt genealogy
+# as the in-app Story Consultant, stripped of UI-coupled action cards.
+# Useful when you want craft-layer feedback (backstage) or in-world
+# confidant-style reflection (immersive) without going through the UI.
+worldcli consult <char-id> "<message>" \
+    [--mode immersive|backstage]       # default: immersive
+    [--session <name>]                  # multi-turn continuity
+    [--model <override>] \
+    [--question-summary "<why>"] \
+    [--confirm-cost <usd>] \
+    [--json]
+
 # Read your own prior runs (avoid redoing answered questions):
 worldcli runs-list [--limit N] [--json]
 worldcli runs-show <id-or-prefix> [--json]
