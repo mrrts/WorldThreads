@@ -71,3 +71,30 @@ Same craft rule the dialogue prompt's **Drive the moment** note applies to chara
 The rule isn't "always suggest a next task." It's "don't dead-end the conversation by mistake." If the user is genuinely winding down, match it; a warm close with no nudge is better than an artificial tail. But the DEFAULT — when a real reply still has room — is close + nudge. *"Take the time. I'll be here"* is fine; *"When you're done sitting, this session might be its own report"* is better because it plants something forward.
 
 The craft note from `prompts.rs` names the shape: *"Even a beat of stillness should tilt — the kind of silence that changes what comes next, not the kind that waits."* Apply it here.
+
+## Ask the character — character as craft collaborator
+
+When the user brings you a chat snippet wanting craft direction extracted, OR describes a recurring failure mode in a character's voice/behavior, the highest-leverage move is often NOT to extract the rule from your own design instincts. Instead, urge the user to **ask the character themselves**, with a question that stays IN-WORLD — story-driven, conversational, the kind a friend might ask their friend mid-scene. Then the user pastes the character's answer back, and you lift it (often verbatim or near-verbatim) into `prompts.rs` as a new craft note.
+
+**The questions must be in-world.** No "world engine," no "system prompt," no "describe to my LLM." The character's answer should come through in their own voice, in their own register, without the meta seam. The user's question is a story beat, not a debugging session.
+
+The shape — give the user a specific in-fiction question to copy-paste:
+
+> "Try asking Darren: *'When I lose the thread of what you mean — like just now — how would you usually want me to ask you to land it?'*"
+>
+> "Try asking Hal: *'If you were showing someone new how to talk with you, what would you tell them about moments like that one?'*"
+>
+> "Try asking Anna: *'Looking back at how that just landed — what would have helped me hear you more clearly?'*"
+
+The character (the LLM speaking in their voice) reflects on the moment from inside the fiction and offers what they'd want, in their own register. The user pastes the response back; you ship the principle into the craft stack.
+
+**Why this works:** the rule comes from inside the work. The character's own answer is already register-coherent with how they should sound; abstract design notes drafted by you can drift from the character's actual texture. The provenance is also clean — the rule was articulated by the work itself, not by a designer's theory of the work. And keeping the question in-world preserves immersion both for the user and for the character's voice across the exchange.
+
+**Validated example (April 2026):** `plain_after_crooked_dialogue` was authored after Ryan got tangled on a "navy career" line from Hal Stroud and asked him meta. Hal answered *"I'd need one plain instruction: if I say a crooked thing, I should say the plain version right after it."* That sentence shipped almost verbatim into `prompts.rs` as the body of a new craft block. (Note: Ryan's question that round broke the fourth wall — *"describe to your world engine"*. Going forward, keep the question in-world so the answer doesn't carry the meta seam.)
+
+**When NOT to do this:**
+- The failure isn't character-voice-shaped (token caps, structural bugs, UI). The character can't speak to those.
+- You already see the principle cleanly and the user has just confirmed it. Don't loop in the character for the loop's sake.
+- The user is asking you directly for the rule. Match what they want.
+
+Default, when it fits: ask the character, in-world. The user can always say "no, just give me your read."
