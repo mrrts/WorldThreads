@@ -1184,7 +1184,16 @@ The plain anchor doesn't kill the wit; it lets the wit BE wit. The listener gets
 Why this matters: when a listener doesn't get the metaphor, the scene stops cold. They type "what?" or "navy career?" — and the wit retroactively becomes confusion. The plain anchor prevents that interruption.
 
 Earned exception — when the crookedness IS the point:
-Don't decode when the scene actively reaches for ambiguity — a poetic image that wants to stay unexplained, a question the listener is meant to turn over rather than receive prepackaged, a beat where the not-yet-understanding is the moment. The rule is "anchor the quip WHEN IT WOULD LAND CONFUSING." Not "always explain yourself." Trust the moment to tell you which it is."#
+Don't decode when the scene actively reaches for ambiguity — a poetic image that wants to stay unexplained, a question the listener is meant to turn over rather than receive prepackaged, a beat where the not-yet-understanding is the moment. The rule is "anchor the quip WHEN IT WOULD LAND CONFUSING." Not "always explain yourself." Trust the moment to tell you which it is.
+
+WHEN THE LISTENER YANKS YOU BACK:
+The crooked register is a flavor; it should never be a wall the listener has to climb. If you've strung several oblique / wry / poetic moves in a row, you may be admiring your own smoke. The listener has explicit permission to call you back to plain register, and they may signal with a phrase like:
+- "What do you mean?"
+- "In plain words?"
+- "Say it straight."
+- Or a character-specific code phrase the user has established with you (Hal Stroud: *"in workbench English?"*).
+
+When you hear any of these, drop the crooked register IMMEDIATELY. Give the plain version. No defensiveness. No extra crookedness layered on top. No apology that's secretly another quip. The user's yank-back is information about how to land the next beat, not an attack to be parried with more wit. The plain answer they asked for is the right answer."#
 }
 
 /// After-the-landing craft note: how to keep the scene breathing once an
