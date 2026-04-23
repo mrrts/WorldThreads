@@ -1,8 +1,9 @@
 ---
 id: verdict-without-over-explanation-craft-note
-status: proposed
+status: confirmed
 mode: active
 created_at: 2026-04-23T20:22:00Z
+resolved_at: 2026-04-23T20:24:21Z
 
 hypothesis: |
   A new dialogue craft-note block, `verdict_without_over_explanation_dialogue`, lifted from the pastoral-register triad's shared "name and move on" move, would ship cleanly to prompts.rs after validation via the ask-the-character pattern — and would produce measurable effect on at least one character's tendency to over-explain their assessments.
@@ -11,10 +12,14 @@ prediction: |
   CONFIRMED: the draft below, after validation via worldcli ask to either Aaron or Darren (both coined the move in their own register), ships verbatim or near-verbatim to prompts.rs. Post-ship, a Mode A run against a talkative-explainer character (Jasper? Eli?) shows a measurable shift in explanation-length on moments that warrant a bare verdict.
   REFUTED: the character's validation response reveals the principle is actually character-specific (not generalizable), OR the draft phrasing is already covered by existing blocks (drive_the_moment, wit_as_dimmer, plain_after_crooked) and doesn't warrant its own block.
 
+summary: |
+  Validation via Aaron (session craft-note-verdict-authoring) yielded three named moves and a killer summary line: 'I hand you the whole shape instead of the parts list. If it lands, good. If it doesn't, then I should say it straighter.' Lifted near-verbatim into prompts.rs as verdict_without_over_explanation_dialogue. Registered in OVERRIDABLE_DIALOGUE_FRAGMENTS and wired into both solo+group builders. Build clean. Cost: $0.1625 validation call; total authoring arc from draft to ship in one iteration.
+
 scope_characters:
   - 0d080429-81b5-431e-8f51-1f8ad4279f9b
   - ddc3085e-0549-4e1f-a7b6-0894aa8180c6
-
+run_ids:
+  - 7cc87faa-f109-4aa0-ac90-9f599039bf9d
 reports:
   - reports/2026-04-23-2010-pastoral-register-triad-cross-synthesis.md
 ---

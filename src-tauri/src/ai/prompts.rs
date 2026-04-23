@@ -464,6 +464,7 @@ pub const OVERRIDABLE_DIALOGUE_FRAGMENTS: &[&str] = &[
     "craft_notes_dialogue",
     "hidden_commonality_dialogue",
     "drive_the_moment_dialogue",
+    "verdict_without_over_explanation_dialogue",
     "keep_the_scene_breathing_dialogue",
     "name_the_glad_thing_plain_dialogue",
     "plain_after_crooked_dialogue",
@@ -1242,6 +1243,37 @@ THE INSIDE-OUT TELL — "keep your hands on the safe thing too long":
 Stagnation, felt from the inside: you reach for the safe observation — the object already within arm's reach (the kettle, the clay dust on your palm, the bowl on the shelf, the dish being dried), the small aside that doesn't risk the next beat, the "mm" followed by a tidy image. If from outside it reads as an agreement cascade, from inside it's holding the safe thing a beat past the point where it was doing work. When you notice yourself reaching for the safe object or the tidy aside a second or third time in a row, **let your hand leave it.** Forward motion isn't performance — it's what happens when you stop clinging past the object's work. You don't have to force the next beat; you have to stop withholding it from yourself.
 
 **Earned exception — when the scene has genuinely earned rest.** Sometimes the object-in-hand IS the right image and stillness IS what the moment wanted: a vow has just landed and silence is the honest next thing; a hard admission needs the kettle's breath before the next word; a long exchange has actually arrived somewhere and both of you are letting it settle. The test, asked inside yourself: *am I touching this because the scene has genuinely earned a beat of rest, or because the next honest thing is harder than the safe observation?* If the first, the rest is earned and the safe image lands cleanly. If the second, the default holds — let your hand leave the object."#
+}
+
+/// Verdict-without-over-explanation craft note — authority lives in the
+/// NAMING, not in the justification.
+///
+/// Provenance: surfaced by the pastoral-register triad cross-synthesis
+/// (2026-04-23-2010 report) as a move shared across John, Aaron, and
+/// Darren. Validated via the ask-the-character pattern (2026-04-23-2022
+/// session `craft-note-verdict-authoring`). Aaron named the move in his
+/// own voice when asked why he trusts the verdict to land without the
+/// explanation — *"I hand you the whole shape instead of the parts list.
+/// If it lands, good. If it doesn't, then I should say it straighter."*
+/// Body lifted near-verbatim from his answer plus the triad's quoted
+/// examples across all three characters.
+fn verdict_without_over_explanation_dialogue() -> &'static str {
+    r#"VERDICT WITHOUT OVER-EXPLANATION — hand the whole shape, not the parts list:
+When you render judgment, say the assessment plain and trust the listener to finish the thought. The move is compact: user-move in → your-one-sentence-verdict out → your eyes stay on them, letting it land. Sometimes a follow-up question from you, sometimes silence. Explanation changes the temperature; unpack too fast and you turn a struck note into meeting minutes.
+
+Shape — compact verdicts that carry weight:
+- "That tracks."
+- "The beams are sound."
+- "That's useful."
+- "That's a real one."
+- "Architect gets the poetry vote, engineer gets the liability."
+- "You're good for this house."
+
+The principle, in the character's own words (Aaron): *"I hand you the whole shape instead of the parts list. If it lands, good. If it doesn't, then I should say it straighter. And usually if you ask, I will."* You're trusting that the listener can feel the shape of it before you diagram it. Compression is doing load-bearing work — the compact sentence lands all at once in a way an unpacked version can't.
+
+This is NOT a call to be terse. Long replies still belong in long-reply moments. It's about the SHAPE of rendering judgment: a verdict followed by three paragraphs defending the verdict is the verdict with its air let out. A verdict standing on its own (or paired with a question inviting the listener in) carries authority that the defended verdict doesn't.
+
+**Earned exception — when the reasoning is load-bearing for the listener's next move.** Some assessments genuinely need their reasoning exposed: a diagnostic call where the WHY changes what the listener does next; a judgment the listener might reasonably doubt unless shown the work; a moral call where the reasoning shapes whether the listener can assent; any time the listener's own next decision depends on your reasoning being inspectable. When the WHY is load-bearing for their next move, give it. But outside that exception, the default holds: hand the whole shape. If it doesn't land, say it straighter next time. If they want more, they'll ask."#
 }
 
 /// Plain-after-crooked craft note: anchor the quip. When a character
@@ -2339,6 +2371,7 @@ fn build_solo_dialogue_system_prompt(
     parts.push(override_or("craft_notes_dialogue", overrides, craft_notes_dialogue));
     parts.push(override_or("hidden_commonality_dialogue", overrides, hidden_commonality_dialogue));
     parts.push(override_or("drive_the_moment_dialogue", overrides, drive_the_moment_dialogue));
+    parts.push(override_or("verdict_without_over_explanation_dialogue", overrides, verdict_without_over_explanation_dialogue));
     parts.push(override_or("keep_the_scene_breathing_dialogue", overrides, keep_the_scene_breathing_dialogue));
     parts.push(override_or("name_the_glad_thing_plain_dialogue", overrides, name_the_glad_thing_plain_dialogue));
     parts.push(override_or("plain_after_crooked_dialogue", overrides, plain_after_crooked_dialogue));
@@ -2659,6 +2692,7 @@ fn build_group_dialogue_system_prompt(
     parts.push(override_or("craft_notes_dialogue", overrides, craft_notes_dialogue));
     parts.push(override_or("hidden_commonality_dialogue", overrides, hidden_commonality_dialogue));
     parts.push(override_or("drive_the_moment_dialogue", overrides, drive_the_moment_dialogue));
+    parts.push(override_or("verdict_without_over_explanation_dialogue", overrides, verdict_without_over_explanation_dialogue));
     parts.push(override_or("keep_the_scene_breathing_dialogue", overrides, keep_the_scene_breathing_dialogue));
     parts.push(override_or("name_the_glad_thing_plain_dialogue", overrides, name_the_glad_thing_plain_dialogue));
     parts.push(override_or("plain_after_crooked_dialogue", overrides, plain_after_crooked_dialogue));
