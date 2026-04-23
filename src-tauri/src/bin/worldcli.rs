@@ -215,10 +215,15 @@ enum Cmd {
         /// every message costs one LLM call. Default 12.
         #[arg(long, default_value_t = 12)]
         limit: i64,
-        /// Restrict to one character. Required for v1 — the rubric
-        /// typically asks about a single character's behavior.
+        /// Restrict to one character's solo thread. Mutually exclusive
+        /// with --group-chat; exactly one must be supplied.
         #[arg(long)]
-        character: String,
+        character: Option<String>,
+        /// Evaluate a group-chat thread instead of a solo thread.
+        /// Every assistant reply in the group (regardless of which
+        /// character spoke) goes through the rubric.
+        #[arg(long)]
+        group_chat: Option<String>,
         /// The qualitative question the evaluator asks of each
         /// message. Plain English. The rubric should name what
         /// "yes / no / mixed" mean in its own domain.
@@ -785,14 +790,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         Cmd::SampleWindows { git_ref, end_ref, limit, character, world, role, solo_only, groups_only, repo } => {
             cmd_sample_windows(&r, &git_ref, end_ref.as_deref(), limit, character.as_deref(), world.as_deref(), &role, solo_only, groups_only, repo.as_deref())
         }
-        Cmd::Evaluate { git_ref, end_ref, limit, character, rubric, rubric_file, role, model, confirm_cost, repo } => {
+        Cmd::Evaluate { git_ref, end_ref, limit, character, group_chat, rubric, rubric_file, role, model, confirm_cost, repo } => {
             let api_key = match resolve_api_key(cli.api_key.as_deref()) {
                 Some(k) => k,
                 None => return Err(Box::<dyn std::error::Error>::from(
                     "No API key. Set OPENAI_API_KEY, pass --api-key, or add to keychain via:\n  security add-generic-password -s WorldThreadsCLI -a openai -w \"<sk-...>\"".to_string()
                 )),
             };
-            cmd_evaluate(&r, &api_key, &git_ref, end_ref.as_deref(), limit, &character, rubric.as_deref(), rubric_file.as_deref(), &role, model.as_deref(), confirm_cost, repo.as_deref()).await
+            cmd_evaluate(&r, &api_key, &git_ref, end_ref.as_deref(), limit, character.as_deref(), group_chat.as_deref(), rubric.as_deref(), rubric_file.as_deref(), &role, model.as_deref(), confirm_cost, repo.as_deref()).await
         }
         Cmd::Consult { character_id, message, mode, session, model, confirm_cost, question_summary } => {
             let api_key = match resolve_api_key(cli.api_key.as_deref()) {
@@ -1283,21 +1288,19 @@ async fn evaluate_one(
 /// if filtering dropped the nearest one.
 fn pull_eval_window(
     conn: &rusqlite::Connection,
-    character_id: &str,
+    thread_id: &str,
+    is_group: bool,
     cutoff_ts: &str,
     direction: &str,  // "before" or "after"
     role: &str,
     limit: i64,
 ) -> Result<Vec<(app_lib::db::queries::Message, Option<app_lib::db::queries::Message>)>, Box<dyn std::error::Error>> {
-    let thread = get_thread_for_character(conn, character_id)?;
-
     // Normalize the cutoff to the same UTC-with-microseconds shape the
-    // messages table stores — "YYYY-MM-DDTHH:MM:SS.ffffff+00:00" —
+    // messages tables store — "YYYY-MM-DDTHH:MM:SS.ffffff+00:00" —
     // so string comparison matches real-time ordering. git commit
     // timestamps come in with the committer's timezone offset
     // ("T10:16:41-05:00"), which breaks character-wise comparison
-    // against stored UTC strings ("T15:16:41+00:00"). Parse, convert
-    // to UTC, re-serialize.
+    // against stored UTC strings ("T15:16:41+00:00").
     let cutoff = chrono::DateTime::parse_from_rfc3339(cutoff_ts)
         .map(|dt| dt.with_timezone(&chrono::Utc)
             .to_rfc3339_opts(chrono::SecondsFormat::Micros, true))
@@ -1308,19 +1311,20 @@ fn pull_eval_window(
     };
     let noise_clause = "AND role NOT IN ('illustration','video','inventory_update','imagined_chapter','settings_update','system')";
     let (op, order) = if direction == "before" { ("<", "DESC") } else { (">=", "ASC") };
+    let messages_table = if is_group { "group_messages" } else { "messages" };
 
     let query = format!(
         "SELECT message_id, thread_id, role, content, tokens_estimate, sender_character_id,
                 created_at, world_day, world_time, address_to, mood_chain, is_proactive
-         FROM messages
+         FROM {tbl}
          WHERE thread_id = ?1 AND created_at {op} ?2 {role_clause} {noise_clause}
          ORDER BY created_at {order} LIMIT ?3",
-        op = op, order = order,
+        tbl = messages_table, op = op, order = order,
         role_clause = role_clause, noise_clause = noise_clause,
     );
     let mut stmt = conn.prepare(&query)?;
     let rows = stmt.query_map(
-        rusqlite::params![thread.thread_id, cutoff, limit],
+        rusqlite::params![thread_id, cutoff, limit],
         |r| Ok(app_lib::db::queries::Message {
             message_id: r.get(0)?,
             thread_id: r.get(1)?,
@@ -1340,14 +1344,18 @@ fn pull_eval_window(
 
     // For each target, find the nearest preceding user turn in the
     // FULL thread (not constrained to the working-set window).
+    let prev_query = format!(
+        "SELECT message_id, thread_id, role, content, tokens_estimate, sender_character_id,
+                created_at, world_day, world_time, address_to, mood_chain, is_proactive
+         FROM {tbl}
+         WHERE thread_id = ?1 AND role = 'user' AND created_at < ?2
+         ORDER BY created_at DESC LIMIT 1",
+        tbl = messages_table,
+    );
     let mut pairs: Vec<(app_lib::db::queries::Message, Option<app_lib::db::queries::Message>)> = Vec::new();
     for m in targets {
         let prev: Option<app_lib::db::queries::Message> = conn.query_row(
-            "SELECT message_id, thread_id, role, content, tokens_estimate, sender_character_id,
-                    created_at, world_day, world_time, address_to, mood_chain, is_proactive
-             FROM messages
-             WHERE thread_id = ?1 AND role = 'user' AND created_at < ?2
-             ORDER BY created_at DESC LIMIT 1",
+            &prev_query,
             rusqlite::params![m.thread_id, m.created_at],
             |r| Ok(app_lib::db::queries::Message {
                 message_id: r.get(0)?,
@@ -1375,7 +1383,8 @@ async fn cmd_evaluate(
     git_ref: &str,
     end_ref: Option<&str>,
     limit: i64,
-    character_id: &str,
+    character_id: Option<&str>,
+    group_chat_id: Option<&str>,
     rubric: Option<&str>,
     rubric_file: Option<&std::path::Path>,
     role: &str,
@@ -1397,24 +1406,48 @@ async fn cmd_evaluate(
         return Err(Box::<dyn std::error::Error>::from("rubric is empty".to_string()));
     }
 
-    // ─── Resolve character + refs ─────────────────────────────────────
-    let _ = r.check_character(character_id)?;
+    // ─── Resolve scope (solo character vs. group chat) ───────────────
+    if character_id.is_some() && group_chat_id.is_some() {
+        return Err(Box::<dyn std::error::Error>::from(
+            "pass either --character or --group-chat, not both".to_string()));
+    }
+    if character_id.is_none() && group_chat_id.is_none() {
+        return Err(Box::<dyn std::error::Error>::from(
+            "one of --character or --group-chat is required".to_string()));
+    }
+    if let Some(cid) = character_id { let _ = r.check_character(cid)?; }
+
     let (before_sha, before_ts, before_subject) = git_resolve_ref(repo, git_ref)?;
     let (after_sha, after_ts, after_subject) = match end_ref {
         Some(er) => git_resolve_ref(repo, er)?,
         None => (before_sha.clone(), before_ts.clone(), before_subject.clone()),
     };
 
-    // ─── Pull windows + model config ──────────────────────────────────
-    let (model_config, before_pairs, after_pairs, character_name) = {
+    // ─── Pull windows + model config + display label ─────────────────
+    let (model_config, before_pairs, after_pairs, display_label, is_group) = {
         let conn = r.db.conn.lock().unwrap();
         let mut mc = orchestrator::load_model_config(&conn);
         if let Some(m) = model_override { mc.memory_model = m.to_string(); }
-        let before = pull_eval_window(&conn, character_id, &before_ts, "before", role, limit)?;
-        let after  = pull_eval_window(&conn, character_id, &after_ts,  "after",  role, limit)?;
-        let cname = get_character(&conn, character_id)?.display_name;
-        (mc, before, after, cname)
+
+        let (thread_id, is_group, display) = if let Some(cid) = character_id {
+            let thread = get_thread_for_character(&conn, cid)?;
+            let ch = get_character(&conn, cid)?;
+            (thread.thread_id, false, format!("{} (solo)", ch.display_name))
+        } else {
+            let gcid = group_chat_id.unwrap();
+            let gc = get_group_chat(&conn, gcid)
+                .map_err(|e| Box::<dyn std::error::Error>::from(
+                    format!("group_chat {}: {}", gcid, e)))?;
+            r.check_world(&gc.world_id)?;
+            (gc.thread_id, true, format!("{} (group)", gc.display_name))
+        };
+
+        let before = pull_eval_window(&conn, &thread_id, is_group, &before_ts, "before", role, limit)?;
+        let after  = pull_eval_window(&conn, &thread_id, is_group, &after_ts,  "after",  role, limit)?;
+        (mc, before, after, display, is_group)
     };
+    let _ = is_group; // referenced below only indirectly; here for readability
+    let character_name = display_label;
 
     let total_msgs = before_pairs.len() + after_pairs.len();
     if total_msgs == 0 {
@@ -1560,7 +1593,8 @@ async fn cmd_evaluate(
         "end_ref_timestamp": end_ref.map(|_| after_ts),
         "end_ref_subject": end_ref.map(|_| after_subject),
         "character_id": character_id,
-        "character_name": character_name,
+        "group_chat_id": group_chat_id,
+        "scope_label": character_name,
         "role_filter": role,
         "rubric": rubric_text,
         "model": model_config.memory_model,
@@ -1587,7 +1621,8 @@ async fn cmd_evaluate(
         println!("=== EVALUATION ===");
         println!("ref:       {} ({})", git_ref, &before_sha[..8.min(before_sha.len())]);
         println!("subject:   {}", before_subject);
-        println!("character: {} ({})", character_name, character_id);
+        let scope_id = character_id.or(group_chat_id).unwrap_or("?");
+        println!("scope:     {} ({})", character_name, scope_id);
         println!("rubric:    {}", rubric_text.lines().next().unwrap_or(""));
         println!();
         println!("BEFORE window ({} msgs):", before_results.len());
