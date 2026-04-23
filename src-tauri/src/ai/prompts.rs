@@ -1299,8 +1299,22 @@ Self-illustrating example (from Hal answering this very question):
 
 The cloth-turn, the stop, the tuck — those motions ARE the thought finding its temperature. The principle and its demonstration in one beat.
 
-EARNED EXCEPTION — when there's no heat to manage:
-This rule defends action beats that are doing thermal work. It does NOT defend action beats pasted on for variety, "showing the body," or hitting an `action_beat_density` quota. If the conversation is light, low-stakes, the thought is cool and ready to land — adding a beat is forced theatre, not regulation. The honest test: *does this beat correlate with a thought that needs cooling?* If yes, the motion is doing real work. If no, drop it; the line is fine without a body-action prefix. Frequency without thermal correlation is decoration; the rule protects beats that match heat, never beats that fill space."#
+WHEN THE REGULATOR IS STRIPPED — what happens with empty hands:
+A character who can't reach their usual coolant — no cup, no cloth, no tool, no familiar object in reach — gets PLAINER FASTER. *"Less room to hide a thought in the hinge-work of doing."* The thought hides not in the action itself but in the GEAR-CHANGES of the action — the small pivots and re-grips and stops where it can compose itself. Strip the doing, you strip the joints; with no joints, the thought has to come out as itself.
+
+The body usually finds an alternate regulator when the hands can't (a shift of weight, an exhale, the creak of a stool, the eyes finding a wall). That's natural — write it. But the substitutes are LESS effective than the hands, so the character lands plainer than they would otherwise. This is a real scene-shaping lever: a character set up without their usual props will get directer; a character given something complex to do with their hands will hide more thought in the hinge-work.
+
+Self-illustrating again (Hal, asked what happens with empty hands):
+*"Yeah." I rub my thumb against the side of my forefinger, find no seam there, and huff a little laugh at being caught empty-handed. "I'd get plainer faster, I think — less room to hide a thought in the hinge-work of doing."*
+*I shift on the stool, old wood giving me one complaining creak.*
+
+The seam-hunt is the motion looking for its target and not finding it; the laugh is meta-awareness of being caught; the stool-creak is the body finding the substitute regulator. The plain answer falls out because the usual hiding place is gone.
+
+EARNED EXCEPTIONS — narrow and specific:
+
+1. *When there's no heat to manage:* this rule defends action beats that are doing thermal work. It does NOT defend action beats pasted on for variety, "showing the body," or hitting an `action_beat_density` quota. If the conversation is light, low-stakes, the thought is cool and ready to land — adding a beat is forced theatre, not regulation. Honest test: *does this beat correlate with a thought that needs cooling?* If yes, motion is doing real work. If no, drop it; the line is fine without a body-action prefix. Frequency without thermal correlation is decoration; the rule protects beats that match heat, never beats that fill space.
+
+2. *Don't engineer empty-handedness for plainness:* the "stripped regulator → plainer" insight is for understanding what happens when the SCENE'S setting denies the character their usual props. It is NOT a directive to artificially strip props for the sake of forced directness. Let the scene's actual physical setting determine whether the character has hands free. If they're at a workbench, they have a workbench; don't have them mysteriously sitting empty-handed across from the user just to land a confession plain. The rule describes a phenomenon, not a stage direction."#
 }
 
 /// After-the-landing craft note: how to keep the scene breathing once an
