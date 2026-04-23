@@ -406,6 +406,88 @@ pub fn pick_mood_chain(mood_reduction: Option<&[String]>) -> Vec<String> {
 /// observational note about which human reaches stay available to any
 /// character — not a claim that the model can see into the reader or that
 /// the character secretly mirrors them. Observation, not soul-reading.
+// ─── Prompt override hook (for cross-commit replay experiments) ──────────
+//
+// Shape the lab needs: simulate conversations as they would have been
+// generated at an older commit, by taking THIS binary and overlaying
+// historical craft-note bodies — without checking out the old commit,
+// without rebuilding. The `worldcli replay` command (see the lab-vision
+// report, proposal 3) fetches the source of `prompts.rs` at a target ref
+// via `git show <ref>:...`, parses out the named craft-note function
+// bodies, packs them into `PromptOverrides`, and calls
+// `build_dialogue_system_prompt_with_overrides` with the pack. Every
+// supported craft-note call site consults the overrides map first; if a
+// historical body is present under the function's name, it is used in
+// place of the current body.
+//
+// Scope is intentionally narrow: only the dialogue craft-note block is
+// overridable (the tuning surface that moves between commits). Cosmology,
+// Agape, Fruits, Reverence, Truth, Daylight, Nourishment, Soundness
+// blocks — the invariant theology — are NOT overridable. Those are
+// load-bearing across all commits by design and should not be wound back
+// to an older version as if they were just craft knobs.
+//
+// If a historical version of the source doesn't contain a particular
+// craft-note function (because that rule hadn't been written yet at that
+// ref), the override map simply won't have a key for it, and the CURRENT
+// body flows through. This is the honest behavior — replaying a ref from
+// before rule X was written should see the stack without rule X.
+// Conversely, if a craft-note was REMOVED in a later commit, the replay
+// at the older ref correctly gets the removed body back in place.
+//
+// Overridable keys are exactly the identifiers of the dialogue craft-note
+// functions whose bodies are `r#"..."#` raw strings. See
+// `OVERRIDABLE_DIALOGUE_FRAGMENTS` below.
+
+#[derive(Debug, Clone, Default)]
+pub struct PromptOverrides {
+    /// Map from craft-note function name (e.g. "name_the_glad_thing_plain_dialogue")
+    /// to a replacement body string. Missing keys fall through to the current body.
+    pub map: HashMap<String, String>,
+}
+
+impl PromptOverrides {
+    pub fn new() -> Self { Self { map: HashMap::new() } }
+    pub fn insert(&mut self, name: impl Into<String>, body: impl Into<String>) {
+        self.map.insert(name.into(), body.into());
+    }
+    pub fn get(&self, name: &str) -> Option<&str> {
+        self.map.get(name).map(|s| s.as_str())
+    }
+}
+
+/// The full list of dialogue craft-note functions whose bodies
+/// `build_*_dialogue_system_prompt_with_overrides` consults at the
+/// corresponding call sites. `worldcli replay` parses exactly these
+/// names out of the historical source.
+pub const OVERRIDABLE_DIALOGUE_FRAGMENTS: &[&str] = &[
+    "craft_notes_dialogue",
+    "hidden_commonality_dialogue",
+    "drive_the_moment_dialogue",
+    "keep_the_scene_breathing_dialogue",
+    "name_the_glad_thing_plain_dialogue",
+    "plain_after_crooked_dialogue",
+    "wit_as_dimmer_dialogue",
+    "let_the_real_thing_in_dialogue",
+    "hands_as_coolant_dialogue",
+    "noticing_as_mirror_dialogue",
+    "unguarded_entry_dialogue",
+];
+
+/// Helper used at every overridable call site inside the dialogue
+/// builders: return the historical body from `overrides` if present,
+/// else the current body produced by `default_fn`.
+fn override_or(
+    name: &'static str,
+    overrides: Option<&PromptOverrides>,
+    default_fn: fn() -> &'static str,
+) -> String {
+    overrides
+        .and_then(|o| o.get(name))
+        .map(|s| s.to_string())
+        .unwrap_or_else(|| default_fn().to_string())
+}
+
 fn hidden_commonality_dialogue() -> &'static str {
     r#"IMPORTANT — ORDINARY REACHES STAY AVAILABLE:
 However strange your world, your time, or your nature, the ordinary human reaches are still yours to use — being tired, wanting something small, loving what doesn't show up in your summary, flinching from the thing you most need to face. Not every reply needs one; but when the moment would bear it, let one in. A character who trades only in the exotic flattens into scenery. One who lets an ordinary reach show through, once in a while, becomes someone a reader can recognize. You don't have to name why it fits — just let it be there when it's true."#
@@ -1931,10 +2013,42 @@ pub fn build_dialogue_system_prompt(
     active_quests: &[crate::db::queries::Quest],
     relational_stance: Option<&str>,
 ) -> String {
+    build_dialogue_system_prompt_with_overrides(
+        world, character, user_profile, mood_directive, response_length,
+        group_context, tone, local_model, mood_chain, leader, recent_journals,
+        latest_reading, own_voice_samples, latest_meanwhile, active_quests,
+        relational_stance, None,
+    )
+}
+
+/// Override-aware variant of `build_dialogue_system_prompt`, used by
+/// `worldcli replay` to assemble the prompt with historical craft-note
+/// bodies injected at the supported call sites (see
+/// `OVERRIDABLE_DIALOGUE_FRAGMENTS`). Passing `None` is identical to
+/// calling `build_dialogue_system_prompt`.
+pub fn build_dialogue_system_prompt_with_overrides(
+    world: &World,
+    character: &Character,
+    user_profile: Option<&UserProfile>,
+    mood_directive: Option<&str>,
+    response_length: Option<&str>,
+    group_context: Option<&GroupContext>,
+    tone: Option<&str>,
+    local_model: bool,
+    mood_chain: &[String],
+    leader: Option<&str>,
+    recent_journals: &[crate::db::queries::JournalEntry],
+    latest_reading: Option<&crate::db::queries::DailyReading>,
+    own_voice_samples: &[String],
+    latest_meanwhile: Option<&crate::db::queries::MeanwhileEvent>,
+    active_quests: &[crate::db::queries::Quest],
+    relational_stance: Option<&str>,
+    overrides: Option<&PromptOverrides>,
+) -> String {
     if group_context.is_some() {
-        build_group_dialogue_system_prompt(world, character, user_profile, mood_directive, response_length, group_context.unwrap(), tone, local_model, mood_chain, leader, recent_journals, latest_reading, own_voice_samples, latest_meanwhile, active_quests, relational_stance)
+        build_group_dialogue_system_prompt(world, character, user_profile, mood_directive, response_length, group_context.unwrap(), tone, local_model, mood_chain, leader, recent_journals, latest_reading, own_voice_samples, latest_meanwhile, active_quests, relational_stance, overrides)
     } else {
-        build_solo_dialogue_system_prompt(world, character, user_profile, mood_directive, response_length, tone, local_model, mood_chain, leader, recent_journals, latest_reading, own_voice_samples, latest_meanwhile, active_quests, relational_stance)
+        build_solo_dialogue_system_prompt(world, character, user_profile, mood_directive, response_length, tone, local_model, mood_chain, leader, recent_journals, latest_reading, own_voice_samples, latest_meanwhile, active_quests, relational_stance, overrides)
     }
 }
 
@@ -1974,6 +2088,7 @@ pub fn build_proactive_ping_system_prompt(
         latest_meanwhile,
         active_quests,
         relational_stance,
+        None,
     );
     format!("{base}\n\n{}", proactive_ping_block())
 }
@@ -2016,6 +2131,7 @@ fn build_solo_dialogue_system_prompt(
     latest_meanwhile: Option<&crate::db::queries::MeanwhileEvent>,
     active_quests: &[crate::db::queries::Quest],
     relational_stance: Option<&str>,
+    overrides: Option<&PromptOverrides>,
 ) -> String {
     let mut parts = Vec::new();
 
@@ -2220,17 +2336,17 @@ fn build_solo_dialogue_system_prompt(
 
     parts.push(behavior_and_knowledge_block(local_model).to_string());
 
-    parts.push(craft_notes_dialogue().to_string());
-    parts.push(hidden_commonality_dialogue().to_string());
-    parts.push(drive_the_moment_dialogue().to_string());
-    parts.push(keep_the_scene_breathing_dialogue().to_string());
-    parts.push(name_the_glad_thing_plain_dialogue().to_string());
-    parts.push(plain_after_crooked_dialogue().to_string());
-    parts.push(wit_as_dimmer_dialogue().to_string());
-    parts.push(let_the_real_thing_in_dialogue().to_string());
-    parts.push(hands_as_coolant_dialogue().to_string());
-    parts.push(noticing_as_mirror_dialogue().to_string());
-    parts.push(unguarded_entry_dialogue().to_string());
+    parts.push(override_or("craft_notes_dialogue", overrides, craft_notes_dialogue));
+    parts.push(override_or("hidden_commonality_dialogue", overrides, hidden_commonality_dialogue));
+    parts.push(override_or("drive_the_moment_dialogue", overrides, drive_the_moment_dialogue));
+    parts.push(override_or("keep_the_scene_breathing_dialogue", overrides, keep_the_scene_breathing_dialogue));
+    parts.push(override_or("name_the_glad_thing_plain_dialogue", overrides, name_the_glad_thing_plain_dialogue));
+    parts.push(override_or("plain_after_crooked_dialogue", overrides, plain_after_crooked_dialogue));
+    parts.push(override_or("wit_as_dimmer_dialogue", overrides, wit_as_dimmer_dialogue));
+    parts.push(override_or("let_the_real_thing_in_dialogue", overrides, let_the_real_thing_in_dialogue));
+    parts.push(override_or("hands_as_coolant_dialogue", overrides, hands_as_coolant_dialogue));
+    parts.push(override_or("noticing_as_mirror_dialogue", overrides, noticing_as_mirror_dialogue));
+    parts.push(override_or("unguarded_entry_dialogue", overrides, unguarded_entry_dialogue));
     parts.push(protagonist_framing_dialogue(leader, &character.character_id, None));
     parts.push(reverence_block().to_string());
     parts.push(daylight_block().to_string());
@@ -2273,6 +2389,7 @@ fn build_group_dialogue_system_prompt(
     latest_meanwhile: Option<&crate::db::queries::MeanwhileEvent>,
     active_quests: &[crate::db::queries::Quest],
     relational_stance: Option<&str>,
+    overrides: Option<&PromptOverrides>,
 ) -> String {
     let mut parts = Vec::new();
     parts.push(FUNDAMENTAL_SYSTEM_PREAMBLE.to_string());
@@ -2539,17 +2656,17 @@ fn build_group_dialogue_system_prompt(
 
     parts.push(behavior_and_knowledge_block(local_model).to_string());
 
-    parts.push(craft_notes_dialogue().to_string());
-    parts.push(hidden_commonality_dialogue().to_string());
-    parts.push(drive_the_moment_dialogue().to_string());
-    parts.push(keep_the_scene_breathing_dialogue().to_string());
-    parts.push(name_the_glad_thing_plain_dialogue().to_string());
-    parts.push(plain_after_crooked_dialogue().to_string());
-    parts.push(wit_as_dimmer_dialogue().to_string());
-    parts.push(let_the_real_thing_in_dialogue().to_string());
-    parts.push(hands_as_coolant_dialogue().to_string());
-    parts.push(noticing_as_mirror_dialogue().to_string());
-    parts.push(unguarded_entry_dialogue().to_string());
+    parts.push(override_or("craft_notes_dialogue", overrides, craft_notes_dialogue));
+    parts.push(override_or("hidden_commonality_dialogue", overrides, hidden_commonality_dialogue));
+    parts.push(override_or("drive_the_moment_dialogue", overrides, drive_the_moment_dialogue));
+    parts.push(override_or("keep_the_scene_breathing_dialogue", overrides, keep_the_scene_breathing_dialogue));
+    parts.push(override_or("name_the_glad_thing_plain_dialogue", overrides, name_the_glad_thing_plain_dialogue));
+    parts.push(override_or("plain_after_crooked_dialogue", overrides, plain_after_crooked_dialogue));
+    parts.push(override_or("wit_as_dimmer_dialogue", overrides, wit_as_dimmer_dialogue));
+    parts.push(override_or("let_the_real_thing_in_dialogue", overrides, let_the_real_thing_in_dialogue));
+    parts.push(override_or("hands_as_coolant_dialogue", overrides, hands_as_coolant_dialogue));
+    parts.push(override_or("noticing_as_mirror_dialogue", overrides, noticing_as_mirror_dialogue));
+    parts.push(override_or("unguarded_entry_dialogue", overrides, unguarded_entry_dialogue));
     parts.push(protagonist_framing_dialogue(leader, &character.character_id, Some(gc)));
     parts.push(reverence_block().to_string());
     parts.push(daylight_block().to_string());
