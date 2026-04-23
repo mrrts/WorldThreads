@@ -111,7 +111,7 @@ worldcli synthesize --ref 8e9e53d --character <john> --limit 20 \
 
 **Build cost:** medium. Most of the plumbing (sampling, cost gate, run log) already exists in `evaluate`; the new part is the synthesis-prompt shape and prose output. ~4 hours.
 
-### 5. Experiment registry — high cost, transformational ROI
+### 5. Experiment registry — high cost, transformational ROI — **SHIPPED 2026-04-23**
 
 A structured experiment file per hypothesis, under `experiments/<slug>.md` (or `.yaml`, TBD). Schema:
 

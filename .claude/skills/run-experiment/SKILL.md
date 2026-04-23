@@ -37,6 +37,8 @@ Read the most recent 2–3 reports in `reports/` in full. They'll tell you which
 
 ### Step 1 — Audition 2–3 candidate hypotheses
 
+**First, check `worldcli lab open`** to see which hypotheses are already in flight or pending follow-up. A candidate that matches (or close-matches) an open experiment should reference it by slug — either "candidate 1 is a natural N≥5 follow-up to the open `jasper-glad-thing-replay` experiment" or "candidate 2 is fresh — no related experiment in the registry yet." This prevents re-inventing hypotheses the project has already framed.
+
 Generate 2 or 3 candidates, not ten. A hypothesis worth auditioning:
 
 - Names a **specific, falsifiable** claim. ("Rule X reduced failure mode Y in corpus Z" — not "rule X is working.")
@@ -105,7 +107,7 @@ Before writing the report, decide straight:
 
 **Don't overclaim. A null result is a real result — say so plainly.** The 2026-04-23 *null-result* report is a worked example: zero hits in either window was a meaningful finding about where the rule earns its keep, not a failure of the instrument.
 
-### Step 5 — Report and commit
+### Step 5 — Report, register, and commit
 
 Save to `reports/YYYY-MM-DD-HHMM-<purpose-slug>.md` using the CLAUDE.md naming convention. Structure:
 
@@ -117,7 +119,13 @@ Save to `reports/YYYY-MM-DD-HHMM-<purpose-slug>.md` using the CLAUDE.md naming c
 - **Dialogue with prior reports**: what this confirms or complicates from earlier runs.
 - **What's open for next time**: one or two follow-up hypotheses the result suggests.
 
-Commit and push per the project's standing autonomy. The report is the artifact; a run not written up is only partial value.
+**Also update the registry.** If the experiment wasn't already scaffolded during Step 1, create it now with `worldcli lab propose <slug> --hypothesis "..." --mode ... --prediction "..." [--ref <sha>] [--rubric-ref <name>]`. Then:
+
+- `worldcli lab link-run <slug> <run_id>` — attach the evaluate/synthesize/replay run id that produced the result.
+- `worldcli lab resolve <slug> --status confirmed|refuted|open --summary "..." --report <path-to-your-report>` — record the outcome.
+- If the result opens follow-up hypotheses worth tracking across sessions, propose them too (`worldcli lab propose <follow-up-slug> --hypothesis "..." --mode ...` with status=proposed) and edit this experiment's `follow_ups:` list to reference them.
+
+Commit and push per the project's standing autonomy. The report is the interpretive artifact; the registry entry is the queryable shape. Both matter — future sessions read the report for the argument and the registry for the trail.
 
 ## Confounds to stratify against (not just attribute to the commit)
 

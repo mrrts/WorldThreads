@@ -390,6 +390,24 @@ worldcli replay-runs list [--limit N]
 worldcli replay-runs show <id-or-prefix>
 worldcli replay-runs search "<substring>"
 
+# Experiment registry — one file per hypothesis under experiments/<slug>.md,
+# with YAML-ish frontmatter (status / mode / ref / rubric_ref / prediction /
+# run_ids / follow_ups / reports) and markdown-body interpretation. The
+# query layer above evaluate-runs/synthesize-runs/replay-runs: "what's
+# still open? what's been refuted? which rubrics keep refuting? which
+# characters have never been probed?" Status lifecycle: proposed → running
+# → confirmed | refuted | open. See experiments/README.md for the schema
+# and the bar for when to register vs when the run-log alone is enough.
+worldcli lab list [--status <s>]
+worldcli lab open                    # just proposed | running | open
+worldcli lab show <slug>
+worldcli lab search "<substring>"
+worldcli lab propose <slug> --hypothesis "..." --mode passive|qualitative|active \
+    --prediction "..." [--ref <sha>] [--rubric-ref <name>]
+worldcli lab resolve <slug> --status confirmed|refuted|open \
+    [--summary "..."] [--report <path>]
+worldcli lab link-run <slug> <run_id>   # attach evaluate/synthesize/replay id
+
 # Read your own prior runs (avoid redoing answered questions):
 worldcli runs-list [--limit N] [--json]
 worldcli runs-show <id-or-prefix> [--json]
