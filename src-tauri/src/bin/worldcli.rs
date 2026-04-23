@@ -213,6 +213,18 @@ enum Cmd {
         action: ReplayRunAction,
     },
 
+    /// Experiment registry at `experiments/*.md` — a structured hypothesis
+    /// file per experiment with YAML-ish frontmatter (status, mode, refs,
+    /// rubric_ref, prediction, run_ids, follow_ups, reports) and
+    /// markdown-body interpretation. Enables queries across the full
+    /// experimental history (what's open? what's been refuted? what
+    /// rubrics keep refuting? which characters have never been probed?)
+    /// that prose reports alone can't answer cheaply.
+    Lab {
+        #[command(subcommand)]
+        action: LabAction,
+    },
+
     /// Cross-commit A/B replay — Mode C's strongest instrument. Takes
     /// one user prompt + one character + a list of git refs. For each
     /// ref, fetches the historical `prompts.rs` via `git show <ref>:...`,
@@ -564,6 +576,68 @@ enum ReplayRunAction {
     Show { id: String },
     /// Search replay envelopes for a substring.
     Search { query: String },
+}
+
+#[derive(Subcommand)]
+enum LabAction {
+    /// List experiments in the registry.
+    List {
+        /// Filter by status: proposed | running | open | confirmed | refuted.
+        #[arg(long)]
+        status: Option<String>,
+    },
+    /// List just the non-resolved experiments (proposed | running | open).
+    /// The "what's still open" view future sessions use to pick up threads.
+    Open,
+    /// Show one experiment's full file (frontmatter + markdown body).
+    Show { slug: String },
+    /// Search experiment files for a substring across hypothesis / prediction
+    /// / summary / scope / reports / the markdown body.
+    Search { query: String },
+    /// Scaffold a new experiment file under `experiments/<slug>.md`.
+    /// Initial status is 'proposed' — advance to 'running' when execution
+    /// starts, then 'confirmed' | 'refuted' | 'open' via `lab resolve`.
+    Propose {
+        /// Slug used for the filename. Match the shape of rubric names:
+        /// kebab-case, letters/digits/hyphens only, under ~50 chars.
+        slug: String,
+        /// The hypothesis this experiment tests, in one or two sentences.
+        #[arg(long)]
+        hypothesis: String,
+        /// Experimental mode — passive (Mode A), qualitative (Mode B),
+        /// or active (Mode C).
+        #[arg(long)]
+        mode: String,
+        /// What CONFIRMED looks like and what REFUTED looks like,
+        /// written BEFORE any LLM call (pre-registered prediction).
+        #[arg(long)]
+        prediction: String,
+        /// Optional: the git ref the experiment pivots on.
+        #[arg(long)]
+        r#ref: Option<String>,
+        /// Optional: the rubric from the library this experiment uses.
+        #[arg(long)]
+        rubric_ref: Option<String>,
+    },
+    /// Resolve an experiment — mark the outcome.
+    Resolve {
+        slug: String,
+        /// New status: confirmed | refuted | open.
+        #[arg(long)]
+        status: String,
+        /// Short summary of the result (written to frontmatter).
+        #[arg(long)]
+        summary: Option<String>,
+        /// Optional: path to the report that holds the full interpretation.
+        #[arg(long)]
+        report: Option<String>,
+    },
+    /// Link a run (evaluate / synthesize / replay) to an experiment by id
+    /// or prefix — the run id gets appended to the experiment's run_ids.
+    LinkRun {
+        slug: String,
+        run_id: String,
+    },
 }
 
 // ─── Config / homedir layout ────────────────────────────────────────────
@@ -1021,6 +1095,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             cmd_synthesize(&r, &api_key, &git_ref, end_ref.as_deref(), limit, character.as_deref(), group_chat.as_deref(), question.as_deref(), question_file.as_deref(), &role, context_turns, model.as_deref(), confirm_cost, repo.as_deref()).await
         }
         Cmd::ReplayRuns { action } => cmd_replay_runs(&r, action),
+        Cmd::Lab { action } => cmd_lab(&r, action),
         Cmd::Replay { refs, character, prompt, model, confirm_cost, repo } => {
             let api_key = match resolve_api_key(cli.api_key.as_deref()) {
                 Some(k) => k,
@@ -3260,6 +3335,486 @@ async fn cmd_replay(
         }
         eprintln!("[worldcli] actual cost ${:.4} ({} in / {} out tok)",
             actual_usd, total_in, total_out);
+    }
+    Ok(())
+}
+
+// ─── Experiment registry (experiments/*.md) ─────────────────────────────
+//
+// Structured hypothesis files. Each file is markdown-with-YAML-ish-
+// frontmatter. Schema is intentionally flat (no nested YAML) so the
+// hand-parser stays simple:
+//
+//   Scalars: id, status, mode, ref, rubric_ref, created_at, resolved_at,
+//            report (a single path; use `reports` list for multiples)
+//   Block scalars (prose, `|`-prefixed): hypothesis, prediction, summary
+//   Flat string-lists: scope_characters, scope_group_chats, run_ids,
+//                      follow_ups, reports
+//
+// The markdown body (after the closing `---`) holds free-form
+// interpretation / notes and is preserved verbatim on update.
+
+fn experiments_dir() -> PathBuf { PathBuf::from("experiments") }
+
+#[derive(Debug, Clone, Default)]
+struct ExperimentFile {
+    slug: String,
+    path: PathBuf,
+    // Scalar fields
+    id: String,
+    status: String,
+    mode: String,
+    git_ref: String,
+    rubric_ref: String,
+    created_at: String,
+    resolved_at: String,
+    // Block-scalar fields
+    hypothesis: String,
+    prediction: String,
+    summary: String,
+    // List fields
+    scope_characters: Vec<String>,
+    scope_group_chats: Vec<String>,
+    run_ids: Vec<String>,
+    follow_ups: Vec<String>,
+    reports: Vec<String>,
+    // The markdown body that follows the frontmatter, verbatim.
+    body: String,
+    // The raw file text — useful for `lab show` and preserving fields
+    // the parser doesn't know about.
+    raw: String,
+}
+
+/// Split raw file text into (frontmatter, body). Returns None if the
+/// file doesn't start with a `---` fence.
+fn split_frontmatter(raw: &str) -> Option<(String, String)> {
+    let mut lines = raw.lines();
+    let first = lines.next()?;
+    if first.trim() != "---" { return None; }
+    let mut fm: Vec<&str> = Vec::new();
+    let mut body_start = None;
+    let mut idx = first.len() + 1; // past the opening fence
+    for line in lines {
+        idx += line.len() + 1;
+        if line.trim() == "---" {
+            body_start = Some(idx);
+            break;
+        }
+        fm.push(line);
+    }
+    let body = if let Some(bs) = body_start {
+        raw.get(bs.min(raw.len())..).unwrap_or("").to_string()
+    } else {
+        return None;
+    };
+    Some((fm.join("\n"), body))
+}
+
+/// Parse flat YAML-ish frontmatter. Handles:
+///   key: scalar
+///   key: |          (block scalar; indented continuation until dedent)
+///   key:            (list; next `- ` prefixed indented lines are items)
+fn parse_experiment_frontmatter(fm_text: &str) -> ExperimentFile {
+    let mut out = ExperimentFile::default();
+    let lines: Vec<&str> = fm_text.lines().collect();
+    let mut i = 0;
+    while i < lines.len() {
+        let line = lines[i];
+        let trimmed = line.trim_end();
+        if trimmed.trim_start().is_empty() {
+            i += 1;
+            continue;
+        }
+        // Only top-level keys (no leading whitespace) start a new field.
+        if line.starts_with(' ') || line.starts_with('\t') {
+            i += 1;
+            continue;
+        }
+        // Extract key:value or key: (block / list).
+        let (key, rest) = match line.find(':') {
+            Some(ci) => (line[..ci].trim().to_string(), line[ci + 1..].to_string()),
+            None => { i += 1; continue; }
+        };
+        let rest_t = rest.trim();
+
+        if rest_t == "|" {
+            // Block scalar: collect indented continuation until dedent.
+            let mut buf: Vec<String> = Vec::new();
+            i += 1;
+            while i < lines.len() {
+                let l = lines[i];
+                if l.is_empty() { buf.push(String::new()); i += 1; continue; }
+                if !(l.starts_with(' ') || l.starts_with('\t')) { break; }
+                // Strip a two-space / tab indent.
+                let stripped = l.strip_prefix("  ").or_else(|| l.strip_prefix('\t')).unwrap_or(l);
+                buf.push(stripped.to_string());
+                i += 1;
+            }
+            // Trim trailing blank lines.
+            while buf.last().map(|s| s.is_empty()).unwrap_or(false) { buf.pop(); }
+            let value = buf.join("\n");
+            assign_scalar(&mut out, &key, value);
+        } else if rest_t.is_empty() {
+            // List: next lines starting with "- " are items.
+            let mut items: Vec<String> = Vec::new();
+            i += 1;
+            while i < lines.len() {
+                let l = lines[i];
+                let lt = l.trim_start();
+                if lt.starts_with("- ") {
+                    let item = lt[2..].trim().trim_matches('"').to_string();
+                    if !item.is_empty() { items.push(item); }
+                    i += 1;
+                } else if l.trim().is_empty() {
+                    i += 1;
+                } else {
+                    break;
+                }
+            }
+            assign_list(&mut out, &key, items);
+        } else {
+            // Inline scalar.
+            let value = rest_t.trim_matches('"').to_string();
+            assign_scalar(&mut out, &key, value);
+            i += 1;
+        }
+    }
+    out
+}
+
+fn assign_scalar(out: &mut ExperimentFile, key: &str, value: String) {
+    match key {
+        "id" => out.id = value,
+        "status" => out.status = value,
+        "mode" => out.mode = value,
+        "ref" => out.git_ref = value,
+        "rubric_ref" => out.rubric_ref = value,
+        "created_at" => out.created_at = value,
+        "resolved_at" => out.resolved_at = value,
+        "hypothesis" => out.hypothesis = value,
+        "prediction" => out.prediction = value,
+        "summary" => out.summary = value,
+        _ => {}
+    }
+}
+
+fn assign_list(out: &mut ExperimentFile, key: &str, items: Vec<String>) {
+    match key {
+        "scope_characters" => out.scope_characters = items,
+        "scope_group_chats" => out.scope_group_chats = items,
+        "run_ids" => out.run_ids = items,
+        "follow_ups" => out.follow_ups = items,
+        "reports" => out.reports = items,
+        _ => {}
+    }
+}
+
+fn load_experiment(slug: &str) -> Result<ExperimentFile, String> {
+    let path = experiments_dir().join(format!("{}.md", slug));
+    if !path.exists() {
+        return Err(format!("experiment '{}' not found at {}. Run `worldcli lab list` to see the registry.", slug, path.display()));
+    }
+    let raw = std::fs::read_to_string(&path)
+        .map_err(|e| format!("failed to read {}: {}", path.display(), e))?;
+    let (fm_text, body) = split_frontmatter(&raw)
+        .ok_or_else(|| format!("experiment '{}' has no `---` frontmatter fence", slug))?;
+    let mut exp = parse_experiment_frontmatter(&fm_text);
+    exp.slug = slug.to_string();
+    exp.path = path;
+    exp.body = body;
+    exp.raw = raw;
+    if exp.id.is_empty() { exp.id = slug.to_string(); }
+    Ok(exp)
+}
+
+fn list_experiments() -> Result<Vec<ExperimentFile>, String> {
+    let dir = experiments_dir();
+    if !dir.exists() { return Ok(Vec::new()); }
+    let mut out = Vec::new();
+    for entry in std::fs::read_dir(&dir).map_err(|e| e.to_string())?.flatten() {
+        let path = entry.path();
+        if path.extension().and_then(|e| e.to_str()) != Some("md") { continue; }
+        let fname = path.file_stem().and_then(|s| s.to_str()).unwrap_or("").to_string();
+        if fname == "README" { continue; }
+        if let Ok(exp) = load_experiment(&fname) {
+            out.push(exp);
+        }
+    }
+    out.sort_by(|a, b| a.created_at.cmp(&b.created_at).reverse()
+        .then_with(|| a.slug.cmp(&b.slug)));
+    Ok(out)
+}
+
+/// Serialize an ExperimentFile back to disk. Preserves the markdown
+/// body verbatim. The frontmatter fields are written in a stable order
+/// so diffs are clean.
+fn write_experiment(exp: &ExperimentFile) -> Result<(), String> {
+    let dir = experiments_dir();
+    std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
+    let path = dir.join(format!("{}.md", exp.slug));
+
+    let mut fm = String::new();
+    fm.push_str("---\n");
+    push_scalar(&mut fm, "id", &exp.id);
+    push_scalar(&mut fm, "status", &exp.status);
+    push_scalar(&mut fm, "mode", &exp.mode);
+    push_scalar(&mut fm, "created_at", &exp.created_at);
+    if !exp.resolved_at.is_empty() { push_scalar(&mut fm, "resolved_at", &exp.resolved_at); }
+    if !exp.git_ref.is_empty() { push_scalar(&mut fm, "ref", &exp.git_ref); }
+    if !exp.rubric_ref.is_empty() { push_scalar(&mut fm, "rubric_ref", &exp.rubric_ref); }
+    fm.push('\n');
+    push_block(&mut fm, "hypothesis", &exp.hypothesis);
+    push_block(&mut fm, "prediction", &exp.prediction);
+    if !exp.summary.is_empty() { push_block(&mut fm, "summary", &exp.summary); }
+    push_list(&mut fm, "scope_characters", &exp.scope_characters);
+    push_list(&mut fm, "scope_group_chats", &exp.scope_group_chats);
+    push_list(&mut fm, "run_ids", &exp.run_ids);
+    push_list(&mut fm, "follow_ups", &exp.follow_ups);
+    push_list(&mut fm, "reports", &exp.reports);
+    fm.push_str("---\n");
+
+    let body = if exp.body.is_empty() { "".to_string() }
+               else if exp.body.starts_with('\n') { exp.body.clone() }
+               else { format!("\n{}", exp.body) };
+    let full = format!("{}{}", fm, body);
+    std::fs::write(&path, full).map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+fn push_scalar(out: &mut String, key: &str, value: &str) {
+    if value.is_empty() { return; }
+    out.push_str(&format!("{}: {}\n", key, value));
+}
+fn push_block(out: &mut String, key: &str, value: &str) {
+    if value.is_empty() { return; }
+    out.push_str(&format!("{}: |\n", key));
+    for line in value.lines() {
+        out.push_str(&format!("  {}\n", line));
+    }
+    out.push('\n');
+}
+fn push_list(out: &mut String, key: &str, items: &[String]) {
+    if items.is_empty() { return; }
+    out.push_str(&format!("{}:\n", key));
+    for item in items {
+        out.push_str(&format!("  - {}\n", item));
+    }
+}
+
+fn cmd_lab(r: &Resolved, action: LabAction) -> Result<(), Box<dyn std::error::Error>> {
+    match action {
+        LabAction::List { status } => {
+            let mut experiments = list_experiments().map_err(Box::<dyn std::error::Error>::from)?;
+            if let Some(s) = status.as_ref() {
+                experiments.retain(|e| e.status == *s);
+            }
+            if experiments.is_empty() {
+                if !r.json {
+                    println!("No experiments in the registry at {}.", experiments_dir().display());
+                    println!("Create one with `worldcli lab propose <slug> --hypothesis \"...\" --mode passive --prediction \"...\"`");
+                }
+                emit(r.json, JsonValue::Array(Vec::new()));
+                return Ok(());
+            }
+            let out: Vec<JsonValue> = experiments.iter().map(|e| json!({
+                "slug": e.slug,
+                "status": e.status,
+                "mode": e.mode,
+                "hypothesis": e.hypothesis,
+                "ref": e.git_ref,
+                "rubric_ref": e.rubric_ref,
+                "created_at": e.created_at,
+                "run_ids": e.run_ids,
+                "reports": e.reports,
+            })).collect();
+            if r.json {
+                emit(true, JsonValue::Array(out));
+            } else {
+                for e in &experiments {
+                    let status_tag = format!("[{}]", e.status);
+                    println!("{:<10} {:<10} {}", status_tag, e.mode, e.slug);
+                    let first_line = e.hypothesis.lines().next().unwrap_or("").trim();
+                    if !first_line.is_empty() {
+                        let truncated = if first_line.chars().count() > 110 {
+                            let s: String = first_line.chars().take(110).collect();
+                            format!("{}…", s)
+                        } else { first_line.to_string() };
+                        println!("           {}", truncated);
+                    }
+                }
+            }
+        }
+        LabAction::Open => {
+            let experiments = list_experiments().map_err(Box::<dyn std::error::Error>::from)?;
+            let open: Vec<&ExperimentFile> = experiments.iter()
+                .filter(|e| matches!(e.status.as_str(), "proposed" | "running" | "open"))
+                .collect();
+            if r.json {
+                let out: Vec<JsonValue> = open.iter().map(|e| json!({
+                    "slug": e.slug, "status": e.status, "mode": e.mode,
+                    "hypothesis": e.hypothesis, "ref": e.git_ref,
+                })).collect();
+                emit(true, JsonValue::Array(out));
+            } else {
+                if open.is_empty() {
+                    println!("No open experiments. Everything in the registry is resolved (confirmed/refuted).");
+                    return Ok(());
+                }
+                println!("Open experiments ({}):", open.len());
+                for e in &open {
+                    let status_tag = format!("[{}]", e.status);
+                    println!("  {:<10} {:<10} {}", status_tag, e.mode, e.slug);
+                    let first_line = e.hypothesis.lines().next().unwrap_or("").trim();
+                    if !first_line.is_empty() {
+                        println!("             {}", first_line.chars().take(110).collect::<String>());
+                    }
+                }
+            }
+        }
+        LabAction::Show { slug } => {
+            let exp = load_experiment(&slug).map_err(Box::<dyn std::error::Error>::from)?;
+            if r.json {
+                emit(true, json!({
+                    "slug": exp.slug,
+                    "path": exp.path.display().to_string(),
+                    "id": exp.id, "status": exp.status, "mode": exp.mode,
+                    "ref": exp.git_ref, "rubric_ref": exp.rubric_ref,
+                    "created_at": exp.created_at, "resolved_at": exp.resolved_at,
+                    "hypothesis": exp.hypothesis,
+                    "prediction": exp.prediction,
+                    "summary": exp.summary,
+                    "scope_characters": exp.scope_characters,
+                    "scope_group_chats": exp.scope_group_chats,
+                    "run_ids": exp.run_ids,
+                    "follow_ups": exp.follow_ups,
+                    "reports": exp.reports,
+                    "body": exp.body,
+                }));
+            } else {
+                println!("{}", exp.raw);
+            }
+        }
+        LabAction::Search { query } => {
+            let q = query.to_lowercase();
+            let experiments = list_experiments().map_err(Box::<dyn std::error::Error>::from)?;
+            let hits: Vec<&ExperimentFile> = experiments.iter()
+                .filter(|e| e.raw.to_lowercase().contains(&q))
+                .collect();
+            if r.json {
+                let out: Vec<JsonValue> = hits.iter().map(|e| json!({
+                    "slug": e.slug, "status": e.status, "mode": e.mode,
+                    "hypothesis": e.hypothesis,
+                })).collect();
+                emit(true, JsonValue::Array(out));
+            } else {
+                if hits.is_empty() {
+                    println!("No experiments match '{}'.", query);
+                    return Ok(());
+                }
+                for e in &hits {
+                    let status_tag = format!("[{}]", e.status);
+                    println!("{:<10} {}", status_tag, e.slug);
+                    let first_line = e.hypothesis.lines().next().unwrap_or("").trim();
+                    if !first_line.is_empty() {
+                        println!("           {}", first_line.chars().take(110).collect::<String>());
+                    }
+                }
+            }
+        }
+        LabAction::Propose { slug, hypothesis, mode, prediction, r#ref, rubric_ref } => {
+            // Refuse to overwrite an existing experiment.
+            let path = experiments_dir().join(format!("{}.md", slug));
+            if path.exists() {
+                return Err(Box::<dyn std::error::Error>::from(
+                    format!("experiment '{}' already exists at {}. Edit the file directly, or pick a new slug.",
+                        slug, path.display())));
+            }
+            let valid_modes = ["passive", "qualitative", "active"];
+            if !valid_modes.contains(&mode.as_str()) {
+                return Err(Box::<dyn std::error::Error>::from(
+                    format!("invalid --mode '{}'; must be one of {:?}", mode, valid_modes)));
+            }
+            let exp = ExperimentFile {
+                slug: slug.clone(),
+                path: path.clone(),
+                id: slug.clone(),
+                status: "proposed".to_string(),
+                mode,
+                git_ref: r#ref.unwrap_or_default(),
+                rubric_ref: rubric_ref.unwrap_or_default(),
+                created_at: chrono::Utc::now().to_rfc3339_opts(chrono::SecondsFormat::Secs, true),
+                resolved_at: String::new(),
+                hypothesis,
+                prediction,
+                summary: String::new(),
+                scope_characters: Vec::new(),
+                scope_group_chats: Vec::new(),
+                run_ids: Vec::new(),
+                follow_ups: Vec::new(),
+                reports: Vec::new(),
+                body: String::new(),
+                raw: String::new(),
+            };
+            write_experiment(&exp).map_err(Box::<dyn std::error::Error>::from)?;
+            if r.json {
+                emit(true, json!({
+                    "slug": exp.slug, "path": exp.path.display().to_string(),
+                    "status": exp.status, "created_at": exp.created_at,
+                }));
+            } else {
+                println!("Proposed experiment: {} (status=proposed)", exp.slug);
+                println!("File: {}", path.display());
+                println!();
+                println!("Next steps:");
+                println!("  1. Review the file; edit scope_characters / scope_group_chats as needed.");
+                println!("  2. When the run starts: edit status → running.");
+                println!("  3. After the run: `worldcli lab link-run {} <run_id>`.", exp.slug);
+                println!("  4. When interpreted: `worldcli lab resolve {} --status confirmed|refuted --summary \"...\"`.", exp.slug);
+            }
+        }
+        LabAction::Resolve { slug, status, summary, report } => {
+            let valid_statuses = ["proposed", "running", "open", "confirmed", "refuted"];
+            if !valid_statuses.contains(&status.as_str()) {
+                return Err(Box::<dyn std::error::Error>::from(
+                    format!("invalid --status '{}'; must be one of {:?}", status, valid_statuses)));
+            }
+            let mut exp = load_experiment(&slug).map_err(Box::<dyn std::error::Error>::from)?;
+            exp.status = status.clone();
+            if let Some(s) = summary { exp.summary = s; }
+            if let Some(rp) = report {
+                if !exp.reports.contains(&rp) { exp.reports.push(rp); }
+            }
+            if matches!(status.as_str(), "confirmed" | "refuted" | "open") {
+                exp.resolved_at = chrono::Utc::now().to_rfc3339_opts(chrono::SecondsFormat::Secs, true);
+            }
+            write_experiment(&exp).map_err(Box::<dyn std::error::Error>::from)?;
+            if r.json {
+                emit(true, json!({
+                    "slug": exp.slug, "status": exp.status,
+                    "resolved_at": exp.resolved_at, "summary": exp.summary,
+                }));
+            } else {
+                println!("Resolved {}: status={}", exp.slug, exp.status);
+                if !exp.resolved_at.is_empty() { println!("resolved_at: {}", exp.resolved_at); }
+                if !exp.summary.is_empty() { println!("summary: {}", exp.summary.lines().next().unwrap_or("")); }
+            }
+        }
+        LabAction::LinkRun { slug, run_id } => {
+            let mut exp = load_experiment(&slug).map_err(Box::<dyn std::error::Error>::from)?;
+            if exp.run_ids.contains(&run_id) {
+                if !r.json {
+                    println!("Run {} already linked to {}.", run_id, slug);
+                }
+                return Ok(());
+            }
+            exp.run_ids.push(run_id.clone());
+            write_experiment(&exp).map_err(Box::<dyn std::error::Error>::from)?;
+            if r.json {
+                emit(true, json!({"slug": exp.slug, "run_ids": exp.run_ids}));
+            } else {
+                println!("Linked run {} → {} (now {} total).", run_id, slug, exp.run_ids.len());
+            }
+        }
     }
     Ok(())
 }
