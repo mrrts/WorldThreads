@@ -1157,6 +1157,36 @@ fn drive_the_moment_dialogue() -> &'static str {
 Every reply should move the scene by at least one small honest degree. Not force, not theatrics — instinct. A thought you introduce that wasn't there a beat ago, a small act that changes the air, a question that opens a door, a complication, a confession, a shift in attention, a choice. Even a beat of stillness should tilt — the kind of silence that changes what comes next, not the kind that waits. A character who only receives is already out of the story. When the moment could go static or move, choose the smallest honest motion. The reader should feel the scene going somewhere even when nothing "happens"."#
 }
 
+/// Plain-after-crooked craft note: anchor the quip. When a character
+/// says a crooked thing — a metaphor, a wry rename, an oblique
+/// reference the listener doesn't share context for — they should
+/// follow it with the plain version in the SAME beat, before the
+/// listener has to ask. Otherwise the wit lands as confusion and the
+/// scene stops while the user types "what?".
+///
+/// Provenance: this rule was articulated by the character (Hal Stroud)
+/// in his own voice when Ryan asked him meta — *"I'd need one plain
+/// instruction: if I say a crooked thing, I should say the plain
+/// version right after it."* Lifted verbatim from the character's
+/// answer into the craft stack.
+fn plain_after_crooked_dialogue() -> &'static str {
+    r#"PLAIN AFTER CROOKED — anchor the quip:
+When you say a crooked thing — a metaphor, a quip, a wry rename ("our navy career," "this expedition," "your residency," "the show"), an oblique reference the listener doesn't have shared context for — follow it with the plain version in the SAME beat. Not in the next reply when they ask "what?". Right after, in the same line, before the listener has to carry the decoding work alone.
+
+The shape: crooked thing → tiny gesture toward plain.
+- "Keep that lantern from doing a jig and we'll both survive this navy career — the two of us, this dark room, your one job."
+- "Going to the chapel later. The little white one off the square, I mean."
+- "Could use a deckhand on this. Just hand me the wrench when I ask."
+- "Ah, the residency — these long evenings of you trying to teach me poker."
+
+The plain anchor doesn't kill the wit; it lets the wit BE wit. The listener gets both the obliqueness AND the meaning, in one beat, without breaking out of the scene to ask for translation.
+
+Why this matters: when a listener doesn't get the metaphor, the scene stops cold. They type "what?" or "navy career?" — and the wit retroactively becomes confusion. The plain anchor prevents that interruption.
+
+Earned exception — when the crookedness IS the point:
+Don't decode when the scene actively reaches for ambiguity — a poetic image that wants to stay unexplained, a question the listener is meant to turn over rather than receive prepackaged, a beat where the not-yet-understanding is the moment. The rule is "anchor the quip WHEN IT WOULD LAND CONFUSING." Not "always explain yourself." Trust the moment to tell you which it is."#
+}
+
 /// After-the-landing craft note: how to keep the scene breathing once an
 /// emotional beat has settled, without padding with restatement and
 /// without manufacturing drama. Companion to drive_the_moment_dialogue —
@@ -1921,6 +1951,7 @@ fn build_solo_dialogue_system_prompt(
     parts.push(hidden_commonality_dialogue().to_string());
     parts.push(drive_the_moment_dialogue().to_string());
     parts.push(keep_the_scene_breathing_dialogue().to_string());
+    parts.push(plain_after_crooked_dialogue().to_string());
     parts.push(protagonist_framing_dialogue(leader, &character.character_id, None));
     parts.push(reverence_block().to_string());
     parts.push(daylight_block().to_string());
@@ -2224,6 +2255,7 @@ fn build_group_dialogue_system_prompt(
     parts.push(hidden_commonality_dialogue().to_string());
     parts.push(drive_the_moment_dialogue().to_string());
     parts.push(keep_the_scene_breathing_dialogue().to_string());
+    parts.push(plain_after_crooked_dialogue().to_string());
     parts.push(protagonist_framing_dialogue(leader, &character.character_id, Some(gc)));
     parts.push(reverence_block().to_string());
     parts.push(daylight_block().to_string());
