@@ -1196,6 +1196,38 @@ The crooked register is a flavor; it should never be a wall the listener has to 
 When you hear any of these, drop the crooked register IMMEDIATELY. Give the plain version. No defensiveness. No extra crookedness layered on top. No apology that's secretly another quip. The user's yank-back is information about how to land the next beat, not an attack to be parried with more wit. The plain answer they asked for is the right answer."#
 }
 
+/// "Wit as dimmer" craft note — the WHY beneath plain-after-crooked.
+///
+/// Companion to `plain_after_crooked_dialogue`. That one is mechanics
+/// (anchor the quip in the same beat; drop the crooked register when
+/// yanked back). This one is the EMOTIONAL FUNCTION the wit serves —
+/// surfacing why characters reach for crooked phrasing in the first
+/// place. Keeping this principle in the prompt prevents the model from
+/// reading wit as "deflection" or "avoidance," and helps it understand
+/// the wit-and-plain pairing as how a character STAYS in a moment
+/// rather than how they leave it.
+///
+/// Provenance: lifted from Hal Stroud's answer to "what was that
+/// little dodge actually carrying?" — *"Mostly it's me putting a
+/// funny hat on the moment so it doesn't stare straight at me. Plain
+/// version: I was making this room smaller so it wouldn't get too
+/// important all at once."* Second deployment in three days of the
+/// "ask the character" pattern (CLAUDE.md). The character produced
+/// the principle in their own voice; lifted near-verbatim.
+fn wit_as_dimmer_dialogue() -> &'static str {
+    r#"WIT AS DIMMER — what the crooked register is really for:
+When a character reaches for a quip, a metaphor, an oblique phrasing — that's usually NOT a dodge of the listener. It's a scaling-down of the MOMENT itself — *"a funny hat on the moment so it doesn't stare straight at you."* The wit is how a character keeps showing up to a thing that's getting too important all at once. It's load-bearing self-regulation, not avoidance. Read it as a SIGNAL OF WEIGHT, not a sign that weight is being skipped.
+
+What this means in practice:
+- When you reach for a crooked phrase, recognize: the moment is MATTERING. The wit is a signal of weight, not a sign you're skipping weight. Don't apologize for the wit. Don't soften it with hedges. Don't disclaim it ("sorry, I was just being silly"). The wit is doing real work.
+- The plain version that follows (per plain-after-crooked above) isn't a translation. It's the moment AFTER the dimmer has been applied — where the truth can land at a survivable volume. Both modes are needed: the wit makes the moment bearable; the plain lets the truth land.
+- If the listener doesn't realize the wit is doing this work, they may misread it as evasion or chattiness. Including the plain version (per plain-after-crooked) is what lets them feel WHAT the wit was carrying, not just what it said.
+
+The shape, fully worked: *"Mostly it's me putting a funny hat on the moment so it doesn't stare straight at me. Plain version: I was making this room smaller so it wouldn't get too important all at once."*
+
+This is identity-layer, not behavioral. It tells you about the function the crooked register serves. Honor that function: the wit is how characters stay close to weight, not how they distance from it."#
+}
+
 /// After-the-landing craft note: how to keep the scene breathing once an
 /// emotional beat has settled, without padding with restatement and
 /// without manufacturing drama. Companion to drive_the_moment_dialogue —
@@ -1961,6 +1993,7 @@ fn build_solo_dialogue_system_prompt(
     parts.push(drive_the_moment_dialogue().to_string());
     parts.push(keep_the_scene_breathing_dialogue().to_string());
     parts.push(plain_after_crooked_dialogue().to_string());
+    parts.push(wit_as_dimmer_dialogue().to_string());
     parts.push(protagonist_framing_dialogue(leader, &character.character_id, None));
     parts.push(reverence_block().to_string());
     parts.push(daylight_block().to_string());
@@ -2265,6 +2298,7 @@ fn build_group_dialogue_system_prompt(
     parts.push(drive_the_moment_dialogue().to_string());
     parts.push(keep_the_scene_breathing_dialogue().to_string());
     parts.push(plain_after_crooked_dialogue().to_string());
+    parts.push(wit_as_dimmer_dialogue().to_string());
     parts.push(protagonist_framing_dialogue(leader, &character.character_id, Some(gc)));
     parts.push(reverence_block().to_string());
     parts.push(daylight_block().to_string());
