@@ -243,12 +243,20 @@ export function StickyIllustration({ messages, scrollContainer, aspectRatios }: 
       // image inside scales by aspect ratio so height tracks naturally.
       // max-height clamps the visual against tall, narrow windows so a
       // portrait-AR illustration doesn't overflow the viewport.
-      style={{ width: "clamp(340px, 30vw, 620px)", maxHeight: "72vh" }}
+      // Floor lowered + vw multiplier reduced so the sticky doesn't
+      // overlap the chat content at smaller laptop viewports (~1280px,
+      // where the xl:block gate first lights this up). At ultrawide /
+      // Vision Pro virtual displays the upper cap (620px) preserves
+      // the same substantial reference-image size as before.
+      // Approximate sizes:
+      //   1280px → 256px   1440px → 288px   1920px → 384px
+      //   2560px → 512px   3840px → 620px (capped)
+      style={{ width: "clamp(220px, 20vw, 620px)", maxHeight: "70vh" }}
     >
       <img
         src={activeIllus.content}
         alt="Illustration for the moment you're reading"
-        className="block w-full h-auto max-h-[72vh] object-contain"
+        className="block w-full h-auto max-h-[70vh] object-contain"
         style={ar ? { aspectRatio: String(ar) } : undefined}
         draggable={false}
       />
