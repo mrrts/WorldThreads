@@ -205,18 +205,38 @@ export function StickyIllustration({ messages, scrollContainer, aspectRatios }: 
     };
   }, [activeIllus?.message_id]);
 
-  // User-selected size preset. Persisted to localStorage so the
-  // preference rides across sessions and thread switches.
+  // User-selected size preset + rocking direction. The cycle
+  // ping-pongs lg→md→sm→md→lg→md→sm rather than wrapping, so the
+  // distance between any two consecutive clicks is always one step
+  // instead of a jarring jump from smallest back to largest. Size
+  // persists to localStorage; direction is session-only (the opening
+  // direction is inferred from the stored size — if it's at the top
+  // of the range, the next step rocks down, and vice versa).
   const [size, setSize] = useState<SizeKey>(loadInitialSize);
+  const [direction, setDirection] = useState<1 | -1>(() => {
+    const s = loadInitialSize();
+    return s === "lg" ? -1 : 1;
+  });
   useEffect(() => {
     try { localStorage.setItem(SIZE_STORAGE_KEY, size); } catch { /* ignore */ }
   }, [size]);
+  // Compute the next (size, direction) pair without mutating state.
+  // Used by both the click handler and the icon-previewing logic so
+  // the visual cue always matches where the next click will land.
+  const computeNext = (s: SizeKey, d: 1 | -1): { size: SizeKey; direction: 1 | -1 } => {
+    const idx = SIZE_ORDER.indexOf(s);
+    const proposed = idx + d;
+    if (proposed < 0 || proposed >= SIZE_ORDER.length) {
+      const flipped = -d as 1 | -1;
+      return { size: SIZE_ORDER[idx + flipped], direction: flipped };
+    }
+    return { size: SIZE_ORDER[proposed], direction: d };
+  };
   const cycleSize = useCallback(() => {
-    setSize((prev) => {
-      const idx = SIZE_ORDER.indexOf(prev);
-      return SIZE_ORDER[(idx + 1) % SIZE_ORDER.length];
-    });
-  }, []);
+    const next = computeNext(size, direction);
+    setSize(next.size);
+    setDirection(next.direction);
+  }, [size, direction]);
 
   if (!activeIllus) return null;
 
@@ -251,11 +271,14 @@ export function StickyIllustration({ messages, scrollContainer, aspectRatios }: 
     ? "opacity-0 scale-90 translate-y-4 translate-x-2 pointer-events-none"
     : "opacity-100 scale-100 translate-y-0 translate-x-0 cursor-pointer hover:ring-emerald-500/60";
 
-  // Icon for the resize button: signal the NEXT step explicitly.
-  // From sm/md the next step is larger → Maximize2. From lg the
-  // next step wraps back to sm → Minimize2.
-  const ResizeIcon = size === "lg" ? Minimize2 : Maximize2;
-  const nextSizeLabel = size === "lg" ? "sm" : size === "md" ? "lg" : "md";
+  // Icon + label telegraph where the next click will land. Since
+  // the cycle rocks (lg→md→sm→md→lg…), the preview comes from
+  // computeNext — its `size` is the destination and the comparison
+  // to the current size tells us grow-vs-shrink.
+  const next = computeNext(size, direction);
+  const goingBigger = SIZE_ORDER.indexOf(next.size) > SIZE_ORDER.indexOf(size);
+  const ResizeIcon = goingBigger ? Maximize2 : Minimize2;
+  const nextSizeLabel = next.size;
 
   return (
     <div
