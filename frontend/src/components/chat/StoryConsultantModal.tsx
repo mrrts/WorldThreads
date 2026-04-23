@@ -46,6 +46,66 @@ interface PromptCategory {
   prompts: Array<{ label: string; prompt: string }>;
 }
 
+/// Backstage-specific ideas. Covers the superset of what Backstage
+/// uniquely answers well that Immersive can't — state of the world,
+/// craft/worldbuilding, action proposals, post-mortem, maintenance.
+/// Prompts are plainspoken (the user types in their voice; the theatre
+/// register is Backstage's voice, not the user's).
+function buildBackstageCategories(names: string[]): PromptCategory[] {
+  return [
+    {
+      name: "State of the World",
+      prompts: [
+        { label: "What's the shape of this week?", prompt: "What's the shape of this week in the world? What's been alive, what's gone quiet, where's the energy?" },
+        { label: "Who's been quiet lately?", prompt: "Which characters have I been neglecting? Who hasn't had air in a while?" },
+        { label: "Which chat has been doing the most work?", prompt: "Which chat thread has been doing the most work lately, and what's it been about?" },
+        { label: "What's overdue?", prompt: "Is anything overdue — a chat I should re-enter, a character I should check on, a thread I left dangling?" },
+        { label: "Where's the world's center of gravity right now?", prompt: "Where's the center of gravity of this world right now? Which character or thread is pulling the most weight?" },
+      ],
+    },
+    {
+      name: "Craft & Worldbuilding",
+      prompts: [
+        { label: "What's missing from this world?", prompt: "What's missing from this world right now that I might want to develop? A character type, a kind of place, a register I haven't touched?" },
+        ...names.map((n) => ({ label: `Where could ${n} grow?`, prompt: `Where could ${n} grow as a character? What's a dimension of them I haven't really explored yet?` })),
+        { label: "What am I leaning too hard on?", prompt: "What am I leaning too hard on lately? A theme, a setting, a beat that's recurring more than I realize?" },
+        { label: "What thread did I start and drop?", prompt: "What's a thread I started and never came back to? Something that deserves another visit." },
+        { label: "What would freshen this world up?", prompt: "If I wanted to surprise myself in this world this week, what would you suggest?" },
+      ],
+    },
+    {
+      name: "Stage a Move",
+      prompts: [
+        ...names.map((n) => ({ label: `Propose a canon update about ${n}`, prompt: `Look at recent activity with ${n} and propose a canon update that would be worth keeping. Something settled has shifted; weave it in.` })),
+        { label: "Draft a message I could send", prompt: "Look at where I've been recently and draft a message I could send. Pick the chat where the next move is clearest, and stage the line." },
+        { label: "Two characters who should meet", prompt: "Are there two characters who haven't met yet (or haven't been in a chat together) who clearly should be? Suggest the pairing." },
+        { label: "A scene worth illustrating", prompt: "What's a scene from a recent chat that's worth illustrating? Something with a strong visual beat that an image would honor." },
+        { label: "A portrait worth refreshing", prompt: "Has a character physically shifted in a way a fresh portrait would honor? Suggest a regeneration if so." },
+      ],
+    },
+    {
+      name: "Look Back",
+      prompts: [
+        { label: "What's the through-line of recent days?", prompt: "Step back with me — what's the through-line of the last several days across all chats? What story am I actually telling?" },
+        { label: "Which moment landed hardest?", prompt: "Looking back at the last week or so, which specific moment landed hardest? Pick one and tell me why it stuck." },
+        { label: "What pattern is forming?", prompt: "What pattern is forming across recent activity that I might not have named yet?" },
+        { label: "What did I expect that didn't happen?", prompt: "Has anything gone differently than I might have expected? Where has a character surprised you (or me)?" },
+        { label: "What's the emotional weather right now?", prompt: "What's the overall emotional weather of this world right now? Bright? Heavy? Restless? Stuck?" },
+      ],
+    },
+    {
+      name: "Tending the World",
+      prompts: [
+        { label: "What needs maintenance?", prompt: "What in this world needs maintenance — a stale chat, a contradicting canon entry, a character whose description hasn't kept up with who they actually are now?" },
+        { label: "Which canon entries are doing the most work?", prompt: "Which canonized entries (description weaves, kept records) are doing the most work in shaping how scenes land? Which ones could be sharpened?" },
+        { label: "Where does a meanwhile event belong?", prompt: "Is there a chat that's gone quiet where a meanwhile event would help me re-enter? Suggest one." },
+        { label: "Help me re-enter a cold chat", prompt: "Pick a chat that's gone cold and tell me what re-entering it might look like. Where would I pick up?" },
+        { label: "What would you do if you were me right now?", prompt: "Honestly — if you were me, sitting at the keyboard right now, what would you do next?" },
+      ],
+    },
+  ];
+}
+
 function buildCategories(names: string[]): PromptCategory[] {
   return [
     {
@@ -129,7 +189,9 @@ export function StoryConsultantModal({ open, onClose, apiKey, characterId, group
   // for the first response after "Import Latest".
   const [showReadingLabel, setShowReadingLabel] = useState(false);
 
-  const categories = buildCategories(characterNames);
+  const categories = activeMode === "backstage"
+    ? buildBackstageCategories(characterNames)
+    : buildCategories(characterNames);
 
   // Load chats list when opened
   const loadChats = useCallback(async () => {
