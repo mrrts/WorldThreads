@@ -148,7 +148,41 @@ If projected cost exceeds either cap, the call refuses with a clear error and a 
 
 ### API key resolution
 
-In this precedence: `--api-key` flag → `OPENAI_API_KEY` env var → macOS keychain at service `WorldThreadsCLI`, account `openai`. The user has set up the keychain entry — you can call `ask` directly without any env fiddling. If the keychain ever returns empty, the CLI surfaces the exact `security add-generic-password` command to re-add it.
+Lookup precedence: `--api-key` flag → `OPENAI_API_KEY` env var → macOS keychain.
+
+**Keychain fallback chain.** worldcli tries these `(service, account)` pairs in order; the first one that returns a non-empty password wins:
+
+1. `WorldThreadsCLI` / `openai` — the CLI's own namespace. Use this if you want to scope a *different* key to worldcli specifically (e.g. a project-isolated sub-org key). Set up once with:
+   ```
+   security add-generic-password -s WorldThreadsCLI -a openai -w "sk-..."
+   ```
+2. `openai` / `default` — the common convention. If you already have an OpenAI key stored this way (for other tooling), worldcli finds it automatically — no duplicate entry needed.
+3. `openai` / `api-key`, `openai` / `api_key`, `OpenAI` / `default` — additional common spellings, tried in that order.
+
+**For this machine specifically:** the key is stored at `openai` / `default` (outside this project; dates from earlier tooling). That's why `worldcli ask` / `refresh-stance` / `consult` / `evaluate` work without `--api-key` or `OPENAI_API_KEY` being set — the CLI reads through the fallback chain and finds it on step 2.
+
+**Inspect what's there** (without leaking the password to stdout):
+```bash
+security find-generic-password -s openai -a default     # shows attributes only
+security find-generic-password -s openai -a default -w  # shows the password; pipe to ≠ terminal if recording
+```
+
+**Rotate the key** (replace in place, no delete needed):
+```bash
+security add-generic-password -s openai -a default -w "sk-new-..." -U
+```
+The `-U` flag updates the existing entry rather than erroring on duplicate.
+
+**Remove the key** (back to no-key state):
+```bash
+security delete-generic-password -s openai -a default
+```
+
+**First-call prompt behavior.** On the first `security find-generic-password` call from a given process, macOS may prompt for keychain access ("Allow worldcli to access your keychain?"). Answering "Always Allow" makes subsequent calls silent. "Allow once" works for a single call but will re-prompt — inconvenient for scripted use. The CLI doesn't bypass this — it's honest macOS behavior and shouldn't be.
+
+**If worldcli fails with "No API key"** despite a key being in the keychain, it means none of the fallback-chain `(service, account)` pairs matched the entry you have. Either:
+- Move your existing entry to one of the supported pairs: `security add-generic-password -s openai -a default -w "$(security find-generic-password -s <your-service> -a <your-account> -w)" -U`
+- Or extend `read_api_key_from_keychain()` in `src-tauri/src/bin/worldcli.rs` with your service/account pair.
 
 ### One-time setup the user has already done
 

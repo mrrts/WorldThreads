@@ -654,14 +654,36 @@ impl std::error::Error for CliError {}
 // ─── API key resolution (unchanged from v1) ─────────────────────────────
 
 fn read_api_key_from_keychain() -> Option<String> {
-    let out = std::process::Command::new("security")
-        .args(["find-generic-password", "-s", "WorldThreadsCLI", "-a", "openai", "-w"])
-        .output()
-        .ok()?;
-    if !out.status.success() { return None; }
-    let key = String::from_utf8(out.stdout).ok()?;
-    let trimmed = key.trim();
-    if trimmed.is_empty() { None } else { Some(trimmed.to_string()) }
+    // Try the CLI's own explicit namespace first, then fall back to
+    // common conventions people already have populated on their
+    // macOS keychain (e.g. a key added for use by other OpenAI
+    // tooling). "Bake the key in once, reach for it everywhere" —
+    // no reason worldcli should force a duplicate entry.
+    //
+    // Order matters: the WorldThreadsCLI entry wins if set (lets
+    // the user scope a *different* key to this CLI if they want,
+    // e.g. a project-isolated sub-org key); otherwise we use the
+    // common "openai / default" convention, then a few close
+    // spellings.
+    let candidates: &[(&str, &str)] = &[
+        ("WorldThreadsCLI", "openai"),
+        ("openai", "default"),
+        ("openai", "api-key"),
+        ("openai", "api_key"),
+        ("OpenAI", "default"),
+    ];
+    for (service, account) in candidates {
+        let out = std::process::Command::new("security")
+            .args(["find-generic-password", "-s", service, "-a", account, "-w"])
+            .output()
+            .ok();
+        let Some(out) = out else { continue; };
+        if !out.status.success() { continue; }
+        let Some(key) = String::from_utf8(out.stdout).ok() else { continue; };
+        let trimmed = key.trim();
+        if !trimmed.is_empty() { return Some(trimmed.to_string()); }
+    }
+    None
 }
 
 fn resolve_api_key(flag: Option<&str>) -> Option<String> {
