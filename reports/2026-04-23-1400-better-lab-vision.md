@@ -147,7 +147,7 @@ reports: [reports/2026-04-23-1304-weight-carrier-refuted-but-interesting.md]
 
 **Build cost:** high. The schema, the registry file format, the CLI tooling, the bidirectional sync with reports/, the query language. ~1-2 days if done carefully. Ambitious; but the payoff compounds with every subsequent experiment.
 
-### 6. Scenario templates (for Mode C) — medium cost, medium-high ROI
+### 6. Scenario templates (for Mode C) — medium cost, medium-high ROI — **SHIPPED 2026-04-23**
 
 Canonical probe sequences for common hypothesis-testing patterns, stored as `experiments/scenarios/<name>.md`:
 

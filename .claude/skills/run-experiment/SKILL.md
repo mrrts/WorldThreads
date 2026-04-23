@@ -163,7 +163,10 @@ Synthesize runs persist to `~/.worldcli/synthesize-runs/` automatically — brow
 
 The trigger is usually: *"the question requires a scenario the natural corpus doesn't cover."* Or: *"I need to vary one condition while holding others constant."* Or: *"turn-by-turn evolution within a session matters for this question."*
 
-Use `worldcli ask --session <name>` to drive a multi-turn conversation. Each turn, pause and read the character's reply against the hypothesis; let the next turn sharpen the probe. Keep every prompt you send, verbatim — they become part of the report.
+Two tools, picked by question-shape:
+
+- **Controlled variation** (same question across 2-4 register variants): use a scenario template. `worldcli lab scenario list` shows what exists; `worldcli lab scenario run <name> --character <id>` fires each variant as a fresh isolated dialogue call, scores each reply with the scenario's rubric, returns side-by-side. Add a new template at `experiments/scenarios/<slug>.md` when a probe shape is worth reusing at least twice.
+- **Turn-by-turn probing** (within-session evolution, follow-ups that depend on the prior reply): use `worldcli ask --session <name>` directly. Each turn, pause and read the character's reply against the hypothesis; let the next turn sharpen the probe. Keep every prompt you send, verbatim — they become part of the report.
 
 For cross-commit replay (true A/B): `worldcli replay --refs <a,b,c> --character <id> --prompt "..."`. It fetches historical prompt fragments via `git show <ref>:src-tauri/src/ai/prompts.rs`, parses out the named craft-note bodies (exactly `OVERRIDABLE_DIALOGUE_FRAGMENTS` in `prompts.rs`), and injects them as overrides into the running binary's prompt-assembly pipeline — no git worktrees, no checkout, no rebuild. Same binary, historical prompts layered in on demand. Scope discipline: only dialogue craft notes are overridable; cosmology / agape / reverence / truth invariants are held constant across refs. Replay runs persist to `~/.worldcli/replay-runs/`; browse via `worldcli replay-runs list | show | search`.
 

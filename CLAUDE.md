@@ -408,6 +408,17 @@ worldcli lab resolve <slug> --status confirmed|refuted|open \
     [--summary "..."] [--report <path>]
 worldcli lab link-run <slug> <run_id>   # attach evaluate/synthesize/replay id
 
+# Scenario templates for Mode C — canonical multi-variant probe sequences
+# under experiments/scenarios/<name>.md. Each variant is a fresh isolated
+# dialogue call (no session history between variants — each is its own
+# controlled condition). If the scenario sets `measure_with`, every reply
+# is scored by that rubric automatically.
+worldcli lab scenario list
+worldcli lab scenario show <name>
+worldcli lab scenario run <name> --character <id> \
+    [--rubric-ref <override>] [--skip-evaluate] \
+    [--model <override>] [--confirm-cost <usd>]
+
 # Read your own prior runs (avoid redoing answered questions):
 worldcli runs-list [--limit N] [--json]
 worldcli runs-show <id-or-prefix> [--json]
