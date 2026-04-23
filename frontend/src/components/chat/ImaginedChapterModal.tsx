@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { chatFontPx, CHAT_FONT_SIZES_PX } from "@/lib/chat-font";
 import { FontSizeAdjuster } from "@/components/chat/FontSizeAdjuster";
 import { remarkPlugins, rehypePlugins, markdownComponents } from "./formatMessage";
+import { playChime } from "@/lib/chime";
 
 const CHAPTER_FONT_SIZE_KEY = "imagined_chapter.font_size";
 
@@ -42,7 +43,7 @@ export function ImaginedChapterModal({
   threadId,
   characterPortraitUrls,
   worldImageUrl,
-  notifyOnMessage: _notifyOnMessage,
+  notifyOnMessage,
   chatFontSize,
   openChapterId,
   onCanonize,
@@ -80,6 +81,12 @@ export function ImaginedChapterModal({
 
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const generatingRef = useRef(false);
+  // Track whether the user has been chimed for this generation's
+  // image-arrival and first-token moments. Reset on each fresh
+  // handleGenerate so a second chapter in the same session chimes
+  // afresh.
+  const imageChimedRef = useRef(false);
+  const firstTokenChimedRef = useRef(false);
 
   // Chapter-local font size — defaults to chatFontSize on first open,
   // then sticks via localStorage so the reading size carries across modal
@@ -270,11 +277,24 @@ export function ImaginedChapterModal({
     listen<ImaginedChapterImageEvent>("imagined-chapter-image", (e) => {
       if (!generatingRef.current) return;
       setStreamImage(e.payload.dataUrl);
+      // Chime once when the rendered image lands — the user can look
+      // away while it paints and this pulls their eye back to the modal.
+      if (notifyOnMessage && !imageChimedRef.current) {
+        imageChimedRef.current = true;
+        playChime();
+      }
     }).then((u) => unlisteners.push(u));
 
     listen<string>("imagined-chapter-token", (e) => {
       if (!generatingRef.current) return;
       setStreamContent((prev) => prev + (e.payload || ""));
+      // Chime once when the first narrative token arrives — the shift
+      // from image-rendering to chapter-writing is the other moment
+      // the user was waiting on.
+      if (notifyOnMessage && !firstTokenChimedRef.current && (e.payload || "").length > 0) {
+        firstTokenChimedRef.current = true;
+        playChime();
+      }
     }).then((u) => unlisteners.push(u));
 
     listen<ImaginedChapterDoneEvent>("imagined-chapter-done", (e) => {
@@ -287,7 +307,7 @@ export function ImaginedChapterModal({
     }).then((u) => unlisteners.push(u));
 
     return () => { unlisteners.forEach((u) => u()); };
-  }, [open, loadChapters]);
+  }, [open, loadChapters, notifyOnMessage]);
 
   // No auto-scroll during streaming — the user wants full control over
   // their scroll position while reading. The chapter streams in; the
@@ -302,6 +322,8 @@ export function ImaginedChapterModal({
     setStreamContent("");
     setStreamChapterId(null);
     setActiveChapterId(null);
+    imageChimedRef.current = false;
+    firstTokenChimedRef.current = false;
     setActiveChapterData(null);
     generatingRef.current = true;
     try {
