@@ -86,6 +86,13 @@ export function GenesisModal({ open, onClose, apiKey, googleApiKey, setApiKey, s
   const [userAvatarUrl, setUserAvatarUrl] = useState("");
   const [painting, setPainting] = useState(false);
   const [selfError, setSelfError] = useState<string | null>(null);
+  // Existing avatars from the user's other worlds — surfaces an "import
+  // me from another world" affordance so a user who already has a
+  // canon portrait of themselves elsewhere doesn't have to re-paint.
+  // Loaded lazily when define_self phase opens. Empty for first-world
+  // users; the import row simply won't render.
+  const [importableAvatars, setImportableAvatars] = useState<Array<{ world_id: string; world_name: string; avatar_file: string; data_url: string }>>([]);
+  const [importing, setImporting] = useState(false);
 
   const [reaching, setReaching] = useState("");
   const [nobleOffering, setNobleOffering] = useState("");
@@ -205,6 +212,12 @@ export function GenesisModal({ open, onClose, apiKey, googleApiKey, setApiKey, s
           updated_at: "",
         });
       } catch (err) { console.warn("[Genesis] could not seed default user profile:", err); }
+      // Lazy-load any portraits the user has built in other worlds so
+      // the import-from-another-world affordance can render. Filter out
+      // the freshly-created world (which won't have a portrait yet).
+      api.listAllUserAvatars().then((avatars) => {
+        setImportableAvatars(avatars.filter((a) => a.world_id !== res.world_id));
+      }).catch(() => { setImportableAvatars([]); });
       setPhase("define_self");
     } catch (e: any) {
       setError(String(e));
@@ -235,6 +248,51 @@ export function GenesisModal({ open, onClose, apiKey, googleApiKey, setApiKey, s
       avatar_file: "",
       updated_at: "",
     });
+  };
+
+  // Import a portrait + identity from one of the user's other worlds.
+  // Copies the avatar via setUserAvatarFromGallery (cheap — just
+  // re-references the existing file by name; no re-painting), then
+  // pre-fills appearance/name/facts from the source profile, but only
+  // for fields the user hasn't already typed into. We don't overwrite
+  // their in-progress entries.
+  const onImportFromWorld = async (avatar: { world_id: string; avatar_file: string }) => {
+    if (!result || importing) return;
+    setImporting(true);
+    setSelfError(null);
+    try {
+      const dataUrl = await api.setUserAvatarFromGallery(result.world_id, avatar.avatar_file);
+      setUserAvatarUrl(dataUrl || "");
+      const sourceProfile = await api.getUserProfile(avatar.world_id).catch(() => null);
+      if (sourceProfile) {
+        // Pre-fill ONLY blank fields — never clobber what the user
+        // already typed. Treat appearance/name/about/facts as separate
+        // imports so partial-edits don't get reset.
+        if (!selfAppearance.trim() && sourceProfile.description) {
+          setSelfAppearance(sourceProfile.description);
+        }
+        if (!selfName.trim() && sourceProfile.display_name && sourceProfile.display_name !== "Me") {
+          setSelfName(sourceProfile.display_name);
+        }
+        const existingFacts = (sourceProfile.facts as unknown);
+        const factsArr: string[] = Array.isArray(existingFacts)
+          ? (existingFacts as unknown[]).filter((x): x is string => typeof x === "string")
+          : [];
+        if (selfFacts.filter((f) => f.trim()).length === 0 && factsArr.length > 0) {
+          setSelfFacts(factsArr);
+          // Open the advanced section so the imported facts are visible
+          // and the user can see what got carried over.
+          setShowAdvancedSelf(true);
+        }
+      }
+      // Persist the freshly-imported state so the world has a real
+      // profile row (mirrors what onPaintSelf does after a paint).
+      await saveSelfProfile();
+    } catch (e: any) {
+      setSelfError(String(e));
+    } finally {
+      setImporting(false);
+    }
   };
 
   const onPaintSelf = async () => {
@@ -650,6 +708,38 @@ export function GenesisModal({ open, onClose, apiKey, googleApiKey, setApiKey, s
                 The world's been dreamt. The people in it are waiting. One small piece left —
                 you, in their eyes. Short and easy; fuller if you want.
               </p>
+
+              {/* Import-from-another-world affordance — only renders if the
+                  user has at least one portrait in another world. Lets them
+                  carry their already-canon self over instead of re-painting.
+                  Renders as a small horizontal row above the appearance
+                  field; on click, imports the portrait + pre-fills any
+                  blank profile fields from the source world. */}
+              {importableAvatars.length > 0 && (
+                <div className="rounded-xl border border-border/60 bg-card/40 p-3 space-y-2">
+                  <p className="text-xs text-muted-foreground">
+                    Or carry yourself over from another world — pick a portrait you've already painted of yourself.
+                  </p>
+                  <div className="flex gap-2 overflow-x-auto pb-1">
+                    {importableAvatars.map((a) => (
+                      <button
+                        key={`${a.world_id}-${a.avatar_file}`}
+                        onClick={() => onImportFromWorld(a)}
+                        disabled={importing || painting}
+                        className="flex flex-col items-center gap-1 flex-shrink-0 group cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                        title={`Import from ${a.world_name}`}
+                      >
+                        <img
+                          src={a.data_url}
+                          alt=""
+                          className="w-14 h-14 rounded-full object-cover ring-1 ring-border group-hover:ring-amber-400/60 transition-all"
+                        />
+                        <span className="text-[10px] text-muted-foreground/70 max-w-[60px] truncate">{a.world_name}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               {/* Primary: appearance + paint action */}
               <div className="rounded-xl border border-amber-400/40 bg-amber-500/5 p-4 space-y-3">
