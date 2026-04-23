@@ -170,6 +170,7 @@ pub fn run() {
             set_model_config_cmd,
             get_setting_cmd,
             set_setting_cmd,
+            record_chat_settings_change_cmd,
             get_budget_mode_cmd,
             set_budget_mode_cmd,
             get_memory_artifacts_cmd,

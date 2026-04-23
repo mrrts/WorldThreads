@@ -2529,6 +2529,41 @@ pub fn render_inventory_update_for_prompt(content: &str) -> String {
     parts.join("; ")
 }
 
+/// Format a settings_update message body for inclusion in the dialogue
+/// prompt's history block. Tells the model the user changed a setting
+/// at this point in the conversation, with from/to values, so the model
+/// understands previous replies were under different settings and
+/// shouldn't pattern-match against them. Especially load-bearing for
+/// response length: when the user switches Long → Short mid-chat, the
+/// long replies in scrollback must NOT bind the current reply.
+pub fn render_settings_update_for_prompt(content: &str) -> String {
+    #[derive(serde::Deserialize)]
+    struct Body {
+        #[serde(default)]
+        changes: Vec<Change>,
+    }
+    #[derive(serde::Deserialize)]
+    struct Change {
+        #[serde(default)]
+        label: String,
+        #[serde(default)]
+        from: String,
+        #[serde(default)]
+        to: String,
+    }
+    let Ok(body) = serde_json::from_str::<Body>(content) else {
+        return content.to_string();
+    };
+    if body.changes.is_empty() { return content.to_string(); }
+    let parts: Vec<String> = body.changes.iter()
+        .map(|c| format!("{}: {} → {}", c.label, c.from, c.to))
+        .collect();
+    format!(
+        "The user changed chat settings: {}. From this point forward, replies should reflect the NEW setting; replies BEFORE this point may have been under different settings and should not be used as a length / register pattern for current replies.",
+        parts.join("; "),
+    )
+}
+
 /// Render active quests as a prompt block characters can know
 /// implicitly. Framing deliberately resists the Zelda-coded register:
 /// a quest here is "a promise the world has made to itself that the
@@ -2769,6 +2804,22 @@ pub fn build_dialogue_messages(
             msgs.push(crate::ai::openai::ChatMessage {
                 role: "system".to_string(),
                 content: format!("[Inventory update at this moment] {summary}"),
+            });
+            continue;
+        }
+        // Chat-settings-update messages: the user changed a chat setting
+        // (response length, narration tone, etc.) at this moment in the
+        // history. Surface as a system note so the model knows that
+        // replies BEFORE this row were under different settings and
+        // should not be pattern-matched against. Critical for the
+        // response-length rule: when the user switches Long → Short
+        // mid-conversation, the model needs to ignore the long replies
+        // in scrollback as binding for the current reply length.
+        if m.role == "settings_update" {
+            let summary = render_settings_update_for_prompt(&m.content);
+            msgs.push(crate::ai::openai::ChatMessage {
+                role: "system".to_string(),
+                content: format!("[Chat settings updated at this moment] {summary}"),
             });
             continue;
         }
@@ -3136,7 +3187,7 @@ IMPORTANT: Output raw JSON only. Do NOT wrap in markdown code fences."#);
     }];
 
     let conversation: Vec<String> = recent_messages.iter()
-        .filter(|m| m.role != "illustration" && m.role != "video" && m.role != "inventory_update" && m.role != "imagined_chapter")
+        .filter(|m| m.role != "illustration" && m.role != "video" && m.role != "inventory_update" && m.role != "imagined_chapter" && m.role != "settings_update")
         .map(|m| {
             format!("[{}] {}: {}", m.message_id, m.role, m.content)
         }).collect();
@@ -3497,7 +3548,7 @@ pub fn build_scene_description_prompt(
     // In group scenes, prefix assistant messages with [CharName] so the scene
     // director can tell who's speaking (same fix as dialogue history).
     let conversation: Vec<String> = recent_messages.iter()
-        .filter(|m| m.role != "illustration" && m.role != "video" && m.role != "inventory_update" && m.role != "imagined_chapter")
+        .filter(|m| m.role != "illustration" && m.role != "video" && m.role != "inventory_update" && m.role != "imagined_chapter" && m.role != "settings_update")
         .map(|m| {
             let speaker = if m.role == "user" {
                 user_name.to_string()
@@ -3591,7 +3642,7 @@ Write ONLY the animation direction, nothing else."#,
     let system = system_parts.join("\n\n");
 
     let conversation: Vec<String> = recent_messages.iter()
-        .filter(|m| m.role != "illustration" && m.role != "video" && m.role != "inventory_update" && m.role != "imagined_chapter")
+        .filter(|m| m.role != "illustration" && m.role != "video" && m.role != "inventory_update" && m.role != "imagined_chapter" && m.role != "settings_update")
         .rev().take(6).collect::<Vec<_>>().into_iter().rev()
         .map(|m| {
             let speaker = if m.role == "user" {

@@ -39,6 +39,7 @@ import { PortraitModal } from "@/components/chat/PortraitModal";
 import { StoryConsultantModal } from "@/components/chat/StoryConsultantModal";
 import { ImaginedChapterModal } from "@/components/chat/ImaginedChapterModal";
 import { ImaginedChapterMessage } from "@/components/chat/ImaginedChapterMessage";
+import { SettingsUpdateMessage } from "@/components/chat/SettingsUpdateMessage";
 import { IllustrationMessage } from "@/components/chat/IllustrationMessage";
 import { StickyIllustration } from "@/components/chat/StickyIllustration";
 import { useChatState } from "@/hooks/use-chat-state";
@@ -380,7 +381,23 @@ export function GroupChatView({ store, onNavigateToCharacter }: Props) {
     if (chatId) api.setSetting(`send_history.${chatId}`, next ? "on" : "off").catch(() => {});
   }, [chatId]);
 
-  // Auto-save chat settings
+  // Snapshot of last-saved settings for diff. See ChatView for full
+  // rationale; same pattern here for groups.
+  const lastSavedSettingsRef = useRef<{
+    narrationTone: string;
+    narrationInstructions: string;
+    responseLength: string;
+    chatId: string;
+  } | null>(null);
+  useEffect(() => {
+    if (!chatId) { lastSavedSettingsRef.current = null; return; }
+    if (!narrationDirty) {
+      lastSavedSettingsRef.current = { narrationTone, narrationInstructions, responseLength, chatId };
+    }
+  }, [chatId, narrationDirty, narrationTone, narrationInstructions, responseLength]);
+
+  // Auto-save chat settings + record a settings_update message in chat
+  // history when something actually changed.
   useEffect(() => {
     if (!chatId || !narrationDirty) return;
     const timer = setTimeout(async () => {
@@ -389,10 +406,38 @@ export function GroupChatView({ store, onNavigateToCharacter }: Props) {
         api.setSetting(`narration_instructions.${chatId}`, narrationInstructions),
         api.setSetting(`response_length.${chatId}`, responseLength),
       ]);
+      const prev = lastSavedSettingsRef.current;
+      if (prev && prev.chatId === chatId) {
+        const changes: Array<{ key: string; label: string; from: string; to: string }> = [];
+        if (prev.responseLength !== responseLength) {
+          changes.push({ key: "response_length", label: "Response Length", from: prev.responseLength, to: responseLength });
+        }
+        if (prev.narrationTone !== narrationTone) {
+          changes.push({ key: "narration_tone", label: "Narration Tone", from: prev.narrationTone, to: narrationTone });
+        }
+        if (prev.narrationInstructions !== narrationInstructions) {
+          const abbrev = (s: string) => {
+            const t = s.trim();
+            if (t.length === 0) return "(none)";
+            return t.length > 60 ? t.slice(0, 57) + "…" : t;
+          };
+          changes.push({ key: "narration_instructions", label: "Narration Instructions", from: abbrev(prev.narrationInstructions), to: abbrev(narrationInstructions) });
+        }
+        if (changes.length > 0) {
+          const threadId = store.messages.find((m) => m.thread_id)?.thread_id ?? null;
+          if (threadId) {
+            try {
+              const msg = await api.recordChatSettingsChange(threadId, changes, true);
+              store.appendMessage(msg);
+            } catch { /* best-effort */ }
+          }
+        }
+      }
+      lastSavedSettingsRef.current = { narrationTone, narrationInstructions, responseLength, chatId };
       setNarrationDirty(false);
     }, 600);
     return () => clearTimeout(timer);
-  }, [narrationTone, narrationInstructions, responseLength, narrationDirty, chatId]);
+  }, [narrationTone, narrationInstructions, responseLength, narrationDirty, chatId, store]);
 
   const insertEmojiAtCursor = useCallback((emoji: string) => {
     const ta = inputRef.current;
@@ -787,6 +832,14 @@ export function GroupChatView({ store, onNavigateToCharacter }: Props) {
                     setShowImaginedChapter(true);
                   }}
                 />
+              </React.Fragment>);
+            }
+
+            if (msg.role === "settings_update") {
+              return (<React.Fragment key={msg.message_id}>
+                {meanwhileBefore}
+                <TimeDivider current={msg} previous={prevMsg} />
+                <SettingsUpdateMessage message={msg} />
               </React.Fragment>);
             }
 

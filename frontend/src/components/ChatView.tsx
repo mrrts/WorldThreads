@@ -45,6 +45,7 @@ import { PortraitModal } from "@/components/chat/PortraitModal";
 import { StoryConsultantModal } from "@/components/chat/StoryConsultantModal";
 import { ImaginedChapterModal } from "@/components/chat/ImaginedChapterModal";
 import { ImaginedChapterMessage } from "@/components/chat/ImaginedChapterMessage";
+import { SettingsUpdateMessage } from "@/components/chat/SettingsUpdateMessage";
 import { useChatState } from "@/hooks/use-chat-state";
 import { useChatFocusRefresh } from "@/hooks/use-chat-focus-refresh";
 import { InventoryStrip } from "@/components/chat/InventoryStrip";
@@ -441,7 +442,29 @@ export function ChatView({ store, onNavigateToCharacter }: Props) {
     if (charId) api.setSetting(`leader.${charId}`, next).catch(() => {});
   }, [charId]);
 
-  // Auto-save chat settings
+  // Snapshot of last-saved settings, used to compute the diff when the
+  // user changes one. Initialized null and seeded on first non-dirty
+  // load so the initial settings-load doesn't appear as a "change."
+  const lastSavedSettingsRef = useRef<{
+    narrationTone: string;
+    narrationInstructions: string;
+    responseLength: string;
+    charId: string;
+  } | null>(null);
+  useEffect(() => {
+    if (!charId) { lastSavedSettingsRef.current = null; return; }
+    // When the chat changes OR settings finish loading (narrationDirty
+    // false right after load), snapshot as the new baseline.
+    if (!narrationDirty) {
+      lastSavedSettingsRef.current = { narrationTone, narrationInstructions, responseLength, charId };
+    }
+  }, [charId, narrationDirty, narrationTone, narrationInstructions, responseLength]);
+
+  // Auto-save chat settings + record a settings_update message in chat
+  // history when something actually changed. The history row surfaces
+  // the change to the user (earthy-codeblock card) AND tells the LLM
+  // that previous replies were under different settings, so it can stop
+  // pattern-matching length/register against scrollback.
   useEffect(() => {
     if (!charId || !narrationDirty) return;
     const timer = setTimeout(async () => {
@@ -450,10 +473,44 @@ export function ChatView({ store, onNavigateToCharacter }: Props) {
         api.setSetting(`narration_instructions.${charId}`, narrationInstructions),
         api.setSetting(`response_length.${charId}`, responseLength),
       ]);
+
+      // Build the diff against the last-saved snapshot. Only record if
+      // (a) we have a baseline (snapshot exists for this same charId),
+      // and (b) at least one tracked field actually changed.
+      const prev = lastSavedSettingsRef.current;
+      if (prev && prev.charId === charId) {
+        const changes: Array<{ key: string; label: string; from: string; to: string }> = [];
+        if (prev.responseLength !== responseLength) {
+          changes.push({ key: "response_length", label: "Response Length", from: prev.responseLength, to: responseLength });
+        }
+        if (prev.narrationTone !== narrationTone) {
+          changes.push({ key: "narration_tone", label: "Narration Tone", from: prev.narrationTone, to: narrationTone });
+        }
+        if (prev.narrationInstructions !== narrationInstructions) {
+          // For long instructions, abbreviate to keep the card scannable.
+          const abbrev = (s: string) => {
+            const t = s.trim();
+            if (t.length === 0) return "(none)";
+            return t.length > 60 ? t.slice(0, 57) + "…" : t;
+          };
+          changes.push({ key: "narration_instructions", label: "Narration Instructions", from: abbrev(prev.narrationInstructions), to: abbrev(narrationInstructions) });
+        }
+        if (changes.length > 0) {
+          const threadId = store.messages.find((m) => m.thread_id)?.thread_id ?? null;
+          if (threadId) {
+            try {
+              const msg = await api.recordChatSettingsChange(threadId, changes, false);
+              store.appendMessage(msg);
+            } catch { /* best-effort; the autosave already persisted */ }
+          }
+        }
+      }
+      // Update baseline AFTER recording the change.
+      lastSavedSettingsRef.current = { narrationTone, narrationInstructions, responseLength, charId };
       setNarrationDirty(false);
     }, 600);
     return () => clearTimeout(timer);
-  }, [narrationTone, narrationInstructions, responseLength, narrationDirty, charId]);
+  }, [narrationTone, narrationInstructions, responseLength, narrationDirty, charId, store]);
 
   const insertEmojiAtCursor = useCallback((emoji: string) => {
     const ta = inputRef.current;
@@ -832,6 +889,14 @@ export function ChatView({ store, onNavigateToCharacter }: Props) {
                     setShowImaginedChapter(true);
                   }}
                 />
+              </React.Fragment>);
+            }
+
+            if (msg.role === "settings_update") {
+              return (<React.Fragment key={msg.message_id}>
+                {meanwhileBefore}
+                <TimeDivider current={msg} previous={prevMsg} />
+                <SettingsUpdateMessage message={msg} />
               </React.Fragment>);
             }
 

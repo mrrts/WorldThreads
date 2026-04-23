@@ -131,7 +131,7 @@ export interface IllustrationSummary {
 export interface Message {
   message_id: string;
   thread_id: string;
-  role: "user" | "assistant" | "system" | "narrative" | "illustration" | "context" | "dream" | "inventory_update";
+  role: "user" | "assistant" | "system" | "narrative" | "illustration" | "context" | "dream" | "inventory_update" | "imagined_chapter" | "settings_update";
   content: string;
   tokens_estimate: number;
   sender_character_id: string | null;
@@ -669,6 +669,13 @@ export const api = {
     invoke<void>("cancel_background_novelization_cmd"),
   getSetting: (key: string) => invoke<string | null>("get_setting_cmd", { key }),
   setSetting: (key: string, value: string) => invoke<void>("set_setting_cmd", { key, value }),
+  /// Insert a settings_update message row marking that the user just
+  /// changed one or more chat settings. Surfaces in chat history both
+  /// for the user (a small earthy-codeblock card) and for the LLM
+  /// (so it knows previous replies were under different settings and
+  /// shouldn't pattern-match against them).
+  recordChatSettingsChange: (threadId: string, changes: Array<{ key: string; label: string; from: string; to: string }>, isGroup: boolean) =>
+    invoke<Message>("record_chat_settings_change_cmd", { threadId, changes, isGroup }),
   getApiKey: () => getApiKeyFromVault(),
   setApiKey: (key: string) => setApiKeyInVault(key),
   migrateApiKey: () => migrateApiKeyToVault(),
