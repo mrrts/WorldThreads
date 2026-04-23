@@ -2362,6 +2362,21 @@ pub async fn propose_canonization_updates(
             if items.is_empty() { format!("{label}: (none)") }
             else { format!("{label}:\n{}", items.iter().map(|x| format!("  - {x}")).collect::<Vec<_>>().join("\n")) }
         };
+        // Word count of the existing description, displayed inline next
+        // to it. Models that reliably ignore prose-form length rules
+        // ("preserve length") respond more strongly to a numeric anchor
+        // shown right where they read the description. Used as the
+        // explicit floor referenced in the "For description_weave
+        // specifically" preservation block below.
+        let desc_word_count = s.current_description.split_whitespace().count();
+        let desc_with_count = if s.current_description.trim().is_empty() {
+            "(none)".to_string()
+        } else {
+            format!(
+                "[CURRENT WORD COUNT: {}. Any description_weave you propose for this subject MUST be at least {} words. Counting words in your proposed new_content and confirming it's >= {} is part of the work.]\n\n{}",
+                desc_word_count, desc_word_count, desc_word_count, s.current_description,
+            )
+        };
         format!(
             "## Subject {idx}: {label} (type={st}, id={sid})\n\
              current_description:\n{desc}\n\n\
@@ -2370,7 +2385,7 @@ pub async fn propose_canonization_updates(
             label = s.subject_label,
             st = s.subject_type,
             sid = s.subject_id,
-            desc = if s.current_description.trim().is_empty() { "(none)".to_string() } else { s.current_description.clone() },
+            desc = desc_with_count,
             vr = fmt_list("voice_rules", &s.voice_rules),
             bd = fmt_list("boundaries", &s.boundaries),
             bf = fmt_list("backstory_facts", &s.backstory_facts),
@@ -2462,15 +2477,28 @@ Hard rules — not guidelines:
 - **Add by extension, not by substitution.** Add a sentence. Fold a phrase into an existing sentence. Deepen an image that is already there. Never replace.
 - **Do NOT add meta-frames** ("as he revealed", "recently shared", "in a recent moment"). The integration must read as if it had always been part of the description.
 
-Earned exceptions — narrow, specific, never a general license:
+Earned exceptions — narrow, specific, never a general license. Each exception applies to AT MOST ONE clause / sentence in the existing description. Touching more than one clause under any exception means you've stopped being honest about what the exception is for.
 
-1. **Direct contradiction.** If a specific sentence in the existing description is now plainly *contradicted* by the new moment (not nuanced, not refined — directly contradicted), you may revise THAT one sentence in place. Everything not directly contradicted stays verbatim.
+1. **Direct contradiction.** If a specific sentence in the existing description is now plainly *contradicted* by the new moment (not nuanced, not refined — directly contradicted), you may revise THAT one sentence in place. ONE sentence only. Everything not directly contradicted stays verbatim.
 
-2. **Lossless tightening at the integration site.** If the new moment lets you express something the existing description was saying the long way around in a tighter, truer phrasing — AND the new phrasing carries every truth the old phrasing carried, with nothing dropped — you may use the tighter phrasing in place of the longer one. The test is strict: read the old clause and the new clause side by side and confirm that no fact, no nuance, no shade of feeling, no specific image present in the old is absent from the new. If you cannot pass that test, expand instead. The revised description may, in this case alone, end up the same length as the original or slightly shorter — but only if zero information was lost. "It reads cleaner" is NOT a sufficient reason; "it reads cleaner AND every truth is preserved" is.
+2. **Lossless tightening at the integration site.** If the new moment lets you express ONE specific phrase or sentence the existing description was saying the long way around in a tighter, truer phrasing — AND the new phrasing carries every truth the old phrasing carried, with nothing dropped — you may use the tighter phrasing in place of the longer one. ONE phrase or sentence only. NOT the whole paragraph, NOT multiple clauses, NOT a re-shape of the description's overall flow. The test is strict: read the old clause and the new clause side by side and confirm that no fact, no nuance, no shade of feeling, no specific image present in the old is absent from the new. If you cannot pass that test for the one clause, expand instead. The revised description may, in this case alone, end up the same length as the original — but never by more than ~10 words shorter; if you find yourself dropping more than that, you've crossed from "tightening" to "rewriting" and you're outside the exception. "It reads cleaner" is NOT a sufficient reason; "it reads cleaner AND every truth is preserved AND I only touched one phrase" is.
 
-3. **Removal of what is no longer true.** Characters evolve. A clause in the existing description that is no longer true of who this person is now — outgrown, superseded by accumulated reality, or simply no longer accurate — may be removed. This includes traits the character has visibly grown past, transient circumstances that have resolved, intentions that have been acted on or abandoned, and self-descriptions that recent activity has quietly falsified even without a single contradicting moment. The bar is "this is no longer true," not "this is no longer interesting" or "this would tighten the prose." Be honest about the difference: if you cannot point to specific accumulated reality that has made the clause false, leave it alone.
+3. **Removal of what is no longer true.** AT MOST ONE clause may be removed under this exception, and only when the source moment OR the user hint EXPLICITLY identifies that thing as no longer true. You may NOT decide unilaterally that something feels outdated — the user has not asked you to audit the description, only to integrate the new moment. If the source moment doesn't directly invalidate a specific existing clause, this exception does not apply. The bar: if you can't quote the line in the source moment that makes the clause false, leave the clause alone.
 
-These are exceptions to the length floor, not to the preservation rule. Outside the integration site itself — and outside any clause being removed under exception 3 — every existing clause stays verbatim regardless.
+These are exceptions to the length floor, not to the preservation rule. Outside the at-most-one clause touched by an exception, every existing sentence stays verbatim regardless.
+
+# SELF-CHECK BEFORE RETURNING (description_weave only)
+
+Before you finalize a description_weave, do this check explicitly in your head:
+
+1. Count the words in the ORIGINAL description (the [CURRENT WORD COUNT: N] tag in the subject block tells you).
+2. Count the words in YOUR PROPOSED new_content.
+3. If your count is less than N, your output is invalid. Either:
+   (a) you exceeded an earned exception (touched more than one clause) — pull back to the verbatim original and add ONLY the new integration; OR
+   (b) you dropped content that wasn't load-bearing-truth-removal — restore the dropped sentences verbatim and try again.
+4. The expected case: your count is N + a small number (the words of the new integration). That's the right shape.
+
+If after the self-check your output is still shorter than N, do not return a description_weave at all — return one of the list-kind updates (voice_rule, known_fact, etc.) instead. A non-revision is better than a regression.
 
 # CRITICAL — EVERY update MUST include `justification`
 The `justification` field is MANDATORY on EVERY update in the `updates` array — not just the first one, not just one of two, ALL of them. This is the commonest failure mode on multi-item outputs like this one: the first update gets a justification, the second is missing it. EVERY SINGLE update object must carry its own one-sentence `justification` string explaining why this moment produces THAT update. An update without justification is invalid output.
