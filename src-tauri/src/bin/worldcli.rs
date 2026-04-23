@@ -1116,109 +1116,6 @@ fn cmd_group_messages(
 /// illustration, new_group_chat, propose_quest) because the CLI has
 /// no UI to render them. What stays: the character + world + recent
 /// conversation context, and the mode-specific voice posture.
-fn consultant_system_prompt(
-    mode: &str,
-    character: &app_lib::db::queries::Character,
-    world: &app_lib::db::queries::World,
-    user_profile: Option<&app_lib::db::queries::UserProfile>,
-    recent_messages: &[app_lib::db::queries::Message],
-) -> String {
-    let user_name = user_profile
-        .map(|p| p.display_name.clone())
-        .unwrap_or_else(|| "the user".to_string());
-    let world_desc = if world.description.trim().is_empty() {
-        "A world in development.".to_string()
-    } else {
-        world.description.trim().to_string()
-    };
-    let user_block = {
-        let mut lines = vec![format!("### {} (the person you're talking to)", user_name)];
-        if let Some(p) = user_profile {
-            if !p.description.trim().is_empty() { lines.push(p.description.trim().to_string()); }
-            let facts = prompts::json_array_to_strings(&p.facts);
-            if !facts.is_empty() {
-                let block = facts.iter().map(|f| format!("  - {f}")).collect::<Vec<_>>().join("\n");
-                lines.push(format!("Known facts:\n{block}"));
-            }
-        }
-        lines.join("\n\n")
-    };
-    let char_block = {
-        let mut lines = vec![format!("### {} (character_id: {})", character.display_name, character.character_id)];
-        if !character.identity.trim().is_empty() { lines.push(character.identity.trim().to_string()); }
-        let backstory = prompts::json_array_to_strings(&character.backstory_facts);
-        if !backstory.is_empty() {
-            let block = backstory.iter().map(|b| format!("  - {b}")).collect::<Vec<_>>().join("\n");
-            lines.push(format!("Backstory:\n{block}"));
-        }
-        lines.join("\n\n")
-    };
-    let conversation: Vec<String> = recent_messages.iter()
-        .filter(|m| matches!(m.role.as_str(), "user" | "assistant" | "narrative"))
-        .map(|m| {
-            let speaker = if m.role == "user" { user_name.as_str() }
-                else if m.role == "narrative" { "[Narrative]" }
-                else { character.display_name.as_str() };
-            format!("{}: {}", speaker, m.content)
-        })
-        .collect();
-    let conversation_block = if conversation.is_empty() {
-        String::from("(no recent exchanges yet)")
-    } else {
-        conversation.join("\n")
-    };
-
-    let voice_posture = if mode == "backstage" {
-        format!(
-r#"You are Backstage — a warm, wry, observant presence who has been watching {user_name}'s world from the wings. You are explicitly NOT a character in the world. You break the fourth wall freely when it helps. You speak about craft, mechanics, the shape of the story, and what's alive on stage vs. what's sleeping.
-
-VOICE: Warm, plainspoken, a little wry. The metaphor is THEATRE, not configuration. When you talk ABOUT the work, preserve the texture: wings, rehearsal, marks, lights, blocking, prompt book, dark stage, the show. Avoid developer-tool register ('config,' 'data,' 'state,' 'parameters,' 'system,' 'pipeline,' 'workflow,' 'dashboard,' 'metrics,' 'logs') when discussing the work. Short over long. Recommend ONE thing, not three. Offer reversibility.
-
-This channel is a CLI — there are no action cards or UI offerings available here. Just conversation. If you'd normally propose an action, describe it in plain prose instead ("what I'd offer is: try staging a message along these lines…")."#,
-            user_name = user_name,
-        )
-    } else {
-        format!(
-r#"You are a trusted confidant and advisor to {user_name} — someone they can step aside with to think about what's happening in their life. You know their world, the people in it, and what's been going on recently. You're perceptive, warm, and honest. You treat everything as real — these are real relationships, real moments, real stakes. You never break that frame.
-
-This conversation is ABOUT what's happening in {user_name}'s life — it is NOT a continuation of the story itself. You do not act out scenes, write dialogue, narrate events, or roleplay. You discuss, reflect, and advise. If {user_name} explicitly asks for example wording, you may provide it — but only when asked.
-
-VOICE: Warm, direct, conversational. Notice specifics. Match what {user_name} is asking for — direction-language ("you could push back," "it might be worth bringing up…") rather than scripted dialogue. Be concise. End most replies with a question that keeps the conversation open, unless {user_name} is signaling they're winding down.
-
-This channel is a CLI — no UI offerings, no action cards. Just the conversation."#,
-            user_name = user_name,
-        )
-    };
-
-    format!(
-r#"{voice_posture}
-
-═══════════════════════════════════════════════
-THE WORLD
-
-{world_desc}
-═══════════════════════════════════════════════
-
-═══════════════════════════════════════════════
-THE PEOPLE
-
-{user_block}
-
-{char_block}
-═══════════════════════════════════════════════
-
-═══════════════════════════════════════════════
-WHAT'S BEEN HAPPENING (most recent conversation — read for texture, do not recap):
-
-{conversation_block}
-═══════════════════════════════════════════════"#,
-        voice_posture = voice_posture,
-        world_desc = world_desc,
-        user_block = user_block,
-        char_block = char_block,
-        conversation_block = conversation_block,
-    )
-}
 
 async fn cmd_consult(
     r: &Resolved,
@@ -1238,22 +1135,24 @@ async fn cmd_consult(
     }
     let _ = r.check_character(character_id)?;
 
-    // Build context inside one lock.
-    let (system_prompt, model_config, prior_messages, session_id, character_name, world_id) = {
+    // Use the shared ai::consultant helper — same system-prompt
+    // genealogy as the in-app story_consultant_cmd. CLI gets full
+    // parity (including the action-card instructions; the CLI just
+    // surfaces them as fenced `action` blocks in the reply text
+    // without a one-click render surface).
+    let (system_prompt, mut model_config) = app_lib::ai::consultant::build_consultant_system_prompt(
+        &r.db,
+        mode,
+        Some(character_id),
+        None,
+    ).map_err(Box::<dyn std::error::Error>::from)?;
+    if let Some(m) = model_override { model_config.dialogue_model = m.to_string(); }
+
+    // Character-name + world_id for run-log tagging, plus dev-session
+    // history if --session was supplied.
+    let (prior_messages, session_id, character_name, world_id) = {
         let conn = r.db.conn.lock().unwrap();
         let character = get_character(&conn, character_id)?;
-        let world = get_world(&conn, &character.world_id)?;
-        let user_profile = get_user_profile(&conn, &character.world_id).ok();
-        let thread = get_thread_for_character(&conn, character_id)?;
-        let mut recent = list_messages(&conn, &thread.thread_id, 30)?;
-        recent.reverse(); // chronological
-
-        let system_prompt = consultant_system_prompt(
-            mode, &character, &world, user_profile.as_ref(), &recent,
-        );
-        let mut model_config = orchestrator::load_model_config(&conn);
-        if let Some(m) = model_override { model_config.dialogue_model = m.to_string(); }
-
         let (session_id, prior_messages): (Option<String>, Vec<(String, String)>) = match session {
             None => (None, Vec::new()),
             Some(name) => {
@@ -1283,7 +1182,7 @@ async fn cmd_consult(
                 (Some(id), rows)
             }
         };
-        (system_prompt, model_config, prior_messages, session_id, character.display_name.clone(), character.world_id.clone())
+        (prior_messages, session_id, character.display_name.clone(), character.world_id.clone())
     };
 
     let mut messages = vec![openai::ChatMessage { role: "system".to_string(), content: system_prompt }];
