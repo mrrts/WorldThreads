@@ -74,7 +74,7 @@ export function ImaginedChapterMessage({ message, onOpen }: Props) {
         type="button"
         onClick={() => onOpen(parsed.chapter_id)}
         title="Open this chapter"
-        className="group w-full max-w-xl overflow-hidden rounded-xl border border-amber-400/50 bg-gradient-to-b from-amber-100/60 via-amber-50/40 to-amber-50/20 dark:from-amber-950/40 dark:via-amber-950/25 dark:to-amber-950/15 shadow-[0_0_18px_rgba(251,191,36,0.22)] hover:shadow-[0_0_28px_rgba(251,191,36,0.4)] hover:border-amber-400/80 transition-all text-left"
+        className="group w-full max-w-xl overflow-hidden rounded-xl border border-amber-400/50 bg-gradient-to-b from-amber-100/60 via-amber-50/40 to-amber-50/20 dark:from-amber-950/40 dark:via-amber-950/25 dark:to-amber-950/15 shadow-[0_0_18px_rgba(251,191,36,0.22)] hover:shadow-[0_0_28px_rgba(251,191,36,0.4)] hover:border-amber-400/80 transition-all text-left cursor-pointer"
       >
         <div className="relative w-full aspect-[16/9] bg-amber-950/30 overflow-hidden">
           {imageUrl ? (
