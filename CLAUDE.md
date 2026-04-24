@@ -88,6 +88,27 @@ The replay/evaluate/synthesize tooling makes single-run experiments cheap enough
 
 **Earned exception — when N=1 is legitimately enough.** If a single run surfaces an unmistakable qualitative observation that doesn't require frequency characterization (a specific line that violates a specific invariant; a specific character making a move they're canonically forbidden from making), one observation can be sufficient to PROMPT follow-up but the finding itself is still a sketch until re-observed. The exception is about the observation's informativeness, not its sufficiency as a conclusion.
 
+**Directional claims from sketch-tier experiments are unreliable by default, not preliminary confirmations awaiting replication.** The single most important corollary of the three-tier discipline. A sketch reading *"X increases Y by 25%"* is not *"probably X→Y, just needs more samples to refine magnitude"* — it is *"the direction of X vs Y is unknown; claim-tier testing often reveals no effect, or reverses direction entirely."* The 2026-04-24 full-session experimental arc produced three worked examples where naïve sketch-tier directional claims REVERSED at claim-tier rather than merely weakening:
+
+- **Invariants-first length:** N=1 *"reduces length by ~25%"* → N=3 per condition at symmetric baseline revealed 5/8 conditions show LONGER variant replies; aggregate delta ~0. (reports/2026-04-24-2200)
+- **Load-test anchor:** N=1-2 *"anchors produce tighter register-dense output"* → N=3 per condition revealed direction varies per character (3/4 LONGER with anchor, 1/4 shorter). (reports/2026-04-24-2320)
+- **Compound-intervention meta-commentary:** N=1 *"threshold interaction at 6 components"* → N=2+ revealed probabilistic emergence across many configurations; no clean threshold. (reports/2026-04-24-2020)
+
+In each case, the sketch wasn't imprecise — it was wrong about direction. Treating sketches as *"probably this direction, pending replication"* is the specific failure mode this discipline exists to prevent. A sketch tells you *a single data point exists in the space*; it does NOT tell you the gradient of the space.
+
+**Practical rule for citation language when referencing a sketch in any later report.** Accepted framings:
+- *"An N=1 observation suggested [direction]; claim-tier testing would be needed to determine whether the direction is real."*
+- *"In this specific case we saw X; the general pattern is not yet established."*
+- *"A sketch-tier reading hinted at X — treated here as a motivating observation, not a finding."*
+
+Forbidden framings (these smuggle in directional confirmation the N doesn't support):
+- *"Preliminary finding: X tends to Y."*
+- *"We found a ~25% reduction in Y."*
+- *"The data suggests X, pending more runs."*
+- *"Tentative confirmation of X."*
+
+The magnitude language (*"~25%"*, *"~0.17"*, etc.) is especially dangerous: it reads as precise even when the N doesn't support even the sign. Specific numbers should only appear with their N explicitly cited in the same sentence, and claim-tier numbers should be labeled as such. Sketches describe instances, not trends.
+
 **What this prevents.** The experiments registry (`experiments/` directory + `worldcli lab list`) accumulating claims at mixed evidentiary standards with no way to tell which is which. Reports citing each other across sessions without tracking whether the cited claim survives. Production default changes proposed on single-character single-run behavior. The general failure mode: N=1 sketches hardening into project folklore because nobody went back and measured them at N=3.
 
 **How to apply the retroactive audit.** Walk the `experiments/` directory, read each entry's summary + its linked report(s), and classify by actual N. The four states visible in the registry (proposed / running / confirmed / refuted) describe STATUS but not STRENGTH. Strength is orthogonal — a refuted sketch and a refuted claim are different things; a confirmed sketch and a confirmed claim are also different things. The registry's evidence_strength field makes the strength visible without needing to read every report.
