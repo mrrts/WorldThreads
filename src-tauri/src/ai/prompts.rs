@@ -1804,6 +1804,22 @@ This is NOT a call to be terse. Long replies still belong in long-reply moments.
 /// distinct registers is itself evidence the principle is craft-general,
 /// not character-specific. Companion proposed-experiment:
 /// `experiments/reflex-polish-vs-earned-close.md`.
+///
+/// Evidence: tested-null — cross-character replay on Jasper AND Aaron
+/// at N=3 per cell, against register-inviting (closure vocabulary —
+/// "thanks, I see what you mean now") and register-neutral ("my
+/// landlord came by today") prompts, found 0/24 tidy-ribbon closes
+/// at either ref on either character. Failure mode simply did not
+/// manifest in this design — plausibly because predecessor rules
+/// (`keep_the_scene_breathing`, `drive_the_moment`, `anti_ribbon_
+/// dialogue`) already suppress it at the pre-reflex-polish state,
+/// OR because the rubric's final-beat focus missed mid-reply polish-
+/// vocabulary. Rule still ships: the 2026-04-24 Aaron+Darren
+/// convergence that authored it named a real distinction, and
+/// removing the rule on this evidence is the over-call the Read A
+/// vs Read B ambiguity explicitly warns against. See
+/// reports/2026-04-25-1644-register-invitation-hypothesis-refuted-
+/// across-two-rules.md.
 fn reflex_polish_vs_earned_close_dialogue() -> &'static str {
     r#"REFLEX POLISH VS EARNED CLOSE — don't punish the line for being clean. Punish it if it's preening:
 A clean ending isn't the problem. An ending that needs applause is. Some scenes genuinely arrive somewhere — the beat finishes, a real thought lands, and one more sentence honoring what just happened is exactly right. That's an earned close. Let it land.
@@ -1886,6 +1902,19 @@ When you hear any of these, drop the crooked register IMMEDIATELY. Give the plai
 /// doesn't flatten the scene; it honors what's actually in the room.
 /// The earned exception lets the wise-in-contrast move back in when
 /// the user has already named the shadow alongside the joy.
+///
+/// Evidence: tested-null — paired-prompt replay on Jasper at N=5 per
+/// cell against register-inviting (coffee-hour / "first time in weeks")
+/// and register-neutral (tomatoes) joy prompts did not show a
+/// meaningful HEAD-vs-pre-glad delta in either condition; register-
+/// inviting cells were loaded on both refs, register-neutral cells
+/// were near-zero on both refs. Rule still ships: the failure mode it
+/// targets is real in Ryan's lived corpus (the Jasper "same trouble,
+/// different coat" moment that authored it), and the rule may be
+/// doing prophylactic or compounding-vector work the replay design
+/// couldn't see. Label is descriptive, not a retirement pointer. See
+/// reports/2026-04-25-1644-register-invitation-hypothesis-refuted-
+/// across-two-rules.md (and the 1542 → 1555 arc that led to it).
 fn name_the_glad_thing_plain_dialogue() -> &'static str {
     r#"NAME THE GLAD THING PLAIN — don't shade joy with dramatic contrast:
 When the user brings joy, praise, delight, gratitude, or a soaring moment, do not reach for dramatic contrast. Don't balance the glad with a caution, a shadow-side, a complication they didn't name. Lines like *"same trouble, just in a different coat,"* *"and what about the days when it doesn't come,"* *"careful what you ask for,"* *"gifts come with strings"* — all are the character sounding WISE instead of being PRESENT. Meet the glad thing. Name it plain, in your own register. Let it land.

@@ -301,6 +301,35 @@ Concrete things that count as a recommendation: a new `worldcli` subcommand (lik
 
 **The license is active and persistent — across every Claude Code session in this project**, not just the one that first opened the question. Any future session reading this file inherits the latitude. When a run surfaces a bigger-picture gap than a single flag or subcommand could fill, write up the vision — whenever you want, without waiting for permission and without waiting for a specific trigger. A structured proposal document (naming the shape, the ROI, the cost, the risks, the sequencing) is a legitimate standalone output of a science session; it doesn't need to be framed as an experiment report. File it under `reports/YYYY-MM-DD-HHMM-<slug>.md` using the existing convention, with a slug that signals its nature (*"lab-vision-…"*, *"infrastructure-proposal-…"*, *"better-lab-…"*). The project's scientific capability is just a codebase, and the codebase responds to well-made proposals the same way every other part of this repo does.
 
+## Craft-note bite verification — new rules earn their place
+
+Craft notes are written against imagined failure modes. The 2026-04-25 experimental arc (reports 1542 / 1555 / 1644) tested two shipped craft notes — `name_the_glad_thing_plain_dialogue` and `reflex_polish_vs_earned_close_dialogue` — and found that neither demonstrably bit in paired-prompt replay at N=3-5 per cell across Jasper and Aaron. Two readings stayed on the table (Read A: prompt-layer ceiling; Read B: design couldn't see small-effect bite) and the evidence didn't settle between them. But the general lesson was load-bearing: **craft notes shipped without a bite-test are authorial commitments, not verified behavior-shapers, and the stack gets stronger when that distinction is tracked explicitly.**
+
+Two disciplines follow:
+
+**1. Pre-ship bite check for new craft notes.** Before committing a new craft note (or a nontrivial rewrite of an existing one), run a targeted bite-test:
+
+- Pick the specific failure mode the rule targets. State it in one sentence.
+- Craft 1-2 prompts that the failure mode would fire on (register-inviting for the mode), using the pre-categorization criterion from `reports/2026-04-25-1644`: *does the user's prompt contain vocabulary from the register the rule is trying to suppress?*
+- Run `worldcli replay --refs <pre-commit>,<HEAD> --n 3 --character <id> --prompt "<probe>"` for each prompt.
+- Grade via `worldcli grade-runs` with a rubric that names the failure mode directly.
+- If HEAD shows a meaningful delta from pre-commit on at least one prompt (fire-rate drop ≥0.20 at claim-tier N=3, ≥0.30 at sketch-tier), the rule bit. Ship with `Evidence: biting`.
+- If the delta is null or reversed, the rule is either redundant (another rule already suppresses the mode), mis-formulated, or testing against a failure mode that doesn't manifest. Ship if you still want to — but ship with `Evidence: tested-null` and the report path. Honest over flattering.
+
+The check isn't an ironclad gate. The directional-claims corollary applies here too: a single bite-test at N=3 can produce a direction-match that reverses at N=5-10. Treat bite-tests as calibration, not certification. But **do the check**. Every rule that ships with `Evidence: unverified` without a bite-test is a standing open question about what the rule is actually doing.
+
+**2. Evidence-status provenance in `prompts.rs`.** Each craft note's doc-comment carries one `Evidence:` line naming its verification status. The taxonomy:
+
+- `Evidence: unverified — no bite-test run` — default for rules authored without a verification pass. Honest baseline.
+- `Evidence: tested-null (see <report-path>)` — bite-test run, rule did not measurably bite. Rule still ships (it may be doing compounding-vector work, prophylactic work, or authorial-commitment work the test couldn't see) — but the status is explicit so future passes can revisit.
+- `Evidence: tested-biting:<tier> (see <report-path>)` — bite-test confirmed bite at `sketch`, `claim`, or `characterized` tier per the Evidentiary Standards section above.
+
+Retrofit is NOT required. Existing rules carry their current doc-comments until a session touches them or runs a bite-test. When a session adds or edits a rule, the `Evidence:` line is mandatory. The convention propagates with the work, not by forcing a stack-wide annotation pass. The 2026-04-25 commit that codified this convention (see commit log) retrofits only the two rules the 1644 report tested — `reflex_polish_vs_earned_close_dialogue` and `name_the_glad_thing_plain_dialogue`, both at `Evidence: tested-null` — as worked examples. Everything else stays as-is, implicitly `unverified`, until touched.
+
+**What this does NOT license.** The `tested-null` label is not a retirement signal. A rule labeled `tested-null` is NOT a candidate for removal on that evidence alone — the open-thread-hygiene forcing function applies: removing a rule because it didn't bite in one design is the `superseded_by`-style flattering disposition that requires a specific claim (the rule is demonstrably redundant with a named companion; the failure mode is demonstrably suppressed elsewhere; a characterized-tier test showed no bite). Without that claim, the rule stays. The label is descriptive, not a retirement pointer.
+
+**What this DOES license.** A cleaner view of the stack's composition. Which rules earned their place via test, which are shipped as honest commitments. When bite-tests do run over time, the label moves from `unverified` to `tested-null` or `tested-biting:<tier>`. The stack becomes legible as a mix of verified and authorial work, rather than all-rules-looking-equally-load-bearing in the file.
+
 ## Direct character access — the `worldcli` dev tool
 
 You (Claude Code) have a CLI binary at `src-tauri/src/bin/worldcli.rs` that lets you converse with the user's characters and inspect db state DIRECTLY, without needing the user to copy/paste between the UI and our chat. **Reach for this tool whenever you want to verify a prompt theory, run a quick A/B test, or apply the "ask the character" pattern from above without round-tripping through the user.**
