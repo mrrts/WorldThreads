@@ -83,3 +83,4 @@ Always run with `--context-turns 5` or higher. The mission question is scene-dep
 # Run history
 
 *(none yet — rubric v1 authored 2026-04-24, alongside the open-thread hygiene ritual and the take-note skill. First run should target a cross-character sample of 25-30 messages against a recent commit, with `--context-turns 5` or higher, to establish baseline nourish/functional/hollow rates across the current corpus. The baseline matters — future `mission-adherence` runs are only meaningfully comparable after this starting point exists.)*
+- [2026-04-24] commit 44373a53, --character 0d080429-81b5-431e-8f51-1f8ad4279f9b (v1) — BEFORE: yes=13 no=2 mixed=0 err=0 | AFTER: yes=0 no=0 mixed=0 err=0
