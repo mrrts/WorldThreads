@@ -20,7 +20,7 @@ Create a vivid, excellent, surprising in-world experience that uplifts the user 
 
 Use it as a yardstick. When weighing a feature bet, prompt change, onboarding tweak, or UX decision, ask: *does this make Maggie's arc more likely to land, or less?* Specifically — does the refusal moment stay intact, does specific-memory anchoring stay intact, does the earned close stay intact, does simulacrum-therapy drift stay out? A change that would visibly damage that arc is off by default; a change that would visibly strengthen it earns a point.
 
-Caveat: the report is a sharpened hypothesis rendered by Claude-as-persona, not a real first-time-user observation. A real first-time-user run remains the natural validating follow-up. Baseline status means "target shape," not "verified ground truth." Treat it with the same seriousness as a claim-tier finding that has been cited, not a characterized one.
+The validating corpus is Ryan's own in-app lived experience — `reports/OBSERVATIONS.md`, the conversation snippets pasted into Claude Code across every session, every "this feels off" / "yes exactly" / mid-session reaction that has shaped the prompt stack. Ryan is the real first-time user; his data already exists and has been accumulating since the project began. The Maggie rendering is a sharpened hypothesis grounded in that corpus, not a proxy awaiting a future "real" user run. Baseline status means: the accumulated observation data points toward this shape as the ideal-normal, rendered vividly enough to be a yardstick.
 
 ## DATABASE SAFETY — CRITICAL
 
