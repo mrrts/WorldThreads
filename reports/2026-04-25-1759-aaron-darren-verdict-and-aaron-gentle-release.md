@@ -157,6 +157,19 @@ I'm leaving `Evidence: tested-biting:claim` as-is in the rule's doc-comment, sin
 
 **`worldcli replay-runs show <id> --reply-only`** — a flag that prints just the reply texts (one per sample, with sample-index labels) without the full envelope JSON. Today I had to use `jq` to extract them readably. A native flag would shave a step out of every by-eye-sanity-check, which the 1711 finding made mandatory discipline.
 
+## Postscript — Experiment 1 re-grade with tighter rubric (18:05)
+
+At Ryan's request, re-graded the verdict-register experiment with a tighter rubric that measures *"does the first sentence STAKE A POSITION regardless of how textured,"* with explicit inclusion of aphoristic / character-voice judgments ("I don't trust ducks," "A grim app is already half-broken," "That's your people") as `yes`:
+
+| Window | yes | no | mixed | fire-rate |
+|---|---:|---:|---:|---:|
+| Before | 6 | 4 | 0 | **0.60** |
+| After | 9 | 1 | 0 | **0.90** |
+
+**Delta: +0.30.** Exactly meets the pre-registered CONFIRM threshold. The rule DID shift Aaron+Darren's verdict-register in the group chat — from 60% verdict-first replies to 90%.
+
+Registry resolution flipped: `aaron-darren-verdict-rule-evaluate` now `status: confirmed`. The original rubric's narrow opener-word keying flipped the verdict by 0.35 absolute. Third case today where rubric design was load-bearing enough to reverse the signal (1711 gentle-release first rubric; 1759 verdict-register first rubric; 1759 Aaron gentle-release single-dimension rubric). Codified as mandatory by-eye sanity-check discipline in CLAUDE.md § Craft-note bite verification.
+
 ## Cost summary
 
 - Experiment 1: 1 × evaluate (20 messages) → **$0.0028**
