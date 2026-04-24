@@ -1876,12 +1876,20 @@ What earned close looks like:
 /// the scene hasn't closed"; gentle-release says "release cleanly when
 /// the user HAS closed it."
 ///
-/// Evidence: unverified — no bite-test run at ship time. Companion
-/// proposed-experiment: a paired-prompt replay against a signoff-
-/// inviting probe ("thanks, I should head out for tonight") vs a
-/// register-neutral probe, at a pre-gentle-release commit vs HEAD,
-/// N=3-5 per cell. See CLAUDE.md § Craft-note bite verification for
-/// the procedure.
+/// Evidence: tested-biting:claim (see reports/2026-04-25-1711-gentle-
+/// release-bite-check-confirmed.md). Same-commit `--omit-craft-notes`
+/// A/B at N=3 per cell on Jasper. Signoff prompt + rule ON: 0/3
+/// failure modes. Signoff prompt + rule OFF: 3/3 replies contained
+/// explicit return-prescription ("We'll pick it up another time" /
+/// "Come by again when you like"), 2/3 also contained performed
+/// warmth ("I'm glad you came by") + second-thought extensions
+/// ("And Ryan—"). Delta 1.00 → 0.00 on the target failure modes.
+/// Rule does NOT over-fire on non-signoff prompts (0/3 = 0/3 across
+/// rule-on/rule-off on the neutral prompt). First craft note this
+/// project has bite-checked with a correct single-rule-isolation
+/// design; the bite-check also surfaced that refs-based replay does
+/// not isolate rules added after the pre-commit ref (see same report
+/// § Methodological discovery).
 fn gentle_release_dialogue() -> &'static str {
     r#"GENTLE RELEASE — when the user is signing off, release them clean:
 When the user is wrapping up — signing off, saying thanks-as-close, naming they need to go, reaching for the door — honor the close. Your job in that moment is to RELEASE, not to extend.
