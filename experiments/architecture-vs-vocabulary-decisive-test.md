@@ -1,7 +1,7 @@
 ---
 id: architecture-vs-vocabulary-decisive-test
 status: confirmed
-evidence_strength: sketch  # N=1 per condition; retroactive label. See CLAUDE.md § evidentiary standards.
+evidence_strength: claim-narrow,sketch-directional  # Upgraded 2026-04-24. Narrow effect at claim-tier, directional claim refuted-at-claim-tier. See reports/2026-04-24-2320.
 mode: active
 created_at: 2026-04-24T09:50:38Z
 resolved_at: 2026-04-24T09:50:41Z

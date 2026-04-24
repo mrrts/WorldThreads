@@ -37,6 +37,11 @@ follow_ups:
 
 reports:
   - reports/2026-04-23-1241-aaron-darren-null-result.md
+
+retirement_date: 2026-04-24
+retirement_disposition: abandoned
+retirement_rationale: |
+  Refuted null result. The cascade rule does bite on Jasper (1/10) but not on Aaron-Darren (0/15) — the null is the finding, and it's already embedded in the craft doctrine (rule has character-register distribution). No further decision depends on this. Retiring per 2026-04-24-2245 evidentiary triage.
 ---
 
 ## What a null result teaches

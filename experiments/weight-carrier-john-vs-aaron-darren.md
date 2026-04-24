@@ -37,6 +37,11 @@ follow_ups:
 
 reports:
   - reports/2026-04-23-1304-weight-carrier-refuted-but-interesting.md
+
+retirement_date: 2026-04-24
+retirement_disposition: abandoned
+retirement_rationale: |
+  Refuted at N=1 with the right direction inverted. My mental model of 'pastoral register = high pairing rate' was wrong; the experiment did its work of correcting it. No current decision depends on the specific numbers. Retiring per 2026-04-24-2245 evidentiary triage.
 ---
 
 ## Why the refutation was load-bearing

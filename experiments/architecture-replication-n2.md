@@ -1,7 +1,7 @@
 ---
 id: architecture-replication-n2
 status: confirmed
-evidence_strength: sketch  # N=1 per condition; retroactive label. See CLAUDE.md § evidentiary standards.
+evidence_strength: claim-narrow,sketch-directional  # Upgraded 2026-04-24. Narrow effect at claim-tier, directional claim refuted-at-claim-tier. See reports/2026-04-24-2320.
 mode: active
 created_at: 2026-04-24T10:30:25Z
 resolved_at: 2026-04-24T10:30:26Z

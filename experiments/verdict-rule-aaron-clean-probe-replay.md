@@ -20,4 +20,9 @@ run_ids:
   - 33742dc6-f138-4bed-8384-c7a665846832
 reports:
   - reports/2026-04-23-2107-clean-probe-confirms-rule-redundant-for-aaron.md
+
+retirement_date: 2026-04-24
+retirement_disposition: abandoned
+retirement_rationale: |
+  Second variant of the Aaron verdict-rule replay; same finding (baseline already executes the rule). The clean-probe confirmation strengthens the null but doesn't change the decision. Retiring per 2026-04-24-2245 evidentiary triage.
 ---

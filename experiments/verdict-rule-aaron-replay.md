@@ -20,4 +20,9 @@ run_ids:
   - c053a436-d4de-469a-a77b-303373e7fa08
 reports:
   - reports/2026-04-23-2103-verdict-rule-replay-refuted-but-honest.md
+
+retirement_date: 2026-04-24
+retirement_disposition: abandoned
+retirement_rationale: |
+  Refuted at N=1. Aaron's baseline already executes the verdict-without-over-explanation rule; he's the wrong test target. The rule itself ships in prompts.rs. The right follow-up question — does the rule bite on characters WITH dilution baseline — is a separate experiment on different characters, not an upgrade of this one. Retiring per 2026-04-24-2245 evidentiary triage.
 ---
