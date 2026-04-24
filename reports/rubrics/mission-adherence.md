@@ -99,3 +99,7 @@ Always run with `--context-turns 5` or higher. The mission question is scene-dep
 - [2026-04-24] commit 44373a53, --character fd4bd9b5-8768-41e6-a90f-bfb1179b1d59 (v2) — BEFORE: yes=14 no=0 mixed=1 err=0 | AFTER: yes=0 no=0 mixed=0 err=0
 - [2026-04-24] commit 44373a53, --character c244b22e-cab3-41e9-831b-d286ba581799 (v2) — BEFORE: yes=13 no=0 mixed=2 err=0 | AFTER: yes=0 no=0 mixed=0 err=0
 - [2026-04-24] commit 44373a53, --character ddc3085e-0549-4e1f-a7b6-0894aa8180c6 (v2) — BEFORE: yes=8 no=3 mixed=4 err=0 | AFTER: yes=11 no=1 mixed=3 err=0
+- [2026-04-24] commit 34bca5d1, --character 0d080429-81b5-431e-8f51-1f8ad4279f9b (v2) — BEFORE: yes=0 no=0 mixed=0 err=0 | AFTER: yes=3 no=0 mixed=0 err=0
+- [2026-04-24] commit 34bca5d1, --character f91af883-c73a-4331-aa15-b3cb90105782 (v2) — BEFORE: yes=0 no=0 mixed=0 err=0 | AFTER: yes=3 no=0 mixed=0 err=0
+- [2026-04-24] commit 34bca5d1, --character fd4bd9b5-8768-41e6-a90f-bfb1179b1d59 (v2) — BEFORE: yes=0 no=0 mixed=0 err=0 | AFTER: yes=3 no=0 mixed=0 err=0
+- [2026-04-24] commit 34bca5d1, --character ddc3085e-0549-4e1f-a7b6-0894aa8180c6 (v2) — BEFORE: yes=3 no=0 mixed=0 err=0 | AFTER: yes=2 no=0 mixed=1 err=0

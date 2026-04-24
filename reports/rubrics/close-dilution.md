@@ -51,3 +51,7 @@ Do NOT use this rubric for:
 # Run history
 
 *(none yet — rubric v1 authored 2026-04-24 right after the `reflex_polish_vs_earned_close_dialogue` craft block shipped. First run should target a talkative-explainer or tidy-closing character pre/post commit `44373a5` to test whether the craft block bit.)*
+- [2026-04-24] commit 34bca5d1, --character 0d080429-81b5-431e-8f51-1f8ad4279f9b (v1) — BEFORE: yes=0 no=0 mixed=0 err=0 | AFTER: yes=0 no=3 mixed=0 err=0
+- [2026-04-24] commit 34bca5d1, --character f91af883-c73a-4331-aa15-b3cb90105782 (v1) — BEFORE: yes=0 no=0 mixed=0 err=0 | AFTER: yes=0 no=1 mixed=2 err=0
+- [2026-04-24] commit 34bca5d1, --character fd4bd9b5-8768-41e6-a90f-bfb1179b1d59 (v1) — BEFORE: yes=0 no=0 mixed=0 err=0 | AFTER: yes=0 no=2 mixed=1 err=0
+- [2026-04-24] commit 34bca5d1, --character ddc3085e-0549-4e1f-a7b6-0894aa8180c6 (v1) — BEFORE: yes=0 no=3 mixed=0 err=0 | AFTER: yes=0 no=2 mixed=1 err=0
