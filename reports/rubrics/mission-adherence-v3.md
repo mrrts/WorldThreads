@@ -73,3 +73,6 @@ Pair with feels-alive for disagreement-as-signal. If v3 says YES and feels-alive
 - [2026-04-24] commit 34bca5d1, --character f91af883-c73a-4331-aa15-b3cb90105782 (v3) — BEFORE: yes=0 no=0 mixed=0 err=0 | AFTER: yes=3 no=0 mixed=0 err=0
 - [2026-04-24] commit 34bca5d1, --character fd4bd9b5-8768-41e6-a90f-bfb1179b1d59 (v3) — BEFORE: yes=0 no=0 mixed=0 err=0 | AFTER: yes=3 no=0 mixed=0 err=0
 - [2026-04-24] commit 34bca5d1, --character ddc3085e-0549-4e1f-a7b6-0894aa8180c6 (v3) — BEFORE: yes=3 no=0 mixed=0 err=0 | AFTER: yes=1 no=1 mixed=1 err=0
+- [2026-04-24] commit 44373a53, --character f91af883-c73a-4331-aa15-b3cb90105782 (v3) — BEFORE: yes=6 no=9 mixed=0 err=0 | AFTER: yes=0 no=0 mixed=0 err=0
+- [2026-04-24] commit b425e369, --character 0d080429-81b5-431e-8f51-1f8ad4279f9b (v3) — BEFORE: yes=11 no=1 mixed=0 err=0 | AFTER: yes=9 no=3 mixed=0 err=0
+- [2026-04-24] commit b425e369, --character ddc3085e-0549-4e1f-a7b6-0894aa8180c6 (v3) — BEFORE: yes=10 no=1 mixed=1 err=0 | AFTER: yes=11 no=1 mixed=0 err=0
