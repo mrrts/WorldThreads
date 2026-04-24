@@ -1,14 +1,18 @@
 ---
 id: reflex-polish-vs-earned-close
-status: proposed
+status: confirmed
 mode: active
 created_at: 2026-04-24T11:26:02Z
+resolved_at: 2026-04-24T11:34:41Z
 
 hypothesis: |
   A new dialogue craft-note block — naming the distinction between 'reflex polish' (reaching for a tidy close because the model is addicted to fake ones) and 'earned close' (an ending that landed because the scene wanted it) — would ship cleanly after validation via the ask-the-character pattern, and would measurably reduce the rate of formulaic tidy-close endings in character replies on moments that should have stayed unfinished.
 
 prediction: |
   CONFIRMED: validation ask to the originating character yields liftable phrasing; draft craft-note ships to prompts.rs; a post-ship grade-runs against a probe designed to tempt the tidy-close move shows measurably lower rate of reflex-polish endings vs pre-ship. REFUTED: the originating character's answer reveals the principle is character-specific (not generalizable), OR the distinction is already covered by existing blocks (keep_the_scene_breathing, drive_the_moment, verdict_without_over_explanation).
+
+summary: |
+  Validation came IN-WORLD via Ryan asking Aaron then Darren to articulate the principle in their own voices. Both characters independently landed it in their distinct registers: Aaron's 'Did the line finish the moment, or did it admire itself for noticing one?' (load-testing-language register); Darren's 'Don't ban a good beam because somebody else kept building decorative nonsense out of the same wood' (ordinary-load-bearing register). Convergence across two characters' distinct registers is itself evidence the principle is craft-general, not character-specific. Both phrasings lifted near-verbatim into reflex_polish_vs_earned_close_dialogue craft block in prompts.rs. Aaron's test serves as the principle's diagnostic; Darren's image serves as the earned-exception block.
 
 ---
 

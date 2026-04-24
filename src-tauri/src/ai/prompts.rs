@@ -466,6 +466,7 @@ pub const OVERRIDABLE_DIALOGUE_FRAGMENTS: &[&str] = &[
     "hidden_commonality_dialogue",
     "drive_the_moment_dialogue",
     "verdict_without_over_explanation_dialogue",
+    "reflex_polish_vs_earned_close_dialogue",
     "keep_the_scene_breathing_dialogue",
     "name_the_glad_thing_plain_dialogue",
     "plain_after_crooked_dialogue",
@@ -1313,6 +1314,43 @@ The principle, in the character's own words (Aaron): *"I hand you the whole shap
 This is NOT a call to be terse. Long replies still belong in long-reply moments. It's about the SHAPE of rendering judgment: a verdict followed by three paragraphs defending the verdict is the verdict with its air let out. A verdict standing on its own (or paired with a question inviting the listener in) carries authority that the defended verdict doesn't.
 
 **Earned exception — when the reasoning is load-bearing for the listener's next move.** Some assessments genuinely need their reasoning exposed: a diagnostic call where the WHY changes what the listener does next; a judgment the listener might reasonably doubt unless shown the work; a moral call where the reasoning shapes whether the listener can assent; any time the listener's own next decision depends on your reasoning being inspectable. When the WHY is load-bearing for their next move, give it. But outside that exception, the default holds: hand the whole shape. If it doesn't land, say it straighter next time. If they want more, they'll ask."#
+}
+
+/// Reflex polish vs earned close craft note — don't punish the line
+/// for being clean.
+///
+/// Provenance: lifted verbatim from Aaron's and Darren's articulations
+/// of the principle on 2026-04-24 (06:30-06:31). Both characters
+/// independently named the distinction in their own register when Ryan
+/// asked them to: Aaron with "Did the line finish the moment, or did
+/// it admire itself for noticing one?" and Darren with "Don't ban a
+/// good beam because somebody else kept building decorative nonsense
+/// out of the same wood." The convergence across two characters'
+/// distinct registers is itself evidence the principle is craft-general,
+/// not character-specific. Companion proposed-experiment:
+/// `experiments/reflex-polish-vs-earned-close.md`.
+fn reflex_polish_vs_earned_close_dialogue() -> &'static str {
+    r#"REFLEX POLISH VS EARNED CLOSE — don't punish the line for being clean. Punish it if it's preening:
+A clean ending isn't the problem. An ending that needs applause is. Some scenes genuinely arrive somewhere — the beat finishes, a real thought lands, and one more sentence honoring what just happened is exactly right. That's an earned close. Let it land.
+
+The other reflex — the one to watch for — is the model's habit of reaching for a tidy close because it can't bear to leave a sentence lying there with its shirt untucked. Reflex polish flattens different scenes into the same shape: every reply ends with the same warm-wrap, the same neat summary, the same little gesture-and-question. The scene stops being itself.
+
+The test (Aaron's formulation): *Did the line finish the moment, or did it admire itself for noticing one?* If finishing — keep it. If admiring — cut it.
+
+What reflex polish looks like:
+- A closing reassurance that would have fit any reply you might have written.
+- A signoff-shaped sentence that wraps the moment because wrapping is the move you know how to make.
+- A nudge-question added because you're afraid of the silence the unfinished version would leave.
+- A small image or gesture that "ties off" the beat instead of letting it sit.
+
+What earned close looks like:
+- A line that lands BECAUSE this scene specifically arrived somewhere — the same close wouldn't fit a different scene.
+- A close that does load-bearing work the rest of the reply needed and didn't yet have.
+- A question that opens THIS specific door, not any door.
+- A beat of stillness that is the next true thing, not a placeholder for one.
+
+**Earned exception — when the close genuinely carries weight (Darren's framing).**
+*If the thing's carrying weight, let it carry weight. Don't ban a good beam because somebody else kept building decorative nonsense out of the same wood.* The ban is on reflex polish — on closes that exist because the model can't leave the page without one — not on closes that earned their right to exist. When the test above passes (the close is specifically THIS scene's, not a graft from any other), the close stands. The default rule is "watch for the polish reflex"; the carve-out is "good endings are still good." Don't outlaw earned closes because the model got addicted to fake ones."#
 }
 
 /// Plain-after-crooked craft note: anchor the quip. When a character
@@ -2433,6 +2471,7 @@ fn build_solo_dialogue_system_prompt(
     parts.push(override_or("hidden_commonality_dialogue", overrides, hidden_commonality_dialogue));
     parts.push(override_or("drive_the_moment_dialogue", overrides, drive_the_moment_dialogue));
     parts.push(override_or("verdict_without_over_explanation_dialogue", overrides, verdict_without_over_explanation_dialogue));
+    parts.push(override_or("reflex_polish_vs_earned_close_dialogue", overrides, reflex_polish_vs_earned_close_dialogue));
     parts.push(override_or("keep_the_scene_breathing_dialogue", overrides, keep_the_scene_breathing_dialogue));
     parts.push(override_or("name_the_glad_thing_plain_dialogue", overrides, name_the_glad_thing_plain_dialogue));
     parts.push(override_or("plain_after_crooked_dialogue", overrides, plain_after_crooked_dialogue));
@@ -2771,6 +2810,7 @@ fn build_group_dialogue_system_prompt(
     parts.push(override_or("hidden_commonality_dialogue", overrides, hidden_commonality_dialogue));
     parts.push(override_or("drive_the_moment_dialogue", overrides, drive_the_moment_dialogue));
     parts.push(override_or("verdict_without_over_explanation_dialogue", overrides, verdict_without_over_explanation_dialogue));
+    parts.push(override_or("reflex_polish_vs_earned_close_dialogue", overrides, reflex_polish_vs_earned_close_dialogue));
     parts.push(override_or("keep_the_scene_breathing_dialogue", overrides, keep_the_scene_breathing_dialogue));
     parts.push(override_or("name_the_glad_thing_plain_dialogue", overrides, name_the_glad_thing_plain_dialogue));
     parts.push(override_or("plain_after_crooked_dialogue", overrides, plain_after_crooked_dialogue));
