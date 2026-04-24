@@ -100,27 +100,58 @@ fn synthesis_user_prompt(
 }
 
 /// Pull the character's recent messages as chronological excerpts.
-/// Mirrors relational_stance::collect_recent_excerpts but defaults to
-/// a larger window since anchor identification benefits from seeing
-/// more of the character's register.
+/// Broader than relational_stance::collect_recent_excerpts: includes
+/// BOTH the character's solo thread AND their turns in every group
+/// chat they appear in. Anchor identification needs to see the
+/// character's register across all the surfaces they actually speak
+/// on; group-heavy characters (Aaron, Steven) have little or no solo
+/// corpus.
 fn collect_recent_excerpts(
     conn: &Connection,
     character_id: &str,
     limit: i64,
 ) -> Vec<String> {
-    let Ok(thread) = get_thread_for_character(conn, character_id) else { return Vec::new(); };
-    let Ok(mut msgs) = list_messages(conn, &thread.thread_id, limit) else { return Vec::new(); };
-    msgs.reverse(); // chronological
-    msgs.iter()
-        .filter(|m| m.role == "user" || m.role == "assistant")
-        .map(|m| {
-            let who = if m.role == "user" { "User" } else { "Character" };
-            // Trim very long messages to keep the synthesis prompt tight.
-            let content = if m.content.chars().count() > 600 {
-                let s: String = m.content.chars().take(600).collect();
+    // UNION ALL across solo and group surfaces, chronological, role-
+    // filtered at SQL. For solo messages, the reply IS the character;
+    // for group messages, only include rows where this character is
+    // the sender.
+    let mut stmt = match conn.prepare(
+        "SELECT content, role, created_at FROM (
+            SELECT m.content AS content, m.role AS role, m.created_at AS created_at
+            FROM messages m
+            JOIN threads t ON m.thread_id = t.thread_id
+            WHERE t.character_id = ?1
+              AND m.role IN ('user', 'assistant')
+            UNION ALL
+            SELECT gm.content AS content, gm.role AS role, gm.created_at AS created_at
+            FROM group_messages gm
+            WHERE gm.sender_character_id = ?1
+              AND gm.role IN ('user', 'assistant')
+        )
+        ORDER BY created_at DESC
+        LIMIT ?2",
+    ) {
+        Ok(s) => s,
+        Err(_) => return Vec::new(),
+    };
+    let rows = match stmt.query_map(rusqlite::params![character_id, limit], |r| {
+        let content: String = r.get(0)?;
+        let role: String = r.get(1)?;
+        Ok((content, role))
+    }) {
+        Ok(r) => r,
+        Err(_) => return Vec::new(),
+    };
+    let mut msgs: Vec<(String, String)> = rows.filter_map(|r| r.ok()).collect();
+    msgs.reverse(); // chronological (oldest → newest)
+    msgs.into_iter()
+        .map(|(content, role)| {
+            let who = if role == "user" { "User" } else { "Character" };
+            let content = if content.chars().count() > 600 {
+                let s: String = content.chars().take(600).collect();
                 format!("{}…", s)
             } else {
-                m.content.clone()
+                content
             };
             format!("{}: {}", who, content)
         })
