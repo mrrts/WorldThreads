@@ -34,4 +34,9 @@ run_ids:
 reports:
   - reports/2026-04-25-1644-register-invitation-hypothesis-refuted-across-two-rules.md
   - reports/2026-04-25-1827-register-invitation-rerun-prompt-conditional-failure-modes.md
+
+validates_methods:
+  - count-with-thresholds-rubric  # FIRST validation case for the rubric pattern codified in CLAUDE.md § Craft-note bite verification (rubrics that work key on concrete vocabulary tokens). The 18:50 density-grade postscript on the 1827 report is the worked example: a single $0.0017 grade-runs call converted a by-eye density observation (rule-on 1 phrase/reply vs rule-off 2-3) into a measured number (density fire-rate 0.83 vs 1.00, ~16% reduction; mean 1.67 vs 2.00 phrases/reply), AND demonstrated that the count-with-thresholds rubric shape (yes=2+ / mixed=1 / no=0) produces stable defensible verdicts whose reasoning includes explicit phrase counts. Future bite-checks designing rubrics for shape-level bites whose failure mode is countable should look here for the worked rubric text.
+  - same-commit-omit-bite-check  # FIRST claim-tier confirmation that the same-commit --omit-craft-notes A/B design (codified per the 1711 methodological discovery) produces interpretable single-rule signal. Together with the 1711 gentle-release bite-check on Jasper (the discovery run itself), this experiment establishes the design as the project default. Refs-based replay is now demoted to "useful for cross-commit stack-state characterization, NOT for single-rule isolation."
+  - prompt-conditional-failure-mode-doctrine  # FIRST experiment to surface and codify the prompt-conditional failure mode pattern (the Read C finding). The bite-check Step 0 (verify failure mode manifests in rule-off baseline) and the partial-bite-as-default expectation flow from this run.
 ---
