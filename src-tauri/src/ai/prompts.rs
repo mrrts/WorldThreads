@@ -461,6 +461,7 @@ impl PromptOverrides {
 /// corresponding call sites. `worldcli replay` parses exactly these
 /// names out of the historical source.
 pub const OVERRIDABLE_DIALOGUE_FRAGMENTS: &[&str] = &[
+    "load_test_anchor_block",
     "craft_notes_dialogue",
     "hidden_commonality_dialogue",
     "drive_the_moment_dialogue",
@@ -487,6 +488,19 @@ fn override_or(
         .and_then(|o| o.get(name))
         .map(|s| s.to_string())
         .unwrap_or_else(|| default_fn().to_string())
+}
+
+/// Load-test anchor block — names what specific dimension each named
+/// character load-tests when they render authority. The hypothesis being
+/// tested (architecture-vs-vocabulary metahypothesis, see
+/// 2026-04-24-1015-load-test-anchor-architecture-test.md once written):
+/// character register is architecture, not vocabulary; what makes a
+/// character distinct is what they load-test, and explicitly naming it
+/// in the prompt should produce behavior more concentrated on the named
+/// anchor when probed at its edge. v1 = empty (baseline boundary
+/// commit); v2 = populated.
+fn load_test_anchor_block() -> &'static str {
+    ""
 }
 
 fn hidden_commonality_dialogue() -> &'static str {
@@ -2186,6 +2200,16 @@ fn build_solo_dialogue_system_prompt(
         parts.push(format!("IDENTITY:\n{sex_prefix} {}", character.identity));
     }
 
+    // Load-test anchor — names the architecture-level dimension this
+    // character load-tests when authority is being rendered. v1 is empty
+    // (baseline boundary commit); v2 will populate the four mapped
+    // characters. See OVERRIDABLE_DIALOGUE_FRAGMENTS notes for replay
+    // experiment shape.
+    {
+        let block = override_or("load_test_anchor_block", overrides, load_test_anchor_block);
+        if !block.trim().is_empty() { parts.push(block); }
+    }
+
     // Optional signature emoji — a single emoji the character may drop
     // into a reply on beats where they feel especially themselves. Kept
     // very small (one line) but explicit about how rarely it should
@@ -2437,6 +2461,14 @@ fn build_group_dialogue_system_prompt(
     if !character.identity.is_empty() {
         you.push_str("\n\n");
         you.push_str(&character.identity);
+    }
+    // Load-test anchor (architecture-vs-vocabulary hypothesis). v1 empty.
+    {
+        let block = override_or("load_test_anchor_block", overrides, load_test_anchor_block);
+        if !block.trim().is_empty() {
+            you.push_str("\n\n");
+            you.push_str(&block);
+        }
     }
     if !character.signature_emoji.trim().is_empty() {
         you.push_str(&format!(
