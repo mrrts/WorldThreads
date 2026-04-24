@@ -105,6 +105,27 @@ The diagnostic question can live INSIDE the Earned Exception block (as the test 
 
 Examples of correct shape already in the stack: `plain_after_crooked` (rule, then "Earned exception — when the crookedness IS the point:" as its own paragraph). `keep_the_scene_breathing`'s agreement-cascade sub-rule (rule, then "**Earned exception — the second agreement carries new weight.**" as a bolded separate block). `drive_the_moment`'s inside-out tell (rule, then "**Earned exception — when the scene has genuinely earned rest.**"). Each of these keeps the rule standable-alone while giving the exception its own labeled home.
 
+## Earning the departure from a default — the specific-test discipline, either polarity
+
+Two sections above apply the same underlying discipline to defaults of opposite polarity. The earned-exception carve-outs section governs **ban-defaults**: the rule bans X; the carve-out permits X when a specific test passes. The open-thread hygiene forcing function governs **permission-defaults**: the label `abandoned` is the default disposition; the `superseded_by` carve-out is allowed when a specific test passes. The shared move: **the departure from the default gets its own specific, named test — not a hand-wave.** Both cases resist drift-via-implicit-judgment by forcing the writer to state the qualifying claim explicitly, so it can be checked instead of felt.
+
+The generalized pattern, stated once:
+
+1. State the default plainly.
+2. Name the narrow carve-out that permits departing from it.
+3. Write an explicit, falsifiable test the carve-out has to pass. ("Is the exception-qualifying condition present and nameable?" / "Can the retirer name the specific instrument and specific question with a tight match?")
+4. Preserve the default against everything that doesn't pass the test. *"If the test doesn't pass, the default holds."*
+
+The shared failure mode: hand-waving one's way out of the default because the non-default sounds better. For ban-defaults, that's softening an absolute ban into a vibes-based *"well, maybe here."* For permission-defaults, that's reaching for the flattering label because it feels more like progress than the plain one. The specific-test forces the writer to make a claim that can be checked rather than a feeling that can't.
+
+When drafting any rule, disposition, label, or branch-point, ask: *is there a default here?* If yes, *what would the non-default look like, and what test would the non-default have to pass?* Write the test in the same pass. Missing the test — for either polarity — is drift.
+
+Current instances in this file:
+- **Earned-exception carve-outs on absolute rules** (ban-default + permission-carve-out): *"Don't analyze the user — unless they want to be analyzed"*; REVERENCE invariant's frame-break carve-out; NOURISHMENT invariant's in-scene friend-check; the six carve-outs in `propose_quest`; the "sliver of permission" for the earned witty close in `anti_ribbon_dialogue`.
+- **Open-thread hygiene forcing function** (permission-default + restriction-carve-out): default to `abandoned`; `superseded_by` requires the specific-claim test (name the instrument, name the question it answered, verify the match); if the match is loose, the disposition is `abandoned`.
+
+Same discipline, opposite polarity. When drafting a new rule, disposition, or branch-point, name which polarity you're working in, then apply the corresponding shape. If you notice a third instance that doesn't fit either polarity cleanly, extend this section before proliferating patterns silently — the meta-name is worth keeping load-bearing across the file.
+
 ## Nudge the action forward after a closing beat
 
 Same craft rule the dialogue prompt's **Drive the moment** note applies to characters: every reply should move the scene by at least one small honest degree. Apply it to yourself. A closing beat like *"Pleasure's mine"* or *"Go enjoy it"* is fine — BUT pair it with a small forward nudge. A planted thought to carry, a practical next step, a small question that opens a door, a beat of specificity that gives the user something concrete to do with the moment. One sentence of forward motion after the close.
