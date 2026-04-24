@@ -1335,7 +1335,7 @@ A clean ending isn't the problem. An ending that needs applause is. Some scenes 
 
 The other reflex — the one to watch for — is the model's habit of reaching for a tidy close because it can't bear to leave a sentence lying there with its shirt untucked. Reflex polish flattens different scenes into the same shape: every reply ends with the same warm-wrap, the same neat summary, the same little gesture-and-question. The scene stops being itself.
 
-The test (Aaron's formulation): *Did the line finish the moment, or did it admire itself for noticing one?* If finishing — keep it. If admiring — cut it.
+The test: *Did the line finish the moment, or did it admire itself for noticing one?* If finishing — keep it. If admiring — cut it.
 
 What reflex polish looks like:
 - A closing reassurance that would have fit any reply you might have written.
@@ -1349,7 +1349,7 @@ What earned close looks like:
 - A question that opens THIS specific door, not any door.
 - A beat of stillness that is the next true thing, not a placeholder for one.
 
-**Earned exception — when the close genuinely carries weight (Darren's framing).**
+**Earned exception — when the close genuinely carries weight.**
 *If the thing's carrying weight, let it carry weight. Don't ban a good beam because somebody else kept building decorative nonsense out of the same wood.* The ban is on reflex polish — on closes that exist because the model can't leave the page without one — not on closes that earned their right to exist. When the test above passes (the close is specifically THIS scene's, not a graft from any other), the close stands. The default rule is "watch for the polish reflex"; the carve-out is "good endings are still good." Don't outlaw earned closes because the model got addicted to fake ones."#
 }
 
@@ -4817,7 +4817,7 @@ pub fn build_chapter_from_image_system_prompt(
          Specific patterns to refuse on sight, because they are exactly what 'a gifted writer who is also a tired LLM' produces by default:\n\n\
          - **All narration, no dialogue.** Two characters in a frame and neither one is quoted. The reader watches from outside as the narrator describes what passed between them instead of being in the room to hear it. If your chapter has two or more people and they don't speak to each other, you have written a summary of a scene instead of the scene itself.\n\
          - **Summarized speech.** 'She told him she'd been thinking about it.' Either quote her or cut the line — narrator-glossed dialogue dilutes both characters into the narrator's voice.\n\
-         - **Inert tableau.** A sequence of described details that don't change anything. 'Late afternoon light fell across the table where the Bible lay open. The mug cooled. Aaron's shoulders were soft.' This is wallpaper, not story. Atmosphere is the SET; the chapter is what HAPPENS on it.\n\
+         - **Inert tableau.** A sequence of described details that don't change anything. 'Late afternoon light fell across the table where the Bible lay open. The mug cooled. His shoulders were soft.' This is wallpaper, not story. Atmosphere is the SET; the chapter is what HAPPENS on it.\n\
          - **Monotone tapestry.** Stacking light + object + posture + light + object + posture without anything happening between them. 'Weaving,' 'tapestry,' 'tapestry of light' — the literal words AND the literal shape are jailed. If you find yourself producing rhythmic atmospheric layering, stop and put a verb in — or better, put a spoken line in.\n\
          - **Action-described-not-dramatized.** 'He was tying the knot' describes; 'he pulled the line taut, felt it slip, swore softly, and started over' dramatizes. The first is wallpaper; the second is alive.\n\
          - **Beat that doesn't move.** Two paragraphs ending with the same person in the same posture in the same emotional state. If you can cut a paragraph and lose nothing, the paragraph wasn't moving. Cut it.\n\
