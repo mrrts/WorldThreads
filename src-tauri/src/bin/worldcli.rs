@@ -325,6 +325,42 @@ enum Cmd {
         /// stripped.
         #[arg(long, value_delimiter = ',')]
         invariants_order: Vec<String>,
+        /// Craft-note pieces to OMIT from prompt assembly (skipped
+        /// during dispatch). Comma-separated short names. Test
+        /// whether a specific craft note is actually load-bearing by
+        /// running the same probes with and without it. Valid names
+        /// are the same as --craft-notes-order. Example:
+        /// --omit-craft-notes hands_as_coolant tests whether the
+        /// action-beat pressure drops when that rule is off.
+        #[arg(long, value_delimiter = ',')]
+        omit_craft_notes: Vec<String>,
+        /// Invariant pieces to OMIT. Comma-separated short names.
+        /// Valid names same as --invariants-order. Has theological
+        /// implications (invariants are compile-time-enforced
+        /// normally) — use only for targeted experiments, not
+        /// production.
+        #[arg(long, value_delimiter = ',')]
+        omit_invariants: Vec<String>,
+        /// Path to a file whose contents are spliced into the prompt
+        /// at --insert-before or --insert-after anchor. Used to
+        /// audition new craft notes or invariants WITHOUT shipping
+        /// them first. The file's content is inserted verbatim at the
+        /// anchor+position. Exactly one of --insert-before /
+        /// --insert-after must also be specified.
+        #[arg(long)]
+        insert_file: Option<PathBuf>,
+        /// Insert the contents of --insert-file BEFORE the named
+        /// anchor. Anchor can be a piece name (e.g., "earned_register",
+        /// "reverence") or a section boundary
+        /// ("section-start:craft-notes", "section-end:invariants").
+        /// Mutually exclusive with --insert-after.
+        #[arg(long, conflicts_with = "insert_after")]
+        insert_before: Option<String>,
+        /// Insert the contents of --insert-file AFTER the named
+        /// anchor. Same anchor syntax as --insert-before. Mutually
+        /// exclusive with --insert-before.
+        #[arg(long, conflicts_with = "insert_before")]
+        insert_after: Option<String>,
     },
 
     /// List, show, or search rubrics in the library
@@ -1261,14 +1297,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             } else { None };
             cmd_lab(&r, action, api_key.as_deref()).await
         }
-        Cmd::Replay { refs, character, prompt, model, confirm_cost, repo, section_order, craft_notes_order, invariants_order } => {
+        Cmd::Replay { refs, character, prompt, model, confirm_cost, repo, section_order, craft_notes_order, invariants_order, omit_craft_notes, omit_invariants, insert_file, insert_before, insert_after } => {
             let api_key = match resolve_api_key(cli.api_key.as_deref()) {
                 Some(k) => k,
                 None => return Err(Box::<dyn std::error::Error>::from(
                     "No API key. Set OPENAI_API_KEY, pass --api-key, or add to keychain via:\n  security add-generic-password -s WorldThreadsCLI -a openai -w \"<sk-...>\"".to_string()
                 )),
             };
-            cmd_replay(&r, &api_key, &refs, &character, &prompt, model.as_deref(), confirm_cost, repo.as_deref(), &section_order, &craft_notes_order, &invariants_order).await
+            cmd_replay(&r, &api_key, &refs, &character, &prompt, model.as_deref(), confirm_cost, repo.as_deref(), &section_order, &craft_notes_order, &invariants_order, &omit_craft_notes, &omit_invariants, insert_file.as_deref(), insert_before.as_deref(), insert_after.as_deref()).await
         }
         Cmd::Consult { character_id, message, mode, session, model, confirm_cost, question_summary } => {
             let api_key = match resolve_api_key(cli.api_key.as_deref()) {
@@ -3619,6 +3655,26 @@ fn invariant_piece_name(p: &app_lib::ai::prompts::InvariantPiece) -> &'static st
     }
 }
 
+/// Human-readable form of an InsertionAnchor for header + envelope.
+fn insertion_anchor_name(anchor: &app_lib::ai::prompts::InsertionAnchor) -> String {
+    use app_lib::ai::prompts::InsertionAnchor as IA;
+    use app_lib::ai::prompts::DialoguePromptSection as DPS;
+    match anchor {
+        IA::CraftNote(p) => craft_note_piece_name(p).to_string(),
+        IA::Invariant(p) => invariant_piece_name(p).to_string(),
+        IA::SectionStart(s) => format!("section-start:{}", match s {
+            DPS::AgencyAndBehavior => "agency-and-behavior",
+            DPS::CraftNotes => "craft-notes",
+            DPS::Invariants => "invariants",
+        }),
+        IA::SectionEnd(s) => format!("section-end:{}", match s {
+            DPS::AgencyAndBehavior => "agency-and-behavior",
+            DPS::CraftNotes => "craft-notes",
+            DPS::Invariants => "invariants",
+        }),
+    }
+}
+
 async fn cmd_replay(
     r: &Resolved,
     api_key: &str,
@@ -3631,6 +3687,11 @@ async fn cmd_replay(
     section_order_names: &[String],
     craft_notes_order_names: &[String],
     invariants_order_names: &[String],
+    omit_craft_notes_names: &[String],
+    omit_invariants_names: &[String],
+    insert_file_path: Option<&std::path::Path>,
+    insert_before_anchor: Option<&str>,
+    insert_after_anchor: Option<&str>,
 ) -> Result<(), Box<dyn std::error::Error>> {
     if refs.is_empty() {
         return Err(Box::<dyn std::error::Error>::from(
@@ -3705,6 +3766,75 @@ async fn cmd_replay(
             Some(parsed)
         };
 
+    // Parse --omit-craft-notes.
+    let omit_craft_notes: Vec<app_lib::ai::prompts::CraftNotePiece> = {
+        let mut parsed: Vec<app_lib::ai::prompts::CraftNotePiece> = Vec::new();
+        for name in omit_craft_notes_names {
+            match app_lib::ai::prompts::CraftNotePiece::from_cli_name(name) {
+                Some(p) => parsed.push(p),
+                None => return Err(Box::<dyn std::error::Error>::from(format!(
+                    "unknown craft-note name '{}' in --omit-craft-notes. See --help for valid names.",
+                    name
+                ))),
+            }
+        }
+        parsed
+    };
+
+    // Parse --omit-invariants.
+    let omit_invariants: Vec<app_lib::ai::prompts::InvariantPiece> = {
+        let mut parsed: Vec<app_lib::ai::prompts::InvariantPiece> = Vec::new();
+        for name in omit_invariants_names {
+            match app_lib::ai::prompts::InvariantPiece::from_cli_name(name) {
+                Some(p) => parsed.push(p),
+                None => return Err(Box::<dyn std::error::Error>::from(format!(
+                    "unknown invariant name '{}' in --omit-invariants. See --help for valid names.",
+                    name
+                ))),
+            }
+        }
+        parsed
+    };
+
+    // Parse --insert-file + --insert-before / --insert-after.
+    // All-or-nothing: either --insert-file plus exactly one of the
+    // anchor flags, or none of the three. Anything in between is an
+    // error.
+    let insertion: Option<app_lib::ai::prompts::Insertion> = match (
+        insert_file_path,
+        insert_before_anchor,
+        insert_after_anchor,
+    ) {
+        (None, None, None) => None,
+        (Some(path), before, after) => {
+            let (anchor_str, position) = match (before, after) {
+                (Some(a), None) => (a, app_lib::ai::prompts::InsertPosition::Before),
+                (None, Some(a)) => (a, app_lib::ai::prompts::InsertPosition::After),
+                (Some(_), Some(_)) => {
+                    return Err(Box::<dyn std::error::Error>::from(
+                        "--insert-before and --insert-after are mutually exclusive".to_string()));
+                }
+                (None, None) => {
+                    return Err(Box::<dyn std::error::Error>::from(
+                        "--insert-file requires exactly one of --insert-before or --insert-after".to_string()));
+                }
+            };
+            let anchor = app_lib::ai::prompts::InsertionAnchor::from_cli_name(anchor_str)
+                .ok_or_else(|| Box::<dyn std::error::Error>::from(format!(
+                    "unknown insertion anchor '{}'. Valid forms: piece name (e.g., 'earned_register', 'reverence') or 'section-start:<section>' / 'section-end:<section>' where section is one of craft-notes, invariants, agency-and-behavior.",
+                    anchor_str
+                )))?;
+            let text = std::fs::read_to_string(path).map_err(|e| Box::<dyn std::error::Error>::from(format!(
+                "reading --insert-file {}: {}", path.display(), e
+            )))?;
+            Some(app_lib::ai::prompts::Insertion { anchor, position, text })
+        }
+        (None, Some(_), _) | (None, _, Some(_)) => {
+            return Err(Box::<dyn std::error::Error>::from(
+                "--insert-before / --insert-after requires --insert-file".to_string()));
+        }
+    };
+
     // Resolve each ref to (sha, timestamp, subject) up front so failures
     // happen before any LLM spend.
     let mut resolved_refs: Vec<(String, String, String, String)> = Vec::new();
@@ -3731,6 +3861,15 @@ async fn cmd_replay(
         }
         if let Some(order) = &invariants_order_override {
             overrides.set_invariants_order(order.clone());
+        }
+        if !omit_craft_notes.is_empty() {
+            overrides.set_omit_craft_notes(omit_craft_notes.clone());
+        }
+        if !omit_invariants.is_empty() {
+            overrides.set_omit_invariants(omit_invariants.clone());
+        }
+        if let Some(ins) = &insertion {
+            overrides.set_insertion(ins.clone());
         }
         let found: Vec<String> = overrides.map.keys().cloned().collect();
         per_ref_overrides.push((ref_input.clone(), overrides, found));
@@ -3875,6 +4014,27 @@ async fn cmd_replay(
         Some(order) => json!(order.iter().map(|p| invariant_piece_name(p)).collect::<Vec<_>>()),
         None => serde_json::Value::Null,
     };
+    let omit_craft_notes_json: serde_json::Value = if omit_craft_notes.is_empty() {
+        serde_json::Value::Null
+    } else {
+        json!(omit_craft_notes.iter().map(|p| craft_note_piece_name(p)).collect::<Vec<_>>())
+    };
+    let omit_invariants_json: serde_json::Value = if omit_invariants.is_empty() {
+        serde_json::Value::Null
+    } else {
+        json!(omit_invariants.iter().map(|p| invariant_piece_name(p)).collect::<Vec<_>>())
+    };
+    let insertion_json: serde_json::Value = match &insertion {
+        Some(ins) => json!({
+            "anchor": insertion_anchor_name(&ins.anchor),
+            "position": match ins.position {
+                app_lib::ai::prompts::InsertPosition::Before => "before",
+                app_lib::ai::prompts::InsertPosition::After => "after",
+            },
+            "text": ins.text,
+        }),
+        None => serde_json::Value::Null,
+    };
     let envelope = json!({
         "run_id": run_id,
         "run_timestamp": chrono::Utc::now().to_rfc3339(),
@@ -3885,6 +4045,9 @@ async fn cmd_replay(
         "section_order_override": section_order_json,
         "craft_notes_order_override": craft_notes_order_json,
         "invariants_order_override": invariants_order_json,
+        "omit_craft_notes": omit_craft_notes_json,
+        "omit_invariants": omit_invariants_json,
+        "insertion": insertion_json,
         "refs": resolved_refs.iter().map(|(i, s, t, sub)| json!({
             "ref": i, "sha": s, "timestamp": t, "subject": sub,
         })).collect::<Vec<_>>(),
@@ -3920,6 +4083,21 @@ async fn cmd_replay(
         if let Some(order) = &invariants_order_override {
             let names: Vec<String> = order.iter().map(|p| invariant_piece_name(p).to_string()).collect();
             println!("invariants-order: {} (prefix; rest default)", names.join(","));
+        }
+        if !omit_craft_notes.is_empty() {
+            let names: Vec<&str> = omit_craft_notes.iter().map(craft_note_piece_name).collect();
+            println!("omit-craft-notes: {}", names.join(","));
+        }
+        if !omit_invariants.is_empty() {
+            let names: Vec<&str> = omit_invariants.iter().map(invariant_piece_name).collect();
+            println!("omit-invariants: {}", names.join(","));
+        }
+        if let Some(ins) = &insertion {
+            let pos = match ins.position {
+                app_lib::ai::prompts::InsertPosition::Before => "before",
+                app_lib::ai::prompts::InsertPosition::After => "after",
+            };
+            println!("insertion: {} {} ({} bytes)", pos, insertion_anchor_name(&ins.anchor), ins.text.len());
         }
         println!();
         for result in envelope["results"].as_array().unwrap_or(&vec![]) {

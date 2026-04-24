@@ -684,6 +684,79 @@ pub struct PromptOverrides {
     /// Optional within-section ordering for invariants. Same
     /// prefix-then-defaults semantics as `craft_notes_order`.
     pub invariants_order: Option<Vec<InvariantPiece>>,
+    /// Craft-note pieces to OMIT from prompt assembly. Named pieces
+    /// are skipped during dispatch. Used to test whether a specific
+    /// craft note is actually load-bearing — run the same probes
+    /// with and without it, compare outputs. Empty = no omissions.
+    pub omit_craft_notes: Vec<CraftNotePiece>,
+    /// Invariant pieces to OMIT from prompt assembly. Has theological
+    /// implications (these blocks are compile-time-enforced normally)
+    /// — use only for targeted experimental runs, not for production
+    /// paths. Empty = no omissions.
+    pub omit_invariants: Vec<InvariantPiece>,
+    /// Optional single-insertion: a block of text to splice into the
+    /// prompt at a specific anchor position. Used to audition new
+    /// craft notes or invariants BEFORE shipping them. The text is
+    /// inserted verbatim at the specified position during assembly.
+    /// Multi-insertion isn't yet supported — if a second insertion is
+    /// needed, either ship the first one to prompts.rs or extend this
+    /// field to a Vec.
+    pub insertion: Option<Insertion>,
+}
+
+/// Single-insertion spec — audition new text at a named anchor
+/// position without shipping it to prompts.rs first.
+#[derive(Debug, Clone)]
+pub struct Insertion {
+    pub anchor: InsertionAnchor,
+    pub position: InsertPosition,
+    pub text: String,
+}
+
+/// Where an insertion lands relative to the prompt's existing
+/// structure. Piece-level anchors land immediately before/after a
+/// named craft-note or invariant piece (respecting the configured
+/// order). Section-level anchors land at the very start or very end
+/// of a whole section (before its first piece or after its last).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum InsertionAnchor {
+    CraftNote(CraftNotePiece),
+    Invariant(InvariantPiece),
+    SectionStart(DialoguePromptSection),
+    SectionEnd(DialoguePromptSection),
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum InsertPosition {
+    Before,
+    After,
+}
+
+impl InsertionAnchor {
+    /// Parse a CLI-style anchor string.
+    /// Piece names (e.g., "earned_register", "reverence") resolve to
+    /// the corresponding CraftNote or Invariant anchor.
+    /// "section-start:<section>" and "section-end:<section>" (where
+    /// section is one of: craft-notes, invariants, agency-and-behavior)
+    /// resolve to the section-level anchors.
+    pub fn from_cli_name(name: &str) -> Option<Self> {
+        let normalized = name.trim().to_ascii_lowercase().replace('-', "_");
+        // Section-level anchor?
+        if let Some(rest) = normalized.strip_prefix("section_start:") {
+            return DialoguePromptSection::from_cli_name(rest).map(Self::SectionStart);
+        }
+        if let Some(rest) = normalized.strip_prefix("section_end:") {
+            return DialoguePromptSection::from_cli_name(rest).map(Self::SectionEnd);
+        }
+        // Piece-level anchor — try craft note first, then invariant.
+        if let Some(cn) = CraftNotePiece::from_cli_name(&normalized) {
+            return Some(Self::CraftNote(cn));
+        }
+        if let Some(inv) = InvariantPiece::from_cli_name(&normalized) {
+            return Some(Self::Invariant(inv));
+        }
+        None
+    }
 }
 
 impl PromptOverrides {
@@ -693,6 +766,9 @@ impl PromptOverrides {
             section_order: None,
             craft_notes_order: None,
             invariants_order: None,
+            omit_craft_notes: Vec::new(),
+            omit_invariants: Vec::new(),
+            insertion: None,
         }
     }
     pub fn insert(&mut self, name: impl Into<String>, body: impl Into<String>) {
@@ -709,6 +785,15 @@ impl PromptOverrides {
     }
     pub fn set_invariants_order(&mut self, order: Vec<InvariantPiece>) {
         self.invariants_order = Some(order);
+    }
+    pub fn set_omit_craft_notes(&mut self, pieces: Vec<CraftNotePiece>) {
+        self.omit_craft_notes = pieces;
+    }
+    pub fn set_omit_invariants(&mut self, pieces: Vec<InvariantPiece>) {
+        self.omit_invariants = pieces;
+    }
+    pub fn set_insertion(&mut self, insertion: Insertion) {
+        self.insertion = Some(insertion);
     }
     /// Returns the effective section order: the override if it's a
     /// valid permutation of all three sections, otherwise DEFAULT_ORDER.
@@ -733,6 +818,25 @@ impl PromptOverrides {
         match self.invariants_order.as_deref() {
             Some(order) => InvariantPiece::resolve_order(order),
             None => InvariantPiece::DEFAULT_ORDER.to_vec(),
+        }
+    }
+    /// True if the given craft note piece is in the omit list.
+    pub fn should_omit_craft_note(&self, piece: &CraftNotePiece) -> bool {
+        self.omit_craft_notes.contains(piece)
+    }
+    /// True if the given invariant piece is in the omit list.
+    pub fn should_omit_invariant(&self, piece: &InvariantPiece) -> bool {
+        self.omit_invariants.contains(piece)
+    }
+    /// If the configured insertion targets the given anchor+position,
+    /// return its text. Used during dispatch to emit the insertion at
+    /// the right spot.
+    pub fn insertion_text_at(&self, anchor: &InsertionAnchor, position: InsertPosition) -> Option<&str> {
+        let ins = self.insertion.as_ref()?;
+        if &ins.anchor == anchor && ins.position == position {
+            Some(&ins.text)
+        } else {
+            None
         }
     }
 }
@@ -2788,37 +2892,52 @@ fn build_solo_dialogue_system_prompt(
     // Dispatch the three main dialogue sections in the order specified
     // by overrides (or DEFAULT_ORDER if no override). See
     // `DialoguePromptSection` for the placement-experiment rationale.
+    // Also respects omit-lists (skip pieces) and the single-insertion
+    // spec (splice new text at anchor+position).
     let section_order: Vec<DialoguePromptSection> = overrides
         .map(|o| o.effective_section_order().to_vec())
         .unwrap_or_else(|| DialoguePromptSection::DEFAULT_ORDER.to_vec());
     for section in &section_order {
+        maybe_push_insertion(&mut parts, overrides, &InsertionAnchor::SectionStart(*section), InsertPosition::Before);
         match section {
             DialoguePromptSection::AgencyAndBehavior => {
-                // AGENCY + BEHAVIOR_AND_KNOWLEDGE. Historical note: AGENCY
-                // sat just before BEHAVIOR as late-position attention
-                // without displacing the final-paragraph structural rules;
-                // with configurable ordering this section as a whole may
-                // land earlier or later.
+                maybe_push_insertion(&mut parts, overrides, &InsertionAnchor::SectionStart(*section), InsertPosition::After);
                 parts.push(agency_section(mood_chain));
                 parts.push(behavior_and_knowledge_block(local_model).to_string());
+                maybe_push_insertion(&mut parts, overrides, &InsertionAnchor::SectionEnd(*section), InsertPosition::Before);
             }
             DialoguePromptSection::CraftNotes => {
+                maybe_push_insertion(&mut parts, overrides, &InsertionAnchor::SectionStart(*section), InsertPosition::After);
                 let cn_order = overrides
                     .map(|o| o.effective_craft_notes_order())
                     .unwrap_or_else(|| CraftNotePiece::DEFAULT_ORDER.to_vec());
                 for piece in &cn_order {
+                    if overrides.map(|o| o.should_omit_craft_note(piece)).unwrap_or(false) {
+                        continue;
+                    }
+                    maybe_push_insertion(&mut parts, overrides, &InsertionAnchor::CraftNote(*piece), InsertPosition::Before);
                     push_craft_note_piece(&mut parts, overrides, piece, leader, &character.character_id, None);
+                    maybe_push_insertion(&mut parts, overrides, &InsertionAnchor::CraftNote(*piece), InsertPosition::After);
                 }
+                maybe_push_insertion(&mut parts, overrides, &InsertionAnchor::SectionEnd(*section), InsertPosition::Before);
             }
             DialoguePromptSection::Invariants => {
+                maybe_push_insertion(&mut parts, overrides, &InsertionAnchor::SectionStart(*section), InsertPosition::After);
                 let inv_order = overrides
                     .map(|o| o.effective_invariants_order())
                     .unwrap_or_else(|| InvariantPiece::DEFAULT_ORDER.to_vec());
                 for piece in &inv_order {
+                    if overrides.map(|o| o.should_omit_invariant(piece)).unwrap_or(false) {
+                        continue;
+                    }
+                    maybe_push_insertion(&mut parts, overrides, &InsertionAnchor::Invariant(*piece), InsertPosition::Before);
                     push_invariant_piece(&mut parts, piece);
+                    maybe_push_insertion(&mut parts, overrides, &InsertionAnchor::Invariant(*piece), InsertPosition::After);
                 }
+                maybe_push_insertion(&mut parts, overrides, &InsertionAnchor::SectionEnd(*section), InsertPosition::Before);
             }
         }
+        maybe_push_insertion(&mut parts, overrides, &InsertionAnchor::SectionEnd(*section), InsertPosition::After);
     }
 
     // Final length seal — pinned after every other block so it lands at
@@ -2861,6 +2980,22 @@ fn push_craft_note_piece(
         CraftNotePiece::NoticingAsMirror => parts.push(override_or("noticing_as_mirror_dialogue", overrides, noticing_as_mirror_dialogue)),
         CraftNotePiece::UnguardedEntry => parts.push(override_or("unguarded_entry_dialogue", overrides, unguarded_entry_dialogue)),
         CraftNotePiece::ProtagonistFraming => parts.push(protagonist_framing_dialogue(leader, character_id, group_context)),
+    }
+}
+
+/// Dispatch helper: if an insertion is configured at the given
+/// anchor+position, push its text. No-op otherwise. Called at each
+/// anchor point during dispatch (before/after every piece, at section
+/// starts/ends) so a user-specified insertion lands at exactly one of
+/// those spots per run.
+fn maybe_push_insertion(
+    parts: &mut Vec<String>,
+    overrides: Option<&PromptOverrides>,
+    anchor: &InsertionAnchor,
+    position: InsertPosition,
+) {
+    if let Some(text) = overrides.and_then(|o| o.insertion_text_at(anchor, position)) {
+        parts.push(text.to_string());
     }
 }
 
@@ -3187,32 +3322,51 @@ fn build_group_dialogue_system_prompt(
     // section here scopes to just `behavior_and_knowledge_block`. The
     // experimental question is primarily about CraftNotes vs
     // Invariants ordering; agency placement stays load-bearing in the
-    // group-specific role structure.
+    // group-specific role structure. Respects omit lists and the
+    // single-insertion spec exactly like the solo builder.
     let section_order: Vec<DialoguePromptSection> = overrides
         .map(|o| o.effective_section_order().to_vec())
         .unwrap_or_else(|| DialoguePromptSection::DEFAULT_ORDER.to_vec());
     for section in &section_order {
+        maybe_push_insertion(&mut parts, overrides, &InsertionAnchor::SectionStart(*section), InsertPosition::Before);
         match section {
             DialoguePromptSection::AgencyAndBehavior => {
+                maybe_push_insertion(&mut parts, overrides, &InsertionAnchor::SectionStart(*section), InsertPosition::After);
                 parts.push(behavior_and_knowledge_block(local_model).to_string());
+                maybe_push_insertion(&mut parts, overrides, &InsertionAnchor::SectionEnd(*section), InsertPosition::Before);
             }
             DialoguePromptSection::CraftNotes => {
+                maybe_push_insertion(&mut parts, overrides, &InsertionAnchor::SectionStart(*section), InsertPosition::After);
                 let cn_order = overrides
                     .map(|o| o.effective_craft_notes_order())
                     .unwrap_or_else(|| CraftNotePiece::DEFAULT_ORDER.to_vec());
                 for piece in &cn_order {
+                    if overrides.map(|o| o.should_omit_craft_note(piece)).unwrap_or(false) {
+                        continue;
+                    }
+                    maybe_push_insertion(&mut parts, overrides, &InsertionAnchor::CraftNote(*piece), InsertPosition::Before);
                     push_craft_note_piece(&mut parts, overrides, piece, leader, &character.character_id, Some(gc));
+                    maybe_push_insertion(&mut parts, overrides, &InsertionAnchor::CraftNote(*piece), InsertPosition::After);
                 }
+                maybe_push_insertion(&mut parts, overrides, &InsertionAnchor::SectionEnd(*section), InsertPosition::Before);
             }
             DialoguePromptSection::Invariants => {
+                maybe_push_insertion(&mut parts, overrides, &InsertionAnchor::SectionStart(*section), InsertPosition::After);
                 let inv_order = overrides
                     .map(|o| o.effective_invariants_order())
                     .unwrap_or_else(|| InvariantPiece::DEFAULT_ORDER.to_vec());
                 for piece in &inv_order {
+                    if overrides.map(|o| o.should_omit_invariant(piece)).unwrap_or(false) {
+                        continue;
+                    }
+                    maybe_push_insertion(&mut parts, overrides, &InsertionAnchor::Invariant(*piece), InsertPosition::Before);
                     push_invariant_piece(&mut parts, piece);
+                    maybe_push_insertion(&mut parts, overrides, &InsertionAnchor::Invariant(*piece), InsertPosition::After);
                 }
+                maybe_push_insertion(&mut parts, overrides, &InsertionAnchor::SectionEnd(*section), InsertPosition::Before);
             }
         }
+        maybe_push_insertion(&mut parts, overrides, &InsertionAnchor::SectionEnd(*section), InsertPosition::After);
     }
 
     // Final length seal — pinned after every other block so it's the
