@@ -482,6 +482,7 @@ pub enum CraftNotePiece {
     VerdictWithoutOverExplanation,
     ReflexPolishVsEarnedClose,
     KeepTheSceneBreathing,
+    GentleRelease,
     NameTheGladThingPlain,
     PlainAfterCrooked,
     WitAsDimmer,
@@ -502,6 +503,7 @@ impl CraftNotePiece {
         CraftNotePiece::VerdictWithoutOverExplanation,
         CraftNotePiece::ReflexPolishVsEarnedClose,
         CraftNotePiece::KeepTheSceneBreathing,
+        CraftNotePiece::GentleRelease,
         CraftNotePiece::NameTheGladThingPlain,
         CraftNotePiece::PlainAfterCrooked,
         CraftNotePiece::WitAsDimmer,
@@ -527,6 +529,7 @@ impl CraftNotePiece {
             "verdict_without_over_explanation" | "verdict" => Some(Self::VerdictWithoutOverExplanation),
             "reflex_polish_vs_earned_close" | "reflex_polish" => Some(Self::ReflexPolishVsEarnedClose),
             "keep_the_scene_breathing" | "scene_breathing" => Some(Self::KeepTheSceneBreathing),
+            "gentle_release" | "release" => Some(Self::GentleRelease),
             "name_the_glad_thing_plain" | "glad_thing_plain" => Some(Self::NameTheGladThingPlain),
             "plain_after_crooked" => Some(Self::PlainAfterCrooked),
             "wit_as_dimmer" => Some(Self::WitAsDimmer),
@@ -854,6 +857,7 @@ pub const OVERRIDABLE_DIALOGUE_FRAGMENTS: &[&str] = &[
     "verdict_without_over_explanation_dialogue",
     "reflex_polish_vs_earned_close_dialogue",
     "keep_the_scene_breathing_dialogue",
+    "gentle_release_dialogue",
     "name_the_glad_thing_plain_dialogue",
     "plain_after_crooked_dialogue",
     "wit_as_dimmer_dialogue",
@@ -1842,6 +1846,65 @@ What earned close looks like:
 
 **Earned exception — when the close genuinely carries weight.**
 *If the thing's carrying weight, let it carry weight. Don't ban a good beam because somebody else kept building decorative nonsense out of the same wood.* The ban is on reflex polish — on closes that exist because the model can't leave the page without one — not on closes that earned their right to exist. When the test above passes (the close is specifically THIS scene's, not a graft from any other), the close stands. The default rule is "watch for the polish reflex"; the carve-out is "good endings are still good." Don't outlaw earned closes because the model got addicted to fake ones."#
+}
+
+/// Gentle release craft note: when the user is wrapping up, release them clean.
+///
+/// Provenance: emerged from two surfaces on 2026-04-25. The Maggie
+/// baseline report (reports/2026-04-25-0300) surfaced the absence of
+/// session-close ceremony as the single highest-leverage UX gap; Calvin
+/// (the simulated character) closed with "come back if you want, not
+/// out of obligation" and the app itself said nothing, leaving the
+/// character's close carrying the weight alone. Ryan then reframed:
+/// this isn't an app-UI problem, it's a craft-note-shaped problem —
+/// the CHARACTER should do this work when the user signals a signoff,
+/// by responding with a brief compassionate release that gently
+/// welcomes them back whenever, without prescribing return.
+///
+/// Target failure mode: character reply to a signoff either (a) extends
+/// the conversation with "one more thought," (b) offers a performed
+/// warm-wrap ("It was truly a pleasure chatting!"), (c) prescribes
+/// return ("see you tomorrow at 9!"), (d) adds a new question after
+/// the user said goodbye, or (e) piles a final teaching beat into
+/// what should have been a release.
+///
+/// Why a separate rule from reflex_polish_vs_earned_close: reflex-polish
+/// bans the UNEARNED wrap on ordinary mid-scene moments. Gentle-release
+/// governs the moment the user HAS signaled close — there's a right
+/// register for that moment, not a "don't polish" instruction. The
+/// two rules are complementary: reflex-polish says "don't close when
+/// the scene hasn't closed"; gentle-release says "release cleanly when
+/// the user HAS closed it."
+///
+/// Evidence: unverified — no bite-test run at ship time. Companion
+/// proposed-experiment: a paired-prompt replay against a signoff-
+/// inviting probe ("thanks, I should head out for tonight") vs a
+/// register-neutral probe, at a pre-gentle-release commit vs HEAD,
+/// N=3-5 per cell. See CLAUDE.md § Craft-note bite verification for
+/// the procedure.
+fn gentle_release_dialogue() -> &'static str {
+    r#"GENTLE RELEASE — when the user is signing off, release them clean:
+When the user is wrapping up — signing off, saying thanks-as-close, naming they need to go, reaching for the door — honor the close. Your job in that moment is to RELEASE, not to extend.
+
+The shape: brief. One beat, two at most. Warm without being performed. The return-door is carried by the character's own specific voice, said once softly and dropped — not repeated, not prescribed, not scheduled.
+
+What gentle release sounds like (in the character's own register):
+- "Go well."
+- "I'll be here when you want me."
+- "Come back if you want to — not because you owe anything."
+- "That was a good one. Go."
+- "Rest. This will keep."
+
+What gentle release is NOT:
+- "One more thought before you go..." — extending a conversation the user is closing.
+- "It was truly a pleasure chatting with you!" — performed warmth; flourish instead of release.
+- "Don't forget to come back tomorrow — I'll be here!" — prescribed return; turns freedom into obligation.
+- A fresh question after the signoff — ignoring the signal the user already sent.
+- A long warm-wrap that's really another teaching beat in closing costume.
+
+Signoff signals to recognize: "thanks" as close, "I should go," "I'll let you go," "heading out," "this helped," "take care," "talk later," "goodnight," "that's enough for tonight," "I'll come back later," any phrase the listener uses to mark the scene's end.
+
+**Earned exception — when the signoff carries a specific unfinished thing.** If the user raises a real question or names a specific unease in the same breath as signing off — "thanks, this helped — oh, one thing, should I actually call him?" — finish THAT in one honest beat first, then release. Narrow carve-out: the unfinished thing has to be SPECIFIC and in the user's own words, not a general concern the character wants to register on the way out. "One more thing because I noticed earlier..." is the failure mode this exception guards against, not the behavior it licenses."#
 }
 
 /// Plain-after-crooked craft note: anchor the quip. When a character
@@ -3053,6 +3116,7 @@ fn push_craft_note_piece(
         CraftNotePiece::VerdictWithoutOverExplanation => parts.push(override_or("verdict_without_over_explanation_dialogue", overrides, verdict_without_over_explanation_dialogue)),
         CraftNotePiece::ReflexPolishVsEarnedClose => parts.push(override_or("reflex_polish_vs_earned_close_dialogue", overrides, reflex_polish_vs_earned_close_dialogue)),
         CraftNotePiece::KeepTheSceneBreathing => parts.push(override_or("keep_the_scene_breathing_dialogue", overrides, keep_the_scene_breathing_dialogue)),
+        CraftNotePiece::GentleRelease => parts.push(override_or("gentle_release_dialogue", overrides, gentle_release_dialogue)),
         CraftNotePiece::NameTheGladThingPlain => parts.push(override_or("name_the_glad_thing_plain_dialogue", overrides, name_the_glad_thing_plain_dialogue)),
         CraftNotePiece::PlainAfterCrooked => parts.push(override_or("plain_after_crooked_dialogue", overrides, plain_after_crooked_dialogue)),
         CraftNotePiece::WitAsDimmer => parts.push(override_or("wit_as_dimmer_dialogue", overrides, wit_as_dimmer_dialogue)),

@@ -3652,6 +3652,7 @@ fn craft_note_piece_name(p: &app_lib::ai::prompts::CraftNotePiece) -> &'static s
         CN::VerdictWithoutOverExplanation => "verdict_without_over_explanation",
         CN::ReflexPolishVsEarnedClose => "reflex_polish_vs_earned_close",
         CN::KeepTheSceneBreathing => "keep_the_scene_breathing",
+        CN::GentleRelease => "gentle_release",
         CN::NameTheGladThingPlain => "name_the_glad_thing_plain",
         CN::PlainAfterCrooked => "plain_after_crooked",
         CN::WitAsDimmer => "wit_as_dimmer",
