@@ -1,6 +1,7 @@
 ---
 id: john-stillness-register
 status: refuted
+evidence_strength: sketch  # N=1 per condition; retroactive label. See CLAUDE.md § evidentiary standards.
 mode: passive
 created_at: 2026-04-23T19:45:32Z
 resolved_at: 2026-04-23T19:45:41Z

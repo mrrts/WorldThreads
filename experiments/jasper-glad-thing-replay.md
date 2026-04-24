@@ -1,6 +1,7 @@
 ---
 id: jasper-glad-thing-replay
 status: open
+evidence_strength: sketch  # N=1 per condition; retroactive label. See CLAUDE.md § evidentiary standards.
 mode: active
 created_at: 2026-04-23T19:38:00Z
 resolved_at: 2026-04-23T19:42:00Z

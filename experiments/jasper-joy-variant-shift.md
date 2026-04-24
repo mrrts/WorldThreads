@@ -1,6 +1,7 @@
 ---
 id: jasper-joy-variant-shift
 status: refuted
+evidence_strength: sketch  # N=1 per condition; retroactive label. See CLAUDE.md § evidentiary standards.
 mode: active
 created_at: 2026-04-23T19:57:49Z
 resolved_at: 2026-04-23T19:57:51Z

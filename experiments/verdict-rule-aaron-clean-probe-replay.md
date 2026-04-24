@@ -1,6 +1,7 @@
 ---
 id: verdict-rule-aaron-clean-probe-replay
 status: refuted
+evidence_strength: sketch  # N=1 per condition; retroactive label. See CLAUDE.md § evidentiary standards.
 mode: active
 created_at: 2026-04-24T00:02:53Z
 resolved_at: 2026-04-24T00:02:54Z

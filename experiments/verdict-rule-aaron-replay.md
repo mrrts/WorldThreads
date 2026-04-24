@@ -1,6 +1,7 @@
 ---
 id: verdict-rule-aaron-replay
 status: refuted
+evidence_strength: sketch  # N=1 per condition; retroactive label. See CLAUDE.md § evidentiary standards.
 mode: active
 created_at: 2026-04-23T23:59:12Z
 resolved_at: 2026-04-23T23:59:13Z

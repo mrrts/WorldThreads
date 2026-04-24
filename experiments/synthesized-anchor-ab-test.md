@@ -1,6 +1,7 @@
 ---
 id: synthesized-anchor-ab-test
 status: confirmed
+evidence_strength: sketch  # N=1 per condition; retroactive label. See CLAUDE.md § evidentiary standards.
 mode: active
 created_at: 2026-04-24T10:50:33Z
 resolved_at: 2026-04-24T10:50:35Z

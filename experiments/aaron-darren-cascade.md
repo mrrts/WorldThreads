@@ -1,6 +1,7 @@
 ---
 id: aaron-darren-cascade
 status: refuted
+evidence_strength: sketch  # N=1 per condition; retroactive label. See CLAUDE.md § evidentiary standards.
 mode: passive
 created_at: 2026-04-23T12:41:00Z
 resolved_at: 2026-04-23T12:50:00Z

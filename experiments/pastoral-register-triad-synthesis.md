@@ -1,6 +1,7 @@
 ---
 id: pastoral-register-triad-synthesis
 status: confirmed
+evidence_strength: sketch  # N=1 per condition; retroactive label. See CLAUDE.md § evidentiary standards.
 mode: qualitative
 created_at: 2026-04-23T20:11:48Z
 resolved_at: 2026-04-23T20:11:48Z

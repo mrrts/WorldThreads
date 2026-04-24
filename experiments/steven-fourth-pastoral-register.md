@@ -1,6 +1,7 @@
 ---
 id: steven-fourth-pastoral-register
 status: confirmed
+evidence_strength: sketch  # N=1 per condition; retroactive label. See CLAUDE.md § evidentiary standards.
 mode: qualitative
 created_at: 2026-04-24T09:31:37Z
 resolved_at: 2026-04-24T09:31:38Z

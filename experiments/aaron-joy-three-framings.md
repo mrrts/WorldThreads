@@ -1,6 +1,7 @@
 ---
 id: aaron-joy-three-framings
 status: confirmed
+evidence_strength: sketch  # N=1 per condition; retroactive label. See CLAUDE.md § evidentiary standards.
 mode: active
 created_at: 2026-04-23T20:14:53Z
 resolved_at: 2026-04-23T20:14:54Z

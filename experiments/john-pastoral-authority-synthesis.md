@@ -1,6 +1,7 @@
 ---
 id: john-pastoral-authority-synthesis
 status: confirmed
+evidence_strength: sketch  # N=1 per condition; retroactive label. See CLAUDE.md § evidentiary standards.
 mode: qualitative
 created_at: 2026-04-23T19:28:00Z
 resolved_at: 2026-04-23T19:35:00Z

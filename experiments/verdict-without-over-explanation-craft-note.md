@@ -1,6 +1,7 @@
 ---
 id: verdict-without-over-explanation-craft-note
 status: confirmed
+evidence_strength: sketch  # N=1 per condition; retroactive label. See CLAUDE.md § evidentiary standards.
 mode: active
 created_at: 2026-04-23T20:22:00Z
 resolved_at: 2026-04-23T20:24:21Z

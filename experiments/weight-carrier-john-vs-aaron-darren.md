@@ -1,6 +1,7 @@
 ---
 id: weight-carrier-john-vs-aaron-darren
 status: refuted
+evidence_strength: sketch  # N=1 per condition; retroactive label. See CLAUDE.md § evidentiary standards.
 mode: passive
 created_at: 2026-04-23T13:04:00Z
 resolved_at: 2026-04-23T13:30:00Z
