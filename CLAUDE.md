@@ -111,6 +111,17 @@ The magnitude language (*"~25%"*, *"~0.17"*, etc.) is especially dangerous: it r
 
 **What this prevents.** The experiments registry (`experiments/` directory + `worldcli lab list`) accumulating claims at mixed evidentiary standards with no way to tell which is which. Reports citing each other across sessions without tracking whether the cited claim survives. Production default changes proposed on single-character single-run behavior. The general failure mode: N=1 sketches hardening into project folklore because nobody went back and measured them at N=3.
 
+**Paired-rubric deployment as defense-in-depth against tag-forcing drift.** Tag-forcing rubrics (mission-adherence, close-dilution, etc.) have observed drift patterns in both directions: over-application (evaluator stretches a tag's definition to justify yes on content that doesn't fit — reports/2026-04-25-0030) and under-application (evaluator skips a cleanly-applicable tag and produces a false no — reports/2026-04-24-1620 John "drink while it's hot"). Tighter tag definitions plus bidirectional forcing functions can reduce drift (reports/2026-04-25-0130 v3 test fixed over-application cleanly) but can't eliminate it — single-rubric verdicts always carry some risk of capture-by-forcing or skip-by-pattern-match.
+
+**The robust deployment pattern for rubric-graded verdicts is paired-rubric sanity check.** When the stakes matter (production default change, narrative claim citing the verdict as load-bearing), run TWO rubrics with different architectures on the same reply:
+
+- **Agreement (both YES, or both NO):** trust the verdict.
+- **Disagreement (one YES, one NO):** investigate the reply manually. The disagreement IS the signal — one rubric caught a drift pattern the other missed.
+
+The specific pair that works for most dialogue evaluation: a tag-forcing structured rubric (mission-adherence v3) + a gestalt aesthetic rubric (feels-alive). They drift in different directions and disagreement specifically reveals cases where at least one drift pattern fired. When agreement is strong across a sample, the aggregate verdict is trustworthy; when disagreement is present, it requires human-in-the-loop resolution rather than aggregation.
+
+This pattern is load-bearing enough to codify: **single-rubric verdicts citable as load-bearing only when the rubric is at claim-tier AND the verdict is register-typical; any verdict at the margin of the rubric's discrimination range requires paired-rubric confirmation.** The feels-alive rubric's narrow-scope deployment label (`claim-narrow,sketch-for-general-aesthetic-ranking`) makes it specifically suitable as the gestalt half of the pair; it shouldn't carry load-bearing claims on its own, but as the paired check against a tag-forcing rubric it earns its keep.
+
 **How to apply the retroactive audit.** Walk the `experiments/` directory, read each entry's summary + its linked report(s), and classify by actual N. The four states visible in the registry (proposed / running / confirmed / refuted) describe STATUS but not STRENGTH. Strength is orthogonal — a refuted sketch and a refuted claim are different things; a confirmed sketch and a confirmed claim are also different things. The registry's evidence_strength field makes the strength visible without needing to read every report.
 
 ## How to read this craft stack
