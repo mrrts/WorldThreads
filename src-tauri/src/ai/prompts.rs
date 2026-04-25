@@ -1085,6 +1085,51 @@ const _: () = {
     );
 };
 
+/// MISSION prose block — the LLM-facing version of the project's MISSION
+/// (CLAUDE.md keeps the developer-facing version with craft-stack
+/// commentary; this is the trimmed version for system prompts). Pushed
+/// at top-position right after the formula in dialogue / consultant /
+/// narrative assembly. Authored by Ryan; the cross-bearing clause is
+/// the load-bearing recent addition (b9d6d18) — added after the formula
+/// bite-check (reports/2026-04-26-0245) showed cross-bearing was
+/// near-absent across the entire stack regardless of formula condition.
+/// The prose names what the symbolic formula could not operationalize
+/// alone: that the kind face serves the costly call.
+pub const MISSION_PROSE_BLOCK: &str = r#"THE MISSION (in plain prose):
+Create a vivid, excellent, surprising in-world experience that uplifts the user and provides engrossing, good, clean fun. Characters that feel real, worlds that hold, scenes that are worth the visit and send the user back to their day nourished enough to pick up their cross."#;
+
+fn mission_prose_block() -> &'static str { MISSION_PROSE_BLOCK }
+
+/// Test hook — when env var WORLDTHREADS_NO_MISSION_PROSE=1 is set,
+/// `mission_prose_block_or_empty()` returns "" instead of the prose.
+/// Used by Mode-C cross-condition tests of "is the prose MISSION
+/// doing work on cross-bearing?" Production callers use this getter;
+/// the constant is preserved unchanged.
+fn mission_prose_block_or_empty() -> &'static str {
+    if std::env::var("WORLDTHREADS_NO_MISSION_PROSE").map(|v| v == "1").unwrap_or(false) {
+        ""
+    } else {
+        mission_prose_block()
+    }
+}
+
+// APP INVARIANT — compile-time enforcement of the cross-bearing clause
+// in the MISSION prose. The kind-face words ("nourished", "uplifts",
+// "good clean fun") all carry without the costly call — that's exactly
+// the failure mode the bite-check (2026-04-26-0245) surfaced. The
+// cross-bearing clause is what makes the MISSION cruciform rather than
+// merely comforting. Removing it fails the build.
+const _: () = {
+    assert!(
+        const_contains(MISSION_PROSE_BLOCK, "pick up their cross"),
+        "APP INVARIANT VIOLATED: MISSION prose must preserve 'pick up their cross' verbatim. The kind face serves the costly call; without the costly clause, the MISSION reverts to comfort-only and the bite-check failure mode (2026-04-26-0245: 1 YES out of 24 on cross-bearing) returns. See reports/2026-04-26-0245."
+    );
+    assert!(
+        const_contains(MISSION_PROSE_BLOCK, "nourished"),
+        "APP INVARIANT VIOLATED: MISSION prose must preserve 'nourished'. The kind face is preserved as the means, not removed — nourishment is what enables the cross-bearing."
+    );
+};
+
 /// Cosmology of this world. Inserted into the WORLD section of every
 /// dialogue / narrative / dream system prompt so characters and the
 /// narrator share a single literal picture of the heavens and the
@@ -3311,7 +3356,7 @@ fn build_solo_dialogue_system_prompt(
                 // so every subsequent block is read through its frame. Not
                 // overridable, not reorderable; it is the shape of what the
                 // rest of the stack serves. See MISSION_FORMULA_BLOCK.
-                parts.push(mission_formula_block_or_empty().to_string());
+                parts.push(mission_formula_block_or_empty().to_string()); parts.push(mission_prose_block_or_empty().to_string());
                 let inv_order = overrides
                     .map(|o| o.effective_invariants_order())
                     .unwrap_or_else(|| InvariantPiece::DEFAULT_ORDER.to_vec());
@@ -3747,7 +3792,7 @@ fn build_group_dialogue_system_prompt(
                 // so every subsequent block is read through its frame. Not
                 // overridable, not reorderable; it is the shape of what the
                 // rest of the stack serves. See MISSION_FORMULA_BLOCK.
-                parts.push(mission_formula_block_or_empty().to_string());
+                parts.push(mission_formula_block_or_empty().to_string()); parts.push(mission_prose_block_or_empty().to_string());
                 let inv_order = overrides
                     .map(|o| o.effective_invariants_order())
                     .unwrap_or_else(|| InvariantPiece::DEFAULT_ORDER.to_vec());
@@ -4586,7 +4631,7 @@ pub fn build_dream_system_prompt(
     }
 
     parts.push(dream_craft_block().to_string());
-    parts.push(mission_formula_block_or_empty().to_string());
+    parts.push(mission_formula_block_or_empty().to_string()); parts.push(mission_prose_block_or_empty().to_string());
     parts.push(reverence_block().to_string());
     parts.push(daylight_block().to_string());
     parts.push(agape_block().to_string());
@@ -4979,7 +5024,7 @@ Your aim is to surprise the reader in some deep way — with a detail they didn'
 
     parts.push(hidden_commonality_narrative().to_string());
     parts.push(protagonist_framing_narrative().to_string());
-    parts.push(mission_formula_block_or_empty().to_string());
+    parts.push(mission_formula_block_or_empty().to_string()); parts.push(mission_prose_block_or_empty().to_string());
     parts.push(reverence_block().to_string());
     parts.push(daylight_block().to_string());
     parts.push(agape_block().to_string());
