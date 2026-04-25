@@ -6,7 +6,8 @@ import { InlineQuestProposalCard } from "@/components/chat/InlineQuestProposalCa
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Dialog } from "@/components/ui/dialog";
-import { Send, Loader2, X, BookOpen, MessageSquare, Compass, Settings, Image, Trash2, SlidersHorizontal, Pencil, Square, Crosshair, ChevronLeft, ChevronRight, ChevronDown, Play, Pause, Volume2, ArrowRight, Smile, SmilePlus, ScrollText, Package, Sparkles, MessageCircleQuestion, List } from "lucide-react";
+import { Send, Loader2, X, BookOpen, MessageSquare, Compass, Settings, Image, Trash2, SlidersHorizontal, Pencil, Square, Crosshair, ChevronLeft, ChevronRight, ChevronDown, Play, Pause, Volume2, ArrowRight, Smile, SmilePlus, ScrollText, Package, Sparkles, MessageCircleQuestion, List, MapPin } from "lucide-react";
+import { invoke } from "@tauri-apps/api/core";
 import { ReactionBubbles } from "@/components/chat/ReactionBubbles";
 import { ReactionPicker } from "@/components/chat/ReactionPicker";
 import { KeepRecordModal } from "@/components/chat/KeepRecordModal";
@@ -40,6 +41,8 @@ import { StoryConsultantModal } from "@/components/chat/StoryConsultantModal";
 import { ImaginedChapterModal } from "@/components/chat/ImaginedChapterModal";
 import { ImaginedChapterMessage } from "@/components/chat/ImaginedChapterMessage";
 import { SettingsUpdateMessage } from "@/components/chat/SettingsUpdateMessage";
+import { LocationChangeCard } from "@/components/chat/LocationChangeCard";
+import { LocationModal } from "@/components/chat/LocationModal";
 import { IllustrationMessage } from "@/components/chat/IllustrationMessage";
 import { StickyIllustration } from "@/components/chat/StickyIllustration";
 import { useChatState } from "@/hooks/use-chat-state";
@@ -120,6 +123,8 @@ export function GroupChatView({ store, onNavigateToCharacter }: Props) {
   const [consultantAutoSend, setConsultantAutoSend] = useState<string | null>(null);
   const [showImaginedChapter, setShowImaginedChapter] = useState(false);
   const [openImaginedChapterId, setOpenImaginedChapterId] = useState<string | null>(null);
+  const [showLocationModal, setShowLocationModal] = useState(false);
+  const [currentLocation, setCurrentLocation] = useState<string | null>(null);
   const [showSettingsPopover, setShowSettingsPopover] = useState(false);
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [showClearConfirm, setShowClearConfirm] = useState(false);
@@ -404,6 +409,20 @@ export function GroupChatView({ store, onNavigateToCharacter }: Props) {
     }).catch(() => { if (!cancelled) setSendHistory(true); });
     return () => { cancelled = true; };
   }, [chatId]);
+
+  // Per-group-chat current location.
+  useEffect(() => {
+    if (!chatId) {
+      setCurrentLocation(null);
+      return;
+    }
+    let cancelled = false;
+    invoke<string | null>("get_chat_location_cmd", { groupChatId: chatId })
+      .then((loc) => { if (!cancelled) setCurrentLocation(loc); })
+      .catch(() => { if (!cancelled) setCurrentLocation(null); });
+    return () => { cancelled = true; };
+  }, [chatId]);
+
   const setSendHistoryPersist = useCallback((next: boolean) => {
     const prev = sendHistory;
     setSendHistory(next);
@@ -723,7 +742,23 @@ export function GroupChatView({ store, onNavigateToCharacter }: Props) {
             </div>
           )}
         </div>
-        <div className="ml-auto relative group/gallery">
+        <div className="ml-auto flex items-center gap-1">
+          {currentLocation && (
+            <span className="text-[11px] text-muted-foreground/80 max-w-[180px] truncate">
+              <span className="text-muted-foreground/50">Location:</span> <span className="text-foreground/70">{currentLocation}</span>
+            </span>
+          )}
+          <div className="relative group/locbtn">
+            <button
+              onClick={() => setShowLocationModal(true)}
+              className="flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center transition-colors cursor-pointer text-muted-foreground hover:text-foreground hover:bg-accent"
+            >
+              <MapPin size={15} />
+            </button>
+            <span className="absolute top-full left-1/2 -translate-x-1/2 mt-1.5 px-2 py-0.5 text-[10px] font-medium text-white bg-black rounded-md shadow-lg whitespace-nowrap opacity-0 group-hover/locbtn:opacity-100 pointer-events-none transition-opacity">{currentLocation ? "Change location" : "Set location"}</span>
+          </div>
+        </div>
+        <div className="relative group/gallery">
           <button
             onClick={() => openGallery()}
             className="flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center transition-colors cursor-pointer text-muted-foreground hover:text-foreground hover:bg-accent"
@@ -881,6 +916,14 @@ export function GroupChatView({ store, onNavigateToCharacter }: Props) {
                 {meanwhileBefore}
                 <TimeDivider current={msg} previous={prevMsg} />
                 <SettingsUpdateMessage message={msg} />
+              </React.Fragment>);
+            }
+
+            if (msg.role === "location_change") {
+              return (<React.Fragment key={msg.message_id}>
+                {meanwhileBefore}
+                <TimeDivider current={msg} previous={prevMsg} />
+                <LocationChangeCard message={msg} />
               </React.Fragment>);
             }
 
@@ -1772,6 +1815,18 @@ export function GroupChatView({ store, onNavigateToCharacter }: Props) {
         title={`Summary: ${groupCharacters.map((c) => c.display_name).join(" & ")}`}
         generateSummary={(mode) => api.generateGroupChatSummary(store.apiKey, store.activeGroupChat?.group_chat_id ?? "", mode)}
         notifyOnMessage={store.notifyOnMessage}
+      />
+
+      <LocationModal
+        open={showLocationModal}
+        onClose={() => setShowLocationModal(false)}
+        worldId={store.activeWorld?.world_id ?? ""}
+        groupChatId={chatId ?? undefined}
+        currentLocation={currentLocation}
+        onUpdated={(newLocation, insertedMessage) => {
+          setCurrentLocation(newLocation);
+          if (insertedMessage) store.appendMessage(insertedMessage);
+        }}
       />
 
       <KeepRecordModal

@@ -131,7 +131,7 @@ export interface IllustrationSummary {
 export interface Message {
   message_id: string;
   thread_id: string;
-  role: "user" | "assistant" | "system" | "narrative" | "illustration" | "context" | "dream" | "inventory_update" | "imagined_chapter" | "settings_update";
+  role: "user" | "assistant" | "system" | "narrative" | "illustration" | "context" | "dream" | "inventory_update" | "imagined_chapter" | "settings_update" | "location_change";
   content: string;
   tokens_estimate: number;
   sender_character_id: string | null;

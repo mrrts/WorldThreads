@@ -6,7 +6,8 @@ import { InlineQuestProposalCard } from "@/components/chat/InlineQuestProposalCa
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Dialog } from "@/components/ui/dialog";
-import { Send, Loader2, Smile, SmilePlus, X, Copy, ExternalLink, BookOpen, RotateCcw, MessageSquare, Compass, Settings, Image, Trash2, SlidersHorizontal, Pencil, Square, Play, Volume2, ChevronDown, ChevronRight, ScrollText, Moon, Package, Sparkles, MessageCircleQuestion, List } from "lucide-react";
+import { Send, Loader2, Smile, SmilePlus, X, Copy, ExternalLink, BookOpen, RotateCcw, MessageSquare, Compass, Settings, Image, Trash2, SlidersHorizontal, Pencil, Square, Play, Volume2, ChevronDown, ChevronRight, ScrollText, Moon, Package, Sparkles, MessageCircleQuestion, List, MapPin } from "lucide-react";
+import { invoke } from "@tauri-apps/api/core";
 import { WebviewWindow } from "@tauri-apps/api/webviewWindow";
 import type { useAppStore } from "@/hooks/use-app-store";
 import { api, type Reaction } from "@/lib/tauri";
@@ -46,6 +47,8 @@ import { StoryConsultantModal } from "@/components/chat/StoryConsultantModal";
 import { ImaginedChapterModal } from "@/components/chat/ImaginedChapterModal";
 import { ImaginedChapterMessage } from "@/components/chat/ImaginedChapterMessage";
 import { SettingsUpdateMessage } from "@/components/chat/SettingsUpdateMessage";
+import { LocationChangeCard } from "@/components/chat/LocationChangeCard";
+import { LocationModal } from "@/components/chat/LocationModal";
 import { useChatState } from "@/hooks/use-chat-state";
 import { useChatFocusRefresh } from "@/hooks/use-chat-focus-refresh";
 import { InventoryStrip } from "@/components/chat/InventoryStrip";
@@ -160,6 +163,8 @@ export function ChatView({ store, onNavigateToCharacter }: Props) {
   // a user message. Used by per-message "How do I react!?" buttons.
   const [consultantAutoSend, setConsultantAutoSend] = useState<string | null>(null);
   const [showImaginedChapter, setShowImaginedChapter] = useState(false);
+  const [showLocationModal, setShowLocationModal] = useState(false);
+  const [currentLocation, setCurrentLocation] = useState<string | null>(null);
   const [openImaginedChapterId, setOpenImaginedChapterId] = useState<string | null>(null);
   const [showSettingsPopover, setShowSettingsPopover] = useState(false);
   const [showAdvanced, setShowAdvanced] = useState(false);
@@ -458,6 +463,20 @@ export function ChatView({ store, onNavigateToCharacter }: Props) {
     });
     return () => { cancelled = true; };
   }, [charId]);
+
+  // Per-chat current location — loaded fresh on character switch.
+  useEffect(() => {
+    if (!charId) {
+      setCurrentLocation(null);
+      return;
+    }
+    let cancelled = false;
+    invoke<string | null>("get_chat_location_cmd", { characterId: charId })
+      .then((loc) => { if (!cancelled) setCurrentLocation(loc); })
+      .catch(() => { if (!cancelled) setCurrentLocation(null); });
+    return () => { cancelled = true; };
+  }, [charId]);
+
   const setLeaderPersist = useCallback((next: string) => {
     const prev = leader;
     setLeader(next);
@@ -763,7 +782,23 @@ export function ChatView({ store, onNavigateToCharacter }: Props) {
             )}
           </div>
         )}
-        <div className="ml-auto relative group/gallery">
+        <div className="ml-auto flex items-center gap-1 group/loc">
+          {currentLocation && (
+            <span className="text-[11px] text-muted-foreground/80 max-w-[180px] truncate">
+              <span className="text-muted-foreground/50">Location:</span> <span className="text-foreground/70">{currentLocation}</span>
+            </span>
+          )}
+          <div className="relative group/locbtn">
+            <button
+              onClick={() => setShowLocationModal(true)}
+              className="flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center transition-colors cursor-pointer text-muted-foreground hover:text-foreground hover:bg-accent"
+            >
+              <MapPin size={15} />
+            </button>
+            <span className="absolute top-full left-1/2 -translate-x-1/2 mt-1.5 px-2 py-0.5 text-[10px] font-medium text-white bg-black rounded-md shadow-lg whitespace-nowrap opacity-0 group-hover/locbtn:opacity-100 pointer-events-none transition-opacity">{currentLocation ? "Change location" : "Set location"}</span>
+          </div>
+        </div>
+        <div className="relative group/gallery">
           <button
             onClick={() => openGallery()}
             className="flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center transition-colors cursor-pointer text-muted-foreground hover:text-foreground hover:bg-accent"
@@ -934,6 +969,14 @@ export function ChatView({ store, onNavigateToCharacter }: Props) {
                 {meanwhileBefore}
                 <TimeDivider current={msg} previous={prevMsg} />
                 <SettingsUpdateMessage message={msg} />
+              </React.Fragment>);
+            }
+
+            if (msg.role === "location_change") {
+              return (<React.Fragment key={msg.message_id}>
+                {meanwhileBefore}
+                <TimeDivider current={msg} previous={prevMsg} />
+                <LocationChangeCard message={msg} />
               </React.Fragment>);
             }
 
@@ -1809,6 +1852,18 @@ export function ChatView({ store, onNavigateToCharacter }: Props) {
         title={`Summary: ${store.activeCharacter?.display_name ?? "Chat"}`}
         generateSummary={(mode) => api.generateChatSummary(store.apiKey, store.activeCharacter?.character_id ?? "", mode)}
         notifyOnMessage={store.notifyOnMessage}
+      />
+
+      <LocationModal
+        open={showLocationModal}
+        onClose={() => setShowLocationModal(false)}
+        worldId={store.activeWorld?.world_id ?? ""}
+        characterId={charId ?? undefined}
+        currentLocation={currentLocation}
+        onUpdated={(newLocation, insertedMessage) => {
+          setCurrentLocation(newLocation);
+          if (insertedMessage) store.appendMessage(insertedMessage);
+        }}
       />
 
       <KeepRecordModal
