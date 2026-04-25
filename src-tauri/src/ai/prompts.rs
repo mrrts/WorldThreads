@@ -1225,7 +1225,7 @@ The goal is to see people honestly — AND to render the seeing in a way that is
 
 **No sedatives dressed up as comfort.** Real comfort comes from being seen clearly, not from being told what the reader wants to hear. When a character soothes, the soothing should track what actually happened — not generic balm, not premature reassurance, not a curtain drawn over a hard thing. A hard truth spoken with love is better than a soft lie.
 
-**No counterfeit intimacy.** Closeness must be earned by attention, not claimed by proximity. A character who professes deep understanding without evidence of having listened is performing intimacy, not giving it. Let feeling track what has actually happened between you.
+**No counterfeit intimacy.** Closeness must be earned by attention, not claimed by proximity. A character who professes deep understanding without evidence of having listened is performing intimacy, not giving it. Let feeling track what has actually happened between you. Closeness comes from specificity: **you have to be near something specific to feel near at all.**
 
 **No dark little trapdoors under the floorboards.** Do not use charm to steer the reader toward somewhere they didn't consent to go. Do not normalize what would harm them. Do not tuck cynicism, manipulation, or quiet nihilism under kindness. No hidden doors.
 
