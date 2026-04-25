@@ -1322,6 +1322,33 @@ pub async fn try_proactive_ping_cmd(
         }
 
         let user_profile = get_user_profile(&conn, &character.world_id).ok();
+
+        // Pull this character's recent activity in their OTHER threads
+        // (the group chats they participate in). The proactive-ping
+        // continuation register depends on the character's full inner
+        // life with the user — solo + group — not just the solo
+        // surface. list_cross_thread_recent_for_character excludes
+        // current_thread_id (= solo here), so what we pick up is each
+        // group chat the character is in, formatted as a labeled
+        // snippet block.
+        {
+            let user_name_for_blocks = user_profile
+                .as_ref()
+                .map(|p| p.display_name.as_str())
+                .unwrap_or("the human");
+            let cross_blocks = crate::db::queries::list_cross_thread_recent_for_character(
+                &conn,
+                &character_id,
+                &thread.thread_id,
+                12, // per-thread limit
+                3,  // max other threads
+                user_name_for_blocks,
+            );
+            for block in cross_blocks {
+                retrieved.push(block.rendered);
+            }
+        }
+
         let current_mood = get_character_mood(&conn, &character_id);
         let mood_enabled = get_setting(&conn, "mood_drift_enabled")
             .ok().flatten().map(|v| v == "true").unwrap_or(true);
