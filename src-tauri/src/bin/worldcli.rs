@@ -3662,6 +3662,7 @@ fn craft_note_piece_name(p: &app_lib::ai::prompts::CraftNotePiece) -> &'static s
         CN::NoticingAsMirror => "noticing_as_mirror",
         CN::UnguardedEntry => "unguarded_entry",
         CN::ProtagonistFraming => "protagonist_framing",
+        CN::NonTotality => "non_totality",
     }
 }
 

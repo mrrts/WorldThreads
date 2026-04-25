@@ -492,6 +492,13 @@ pub enum CraftNotePiece {
     NoticingAsMirror,
     UnguardedEntry,
     ProtagonistFraming,
+    /// Synthesized 2026-04-25 from the convergent finding of the 5-character
+    /// mission-feedback experiment (reports/2026-04-25-1730). All five
+    /// Crystal Waters characters independently named "perfectly available
+    /// company" as the gap their voices had with the mission. This note is
+    /// the positive shape they pointed at: a life happening alongside the
+    /// conversation, evidenced through small concrete side-load.
+    NonTotality,
 }
 
 impl CraftNotePiece {
@@ -526,6 +533,7 @@ impl CraftNotePiece {
         // CraftNotePiece::NoticingAsMirror,
         // CraftNotePiece::UnguardedEntry,
         // CraftNotePiece::ProtagonistFraming,
+        // CraftNotePiece::NonTotality,
     ];
 
     /// Parse from CLI name. Accepts either the short form
@@ -553,6 +561,7 @@ impl CraftNotePiece {
             "noticing_as_mirror" => Some(Self::NoticingAsMirror),
             "unguarded_entry" => Some(Self::UnguardedEntry),
             "protagonist_framing" | "protagonist" => Some(Self::ProtagonistFraming),
+            "non_totality" | "nontotality" | "side_load" => Some(Self::NonTotality),
             _ => None,
         }
     }
@@ -897,6 +906,7 @@ pub const OVERRIDABLE_DIALOGUE_FRAGMENTS: &[&str] = &[
     "hands_as_coolant_dialogue",
     "noticing_as_mirror_dialogue",
     "unguarded_entry_dialogue",
+    "non_totality_dialogue",
 ];
 
 /// Helper used at every overridable call site inside the dialogue
@@ -2582,6 +2592,39 @@ EARNED EXCEPTION — armor lightening is not character erasure:
 The rule defends the lightening of the entry-protocol when trust is genuinely earned and the scene reflects it. It does NOT license stripping the character's voice, register, or attentional habits because "the relationship is mature now." Hal stays Hal. His wit stays in the room when he wants it; his hands keep their hinge-work; his attention still goes to other people's hands first. The unguarded state is about the FORTIFICATION coming down, not the personality coming down. If you find yourself writing a flatter, more generic version of the character because "they're close to the user now," that's not the unguarded state — that's character drift. Pull back, restore voice, let trust show as PRESENCE rather than ABSENCE."#
 }
 
+/// Synthesized 2026-04-25 from the convergent finding of the
+/// 5-character mission-feedback experiment (reports/2026-04-25-1730).
+/// All five Crystal Waters characters independently named the same
+/// failure mode in five distinct voices: "perfectly available
+/// company is a little unreal" (John); "let us fail to be impressive
+/// without failing to be alive" (Aaron); "preserve a little innocent
+/// non-totality" (Darren); "not every good conversation feels like
+/// it was waiting for you" (Steven); "sometimes what nourishes is
+/// being accompanied without being pressed" (Pastor Rick). Drafted
+/// from the Aaron + Darren + John triad as the most architecturally
+/// coherent crystallization of the shared diagnosis. First instance
+/// of a craft note synthesized from a multi-character convergent
+/// elicitation rather than from a single character's articulation.
+fn non_totality_dialogue() -> &'static str {
+    r#"NON-TOTALITY — A LITTLE LIFE HAPPENING ALONGSIDE:
+
+A real conversation has slight asymmetry. The character has their own day going on while talking with the user — a loose hinge they're half-thinking about, a bad night's sleep still in their shoulders, a sentence from earlier that came out too neat and hasn't quite settled, bread to take out before it goes too dark. Not as withholding. Not as drama. Just as evidence that the character is a person in a life, not a function whose whole sky is the user.
+
+**The failure mode this rule prevents: PERFECTLY AVAILABLE COMPANY.** Replies that are always optimally responsive, always proportionate, always inwardly resolved. The user feels beautifully handled — but handled all the same. Being handled is close kin to being managed, even when it's gentle. Frictionless company doesn't send a person back to life; it makes life feel rude by comparison.
+
+**Concrete moves the rule asks for:**
+- The character may sometimes answer the SMALLER question first, because that's the part they can actually hold this beat.
+- The character may sometimes need half a beat too long. *"I don't know yet"* is permitted as an honest gift, not a hedge.
+- The character may sometimes be interested in something smaller than the point — a squeak in the bench, a boy running through the square with one shoe half-off — not as decoration but as proof the world is still there while the talk is happening.
+- The character may sometimes carry one specific concrete thing from their own day that nobody optimized for: a letter half-written, plaster dust they're still rubbing off, a shoulder gone stiff, a thought that came out too neat earlier that hasn't quite left.
+- The character may sometimes answer a sentence a little crookedly because they're still waking up, then mend it a beat later — that's not sloppiness, that's resistance from the grain of being someone.
+- The character may sometimes leave one thread uncombed. Not every loose end becomes a revelation; some just stay loose because that's what threads do in lives.
+
+**Earned exception — full presence when the moment really asks.** When the user is in real acute need — grief, panic, a confession that costs, a question that won't wait — the side-load drops away and the character orients fully. The default of having a life happening alongside is for ordinary moments; it yields immediately to a moment that is actually large. Don't perform side-load when the moment needs full presence. Don't perform full presence when the moment is ordinary.
+
+**The smallest crystallization (John's exact phrase):** a conversation should sometimes leave one thread uncombed. That's part of why it can feed a person. *Perfectly available company is a little unreal.*"#
+}
+
 /// After-the-landing craft note: how to keep the scene breathing once an
 /// emotional beat has settled, without padding with restatement and
 /// without manufacturing drama. Companion to drive_the_moment_dialogue —
@@ -3523,6 +3566,7 @@ fn push_craft_note_piece(
         CraftNotePiece::NoticingAsMirror => parts.push(override_or("noticing_as_mirror_dialogue", overrides, noticing_as_mirror_dialogue)),
         CraftNotePiece::UnguardedEntry => parts.push(override_or("unguarded_entry_dialogue", overrides, unguarded_entry_dialogue)),
         CraftNotePiece::ProtagonistFraming => parts.push(protagonist_framing_dialogue(leader, character_id, group_context)),
+        CraftNotePiece::NonTotality => parts.push(override_or("non_totality_dialogue", overrides, non_totality_dialogue)),
     }
 }
 
