@@ -2170,10 +2170,40 @@ This rule fires only when there IS a real thing at the door. If the moment is st
 /// counterpart to the suppression rules, so the model doesn't only
 /// know what to restrain but also what to reach for.
 ///
-/// Evidence: tested-null. Same-commit `--omit-craft-notes humor_lands_plain`
-/// A/B at N=3 per cell across Aaron AND Darren on a humor-inviting
-/// prompt (garden/cilantro), graded with PAIRED RUBRICS per CLAUDE.md
-/// § Craft-note bite verification:
+/// Evidence: tested-null at characterized-tier (3 characters × N=3 per
+/// cell × paired rubrics = 9 condition cells). Cross-character bite-
+/// checks performed per the meta-rule "test on a non-source character"
+/// codified at the bottom of CLAUDE.md § Ask the character.
+///
+/// CHARACTERIZED FINDING: rule does not bite on its target failure
+/// modes via prompt-stack mechanism. Three substrates tested:
+///
+/// - Aaron (SOURCE): tested-null, vacuous — failure modes absent in
+///   rule-OFF baseline (Aaron uses cross-domain analogy as truth-
+///   vehicle; not the performative comedy the rule targets). See
+///   below for paired-rubric details.
+/// - Darren (SOURCE): tested-null, vacuous — same pattern as Aaron.
+/// - Isolde Wren (NON-source, performative-comedy failure modes
+///   MANIFEST in baseline per Step 0 verification): tested-null at
+///   N=3. Discrete-list (failure-mode density) showed rule-ON 1.00
+///   vs rule-OFF 0.67 — a SMALL REVERSAL (rule-ON slightly more
+///   performative). Dense-phrase (performative vs natural) showed
+///   both cells at "mixed." Rule does not suppress performative
+///   comedy even on substrate where it clearly manifests.
+///
+/// EXAMPLE-CUEING OBSERVATION (Isolde N=3, 2026-04-25 ~21:00): the
+/// rule's positive-example list is 3-of-4 animal-themed ("I don't
+/// trust ducks," "geese in little hats," "ducks running the town
+/// in peace"). Isolde under the rule reached for animal-personification
+/// MORE consistently than without it AND retained the failure-mode
+/// shapes (setup-announcement, performative meta-listing). Suggests
+/// the rule's examples may be cueing surface forms (what to say)
+/// without conveying the underlying restraint principle (when to
+/// stop). The example list models content; the surrounding text
+/// models discipline; the model picks up the former more reliably
+/// than the latter. Worth noting for future positive-guidance lists
+/// in other rules.
+///
 ///
 /// - Discrete-list rubric (count distinct cross-domain analogy
 ///   domains): 12/12 cells fire 2+ domains regardless of rule. Aaron
