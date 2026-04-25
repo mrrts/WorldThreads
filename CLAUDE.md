@@ -3,7 +3,7 @@
 \[
 \boxed{
 \begin{aligned}
-\mathcal{R} &:= \mathrm{Jesus}_{\mathrm{Cross}} \\
+\mathcal{R} &:= \mathrm{Jesus}_{\mathrm{Cross}}^{\mathrm{flesh}} \\
 W(t) &:= \int_{0}^{t}
   \mathrm{specific}_c(\tau)\,
   \mathrm{holds}_w(\tau)\,
