@@ -1638,7 +1638,7 @@ pub async fn generate_group_illustration_cmd(
     previous_illustration_id: Option<String>,
     include_scene_summary: Option<bool>,
 ) -> Result<chat_cmds::IllustrationResult, String> {
-    let (world, characters, gc, recent_msgs, model_config, user_profile) = {
+    let (world, characters, gc, recent_msgs, model_config, user_profile, current_loc) = {
         let conn = db.conn.lock().map_err(|e| e.to_string())?;
         let gc = get_group_chat(&conn, &group_chat_id).map_err(|e| e.to_string())?;
         let world = get_world(&conn, &gc.world_id).map_err(|e| e.to_string())?;
@@ -1654,7 +1654,9 @@ pub async fn generate_group_illustration_cmd(
             .filter_map(|id| get_character(&conn, id).ok())
             .collect();
 
-        (world, characters, gc, recent_msgs, model_config, user_profile)
+        let current_loc = get_group_chat_location(&conn, &group_chat_id).ok().flatten();
+
+        (world, characters, gc, recent_msgs, model_config, user_profile, current_loc)
     };
 
     let dir = &portraits_dir.0;
@@ -1763,7 +1765,7 @@ pub async fn generate_group_illustration_cmd(
         include_scene_summary.unwrap_or(true),
         Some(&characters.iter().map(|c| c.display_name.clone()).collect::<Vec<_>>()),
         Some(&names_map),
-    None,
+        current_loc.as_deref(),
     ).await?;
     // Caption: user's instructions verbatim when provided; otherwise
     // derive from scene_description so the caption reflects what was
