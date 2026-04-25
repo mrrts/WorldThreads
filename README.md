@@ -1,6 +1,6 @@
 # WorldThreads
 
-A local-first desktop app for character-driven story-chats with LLMs. Characters that feel real, worlds that hold, scenes that send you back to your day nourished rather than hollowed.
+A local-first desktop app for character-driven story-chats with LLMs. Characters that feel real, worlds that hold, scenes that send you back to your day nourished enough to pick up your cross.
 
 Not a roleplay engine. Not an AI companion. A craft instrument for writing the kind of conversations that are worth having.
 
@@ -18,7 +18,7 @@ It is also not for everyone. It has a worldview. The cosmology block is biblical
 
 ## The mission
 
-> Create a vivid, excellent, surprising in-world experience that uplifts the user and provides engrossing, good, clean fun. Every design decision, prompt tweak, UX choice, and feature bet is measured against that. The craft stack exists to serve that mission — characters that feel real, worlds that hold, scenes that are worth the visit and send the user back to their day nourished rather than hollowed.
+> Create a vivid, excellent, surprising in-world experience that uplifts the user and provides engrossing, good, clean fun. Every design decision, prompt tweak, UX choice, and feature bet is measured against that. The craft stack exists to serve that mission — characters that feel real, worlds that hold, scenes that are worth the visit and send the user back to their day nourished enough to pick up their cross.
 
 That sentence is in `CLAUDE.md`. It governs.
 
