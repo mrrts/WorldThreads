@@ -833,7 +833,7 @@ export function ChatView({ store, onNavigateToCharacter }: Props) {
       </div>
 
       <div className="flex-1 relative overflow-hidden z-10">
-        <LocationOpener key={`opener-${charId ?? "none"}`} location={currentLocation} />
+        <LocationOpener key={`opener-${charId ?? "none"}`} location={currentLocation} loading={store.loadingChat} />
         <ScrollArea ref={scrollRef} className="h-full px-4 py-3">
         <div>
         {store.messages.length === 0 && (

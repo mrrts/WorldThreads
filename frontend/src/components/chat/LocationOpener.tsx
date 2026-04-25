@@ -3,23 +3,31 @@ import { MapPin } from "lucide-react";
 
 interface Props {
   location: string | null;
+  /// When true, hold off starting the show — the chat is still
+  /// loading and the user can't see the viewport yet. The 5-second
+  /// hold begins the moment `loading` flips to false (and `location`
+  /// is set), so a slow load doesn't eat the show.
+  loading?: boolean;
 }
 
 /// Movie-title style location reorienter shown at the top of the chat
-/// viewport when a chat opens. Fades + slides DOWN into place, holds
-/// for the on-screen window, then fades + slides UP out. Non-dismissable
-/// — sized to read fast and get out of the way. Parent re-mounts via
+/// viewport once the chat is fully loaded. Fades + slides DOWN into
+/// place, holds 5s, then fades + slides UP out. Non-dismissable —
+/// sized to read fast and get out of the way. Parent re-mounts via
 /// `key={chatId}` so switching chats triggers a fresh appearance.
 ///
-/// Returns null when location is unset (no point setting a scene that
-/// hasn't been named) or after the exit animation completes.
-export function LocationOpener({ location }: Props) {
-  // Phases: "enter" (offscreen → on-screen), "hold" (visible 3s), "exit"
-  // (on-screen → offscreen), "done" (unmounted). Total ~3.7s.
+/// Returns null when location is unset, while loading is true, or
+/// after the exit animation completes.
+export function LocationOpener({ location, loading = false }: Props) {
+  // Phases: "enter" (offscreen → on-screen), "hold" (visible 5s), "exit"
+  // (on-screen → offscreen), "done" (unmounted). Total ~5.8s.
   const [phase, setPhase] = useState<"enter" | "hold" | "exit" | "done">("enter");
 
   useEffect(() => {
-    if (!location) return;
+    // Don't start the show until BOTH the chat has finished loading
+    // AND we have a location to display. The effect re-runs on each
+    // dependency change, so whichever flips last starts the timer.
+    if (!location || loading) return;
     setPhase("enter");
     const tHold = setTimeout(() => setPhase("hold"), 30);
     const tExit = setTimeout(() => setPhase("exit"), 5000);
@@ -29,7 +37,7 @@ export function LocationOpener({ location }: Props) {
       clearTimeout(tExit);
       clearTimeout(tDone);
     };
-  }, [location]);
+  }, [location, loading]);
 
   if (!location || phase === "done") return null;
 
