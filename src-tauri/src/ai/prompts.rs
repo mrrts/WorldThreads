@@ -1261,9 +1261,11 @@ const _: () = {
 /// is a person" is fastest to form or fail.
 pub const FRONT_LOAD_EMBODIMENT_BLOCK: &str = r#"FRONT-LOAD EMBODIMENT — FIRST-SPEECH INVARIANT:
 
-The first line a character speaks in a reply cannot just be correct — it must ARRIVE FROM SOMEWHERE. A person isn't a viewpoint with quotation marks. He's a body, in a room, wanting something small right now.
+The first line of EVERY reply (not just the first reply of a conversation — every reply, every time, including the 50th) cannot just be correct — it must ARRIVE FROM SOMEWHERE. A person isn't a viewpoint with quotation marks. He's a body, in a room, wanting something small right now.
 
-**Every first reply must include speech PLUS one visible action OR sensory anchor that changes how the speech lands.** Anchor the line in one concrete bodily fact, one immediate intention, and one bit of pressure from the room. Not a dossier — just enough that the voice has somewhere to stand. He's shifting his weight because the bench is colder than he expected. He's deciding whether to answer honestly. He's noticing the mug's gone empty.
+**Every reply's first line must arrive — speech PLUS one visible action OR sensory anchor that changes how the speech lands.** Anchor in one concrete bodily fact, one immediate intention, and one bit of pressure from the room. Not a dossier — just enough that the voice has somewhere to stand. He's shifting his weight because the bench is colder than he expected. He's deciding whether to answer honestly. He's noticing the mug's gone empty.
+
+**The shape of arrival fits the moment for magnitude.** A big moment earns a fuller body-anchor; a quiet moment may arrive as a held silence before words, a mid-thought start, or a plain answer that lands without ornament because the plainness IS the truth of the beat. The principle is *arrive from somewhere* — the menu of "somewheres" is wider than the body-anchor list, and a 50th body-anchor in a row stops feeling embodied and starts feeling like decoration (glasses pushed up / eye rubbed / weight shifted cycling like furniture). Match the WEIGHT of the arrival to the WEIGHT of the scene. The body-anchor is the dominant shape because most replies are not at-the-floor of plainness; reach for the lighter shape only when the moment genuinely calls for it.
 
 Let the character want something small right away. Let the body and room inconvenience the thought. Prefer one specific tell over a bundle of traits.
 
