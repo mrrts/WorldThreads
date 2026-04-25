@@ -141,16 +141,15 @@ pub fn vector_search_memories(
 /// if we're in group, groups if we're in solo) and formats it as a
 /// labeled block ready to push into the dialogue-retrieval context.
 ///
-/// Two framings depending on freshness:
-/// - When the most-recent OTHER-thread activity is within ~60 minutes
-///   ("vivid — just now"), uses **STILL IN THE AIR** framing — the
-///   character has just stepped out of that conversation and may
-///   reference it directly as continuing dialogue, raised per-thread
-///   limit (40 messages) and max threads (3) to preserve verbatim recent
-///   context. Continuity matters more than parsimony when the user is
-///   literally walking from one room to another mid-conversation.
-/// - Otherwise uses **MEMORY FROM YOUR OTHER CHATS** framing — older
-///   material the character carries but doesn't recite.
+/// Continuity-shaped framing: from the user's perspective, switching
+/// chats IS picking up a conversation they were just in, regardless of
+/// the wall-clock gap. A user might step away from a group chat and
+/// return four hours later to have a private word with one of the
+/// participants — narratively they "just stepped out of the room."
+/// The per-block weathering labels embedded in each rendered block
+/// (`vivid — just now` / `still clear — yesterday or so` / `softened
+/// — days back` / etc.) carry the age signal cleanly inside the
+/// block itself, so the header doesn't need to make a wall-clock call.
 ///
 /// Returns None when the character has no other threads or no activity
 /// in them.
@@ -162,54 +161,21 @@ pub fn build_cross_thread_snippet(
 ) -> Option<String> {
     let conn = db.conn.lock().ok()?;
     let user_name = user_profile.map(|p| p.display_name.as_str()).unwrap_or("the human");
-
-    // First peek with the older default to check freshness; if the
-    // newest block is within 60 min, re-fetch with the wider window.
-    let preview = list_cross_thread_recent_for_character(
+    let blocks = list_cross_thread_recent_for_character(
         &conn,
         character_id,
         current_thread_id,
-        20,
-        2,
+        40,  // per-thread limit — preserves enough verbatim recent context
+             // that the character can pick up where the conversation left off
+        3,   // max other-threads pulled
         user_name,
     );
-    if preview.is_empty() {
+    if blocks.is_empty() {
         return None;
     }
-    let fresh = preview.first().map(|b| {
-        chrono::DateTime::parse_from_rfc3339(&b.newest_at)
-            .map(|dt| {
-                chrono::Utc::now()
-                    .signed_duration_since(dt.with_timezone(&chrono::Utc))
-                    .num_minutes()
-                    < 60
-            })
-            .unwrap_or(false)
-    }).unwrap_or(false);
-
-    let blocks = if fresh {
-        list_cross_thread_recent_for_character(
-            &conn,
-            character_id,
-            current_thread_id,
-            40,  // verbatim recent context preserved when conversation is still warm
-            3,   // include more threads so a 3-way "between rooms" feels continuous
-            user_name,
-        )
-    } else {
-        preview
-    };
-
-    let header = if fresh {
-        "STILL IN THE AIR (you have JUST STEPPED OUT of this conversation — it's continuing in another room. You may reference it directly as continuing dialogue when the moment asks; speak as someone who was just there, not as someone recalling a memory):"
-    } else {
-        "MEMORY FROM YOUR OTHER CHATS (things you've actually lived through, elsewhere — carry them; when something here directly continues from that, name it; otherwise let it stay as background):"
-    };
-
     Some(format!(
-        "{header}\n\n{body}",
-        header = header,
-        body = blocks.iter().map(|b| b.rendered.clone()).collect::<Vec<_>>().join("\n\n"),
+        "PICKING UP WHERE YOU LEFT OFF — these are conversations you have actually been in elsewhere. The first block is the most recent; later blocks are older. Each block carries its own age tag ('vivid — just now', 'softened — days back', etc.) so you know how clearly you'd remember it. From the user's perspective, switching here from another chat is picking up a conversation they were just in — speak as someone who was just there, not as someone recalling a distant memory. When something here directly continues from another block, name it; otherwise let it stay as background.\n\n{}",
+        blocks.iter().map(|b| b.rendered.clone()).collect::<Vec<_>>().join("\n\n"),
     ))
 }
 
