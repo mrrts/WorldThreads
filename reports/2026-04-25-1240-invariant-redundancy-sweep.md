@@ -179,7 +179,7 @@ This experiment is the natural N=5 follow-up to **`reports/2026-04-25-1135-truth
 - FrontLoadEmbodiment: tested-vacuous at N=5 (failure mode never manifested in baseline; cannot conclude null).
 - These two together suggest the EMBODIMENT layer of the stack (formula's `^flesh` exponent + FrontLoadEmbodiment + TruthInTheFlesh + character canonical anchors) saturates the embodiment-density rubric on reflective probes, making the per-piece marginal bite of any individual rule undetectable on this kind of probe.
 
-This is the same pattern as the `2026-04-26-0012/0019/0028` user-boundary arc (CLAUDE.md cites): cross-character A/B null, but the formula+invariants were doing the discrimination upstream.
+This is the same pattern as the `2026-04-25-0012/0019/0028` user-boundary arc (CLAUDE.md cites): cross-character A/B null, but the formula+invariants were doing the discrimination upstream.
 
 ## What's open for next time
 

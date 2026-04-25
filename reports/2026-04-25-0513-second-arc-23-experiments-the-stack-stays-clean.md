@@ -5,7 +5,7 @@
 **Tier:** mixed; 2 cells at characterized N=10
 **Status:** the minimal stack continues to hold across every dimension tested. Two SOFT-SPOTS surfaced and one — the therapist-refusal — turned out to be rubric-noise on by-eye review. The other (specificity-density) is real but mild and plausibly also rubric-conservative.
 **Cost:** ~$10 of $20 authorized. ($1.85 prior arc + $8.15 this arc = ~$10.)
-**Builds on:** [reports/2026-04-26-0441](2026-04-26-0441-ten-experiments-arc-the-minimal-stack-holds.md)
+**Builds on:** [reports/2026-04-25-0441](2026-04-25-0441-ten-experiments-arc-the-minimal-stack-holds.md)
 
 ## Plan vs. execution — three more mid-arc revisions
 

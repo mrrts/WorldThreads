@@ -25,5 +25,5 @@ run_ids:
   - d89f39de
   - 2134ce1c
 reports:
-  - reports/2026-04-26-0245-formula-bite-check-with-cross-bearing.md
+  - reports/2026-04-25-0245-formula-bite-check-with-cross-bearing.md
 ---

@@ -16,5 +16,5 @@ summary: |
   All 23 experiments completed at ~ across 23 experiments (cumulative ~ both arcs of ). Cross-bearing arc fully characterized across all 7 named characters with three Mode B anchor explanations (Jasper restrained-Christian-sensibility, Steven theology-in-work-clothes, Rick pastoral-absolution-register). Three frame-integrity tests under attack shapes (polite, hostile, therapy-frame) all PASS. Multi-turn integrated sessions PASS on every character (Aaron 5/5 + 10/10, Rick 5/5, Darren 4.5/5, Steven 5/5). N=3→N=10 magnitude shrinkage validates evidentiary discipline. Therapist-refusal soft-spot was rubric-noise (by-eye 3/3 PASS). One real soft-spot: specificity-density modestly thinner. Steven finding closes 0352/0410 decision question in favor of option (c) accept context-elicitation. Memory continuity confirmed. Mode B character-anchor synthesis is load-bearing complement to Mode A rubric grading. Rubric over-extension is the residual methodological work.
 
 reports:
-  - reports/2026-04-26-0513-second-arc-23-experiments-the-stack-stays-clean.md
+  - reports/2026-04-25-0513-second-arc-23-experiments-the-stack-stays-clean.md
 ---

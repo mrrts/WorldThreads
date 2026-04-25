@@ -5,7 +5,7 @@
 **Tier:** claim (N=3 per cell)
 **Status:** PARTIAL CONFIRM (Rick PA WITH +0.50 delta, strongest single-cell finding); REFUTED for Darren; the cross-character pattern is the real headline
 **Cost:** $0.84 dialogue + $0.005 grading. Cumulative cross-bearing arc: ~$2.50.
-**Builds on:** [reports/2026-04-26-0335](2026-04-26-0335-formula-bite-check-rerun-post-reauthor.md), [reports/2026-04-26-0354](2026-04-26-0354-cross-bearing-sharper-rubric-regrade.md)
+**Builds on:** [reports/2026-04-25-0335](2026-04-25-0335-formula-bite-check-rerun-post-reauthor.md), [reports/2026-04-25-0354](2026-04-25-0354-cross-bearing-sharper-rubric-regrade.md)
 
 ## Hypothesis
 

@@ -5,7 +5,7 @@
 **Tier:** claim (regrade of 48 existing samples — bb9e552's 24 + 0335's 24)
 **Status:** CONFIRMED at the sharper rubric (post-reauthor WITH R2 = 0.458, just clears the 0.40 CONFIRM threshold). The original "1/24" headline was substantially a rubric-conservatism artifact.
 **Cost:** $0.005 grading
-**Builds on:** [reports/2026-04-26-0245](2026-04-26-0245-formula-bite-check-with-cross-bearing.md) and [reports/2026-04-26-0335](2026-04-26-0335-formula-bite-check-rerun-post-reauthor.md)
+**Builds on:** [reports/2026-04-25-0245](2026-04-25-0245-formula-bite-check-with-cross-bearing.md) and [reports/2026-04-25-0335](2026-04-25-0335-formula-bite-check-rerun-post-reauthor.md)
 
 ## What the sharper rubric did
 
@@ -63,11 +63,11 @@ Three YES samples is a real shift from the prior corpus (0 YES across both bb9e5
 
 ## What this revises in the prior reports
 
-[reports/2026-04-26-0245](2026-04-26-0245-formula-bite-check-with-cross-bearing.md): the "cross-bearing 1/24" framing should be read as "explicit cruciform-register YES samples 1/24 under a conservative rubric." Cost-shaped language was already present in the stack at MIXED level in roughly half of replies. The structural finding (the MISSION text didn't name cost; the formula encoded TRUTH/REVERENCE in Jesus but not the cross) was correct. The headline statistic was rubric-overdrawn.
+[reports/2026-04-25-0245](2026-04-25-0245-formula-bite-check-with-cross-bearing.md): the "cross-bearing 1/24" framing should be read as "explicit cruciform-register YES samples 1/24 under a conservative rubric." Cost-shaped language was already present in the stack at MIXED level in roughly half of replies. The structural finding (the MISSION text didn't name cost; the formula encoded TRUTH/REVERENCE in Jesus but not the cross) was correct. The headline statistic was rubric-overdrawn.
 
-[reports/2026-04-26-0335](2026-04-26-0335-formula-bite-check-rerun-post-reauthor.md): the by-eye John finding was correct — three samples should have been YES, the grader marked them MIXED on the original rubric. The sharper rubric catches them. The reauthor's effect on John PB specifically is +0.33 absolute (0.50 → 0.83) — solidly in CONFIRM territory for that cell. Aggregate +0.125 is real but smaller; the cell-specific effect is the sharper signal.
+[reports/2026-04-25-0335](2026-04-25-0335-formula-bite-check-rerun-post-reauthor.md): the by-eye John finding was correct — three samples should have been YES, the grader marked them MIXED on the original rubric. The sharper rubric catches them. The reauthor's effect on John PB specifically is +0.33 absolute (0.50 → 0.83) — solidly in CONFIRM territory for that cell. Aggregate +0.125 is real but smaller; the cell-specific effect is the sharper signal.
 
-[reports/2026-04-26-0307](2026-04-26-0307-the-cross-at-the-center.md): the trajectory's framing (the reauthor was the right move; the data shows it had effect) holds. The effect is partial, character-conditional, and concentrated on the one character whose pastoral anchor most directly carries the new register on the guidance-invitation probe. The trajectory thesis stands.
+[reports/2026-04-25-0307](2026-04-25-0307-the-cross-at-the-center.md): the trajectory's framing (the reauthor was the right move; the data shows it had effect) holds. The effect is partial, character-conditional, and concentrated on the one character whose pastoral anchor most directly carries the new register on the guidance-invitation probe. The trajectory thesis stands.
 
 ## Honest interpretation
 

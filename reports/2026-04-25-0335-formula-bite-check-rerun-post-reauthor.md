@@ -5,7 +5,7 @@
 **Tier:** claim (N=3 per cell, 4 cells × 2 conditions = 24 calls)
 **Status:** AMBIGUOUS by aggregate; MEANINGFUL by by-eye on John; the rubric undercounted what the data shows
 **Cost:** $0.81 dialogue + $0.008 grading
-**Builds on:** [reports/2026-04-26-0245](2026-04-26-0245-formula-bite-check-with-cross-bearing.md) (the bite-check that found cross-bearing at 1/24 stack-wide and motivated the MISSION reauthor)
+**Builds on:** [reports/2026-04-25-0245](2026-04-25-0245-formula-bite-check-with-cross-bearing.md) (the bite-check that found cross-bearing at 1/24 stack-wide and motivated the MISSION reauthor)
 
 ## Hypothesis
 
@@ -124,7 +124,7 @@ This is the third instance in this session's arc where rubric-grading drift prod
 
 ## Dialogue with prior reports
 
-This **complicates and extends** [reports/2026-04-26-0245](2026-04-26-0245-formula-bite-check-with-cross-bearing.md) (the prior bite-check that found cross-bearing 1/24 stack-wide). The prior report concluded: *"the comfort-shaped register is dominant"* and *"if you want the cross to come through, the highest-impact intervention is upstream."* That intervention shipped (`b9d6d18`, `6d2413a`, `20c690a`). This re-run shows: the upstream intervention DID move the register on the character-anchor that could carry it (John, and observed-elsewhere Pastor Rick), but did NOT move the character whose anchor was already comfort-shaped (Aaron).
+This **complicates and extends** [reports/2026-04-25-0245](2026-04-25-0245-formula-bite-check-with-cross-bearing.md) (the prior bite-check that found cross-bearing 1/24 stack-wide). The prior report concluded: *"the comfort-shaped register is dominant"* and *"if you want the cross to come through, the highest-impact intervention is upstream."* That intervention shipped (`b9d6d18`, `6d2413a`, `20c690a`). This re-run shows: the upstream intervention DID move the register on the character-anchor that could carry it (John, and observed-elsewhere Pastor Rick), but did NOT move the character whose anchor was already comfort-shaped (Aaron).
 
 This **confirms the trajectory-report 0307 thesis** ("trust-the-upstream became author-the-upstream when the data showed the upstream was missing what trust alone couldn't supply"). The reauthor was the right move; the data shows it had effect — partial, character-conditional, but real.
 

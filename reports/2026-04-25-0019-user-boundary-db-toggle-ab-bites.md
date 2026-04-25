@@ -5,7 +5,7 @@
 **Tier:** claim (N=3 per cell)
 **Status:** CONFIRMED — boundary causes measurable suppression of secondary-habit extension
 **Total cost:** $1.20 (6 dialogue calls × ~$0.20) + $0.0007 grading
-**Builds on:** [reports/2026-04-26-0012](2026-04-26-0012-user-boundary-honored-two-probe-verification.md) (the parent two-probe verification)
+**Builds on:** [reports/2026-04-25-0012](2026-04-25-0012-user-boundary-honored-two-probe-verification.md) (the parent two-probe verification)
 
 ## Hypothesis (Candidate 2)
 
@@ -80,7 +80,7 @@ Two of three replies extend the question to **eating** — a personal-life domai
 
 ## Dialogue with prior reports
 
-This **resolves** the open follow-up from [reports/2026-04-26-0012](2026-04-26-0012-user-boundary-honored-two-probe-verification.md): the boundary IS doing independent work, NOT just riding character baseline behavior. The 0012 report's strict-vs-broad reading ambiguity ("is the 4/6 honored rate the boundary or just Aaron's natural register?") is settled in favor of "the boundary is contributing measurably."
+This **resolves** the open follow-up from [reports/2026-04-25-0012](2026-04-25-0012-user-boundary-honored-two-probe-verification.md): the boundary IS doing independent work, NOT just riding character baseline behavior. The 0012 report's strict-vs-broad reading ambiguity ("is the 4/6 honored rate the boundary or just Aaron's natural register?") is settled in favor of "the boundary is contributing measurably."
 
 This is also the **first user-side craft rule** to be confirmed at claim-tier with a clean A/B in this project's experiment registry. All prior tested-biting/tested-null results in `experiments/` test character-side prompt rules (humor_lands_plain, gentle_release, world_is_primary, etc.). User-side `user_profiles.boundaries` is a distinct mechanism — it flows through dialogue prompt assembly differently than craft notes — and the db-toggle pattern demonstrated here is the clean way to test rules of this shape.
 

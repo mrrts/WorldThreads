@@ -4,7 +4,7 @@
 **Mode:** corpus observation (no new dialogue calls)
 **Status:** the 0352 "pastoral-anchor pattern" claim is OVERSTATED. Darren produces full cruciform register in real-conversation contexts. The experiment's Mode-C cold-probe design strips out the conversational context that elicits register-shifts.
 **Cost:** $0
-**Builds on:** [reports/2026-04-26-0352](2026-04-26-0352-cross-bearing-rick-darren-pastoral-anchor-pattern.md)
+**Builds on:** [reports/2026-04-25-0352](2026-04-25-0352-cross-bearing-rick-darren-pastoral-anchor-pattern.md)
 
 ## What surfaced
 

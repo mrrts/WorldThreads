@@ -263,7 +263,7 @@ Claude Code MUST periodically propose tool/internals improvements. Every experim
 
 ## Cold probes measure cold baselines, not capacity
 
-Mode-C single-prompt strips the conversational context that elicits character register-shifts. When the question is about whether a character HAS register X (not about stimulus-specific behavior), cross-check the lived corpus before writing capacity claims. Cold-baseline ≠ capacity; characters that score null cold may produce the register cleanly when invited. Worked example: `reports/2026-04-26-0410` (cross-bearing arc — Darren scored 0.083 cold, full cruciform register in real group chat 08:24-08:31).
+Mode-C single-prompt strips the conversational context that elicits character register-shifts. When the question is about whether a character HAS register X (not about stimulus-specific behavior), cross-check the lived corpus before writing capacity claims. Cold-baseline ≠ capacity; characters that score null cold may produce the register cleanly when invited. Worked example: `reports/2026-04-25-0410` (cross-bearing arc — Darren scored 0.083 cold, full cruciform register in real group chat 08:24-08:31).
 
 ## Craft-note bite verification — new rules earn their place
 

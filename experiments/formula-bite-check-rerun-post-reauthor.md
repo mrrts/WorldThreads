@@ -25,6 +25,6 @@ run_ids:
   - 86eeef84
   - e3fec760
 reports:
-  - reports/2026-04-26-0335-formula-bite-check-rerun-post-reauthor.md
-  - reports/2026-04-26-0354-cross-bearing-sharper-rubric-regrade.md
+  - reports/2026-04-25-0335-formula-bite-check-rerun-post-reauthor.md
+  - reports/2026-04-25-0354-cross-bearing-sharper-rubric-regrade.md
 ---

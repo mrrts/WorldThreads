@@ -5,7 +5,7 @@
 **Tier:** claim (N=3 per cell × 2 chars × 2 conditions = 12 calls)
 **Status:** REFUTED — boundary's measurable bite on Aaron does NOT generalize to Darren or John at N=3
 **Cost:** $0.76 dialogue + $0.0015 grading. Cumulative arc: ~$2.76 of $20 authorized.
-**Builds on:** [reports/2026-04-26-0019](2026-04-26-0019-user-boundary-db-toggle-ab-bites.md) (Aaron-only A/B that confirmed the bite at strong threshold)
+**Builds on:** [reports/2026-04-25-0019](2026-04-25-0019-user-boundary-db-toggle-ab-bites.md) (Aaron-only A/B that confirmed the bite at strong threshold)
 
 ## Hypothesis (Claude-picked, no chooser per Ryan's directive)
 
@@ -95,9 +95,9 @@ Read C is the most interesting if true, but the data is too thin to confirm. Rea
 
 ## Dialogue with prior reports
 
-This **complicates** [0019](2026-04-26-0019-user-boundary-db-toggle-ab-bites.md). The Aaron-only result remains valid as Aaron-specific evidence, but its contribution to a project-wide generality claim is now weakened. The 0019 report's CONFIRMED status is correct AS A CLAIM ABOUT AARON ONLY.
+This **complicates** [0019](2026-04-25-0019-user-boundary-db-toggle-ab-bites.md). The Aaron-only result remains valid as Aaron-specific evidence, but its contribution to a project-wide generality claim is now weakened. The 0019 report's CONFIRMED status is correct AS A CLAIM ABOUT AARON ONLY.
 
-This **resolves** the [0019](2026-04-26-0019-user-boundary-db-toggle-ab-bites.md) follow-up #2 (cross-character A/B) — answered REFUTED for Darren and John at N=3.
+This **resolves** the [0019](2026-04-25-0019-user-boundary-db-toggle-ab-bites.md) follow-up #2 (cross-character A/B) — answered REFUTED for Darren and John at N=3.
 
 This is the **second** worked example today of the CLAUDE.md doctrine *"directional claims from sketch-tier or single-character claim-tier experiments are unreliable by default."* The first was the morning's invariants-first / load-test-anchor / compound-intervention sketches that reversed at claim-tier per CLAUDE.md's "Three worked examples" subsection. This is the same shape one tier up: a clean claim-tier finding on ONE character did not generalize to others at the same tier.
 

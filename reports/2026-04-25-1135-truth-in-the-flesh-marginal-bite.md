@@ -87,7 +87,7 @@ The position move (first → last, commit `5936024`) stays. Last-position is a m
 
 ## Dialogue with prior reports
 
-This is the third worked example of the "Formula + invariants often do the carve-out work already" pattern (reports `2026-04-26-0012/0019/0028` were the user-boundary arc; this is the doctrinal-anchor-on-top-of-operational-rule case). Together they form a class: when the project ships a new rule whose intent is already covered by an upstream layer, the marginal-bite test should be the first move, and the prior should be null. The doctrinal commitment can still be worth keeping (as here) for legibility, theological coherence, or downstream extensibility — but the behavioral claim should be tested-null until a specific bite-condition is found.
+This is the third worked example of the "Formula + invariants often do the carve-out work already" pattern (reports `2026-04-25-0012/0019/0028` were the user-boundary arc; this is the doctrinal-anchor-on-top-of-operational-rule case). Together they form a class: when the project ships a new rule whose intent is already covered by an upstream layer, the marginal-bite test should be the first move, and the prior should be null. The doctrinal commitment can still be worth keeping (as here) for legibility, theological coherence, or downstream extensibility — but the behavioral claim should be tested-null until a specific bite-condition is found.
 
 ## What's open for next time
 
