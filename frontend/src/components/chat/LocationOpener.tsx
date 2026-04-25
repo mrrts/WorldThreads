@@ -61,7 +61,10 @@ export function LocationOpener({ location, loading = false }: Props) {
     }
     console.log(`${tag} STARTING SHOW`);
     startedRef.current = true;
-    const LEAD_IN = 350;
+    // Lead-in delay so the opener doesn't appear simultaneously with
+    // messages/illustrations rendering — the user sees content land
+    // first, settles their eyes, THEN the opener slides in.
+    const LEAD_IN = 1200;
     const HOLD = 5000;
     const EXIT = 800;
     setTimeout(() => { console.log(`${tag} -> hold`); setPhase("hold"); }, LEAD_IN);
@@ -71,16 +74,30 @@ export function LocationOpener({ location, loading = false }: Props) {
 
   const innerRef = useRef<HTMLDivElement | null>(null);
 
-  // Imperatively write the inline styles via useLayoutEffect every render
-  // — bypasses React style reconciliation entirely. setProperty with
-  // 'important' flag ensures nothing in the cascade can override.
+  // First useLayoutEffect: set up the transition + initial enter-state
+  // exactly once on mount. The transition property must be on the
+  // element BEFORE any value change to trigger an animation.
+  useLayoutEffect(() => {
+    const el = innerRef.current;
+    if (!el) return;
+    el.style.setProperty("transition", "transform 700ms ease-out, opacity 700ms ease-out", "important");
+    el.style.setProperty("transform", "translateY(-2rem)", "important");
+    el.style.setProperty("opacity", "0", "important");
+    // Force a layout flush so the initial state actually paints before
+    // the next style update (otherwise the browser can batch initial
+    // state with the next change and skip the animation).
+    void el.offsetHeight;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Subsequent useLayoutEffect: respond to phase changes by updating
+  // only the value properties (transition is already established).
   useLayoutEffect(() => {
     const el = innerRef.current;
     if (!el) return;
     const isVisible = phase === "hold";
     el.style.setProperty("transform", isVisible ? "translateY(0)" : "translateY(-2rem)", "important");
     el.style.setProperty("opacity", isVisible ? "1" : "0", "important");
-    el.style.setProperty("transition", "transform 700ms ease-out, opacity 700ms ease-out", "important");
     const t = Math.round(performance.now() - mountedAtRef.current);
     console.log(`${tag} STYLE-WROTE t=${t}ms phase=${phase} cs.opacity=${window.getComputedStyle(el).opacity} cs.transform=${window.getComputedStyle(el).transform}`);
   }, [phase]);
