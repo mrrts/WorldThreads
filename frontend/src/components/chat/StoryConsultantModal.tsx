@@ -743,7 +743,7 @@ export function StoryConsultantModal({ open, onClose, apiKey, characterId, group
                     ) : (
                       <>
                         <Sparkles size={36} className="mx-auto text-indigo-300/80 mb-4 drop-shadow-[0_0_8px_rgba(165,180,252,0.5)]" />
-                        <p className="text-lg text-white">Ask me anything about your story.</p>
+                        <p className="text-lg text-white">Ask me anything about your chats.</p>
                         <p className="text-base text-white mt-2">I'm inside the story with you, speaking from within the world.</p>
                       </>
                     )}
