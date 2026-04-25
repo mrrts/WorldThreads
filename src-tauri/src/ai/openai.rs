@@ -47,6 +47,14 @@ const MISSION_FORMULA_SENTINEL: &str = r"\mathrm{polish}(t)";
 /// without requiring each caller to opt in. Idempotent so the existing
 /// dialogue/consultant top-position push is preserved unchanged.
 pub fn inject_mission_formula(messages: &mut Vec<ChatMessage>) {
+    // Test hook — env var disables injection at the API layer for
+    // Mode-C cross-condition tests of "is the formula doing work?"
+    // (paired with the same env-var hook at the prompts.rs top-position
+    // push sites; both must skip for a clean WITHOUT cell). See
+    // reports/2026-04-26-formula-bite-check.
+    if std::env::var("WORLDTHREADS_NO_FORMULA").map(|v| v == "1").unwrap_or(false) {
+        return;
+    }
     let formula = crate::ai::prompts::MISSION_FORMULA_BLOCK;
     if let Some(first_system) = messages.iter_mut().find(|m| m.role == "system") {
         if !first_system.content.contains(MISSION_FORMULA_SENTINEL) {

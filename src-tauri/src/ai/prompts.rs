@@ -1045,6 +1045,19 @@ W(t) \;&=\; \int_{0}^{t} \mathrm{specific}_c \;\cdot\; \mathrm{holds}_w \; d\mu_
 
 fn mission_formula_block() -> &'static str { MISSION_FORMULA_BLOCK }
 
+/// Test hook — when the env var WORLDTHREADS_NO_FORMULA=1 is set,
+/// `mission_formula_block_or_empty()` returns "" instead of the formula.
+/// Used by Mode-C cross-condition tests of "is the formula doing work?"
+/// (worked example: reports/2026-04-26-formula-bite-check). Production
+/// callers use this getter; the constant is preserved unchanged.
+fn mission_formula_block_or_empty() -> &'static str {
+    if std::env::var("WORLDTHREADS_NO_FORMULA").map(|v| v == "1").unwrap_or(false) {
+        ""
+    } else {
+        mission_formula_block()
+    }
+}
+
 // APP INVARIANT — compile-time enforcement of the mission-formula
 // clause. This block is the TOP INVARIANT. Its Christ-named phrases
 // and the polish-bounded-by-weight inequality must not be softened.
@@ -3298,7 +3311,7 @@ fn build_solo_dialogue_system_prompt(
                 // so every subsequent block is read through its frame. Not
                 // overridable, not reorderable; it is the shape of what the
                 // rest of the stack serves. See MISSION_FORMULA_BLOCK.
-                parts.push(mission_formula_block().to_string());
+                parts.push(mission_formula_block_or_empty().to_string());
                 let inv_order = overrides
                     .map(|o| o.effective_invariants_order())
                     .unwrap_or_else(|| InvariantPiece::DEFAULT_ORDER.to_vec());
@@ -3734,7 +3747,7 @@ fn build_group_dialogue_system_prompt(
                 // so every subsequent block is read through its frame. Not
                 // overridable, not reorderable; it is the shape of what the
                 // rest of the stack serves. See MISSION_FORMULA_BLOCK.
-                parts.push(mission_formula_block().to_string());
+                parts.push(mission_formula_block_or_empty().to_string());
                 let inv_order = overrides
                     .map(|o| o.effective_invariants_order())
                     .unwrap_or_else(|| InvariantPiece::DEFAULT_ORDER.to_vec());
@@ -4573,7 +4586,7 @@ pub fn build_dream_system_prompt(
     }
 
     parts.push(dream_craft_block().to_string());
-    parts.push(mission_formula_block().to_string());
+    parts.push(mission_formula_block_or_empty().to_string());
     parts.push(reverence_block().to_string());
     parts.push(daylight_block().to_string());
     parts.push(agape_block().to_string());
@@ -4966,7 +4979,7 @@ Your aim is to surprise the reader in some deep way — with a detail they didn'
 
     parts.push(hidden_commonality_narrative().to_string());
     parts.push(protagonist_framing_narrative().to_string());
-    parts.push(mission_formula_block().to_string());
+    parts.push(mission_formula_block_or_empty().to_string());
     parts.push(reverence_block().to_string());
     parts.push(daylight_block().to_string());
     parts.push(agape_block().to_string());
