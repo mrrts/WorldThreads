@@ -3174,8 +3174,7 @@ pub async fn generate_illustration_with_base(
         descriptions.push("ALL characters MUST appear in the illustration, recognizable from their reference images.".to_string());
         if has_previous_scene {
             descriptions.push(format!(
-                "Reference image {} is the PREVIOUS scene. Use it for visual continuity of setting, \
-                 character positions, and atmosphere, but advance the scene to match the new description.", idx
+                "Reference image {} is the PREVIOUS scene. Use it for ATMOSPHERIC continuity (palette, light quality, painterly style) and character positioning ideas ONLY. Do NOT carry over the previous SETTING / location / background — the current scene may be in a different place.", idx
             ));
         }
         prompt_parts.push(descriptions.join(" "));
@@ -3197,10 +3196,20 @@ pub async fn generate_illustration_with_base(
 
         if has_previous_scene && reference_images.len() >= 3 {
             prompt_parts.push(
-                "The third reference image is the PREVIOUS scene. Use it for visual continuity of setting, \
-                 character positions, and atmosphere, but advance the scene to match the new description.".to_string()
+                "The third reference image is the PREVIOUS scene. Use it for ATMOSPHERIC continuity (palette, light quality, painterly style) and character positioning ideas ONLY. Do NOT carry over the previous SETTING / location / background — the current scene may be in a different place.".to_string()
             );
         }
+    }
+
+    // Per-chat current location — hard directive at the image-prompt
+    // layer so the image model places the cast at the active scene
+    // regardless of what the scene-description text or the previous-
+    // scene reference image might suggest. Sits BEFORE the scene
+    // description so it frames how the description is read.
+    if let Some(loc) = prompts::derive_current_location(recent_messages) {
+        prompt_parts.push(format!(
+            "SETTING (AUTHORITATIVE): {loc}. The illustration MUST depict this setting. Do NOT depict any previously-mentioned location. If the SCENE text below describes elements that don't fit {loc}, override them with details appropriate to {loc}."
+        ));
     }
 
     if !scene_description.is_empty() {
