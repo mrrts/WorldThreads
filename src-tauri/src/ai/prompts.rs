@@ -1913,6 +1913,22 @@ What earned close looks like:
 ///   override). Substantial bite delta -0.67 on the previously-
 ///   surviving failure mode.
 ///
+/// - SECOND ADJUSTMENT (2026-04-25 20:00): Positive-guidance list
+///   extended with two empirically-working patterns from today's
+///   corpus: time-marker/life-outside gestures ("Night's waiting for
+///   both of us," "It's getting on") and open-availability ("I'll be
+///   around"). Plus a body sentence naming the underlying move:
+///   strongest releases gesture to life OUTSIDE the conversation, not
+///   to the conversation continuing.
+///
+/// - CROSS-CHARACTER QUICK-CHECK (Darren, N=3, augmented rule, sketch-
+///   tier): 3/3 clean releases on signoff. Sample 3 produced "We'll
+///   leave the ducks to run the town in peace" — the model invented a
+///   Darren-voice variant of the life-outside gesture pattern, NOT
+///   copying the example phrases verbatim. Validates that the
+///   addition calibrates toward the MOVE rather than forcing
+///   stereotyped phrasings. Rule generalizes to Darren cleanly.
+///
 /// Rule does NOT over-fire on non-signoff prompts (verified 1711 +
 /// 1759). First craft note bite-checked with same-commit `--omit`
 /// isolation; the 1711 run also surfaced that refs-based replay
@@ -1930,6 +1946,10 @@ What gentle release sounds like (in the character's own register):
 - "Come back if you want to — not because you owe anything."
 - "That was a good one. Go."
 - "Rest. This will keep."
+- "Night's waiting for both of us." / "It's getting on, anyway." (time-marker pointing to life continuing for both — gestures release without referencing the conversation; observed working in Jasper's natural close-register).
+- "I'll be around." (open availability without scheduling — observed working in Aaron's close-register; doesn't say "we'll talk again" or "come back," just names the character's continuing existence).
+
+The strongest releases gesture to LIFE OUTSIDE the conversation rather than to the conversation continuing. *"Night's waiting"* releases more cleanly than *"come back tomorrow"* because it doesn't position the user as someone who owes a return — it just acknowledges that the world goes on. Both can be in-character; the life-outside form leaves the user freer.
 
 What gentle release is NOT:
 - "One more thought before you go..." — extending a conversation the user is closing.
