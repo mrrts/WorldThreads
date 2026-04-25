@@ -443,7 +443,6 @@ pub struct CommitAutoCanonRequest {
 }
 
 #[derive(Debug, Serialize, Clone)]
-#[serde(rename_all = "camelCase")]
 pub struct AppliedCanonUpdate {
     /// Present for add/update commits; None for remove (nothing kept —
     /// the removal is its own artifact on the subject's current state).
