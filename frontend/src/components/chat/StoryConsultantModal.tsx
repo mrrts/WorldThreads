@@ -487,7 +487,9 @@ export function StoryConsultantModal({ open, onClose, apiKey, characterId, group
 
   return (<>
     <Dialog open={open} onClose={onClose} className="max-w-[90vw]">
-      <div className="flex h-[96vh] bg-card border border-border rounded-xl shadow-2xl shadow-black/40 overflow-hidden relative">
+      <div className={`flex h-[96vh] border rounded-xl shadow-2xl shadow-black/40 overflow-hidden relative transition-colors duration-[350ms] ease-in-out ${
+        isBackstageDisplayed ? "bg-slate-950/90 border-amber-600/50" : "bg-card border-border"
+      }`}>
         {/* World-image bg only renders in IMMERSIVE mode (background of the
             whole modal including sidebar). In backstage mode the world
             image is suppressed and the viewport itself carries the
@@ -689,7 +691,7 @@ export function StoryConsultantModal({ open, onClose, apiKey, characterId, group
             >
               {isBackstageDisplayed ? (
                 <>
-                  <div className="w-full h-full bg-gradient-to-br from-amber-900/60 via-amber-950/80 to-amber-900/60" />
+                  <div className="w-full h-full bg-gradient-to-br from-slate-900/75 via-blue-950/90 to-slate-900/75" />
                   <div className="absolute inset-0 [box-shadow:inset_0_0_120px_rgba(252,211,77,0.25),inset_0_0_60px_rgba(252,211,77,0.35)] pointer-events-none" />
                 </>
               ) : (
