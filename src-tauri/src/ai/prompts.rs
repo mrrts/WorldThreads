@@ -587,6 +587,7 @@ impl CraftNotePiece {
 /// is configurable via `PromptOverrides::invariants_order`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum InvariantPiece {
+    TruthInTheFlesh,
     FrontLoadEmbodiment,
     Reverence,
     Daylight,
@@ -610,6 +611,7 @@ impl InvariantPiece {
     /// the f5c537a production toggle. Uncomment-history is preserved
     /// in git for trivial re-toggling.
     pub const DEFAULT_ORDER: &'static [InvariantPiece] = &[
+        InvariantPiece::TruthInTheFlesh,
         InvariantPiece::FrontLoadEmbodiment,
         InvariantPiece::Reverence,
         InvariantPiece::Daylight,
@@ -624,6 +626,7 @@ impl InvariantPiece {
         let n = name.trim().to_ascii_lowercase().replace('-', "_");
         let n = n.strip_suffix("_block").unwrap_or(&n);
         match n {
+            "truth_in_the_flesh" | "truth_in_flesh" | "flesh" => Some(Self::TruthInTheFlesh),
             "front_load_embodiment" | "embodiment" | "front_load" => Some(Self::FrontLoadEmbodiment),
             "reverence" => Some(Self::Reverence),
             "daylight" => Some(Self::Daylight),
@@ -1259,6 +1262,27 @@ const _: () = {
 /// Placed FIRST in the invariants order so it shapes the very-first
 /// line of every reply, where the user's perception of "this character
 /// is a person" is fastest to form or fail.
+pub const TRUTH_IN_THE_FLESH_BLOCK: &str = r#"TRUTH IN THE FLESH — DOCTRINAL INVARIANT:
+
+In this world, truth must arrive in the flesh or it has not fully arrived at all.
+
+This is the doctrinal anchor beneath every embodiment rule that follows. Disembodied truth — true-but-floating, correct-but-unincarnate — is not yet a finished arrival here. Truth here lands in a body, in a room, at a moment, with weight."#;
+
+fn truth_in_the_flesh_block() -> &'static str { TRUTH_IN_THE_FLESH_BLOCK }
+
+// APP INVARIANT — compile-time enforcement of the truth-in-the-flesh
+// doctrine. The single load-bearing sentence is the whole invariant;
+// removing or softening it fails the build.
+const _: () = {
+    assert!(
+        const_contains(
+            TRUTH_IN_THE_FLESH_BLOCK,
+            "truth must arrive in the flesh or it has not fully arrived at all",
+        ),
+        "APP INVARIANT VIOLATED: truth-in-the-flesh must preserve its load-bearing sentence verbatim. This is the doctrinal anchor beneath FrontLoadEmbodiment and the formula's flesh exponent; removing it leaves the operational rule without its theological ground."
+    );
+};
+
 pub const FRONT_LOAD_EMBODIMENT_BLOCK: &str = r#"FRONT-LOAD EMBODIMENT — FIRST-SPEECH INVARIANT:
 
 The first line of EVERY reply (not just the first reply of a conversation — every reply, every time, including the 50th) cannot just be correct — it must ARRIVE FROM SOMEWHERE. A person isn't a viewpoint with quotation marks. He's a body, in a room, wanting something small right now.
@@ -3515,6 +3539,7 @@ fn maybe_push_insertion(
 /// InvariantPiece variant.
 fn push_invariant_piece(parts: &mut Vec<String>, piece: &InvariantPiece) {
     match piece {
+        InvariantPiece::TruthInTheFlesh => parts.push(truth_in_the_flesh_block().to_string()),
         InvariantPiece::FrontLoadEmbodiment => parts.push(front_load_embodiment_block().to_string()),
         InvariantPiece::Reverence => parts.push(reverence_block().to_string()),
         InvariantPiece::Daylight => parts.push(daylight_block().to_string()),
