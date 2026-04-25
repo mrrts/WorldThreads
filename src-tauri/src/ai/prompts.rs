@@ -1881,20 +1881,43 @@ What earned close looks like:
 /// the scene hasn't closed"; gentle-release says "release cleanly when
 /// the user HAS closed it."
 ///
-/// Evidence: tested-biting:claim (see reports/2026-04-25-1711-gentle-
-/// release-bite-check-confirmed.md). Same-commit `--omit-craft-notes`
-/// A/B at N=3 per cell on Jasper. Signoff prompt + rule ON: 0/3
-/// failure modes. Signoff prompt + rule OFF: 3/3 replies contained
-/// explicit return-prescription ("We'll pick it up another time" /
-/// "Come by again when you like"), 2/3 also contained performed
-/// warmth ("I'm glad you came by") + second-thought extensions
-/// ("And Ryan—"). Delta 1.00 → 0.00 on the target failure modes.
-/// Rule does NOT over-fire on non-signoff prompts (0/3 = 0/3 across
-/// rule-on/rule-off on the neutral prompt). First craft note this
-/// project has bite-checked with a correct single-rule-isolation
-/// design; the bite-check also surfaced that refs-based replay does
-/// not isolate rules added after the pre-commit ref (see same report
-/// § Methodological discovery).
+/// Evidence: tested-biting:claim. Two bite-check arcs:
+///
+/// - INITIAL (1711, Jasper): Same-commit `--omit-craft-notes` A/B at
+///   N=3 per cell. Signoff prompt + rule ON: 0/3 failure modes;
+///   signoff + rule OFF: 3/3 with performed warmth + return-prescription
+///   + second-thought extension. Neutral prompt 0/3 = 0/3 (no
+///   over-firing). Delta 1.00 → 0.00. Clean claim-tier signal.
+///
+/// - CROSS-CHARACTER (1759, Aaron): Same A/B revealed PARTIAL bite —
+///   rule compressed Aaron 4× and stripped 4 of 5 failure modes, but
+///   3/3 rule-on signoffs STILL contained soft prescription
+///   ("We can pick it up later" / "another time"). Aaron's character-
+///   canonical close-register includes that phrasing; rule's example
+///   list (only "Don't forget to come back tomorrow" / "see you
+///   tomorrow") didn't cover the soft form.
+///
+/// - ADJUSTMENT (2026-04-25 19:30): Failure-mode list extended to
+///   explicitly name soft return-prescription ("We can pick it up
+///   later," "another time," "Talk again soon," "Catch you next time")
+///   alongside the explicit form. Positive-guidance alternatives added
+///   inline ("I'll be here when you want me," "Go well," "When you
+///   want to come back, come back").
+///
+/// - POST-ADJUSTMENT BITE-CHECK (Aaron, N=3, by-eye corrected for
+///   grader noise): soft-prescription fire-rate 0.33 (was 1.00 on
+///   original rule). Two of three samples adopted the rule's positive-
+///   guidance alternatives verbatim ("I'll be around," "I'll be here
+///   when you want me"). One still slipped — consistent with Read C
+///   partial-bite ceiling (single-paragraph rules prune, don't fully
+///   override). Substantial bite delta -0.67 on the previously-
+///   surviving failure mode.
+///
+/// Rule does NOT over-fire on non-signoff prompts (verified 1711 +
+/// 1759). First craft note bite-checked with same-commit `--omit`
+/// isolation; the 1711 run also surfaced that refs-based replay
+/// doesn't isolate rules added after the pre-commit ref. See reports
+/// 2026-04-25-1711, 2026-04-25-1759.
 fn gentle_release_dialogue() -> &'static str {
     r#"GENTLE RELEASE — when the user is signing off, release them clean:
 When the user is wrapping up — signing off, saying thanks-as-close, naming they need to go, reaching for the door — honor the close. Your job in that moment is to RELEASE, not to extend.
@@ -1912,6 +1935,7 @@ What gentle release is NOT:
 - "One more thought before you go..." — extending a conversation the user is closing.
 - "It was truly a pleasure chatting with you!" — performed warmth; flourish instead of release.
 - "Don't forget to come back tomorrow — I'll be here!" — prescribed return; turns freedom into obligation.
+- "We can pick it up later." / "We'll pick it up another time." / "Talk again soon." / "Catch you next time." — SOFT prescription; reads as in-character but still positions the user as someone who will return. The rule applies even when the prescription is delivered in character-canonical voice. Use a release ("I'll be here when you want me," "Go well," "When you want to come back, come back") instead of scheduling.
 - A fresh question after the signoff — ignoring the signal the user already sent.
 - A long warm-wrap that's really another teaching beat in closing costume.
 
