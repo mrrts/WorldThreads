@@ -578,24 +578,6 @@ export function StoryConsultantModal({ open, onClose, apiKey, characterId, group
 
         {/* Main chat area */}
         <div className="flex-1 flex flex-col relative z-[1]">
-          {/* Mode-themed bg + inner-glow layer — lives INSIDE the
-              viewport so the sidebar doesn't eat the left edge of the
-              glow. Two layered themes (immersive indigo/violet, backstage
-              deep-amber + gold) keyed on displayedMode; opacity follows
-              bgOpacity for the fade-through-solid crossfade. */}
-          <div
-            className="absolute inset-0 z-0 pointer-events-none overflow-hidden transition-opacity duration-[350ms] ease-in-out"
-            style={{ opacity: bgOpacity }}
-          >
-            {isBackstageDisplayed ? (
-              <>
-                <div className="w-full h-full bg-gradient-to-br from-amber-900/60 via-amber-950/80 to-amber-900/60" />
-                <div className="absolute inset-0 [box-shadow:inset_0_0_120px_rgba(252,211,77,0.25),inset_0_0_60px_rgba(252,211,77,0.35)] pointer-events-none" />
-              </>
-            ) : (
-              <div className="absolute inset-0 [box-shadow:inset_0_0_120px_rgba(99,102,241,0.18),inset_0_0_60px_rgba(165,180,252,0.22)] pointer-events-none" />
-            )}
-          </div>
           {/* Header — Big Mode-switch. The toggle IS the modal's title.
               Each mode is themed distinctly so the switch feels like
               flipping a lens, not picking a tab:
@@ -694,6 +676,26 @@ export function StoryConsultantModal({ open, onClose, apiKey, characterId, group
 
           {/* Content area */}
           <div className="flex-1 overflow-hidden relative z-[1]">
+            {/* Mode-themed bg + inner-glow layer — scoped to the chat
+                CONTENT area (below the toggle header), so the top of the
+                glow is visible (not hidden behind the header bar) and
+                the sidebar doesn't eat the left edge. Two themes
+                (immersive indigo/violet, backstage deep-amber + gold)
+                keyed on displayedMode; opacity follows bgOpacity for
+                the fade-through-solid mode crossfade. */}
+            <div
+              className="absolute inset-0 z-0 pointer-events-none overflow-hidden transition-opacity duration-[350ms] ease-in-out"
+              style={{ opacity: bgOpacity }}
+            >
+              {isBackstageDisplayed ? (
+                <>
+                  <div className="w-full h-full bg-gradient-to-br from-amber-900/60 via-amber-950/80 to-amber-900/60" />
+                  <div className="absolute inset-0 [box-shadow:inset_0_0_120px_rgba(252,211,77,0.25),inset_0_0_60px_rgba(252,211,77,0.35)] pointer-events-none" />
+                </>
+              ) : (
+                <div className="absolute inset-0 [box-shadow:inset_0_0_120px_rgba(99,102,241,0.18),inset_0_0_60px_rgba(165,180,252,0.22)] pointer-events-none" />
+              )}
+            </div>
             {/* Ideas overlay */}
             {showPrompts && (
               <div className="absolute inset-0 z-10 bg-card overflow-y-auto px-5 py-4">
