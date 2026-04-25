@@ -1237,7 +1237,7 @@ export function GroupChatView({ store, onNavigateToCharacter }: Props) {
               </React.Fragment>
             );
           })}
-          {meanwhileBuckets.trailing.map((ev) => (
+          {!store.loadingChat && meanwhileBuckets.trailing.map((ev) => (
             <MeanwhileCard
               key={`mw-${ev.event_id}`}
               event={ev}
