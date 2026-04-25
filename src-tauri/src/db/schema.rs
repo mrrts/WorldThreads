@@ -710,6 +710,51 @@ pub fn run_migrations(conn: &Connection) -> Result<(), rusqlite::Error> {
         conn.execute("ALTER TABLE world_images ADD COLUMN caption TEXT NOT NULL DEFAULT ''", []).ok();
     }
 
+    // Per-chat current location — replaces the global world.state.location
+    // injection (which was a single global location for all chats and
+    // leaked nested fields like location.current_scene into every prompt).
+    // Each individual chat (threads with character_id) and each group_chat
+    // can carry its OWN current_location string. Default NULL = "no
+    // location set yet"; UI hides the label until set.
+    let has_thread_loc: bool = conn.query_row(
+        "SELECT COUNT(*) FROM pragma_table_info('threads') WHERE name = 'current_location'",
+        [], |r| r.get::<_, i64>(0),
+    ).unwrap_or(0) > 0;
+    if !has_thread_loc {
+        conn.execute("ALTER TABLE threads ADD COLUMN current_location TEXT DEFAULT NULL", []).ok();
+    }
+    let has_gc_loc: bool = conn.query_row(
+        "SELECT COUNT(*) FROM pragma_table_info('group_chats') WHERE name = 'current_location'",
+        [], |r| r.get::<_, i64>(0),
+    ).unwrap_or(0) > 0;
+    if !has_gc_loc {
+        conn.execute("ALTER TABLE group_chats ADD COLUMN current_location TEXT DEFAULT NULL", []).ok();
+    }
+
+    // saved_places — per-world place-name library. Populated when the user
+    // ticks "save this place" in the location modal. Selecting from the
+    // dropdown populates the input. UNIQUE(world_id, name) prevents dup
+    // entries; the modal's "save" checkbox is disabled when input matches
+    // an existing place to make the constraint unreachable in normal use.
+    conn.execute_batch("
+        CREATE TABLE IF NOT EXISTS saved_places (
+            saved_place_id TEXT PRIMARY KEY,
+            world_id TEXT NOT NULL REFERENCES worlds(world_id) ON DELETE CASCADE,
+            name TEXT NOT NULL,
+            created_at TEXT NOT NULL DEFAULT (datetime('now')),
+            UNIQUE(world_id, name)
+        );
+        CREATE INDEX IF NOT EXISTS idx_saved_places_world ON saved_places(world_id);
+    ").ok();
+
+    // Strip lingering world.state.location.* now that per-chat carries it.
+    // The earlier migration only removed top-level `state.location` when
+    // it was NULL-leaf; nested objects like {location: {current_scene: ...}}
+    // weren't being cleaned. json_remove handles both shapes.
+    conn.execute_batch("
+        UPDATE worlds SET state = json_remove(state, '$.location') WHERE json_extract(state, '$.location') IS NOT NULL;
+    ").ok();
+
     // ── Canon entries ─────────────────────────────────────────────────────
     //
     // Records the user's deliberate promotion of a specific message moment

@@ -29,6 +29,7 @@ use commands::usage_cmds::*;
 use commands::user_profile_cmds::*;
 use commands::world_cmds::*;
 use commands::world_image_cmds::*;
+use commands::location_cmds::*;
 use tauri::Manager;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -118,6 +119,10 @@ pub fn run() {
             unarchive_character_cmd,
             list_archived_characters_cmd,
             create_context_message_cmd,
+            get_chat_location_cmd,
+            set_chat_location_cmd,
+            list_saved_places_cmd,
+            delete_saved_place_cmd,
             save_user_message_cmd,
             send_message_cmd,
             prompt_character_cmd,

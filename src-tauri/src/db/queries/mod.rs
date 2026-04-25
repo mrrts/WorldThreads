@@ -20,6 +20,7 @@ mod imagined_chapters;
 mod quest;
 mod relational_stance;
 mod load_test_anchor;
+mod location;
 
 pub use world::*;
 pub use user_profile::*;
@@ -43,3 +44,4 @@ pub use imagined_chapters::*;
 pub use quest::*;
 pub use relational_stance::*;
 pub use load_test_anchor::*;
+pub use location::*;

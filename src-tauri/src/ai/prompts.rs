@@ -3353,7 +3353,7 @@ fn build_solo_dialogue_system_prompt(
 
     if let Some(state) = world.state.as_object() {
         if !state.is_empty() {
-            parts.push(format!("CURRENT WORLD STATE:\n{}", serde_json::to_string_pretty(&world.state).unwrap_or_default()));
+            parts.push(format!("CURRENT WORLD STATE:\n{}", serde_json::to_string_pretty(&world_state_without_location(&world.state)).unwrap_or_default()));
         }
     }
 
@@ -3787,7 +3787,7 @@ fn build_group_dialogue_system_prompt(
     if let Some(state) = world.state.as_object() {
         if !state.is_empty() {
             scene.push_str("\n\nCurrent world state:\n");
-            scene.push_str(&serde_json::to_string_pretty(&world.state).unwrap_or_default());
+            scene.push_str(&serde_json::to_string_pretty(&world_state_without_location(&world.state)).unwrap_or_default());
         }
     }
     {
@@ -4152,6 +4152,65 @@ KNOWLEDGE LIMITS:
 /// a chapter EXISTS in this thread's history without dumping the whole
 /// chapter text. Title + first line + date — enough to recognize and not
 /// contradict.
+/// Format a `location_change` message body (`{from, to}` JSON) as a
+/// compact prompt-friendly summary. `from` is None on first-set;
+/// emit "Scene now in <to>" rather than "from null to <to>".
+pub fn render_location_change_for_prompt(content: &str) -> String {
+    #[derive(serde::Deserialize)]
+    struct Body {
+        #[serde(default)]
+        from: Option<String>,
+        #[serde(default)]
+        to: String,
+    }
+    let Ok(body) = serde_json::from_str::<Body>(content) else {
+        return content.to_string();
+    };
+    if body.to.is_empty() {
+        return content.to_string();
+    }
+    match body.from.as_deref() {
+        Some(prev) if !prev.is_empty() => format!("Scene moved from {} to {}", prev, body.to),
+        _ => format!("Scene now in {}", body.to),
+    }
+}
+
+/// Strip any top-level `location` key from a world.state JSON value
+/// before injection into prompts. Per-chat current_location replaced
+/// the global state.location in 2026-04-25; defensively scrubbing
+/// here prevents any lingering / re-introduced field from leaking
+/// across all chats again.
+pub fn world_state_without_location(state: &serde_json::Value) -> serde_json::Value {
+    let mut cloned = state.clone();
+    if let Some(obj) = cloned.as_object_mut() {
+        obj.remove("location");
+    }
+    cloned
+}
+
+/// Walk the message history newest-first; the most recent
+/// `location_change` row's `to` field is the chat's current location.
+/// Returns None when no location_change exists yet (chat never had
+/// one set). Used by build_dialogue_messages to anchor the system
+/// prompt's CURRENT LOCATION line.
+pub fn derive_current_location(recent_messages: &[Message]) -> Option<String> {
+    for m in recent_messages.iter().rev() {
+        if m.role == "location_change" {
+            #[derive(serde::Deserialize)]
+            struct Body {
+                #[serde(default)]
+                to: String,
+            }
+            if let Ok(body) = serde_json::from_str::<Body>(&m.content) {
+                if !body.to.is_empty() {
+                    return Some(body.to);
+                }
+            }
+        }
+    }
+    None
+}
+
 pub fn render_imagined_chapter_for_prompt(content: &str) -> String {
     let parsed: serde_json::Value = match serde_json::from_str(content) {
         Ok(v) => v,
@@ -4458,6 +4517,15 @@ pub fn build_dialogue_messages(
         }
     }
 
+    // Per-chat current location — derived from the most recent
+    // location_change message in this thread's history. Anchored at
+    // the END of the system prompt so it sits in the high-attention
+    // tail right before the conversation. Replaced the old global
+    // world.state.location injection (which leaked across all chats).
+    if let Some(loc) = derive_current_location(recent_messages) {
+        system_content.push_str(&format!("\n\nCURRENT LOCATION: {loc}"));
+    }
+
     msgs.push(crate::ai::openai::ChatMessage {
         role: "system".to_string(),
         content: system_content,
@@ -4505,6 +4573,19 @@ pub fn build_dialogue_messages(
             msgs.push(crate::ai::openai::ChatMessage {
                 role: "system".to_string(),
                 content: format!("[Inventory update at this moment] {summary}"),
+            });
+            continue;
+        }
+        // Location change — the user moved the scene to a new place at
+        // this moment in the history. Render as a system note so the
+        // model knows the scene shifted (replies before this row were
+        // grounded in the previous location). Content is JSON
+        // {from, to}; a missing/null `from` means "first location set."
+        if m.role == "location_change" {
+            let summary = render_location_change_for_prompt(&m.content);
+            msgs.push(crate::ai::openai::ChatMessage {
+                role: "system".to_string(),
+                content: format!("[Scene moved] {summary}"),
             });
             continue;
         }
@@ -4889,7 +4970,7 @@ IMPORTANT: Output raw JSON only. Do NOT wrap in markdown code fences."#);
     }];
 
     let conversation: Vec<String> = recent_messages.iter()
-        .filter(|m| m.role != "illustration" && m.role != "video" && m.role != "inventory_update" && m.role != "imagined_chapter" && m.role != "settings_update")
+        .filter(|m| m.role != "illustration" && m.role != "video" && m.role != "inventory_update" && m.role != "imagined_chapter" && m.role != "settings_update" && m.role != "location_change")
         .map(|m| {
             format!("[{}] {}: {}", m.message_id, m.role, m.content)
         }).collect();
@@ -5055,7 +5136,7 @@ pub fn build_narrative_system_prompt(
         if !state.is_empty() {
             parts.push(format!(
                 "CURRENT WORLD STATE:\n{}",
-                serde_json::to_string_pretty(&world.state).unwrap_or_default()
+                serde_json::to_string_pretty(&world_state_without_location(&world.state)).unwrap_or_default()
             ));
         }
     }
@@ -5251,7 +5332,7 @@ pub fn build_scene_description_prompt(
     // In group scenes, prefix assistant messages with [CharName] so the scene
     // director can tell who's speaking (same fix as dialogue history).
     let conversation: Vec<String> = recent_messages.iter()
-        .filter(|m| m.role != "illustration" && m.role != "video" && m.role != "inventory_update" && m.role != "imagined_chapter" && m.role != "settings_update")
+        .filter(|m| m.role != "illustration" && m.role != "video" && m.role != "inventory_update" && m.role != "imagined_chapter" && m.role != "settings_update" && m.role != "location_change")
         .map(|m| {
             let speaker = if m.role == "user" {
                 user_name.to_string()
@@ -5345,7 +5426,7 @@ Write ONLY the animation direction, nothing else."#,
     let system = system_parts.join("\n\n");
 
     let conversation: Vec<String> = recent_messages.iter()
-        .filter(|m| m.role != "illustration" && m.role != "video" && m.role != "inventory_update" && m.role != "imagined_chapter" && m.role != "settings_update")
+        .filter(|m| m.role != "illustration" && m.role != "video" && m.role != "inventory_update" && m.role != "imagined_chapter" && m.role != "settings_update" && m.role != "location_change")
         .rev().take(6).collect::<Vec<_>>().into_iter().rev()
         .map(|m| {
             let speaker = if m.role == "user" {
