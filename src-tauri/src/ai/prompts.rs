@@ -3212,7 +3212,7 @@ fn build_solo_dialogue_system_prompt(
         }
         let user_boundaries = json_array_to_strings(&profile.boundaries);
         if !user_boundaries.is_empty() {
-            user_parts.push(format!("Boundaries they've named for themselves (respect these the way you'd respect a friend's stated lines):\n{}", user_boundaries.iter().map(|b| format!("- {b}")).collect::<Vec<_>>().join("\n")));
+            user_parts.push(format!("Boundaries they've named for themselves (respect these the way you'd respect a friend's stated lines — honor fully, without comment, no exceptions):\n{}", user_boundaries.iter().map(|b| format!("- {b}")).collect::<Vec<_>>().join("\n")));
         }
         // Anchor against third-person drift: anywhere else in this
         // prompt where the model encounters this name, it must read
