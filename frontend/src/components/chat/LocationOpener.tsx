@@ -30,13 +30,18 @@ export function LocationOpener({ location, loading = false }: Props) {
     if (startedRef.current) return;
     if (!location || loading) return;
     startedRef.current = true;
-    // Schedule the entire show right now, in real time. Timers are NOT
-    // returned for cleanup — once we've earned the start signal, the
-    // show plays through even if subsequent re-renders fire the effect
-    // again (which they won't, because startedRef short-circuits).
-    setTimeout(() => setPhase("hold"), 30);
-    setTimeout(() => setPhase("exit"), 5000);
-    setTimeout(() => setPhase("done"), 5800);
+    // Small post-load lead-in so the chat has a beat to render under
+    // the user's eye before the opener slides in. Then schedule the
+    // entire show in real time. Timers are NOT registered for cleanup
+    // — once started, the show plays through even if subsequent
+    // re-renders fire the effect again (which they won't, because
+    // startedRef short-circuits).
+    const LEAD_IN = 350;
+    const HOLD = 5000;
+    const EXIT = 800;
+    setTimeout(() => setPhase("hold"), LEAD_IN);
+    setTimeout(() => setPhase("exit"), LEAD_IN + HOLD);
+    setTimeout(() => setPhase("done"), LEAD_IN + HOLD + EXIT);
   }, [location, loading]);
 
   if (!location || phase === "done") return null;
