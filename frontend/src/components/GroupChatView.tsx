@@ -706,11 +706,6 @@ export function GroupChatView({ store, onNavigateToCharacter }: Props) {
           </div>
           <h1 className="font-semibold">{store.activeGroupChat?.display_name}</h1>
           <div className="flex items-center gap-1 flex-shrink-0">
-            {currentLocation && (
-              <span className="text-[11px] text-muted-foreground/80 max-w-[200px] truncate">
-                <span className="text-muted-foreground/50">Location:</span> <span className="text-foreground/70">{currentLocation}</span>
-              </span>
-            )}
             <div className="relative group/locbtn">
               <button
                 onClick={() => setShowLocationModal(true)}
@@ -720,6 +715,11 @@ export function GroupChatView({ store, onNavigateToCharacter }: Props) {
               </button>
               <span className="absolute top-full left-1/2 -translate-x-1/2 mt-1.5 px-2 py-0.5 text-[10px] font-medium text-white bg-black rounded-md shadow-lg whitespace-nowrap opacity-0 group-hover/locbtn:opacity-100 pointer-events-none transition-opacity z-50">{currentLocation ? "Change location" : "Set location"}</span>
             </div>
+            {currentLocation && (
+              <span className="text-[11px] text-muted-foreground/80 max-w-[200px] truncate">
+                <span className="text-muted-foreground/50">Location:</span> <span className="text-foreground/70">{currentLocation}</span>
+              </span>
+            )}
           </div>
           {showGroupPopover && (
             <div
