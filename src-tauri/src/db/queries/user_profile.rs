@@ -21,6 +21,22 @@ pub struct UserProfile {
     /// route boundary-shaped proposals here. Characters read these the
     /// same way they read each other's: "this is a thing they've named
     /// for themselves; respect it."
+    ///
+    /// CATEGORICAL ABSOLUTE — no earned exception (Ryan's decision
+    /// 2026-04-25, after surfacing five candidate exception shapes).
+    /// The user's stated boundaries belong to the categorical-nature
+    /// exemption codified in CLAUDE.md § Earned-exception carve-outs:
+    /// rules whose force IS in their absoluteness, where a carve-out
+    /// would leak the invariant. The release valve is user-side:
+    /// the user can update or remove a boundary anytime via the
+    /// canonization UI; characters never override. Asymmetry argument:
+    /// a real-friend earned-exception works because both friends carry
+    /// reputational/relational stakes and continuity over time; the
+    /// LLM-character has neither. "Character crossing a stated
+    /// boundary lovingly" isn't the same act a friend doing it would
+    /// be — it's a category mismatch. Future sessions: do not re-
+    /// litigate this. The decision is recorded; the carve-out has been
+    /// considered and intentionally rejected.
     #[serde(default)]
     pub boundaries: Value,
     pub avatar_file: String,
