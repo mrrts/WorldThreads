@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { MapPin } from "lucide-react";
 
 interface Props {
@@ -72,7 +72,14 @@ export function LocationOpener({ location, loading = false }: Props) {
   if (!location || phase === "done") return null;
 
   const isVisible = phase === "hold";
-  const transformClass = isVisible ? "translate-y-0 opacity-100" : "-translate-y-8 opacity-0";
+  // Inline styles bypass Tailwind class compilation entirely — guarantees
+  // the transition runs from a known starting state to a known ending
+  // state regardless of class-purge / cascade quirks.
+  const innerStyle: React.CSSProperties = {
+    transform: isVisible ? "translateY(0)" : "translateY(-2rem)",
+    opacity: isVisible ? 1 : 0,
+    transition: "transform 700ms ease-out, opacity 700ms ease-out",
+  };
 
   return (
     <div
@@ -88,7 +95,8 @@ export function LocationOpener({ location, loading = false }: Props) {
       className="absolute top-0 left-0 right-0 flex justify-center pointer-events-none z-[100] px-6"
     >
       <div
-        className={`
+        style={innerStyle}
+        className="
           mt-10
           flex items-center gap-5
           px-10 py-6 rounded-2xl
@@ -97,9 +105,7 @@ export function LocationOpener({ location, loading = false }: Props) {
           backdrop-blur-md
           border-2 border-emerald-400/50
           shadow-[0_0_60px_rgba(16,185,129,0.55),0_0_120px_rgba(16,185,129,0.30),inset_0_0_30px_rgba(16,185,129,0.15)]
-          transition-all duration-700 ease-out
-          ${transformClass}
-        `}
+        "
       >
         <MapPin
           size={42}
