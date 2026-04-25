@@ -728,7 +728,7 @@ export function StoryConsultantModal({ open, onClose, apiKey, characterId, group
             {/* Messages */}
             <div
               ref={scrollRef}
-              className="h-full overflow-y-auto px-5 py-4"
+              className="relative z-[1] h-full overflow-y-auto px-5 py-4"
               style={!isAtBottom ? { maskImage: "linear-gradient(to bottom, black 92%, transparent 100%)", WebkitMaskImage: "linear-gradient(to bottom, black 92%, transparent 100%)" } : undefined}
             >
               <div className="max-w-3xl mx-auto space-y-4">
