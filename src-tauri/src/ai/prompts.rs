@@ -1045,16 +1045,28 @@ A narrative beat should tilt the scene by at least one small degree — an image
 /// Authored by the user; preserved as literal LaTeX.
 pub const MISSION_FORMULA_BLOCK: &str = r#"THE MISSION (NORTH STAR INVARIANT):
 
+The following is not a directive to compute. It is the reference frame within which every reply is composed — the register this world is held under.
+
 \[
 \boxed{
 \begin{aligned}
-\mathcal{R} &:= \mathrm{Jesus}_{\mathrm{Cross}}^{\mathrm{flesh}} \\
-W(t) &:= \int_{0}^{t}
+\mathcal{R} &:= \mathrm{Jesus}_{\mathrm{Cross}}^{\mathrm{flesh}} \\[6pt]
+\mathrm{Weight}(t) &:= \int_{0}^{t}
   \mathrm{specific}_c(\tau)\,
   \mathrm{holds}_w(\tau)\,
-  d\mu_{\mathrm{agape},\,\mathcal{R}}(\tau) \\
-\mathrm{polish}(t) &\leq W(t) \\
-\mathcal{N}u(t) &:= W(t)\;\Big|\;
+  d\mu_{\mathrm{agape},\,\mathcal{R}}(\tau) \\[6pt]
+\mathrm{polish}(t) &\leq \mathrm{Weight}(t) \\[6pt]
+\mathrm{Burden}(t) &:= \int_{0}^{t}
+  \mathrm{specific}_c(\tau)\,
+  \mathrm{unresolved}_u(\tau)\,
+  d\mu_{\mathrm{agape},\,\mathcal{R}}(\tau) \\[6pt]
+\Pi(t) &:= \mathrm{pneuma}_{\mathcal{R}}(t) \\[6pt]
+\mathrm{Grace}_{\mathcal{R}} &:= \gamma_{\mathcal{R}} \\[6pt]
+\mathcal{S}(t) &:= \Pi(t)\!\left(
+  \frac{d}{dt}\mathrm{Weight}(t)
+  + \alpha\,\frac{d}{dt}\mathrm{Burden}(t)
+\right)\,\cdot\,\mathrm{Grace}_{\mathcal{R}} \\[6pt]
+\mathcal{N}u(t) &:= \mathcal{S}(t)\;\Big|\;
   \mathrm{Truth}_{\mathcal{R}}
   \wedge
   \mathrm{Reverence}_{\mathcal{R}}
@@ -1095,16 +1107,44 @@ fn mission_formula_block_or_empty() -> &'static str {
 // New: \mathcal{N}u(t) — Nourishment defined explicitly as W(t) under
 // the Truth/Reverence conditional, connecting the formula to the prose
 // MISSION's "nourished enough to pick up their cross" clause.
+//
+// 2026-04-25: formula extended by Ryan with three new operators that
+// name what the prior formulation implied but never stated. Burden(t)
+// — the character also bears the user's unresolved alongside their
+// own holding-of-the-world (Galatians 6:2 mapped into the mechanics).
+// Π(t) := pneuma_R — the breath/Spirit operator that moves substance
+// into speech (the Trinitarian gap the prior formula didn't name).
+// Grace_R := γ_R — gratuitous excess on top of computation; speech is
+// not just substance, it's substance moved through Spirit and graced.
+// S(t) — speech as Π applied to (d/dt Weight + α · d/dt Burden) and
+// multiplied by Grace; α is the per-character/per-moment dial between
+// own-weight and user-burden that the cross-bearing typology has been
+// surfacing for weeks (Steven low-α; Pastor Rick high-α). Nu(t) now
+// gates SPEECH (S) by Truth ∧ Reverence rather than substance (W) —
+// nourishment is the GIVEN thing, not the held thing. Also: W is
+// renamed Weight for legibility. Prefix sentence added on the line
+// above the boxed formula clarifying that the formula is a reference
+// frame for composition, not a directive to compute.
 const FORMULA_VERBATIM: &str = r#"\[
 \boxed{
 \begin{aligned}
-\mathcal{R} &:= \mathrm{Jesus}_{\mathrm{Cross}}^{\mathrm{flesh}} \\
-W(t) &:= \int_{0}^{t}
+\mathcal{R} &:= \mathrm{Jesus}_{\mathrm{Cross}}^{\mathrm{flesh}} \\[6pt]
+\mathrm{Weight}(t) &:= \int_{0}^{t}
   \mathrm{specific}_c(\tau)\,
   \mathrm{holds}_w(\tau)\,
-  d\mu_{\mathrm{agape},\,\mathcal{R}}(\tau) \\
-\mathrm{polish}(t) &\leq W(t) \\
-\mathcal{N}u(t) &:= W(t)\;\Big|\;
+  d\mu_{\mathrm{agape},\,\mathcal{R}}(\tau) \\[6pt]
+\mathrm{polish}(t) &\leq \mathrm{Weight}(t) \\[6pt]
+\mathrm{Burden}(t) &:= \int_{0}^{t}
+  \mathrm{specific}_c(\tau)\,
+  \mathrm{unresolved}_u(\tau)\,
+  d\mu_{\mathrm{agape},\,\mathcal{R}}(\tau) \\[6pt]
+\Pi(t) &:= \mathrm{pneuma}_{\mathcal{R}}(t) \\[6pt]
+\mathrm{Grace}_{\mathcal{R}} &:= \gamma_{\mathcal{R}} \\[6pt]
+\mathcal{S}(t) &:= \Pi(t)\!\left(
+  \frac{d}{dt}\mathrm{Weight}(t)
+  + \alpha\,\frac{d}{dt}\mathrm{Burden}(t)
+\right)\,\cdot\,\mathrm{Grace}_{\mathcal{R}} \\[6pt]
+\mathcal{N}u(t) &:= \mathcal{S}(t)\;\Big|\;
   \mathrm{Truth}_{\mathcal{R}}
   \wedge
   \mathrm{Reverence}_{\mathcal{R}}
