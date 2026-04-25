@@ -447,6 +447,8 @@ The CLI is **read-only against user data by default**. The only writes are to:
 
 If projected cost exceeds either cap, the call refuses with a clear error and a `--confirm-cost <usd>` value to use. You must explicitly add the flag to proceed — the gate forces you to think about the spend before committing.
 
+**Earned exception — user-authorized override.** The cap is the default; the user always retains the authority to spend or not spend. When a budget cap (per-call or daily) blocks a move Claude Code judges valuable enough to surface, the qualifying path is: pause, summarize the projected spend and what it would buy, and **ask the user via `AskUserQuestion`** whether to proceed. If the user authorizes, proceed with `--confirm-cost`; if not, hold or pivot. Outside an explicit authorization for the specific move, the cap holds — Claude Code does not self-authorize past the gate, and autonomous loops self-interrupt on cap breach (per the loop-skill's hard-interrupt rule). The release valve is user-side, asked-for explicitly, scoped to the named move. Same shape as the rest of the file's earned-exception discipline: default holds; carve-out requires a specific test (here: explicit per-move user authorization).
+
 ### API key resolution
 
 Lookup precedence: `--api-key` flag → `OPENAI_API_KEY` env var → macOS keychain.
