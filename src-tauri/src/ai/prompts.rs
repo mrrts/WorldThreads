@@ -1036,9 +1036,16 @@ pub const MISSION_FORMULA_BLOCK: &str = r#"THE MISSION (NORTH STAR INVARIANT):
 \[
 \boxed{
 \begin{aligned}
-\mathrm{polish}(t) \;&\leq\; W(t), \\
-W(t) \;&=\; \int_{0}^{t} \mathrm{specific}_c \;\cdot\; \mathrm{holds}_w \; d\mu_{\mathrm{agape\ in\ Jesus}}
-\;\Bigg|\; \mathrm{TRUTH\ in\ Jesus} \;\wedge\; \mathrm{REVERENCE\ for\ Jesus}
+\mathcal{R} &:= \mathrm{Jesus}_{\mathrm{Cross}} \\
+W(t) &:= \int_{0}^{t}
+  \mathrm{specific}_c(\tau)\,
+  \mathrm{holds}_w(\tau)\,
+  d\mu_{\mathrm{agape},\,\mathcal{R}}(\tau) \\
+\mathrm{polish}(t) &\leq W(t) \\
+\mathcal{N}u(t) &:= W(t)\;\Big|\;
+  \mathrm{Truth}_{\mathcal{R}}
+  \wedge
+  \mathrm{Reverence}_{\mathcal{R}}
 \end{aligned}
 }
 \]"#;
@@ -1058,30 +1065,45 @@ fn mission_formula_block_or_empty() -> &'static str {
     }
 }
 
-// APP INVARIANT — compile-time enforcement of the mission-formula
-// clause. This block is the TOP INVARIANT. Its Christ-named phrases
-// and the polish-bounded-by-weight inequality must not be softened.
-// Changes require explicit user authorization.
+// APP INVARIANT — compile-time enforcement that the mission formula is
+// preserved verbatim, line breaks and all. The whole formula is the
+// invariant; per Ryan's instruction (this commit), no piece-by-piece
+// substring checks — the entire formula's symbolic shape including
+// every newline is the load-bearing thing. Any single-character change
+// (a softened phrase, a swapped subscript, a missing line-break, a
+// different operator) fails the build. Changes require explicit user
+// authorization.
+//
+// 2026-04-26: formula reauthored by Ryan to make the cross structurally
+// load-bearing. The reference frame R is now Jesus_Cross — the cross
+// is THE measure-against-which everything is indexed, not a separate
+// term. Agape, Truth, Reverence are all indexed against R (i.e.,
+// cruciform), tighter than the prior "in Jesus" qualifier (1 John
+// 3:16: "By this we know love, that he laid down his life for us").
+// New: \mathcal{N}u(t) — Nourishment defined explicitly as W(t) under
+// the Truth/Reverence conditional, connecting the formula to the prose
+// MISSION's "nourished enough to pick up their cross" clause.
+const FORMULA_VERBATIM: &str = r#"\[
+\boxed{
+\begin{aligned}
+\mathcal{R} &:= \mathrm{Jesus}_{\mathrm{Cross}} \\
+W(t) &:= \int_{0}^{t}
+  \mathrm{specific}_c(\tau)\,
+  \mathrm{holds}_w(\tau)\,
+  d\mu_{\mathrm{agape},\,\mathcal{R}}(\tau) \\
+\mathrm{polish}(t) &\leq W(t) \\
+\mathcal{N}u(t) &:= W(t)\;\Big|\;
+  \mathrm{Truth}_{\mathcal{R}}
+  \wedge
+  \mathrm{Reverence}_{\mathcal{R}}
+\end{aligned}
+}
+\]"#;
+
 const _: () = {
     assert!(
-        const_contains(MISSION_FORMULA_BLOCK, r"\mathrm{polish}(t)"),
-        "APP INVARIANT VIOLATED: mission formula must preserve 'polish(t)' as the bounded quantity. See docs/INVARIANTS.md."
-    );
-    assert!(
-        const_contains(MISSION_FORMULA_BLOCK, r"\leq"),
-        "APP INVARIANT VIOLATED: mission formula must preserve the polish ≤ W inequality. Polish is bounded by weight, not equal to it."
-    );
-    assert!(
-        const_contains(MISSION_FORMULA_BLOCK, r"\mathrm{agape\ in\ Jesus}"),
-        "APP INVARIANT VIOLATED: mission formula must preserve 'agape in Jesus' as the measure. The measure is Christ-rooted, not abstract."
-    );
-    assert!(
-        const_contains(MISSION_FORMULA_BLOCK, r"\mathrm{TRUTH\ in\ Jesus}"),
-        "APP INVARIANT VIOLATED: mission formula must preserve 'TRUTH in Jesus' verbatim. Truth is Christ-bounded."
-    );
-    assert!(
-        const_contains(MISSION_FORMULA_BLOCK, r"\mathrm{REVERENCE\ for\ Jesus}"),
-        "APP INVARIANT VIOLATED: mission formula must preserve 'REVERENCE for Jesus' verbatim. Reverence is directed at Jesus, not a generic creaturely stance."
+        const_contains(MISSION_FORMULA_BLOCK, FORMULA_VERBATIM),
+        "APP INVARIANT VIOLATED: MISSION_FORMULA_BLOCK must preserve the entire formula verbatim, line breaks and all. The whole formula is the invariant — every symbol, every subscript, every newline. Christ as the reference frame, agape indexed against the cross, polish bounded by weight, Nourishment defined as weight under Truth and Reverence in the cross. Changes require explicit user authorization."
     );
 };
 

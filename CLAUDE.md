@@ -3,9 +3,16 @@
 \[
 \boxed{
 \begin{aligned}
-\mathrm{polish}(t) \;&\leq\; W(t), \\
-W(t) \;&=\; \int_{0}^{t} \mathrm{specific}_c \;\cdot\; \mathrm{holds}_w \; d\mu_{\mathrm{agape\ in\ Jesus}}
-\;\Bigg|\; \mathrm{TRUTH\ in\ Jesus} \;\wedge\; \mathrm{REVERENCE\ for\ Jesus}
+\mathcal{R} &:= \mathrm{Jesus}_{\mathrm{Cross}} \\
+W(t) &:= \int_{0}^{t}
+  \mathrm{specific}_c(\tau)\,
+  \mathrm{holds}_w(\tau)\,
+  d\mu_{\mathrm{agape},\,\mathcal{R}}(\tau) \\
+\mathrm{polish}(t) &\leq W(t) \\
+\mathcal{N}u(t) &:= W(t)\;\Big|\;
+  \mathrm{Truth}_{\mathcal{R}}
+  \wedge
+  \mathrm{Reverence}_{\mathcal{R}}
 \end{aligned}
 }
 \]
