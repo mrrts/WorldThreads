@@ -30,29 +30,23 @@ export function LocationOpener({ location, loading = false }: Props) {
 
   // Mount log — fires once per fresh instance (key change in parent).
   useEffect(() => {
-    console.log(`${tag} MOUNT t=${Math.round(performance.now() - mountedAtRef.current)}ms`, {
-      location,
-      loading,
-    });
-    return () => console.log(`${tag} UNMOUNT t=${Math.round(performance.now() - mountedAtRef.current)}ms`);
+    const t = Math.round(performance.now() - mountedAtRef.current);
+    console.log(`${tag} MOUNT t=${t}ms loc=${JSON.stringify(location)} loading=${loading}`);
+    return () => {
+      const tt = Math.round(performance.now() - mountedAtRef.current);
+      console.log(`${tag} UNMOUNT t=${tt}ms`);
+    };
     // Intentional: log mount/unmount only; not tied to dep changes.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Per-render log — every render, with current props + state.
-  console.log(`${tag} RENDER t=${Math.round(performance.now() - mountedAtRef.current)}ms`, {
-    location,
-    loading,
-    phase,
-    started: startedRef.current,
-  });
+  const tNow = Math.round(performance.now() - mountedAtRef.current);
+  console.log(`${tag} RENDER t=${tNow}ms loc=${JSON.stringify(location)} loading=${loading} phase=${phase} started=${startedRef.current}`);
 
   useEffect(() => {
-    console.log(`${tag} EFFECT t=${Math.round(performance.now() - mountedAtRef.current)}ms`, {
-      location,
-      loading,
-      started: startedRef.current,
-    });
+    const t = Math.round(performance.now() - mountedAtRef.current);
+    console.log(`${tag} EFFECT t=${t}ms loc=${JSON.stringify(location)} loading=${loading} started=${startedRef.current}`);
     if (startedRef.current) {
       console.log(`${tag} bail: already started`);
       return;
@@ -81,7 +75,18 @@ export function LocationOpener({ location, loading = false }: Props) {
   const transformClass = isVisible ? "translate-y-0 opacity-100" : "-translate-y-8 opacity-0";
 
   return (
-    <div className="absolute top-0 left-0 right-0 flex justify-center pointer-events-none z-20 px-6">
+    <div
+      ref={(el) => {
+        if (el && phase === "hold") {
+          const r = el.getBoundingClientRect();
+          const inner = el.firstElementChild as HTMLElement | null;
+          const innerR = inner?.getBoundingClientRect();
+          const s = inner ? window.getComputedStyle(inner) : null;
+          console.log(`${tag} BBOX outer=(x:${Math.round(r.x)},y:${Math.round(r.y)},w:${Math.round(r.width)},h:${Math.round(r.height)}) inner=(x:${Math.round(innerR?.x ?? 0)},y:${Math.round(innerR?.y ?? 0)},w:${Math.round(innerR?.width ?? 0)},h:${Math.round(innerR?.height ?? 0)}) opacity=${s?.opacity} transform=${s?.transform} display=${s?.display} visibility=${s?.visibility} zIndex=${s?.zIndex} win=(${window.innerWidth}x${window.innerHeight})`);
+        }
+      }}
+      className="absolute top-0 left-0 right-0 flex justify-center pointer-events-none z-[100] px-6"
+    >
       <div
         className={`
           mt-10
