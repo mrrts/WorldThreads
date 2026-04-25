@@ -21,6 +21,7 @@ export function UserProfileEditor({ store }: Props) {
     display_name: "",
     description: "",
     facts: [] as string[],
+    boundaries: [] as string[],
   });
   const [dirty, setDirty] = useState(false);
   const [avatarUrl, setAvatarUrl] = useState("");
@@ -69,9 +70,10 @@ export function UserProfileEditor({ store }: Props) {
         display_name: existing.display_name,
         description: existing.description,
         facts: [...(existing.facts ?? [])],
+        boundaries: [...(existing.boundaries ?? [])],
       });
     } else {
-      setForm({ display_name: "Me", description: "", facts: [] });
+      setForm({ display_name: "Me", description: "", facts: [], boundaries: [] });
     }
     setDirty(false);
   }, [existing, worldId]);
@@ -193,6 +195,7 @@ export function UserProfileEditor({ store }: Props) {
       display_name: form.display_name || "Me",
       description: form.description,
       facts: form.facts,
+      boundaries: form.boundaries,
       avatar_file: existing?.avatar_file ?? "",
       updated_at: new Date().toISOString(),
     };
@@ -320,6 +323,19 @@ export function UserProfileEditor({ store }: Props) {
                 items={form.facts}
                 onChange={(facts) => update({ facts })}
                 placeholder="e.g. Lives near the coast. Has a cat named Pepper."
+              />
+            </Field>
+          </FieldGroup>
+
+          <FieldGroup label="Boundaries">
+            <Field
+              label="Lines You've Named for Yourself"
+              hint="Characters honor these the way they'd respect a friend's stated lines — fully, without comment, no exceptions. You can update or remove them anytime."
+            >
+              <FactsList
+                items={form.boundaries}
+                onChange={(boundaries) => update({ boundaries })}
+                placeholder="e.g. No romantic or erotic content. Don't analyze me unless I ask."
               />
             </Field>
           </FieldGroup>

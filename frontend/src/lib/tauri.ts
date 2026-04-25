@@ -333,6 +333,7 @@ export interface UserProfile {
   display_name: string;
   description: string;
   facts: string[];
+  boundaries: string[];
   avatar_file: string;
   updated_at: string;
 }
