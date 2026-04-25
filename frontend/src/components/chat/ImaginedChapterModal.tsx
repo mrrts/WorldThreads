@@ -793,7 +793,7 @@ function ComposeView({
       </div>
       <div>
         <label className="text-xs font-medium text-amber-900/70 block mb-1.5">
-          What would you like to read about? <span className="text-amber-900/40">(optional — leave blank for LLM's choice)</span>
+          What would you like to read about? <span className="text-amber-900/40">(optional — leave blank to be surprised)</span>
         </label>
         <textarea
           value={seedHint}
