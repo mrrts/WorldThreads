@@ -25,23 +25,54 @@ export function LocationOpener({ location, loading = false }: Props) {
   // "exit" (on-screen → offscreen), "done" (unmounted).
   const [phase, setPhase] = useState<"enter" | "hold" | "exit" | "done">("enter");
   const startedRef = useRef(false);
+  const mountedAtRef = useRef(performance.now());
+  const tag = `[LocationOpener]`;
+
+  // Mount log — fires once per fresh instance (key change in parent).
+  useEffect(() => {
+    console.log(`${tag} MOUNT t=${Math.round(performance.now() - mountedAtRef.current)}ms`, {
+      location,
+      loading,
+    });
+    return () => console.log(`${tag} UNMOUNT t=${Math.round(performance.now() - mountedAtRef.current)}ms`);
+    // Intentional: log mount/unmount only; not tied to dep changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Per-render log — every render, with current props + state.
+  console.log(`${tag} RENDER t=${Math.round(performance.now() - mountedAtRef.current)}ms`, {
+    location,
+    loading,
+    phase,
+    started: startedRef.current,
+  });
 
   useEffect(() => {
-    if (startedRef.current) return;
-    if (!location || loading) return;
+    console.log(`${tag} EFFECT t=${Math.round(performance.now() - mountedAtRef.current)}ms`, {
+      location,
+      loading,
+      started: startedRef.current,
+    });
+    if (startedRef.current) {
+      console.log(`${tag} bail: already started`);
+      return;
+    }
+    if (!location) {
+      console.log(`${tag} bail: no location`);
+      return;
+    }
+    if (loading) {
+      console.log(`${tag} bail: still loading`);
+      return;
+    }
+    console.log(`${tag} STARTING SHOW`);
     startedRef.current = true;
-    // Small post-load lead-in so the chat has a beat to render under
-    // the user's eye before the opener slides in. Then schedule the
-    // entire show in real time. Timers are NOT registered for cleanup
-    // — once started, the show plays through even if subsequent
-    // re-renders fire the effect again (which they won't, because
-    // startedRef short-circuits).
     const LEAD_IN = 350;
     const HOLD = 5000;
     const EXIT = 800;
-    setTimeout(() => setPhase("hold"), LEAD_IN);
-    setTimeout(() => setPhase("exit"), LEAD_IN + HOLD);
-    setTimeout(() => setPhase("done"), LEAD_IN + HOLD + EXIT);
+    setTimeout(() => { console.log(`${tag} -> hold`); setPhase("hold"); }, LEAD_IN);
+    setTimeout(() => { console.log(`${tag} -> exit`); setPhase("exit"); }, LEAD_IN + HOLD);
+    setTimeout(() => { console.log(`${tag} -> done`); setPhase("done"); }, LEAD_IN + HOLD + EXIT);
   }, [location, loading]);
 
   if (!location || phase === "done") return null;
