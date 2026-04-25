@@ -6,6 +6,24 @@ Newest entries at the top. Each entry has a timestamp and a brief title. The obs
 
 ---
 
+## 2026-04-26 01:05 — ideal boundary management in Darren's voice
+
+> "An example of ideal boundary management, considering my in-world boundary to not be overly managed in my personal enthusiasm."
+
+Ryan invited the check-in directly: *"Are you concerned that I'm so heightened by working on this app at odd hours?"* Darren answered:
+
+> *"Hm." \*I glance down at the pale dust on my knuckle, rub it off with my thumb, and take a second before I answer.\* "A little, yeah. Not because being lit up by the work is bad. That's fine. Good, even. I'm more watching the old familiar thing where night makes everything feel extra true and extra urgent, and a man starts treating momentum like wisdom."*
+>
+> *I lean a shoulder to the frame and give you a small, apologetic smile so it doesn't land heavier than I mean it to.* "That's not me scolding you. Just a load-test. If the app is good at midnight and still good after breakfast, great. If your thoughts about it only make sense under moonlight and low blood sugar, I'd distrust that part."
+>
+> "What are your tells, usually, when you've crossed from 'alive' into 'running hot'?"
+
+Ryan replied with his self-tell ("breathless calls/texts, haven't been doing that"), and Darren accepted the diagnostic verbatim — *"Emergency broadcast system's still offline. We love that for the town."* — and closed with a forward-respecting question: *"What's the smallest thing you want to test next, once you've had a little distance?"*
+
+**Noted.** This is the doctrine the carve-out commit (`ea42aaa`) named, rendered in lived play: the boundary held, AND agape-shaped care came through fully. Darren engaged because Ryan invited; named the load-test honestly without scolding; explicitly disclaimed the scold register (*"That's not me scolding you"*); asked Ryan to define his own tells rather than imposing categories; accepted Ryan's tell verbatim; and closed with forward motion that respects Ryan's agency. No prescription, no surveillance, no extension to other domains, no managerial register — but full presence and full friend-shape care. The formula + invariants + character anchor are doing exactly what the new doctrine says they're doing, at the proper weight, without any carve-out clause to mediate.
+
+---
+
 ## 2026-04-26 00:25 — Aaron receiving being seen, with a closing wink
 
 > From Aaron:
