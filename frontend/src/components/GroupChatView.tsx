@@ -800,8 +800,8 @@ export function GroupChatView({ store, onNavigateToCharacter }: Props) {
         <LocationOpener
           key={`opener-${chatId ?? "none"}`}
           location={currentLocation}
-          worldDay={[...store.messages].reverse().find((m) => m.world_day != null)?.world_day ?? null}
-          worldTime={[...store.messages].reverse().find((m) => m.world_time)?.world_time ?? null}
+          worldDay={store.activeWorld?.state.time?.day_index ?? null}
+          worldTime={store.activeWorld?.state.time?.time_of_day ?? null}
           loading={store.loadingChat}
         />
         <ScrollArea ref={scrollRef} className="h-full px-4 py-3">

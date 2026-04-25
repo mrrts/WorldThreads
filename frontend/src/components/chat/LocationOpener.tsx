@@ -3,12 +3,13 @@ import { Aperture } from "lucide-react";
 
 interface Props {
   location: string | null;
-  /// World day number from the most recent timestamped message, or
-  /// null if not yet known. Rendered as "Day N" beneath the location.
+  /// Current world day number — sourced from world.state.time.day_index
+  /// (the canonical world clock), NOT from the most recent message
+  /// timestamp. Rendered as "Day N" beneath the location.
   worldDay?: number | null;
-  /// World-time string ("MORNING", "LATE NIGHT", etc.) — formatted
-  /// to title-case and rendered beside the day. Same source convention
-  /// as TimeDivider.
+  /// Current world-time string ("MORNING", "LATE NIGHT", etc.) from
+  /// world.state.time.time_of_day. Formatted to title-case and rendered
+  /// beside the day.
   worldTime?: string | null;
   /// When true, hold off starting the show — the chat is still
   /// loading and the user can't see the viewport yet. The 5-second
