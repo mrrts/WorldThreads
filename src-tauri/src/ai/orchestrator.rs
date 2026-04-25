@@ -3157,12 +3157,26 @@ pub async fn generate_illustration_with_base(
         })
         .unwrap_or("Gentle diffused natural lighting, nostalgic and contemplative mood.");
 
-    let mut prompt_parts = vec![
+    let mut prompt_parts: Vec<String> = Vec::new();
+
+    // SETTING anchor — FIRST line of the prompt so it sits in the
+    // image model's highest-attention slot. Aggressive override
+    // language because the SCENE description below may reflect chat-
+    // history detail about a prior location (e.g., a character who
+    // disagreed with the user about where they were); the image must
+    // be placed at the AUTHORITATIVE location regardless.
+    if let Some(loc) = prompts::effective_current_location(current_location_override, recent_messages) {
+        prompt_parts.push(format!(
+            "PRIMARY DIRECTIVE — SETTING: This illustration takes place at {loc}, ONLY at {loc}. Render the background, environment, and surroundings as {loc}. Ignore any descriptions of other locations (town squares, fountains, public benches, market stalls, etc.) that may appear in the SCENE text below — those describe past moments and are NOT where this illustration is set. The setting of this image is {loc}; depict {loc}."
+        ));
+    }
+
+    prompt_parts.extend([
         "Hand-painted watercolor illustration in a lush, realistic style.".to_string(),
         "Soft edges dissolving into wet-on-wet washes, visible paper texture, warm earth tones with pops of verdant green and sky blue.".to_string(),
         time_lighting.to_string(),
         "Wide cinematic composition showing two characters in a scene together.".to_string(),
-    ];
+    ]);
 
     // Describe reference images in order: user avatar, character portrait(s), then optional previous scene
     if let Some(names) = all_character_names {
@@ -3205,19 +3219,15 @@ pub async fn generate_illustration_with_base(
         }
     }
 
-    // Per-chat current location — hard directive at the image-prompt
-    // layer so the image model places the cast at the active scene
-    // regardless of what the scene-description text or the previous-
-    // scene reference image might suggest. Sits BEFORE the scene
-    // description so it frames how the description is read.
-    if let Some(loc) = prompts::effective_current_location(current_location_override, recent_messages) {
-        prompt_parts.push(format!(
-            "SETTING (AUTHORITATIVE): {loc}. The illustration MUST depict this setting. Do NOT depict any previously-mentioned location. If the SCENE text below describes elements that don't fit {loc}, override them with details appropriate to {loc}."
-        ));
-    }
-
     if !scene_description.is_empty() {
-        prompt_parts.push(format!("SCENE:\n{scene_description}"));
+        // Re-name the SCENE block so the image model treats it as
+        // ACTION/POSITIONING source material rather than authoritative
+        // setting (which the PRIMARY DIRECTIVE at the top of the
+        // prompt has exclusive say over). Without this re-framing,
+        // long descriptions of "the bench, the fountain, the square"
+        // crowd out the directive even though they belong to a past
+        // moment.
+        prompt_parts.push(format!("WHAT IS HAPPENING (character actions, gestures, expressions — extract action and positioning ONLY; setting comes from the PRIMARY DIRECTIVE above):\n{scene_description}"));
     }
 
     if let Some(instructions) = custom_instructions {
