@@ -458,8 +458,17 @@ pub async fn send_message_cmd(
         let mood_drift_rate = get_setting(&conn, "mood_drift_rate")
             .ok().flatten().and_then(|v| v.parse::<f64>().ok());
 
+        // Default to "Short" when no setting exists — matches the
+        // frontend default (use-chat-state.ts:128) so the UI's
+        // displayed value and the LLM's actual constraint stay in
+        // sync. Without this fallback, opening a chat for the first
+        // time shows "Short" in the UI but injects no length
+        // directive into the prompt; replies come back unconstrained.
+        // Group-chat path (group_chat_cmds.rs) already has this
+        // fallback; solo path was missing it.
         let response_length = get_setting(&conn, &format!("response_length.{}", character_id))
-            .ok().flatten();
+            .ok().flatten()
+            .or_else(|| Some("Short".to_string()));
         let narration_tone = get_setting(&conn, &format!("narration_tone.{}", character_id))
             .ok().flatten();
         let leader = get_setting(&conn, &format!("leader.{}", character_id)).ok().flatten();
@@ -995,8 +1004,17 @@ pub async fn prompt_character_cmd(
         let current_mood = get_character_mood(&conn, &character_id);
         let mood_enabled = get_setting(&conn, "mood_drift_enabled")
             .ok().flatten().map(|v| v == "true").unwrap_or(true);
+        // Default to "Short" when no setting exists — matches the
+        // frontend default (use-chat-state.ts:128) so the UI's
+        // displayed value and the LLM's actual constraint stay in
+        // sync. Without this fallback, opening a chat for the first
+        // time shows "Short" in the UI but injects no length
+        // directive into the prompt; replies come back unconstrained.
+        // Group-chat path (group_chat_cmds.rs) already has this
+        // fallback; solo path was missing it.
         let response_length = get_setting(&conn, &format!("response_length.{}", character_id))
-            .ok().flatten();
+            .ok().flatten()
+            .or_else(|| Some("Short".to_string()));
         let narration_tone = get_setting(&conn, &format!("narration_tone.{}", character_id))
             .ok().flatten();
         let leader = get_setting(&conn, &format!("leader.{}", character_id)).ok().flatten();
@@ -2176,7 +2194,8 @@ pub async fn reset_to_message_cmd(
             let mood_enabled = get_setting(&conn, "mood_drift_enabled")
                 .ok().flatten().map(|v| v == "true").unwrap_or(true);
             let response_length = get_setting(&conn, &format!("response_length.{}", character_id))
-                .ok().flatten();
+                .ok().flatten()
+                .or_else(|| Some("Short".to_string()));
             let narration_tone = get_setting(&conn, &format!("narration_tone.{}", character_id))
                 .ok().flatten();
         let leader = get_setting(&conn, &format!("leader.{}", character_id)).ok().flatten();
