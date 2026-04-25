@@ -611,7 +611,6 @@ impl InvariantPiece {
     /// the f5c537a production toggle. Uncomment-history is preserved
     /// in git for trivial re-toggling.
     pub const DEFAULT_ORDER: &'static [InvariantPiece] = &[
-        InvariantPiece::TruthInTheFlesh,
         InvariantPiece::FrontLoadEmbodiment,
         InvariantPiece::Reverence,
         InvariantPiece::Daylight,
@@ -620,6 +619,7 @@ impl InvariantPiece {
         InvariantPiece::Soundness,
         InvariantPiece::Nourishment,
         InvariantPiece::TellTheTruth,
+        InvariantPiece::TruthInTheFlesh,
     ];
 
     pub fn from_cli_name(name: &str) -> Option<Self> {
