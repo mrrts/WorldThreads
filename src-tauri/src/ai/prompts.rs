@@ -4188,10 +4188,17 @@ pub fn world_state_without_location(state: &serde_json::Value) -> serde_json::Va
     cloned
 }
 
+/// Default location for chats that have never been moved. Every chat
+/// starts in the Town Square until the user changes it — both via the
+/// schema migration that backfills NULL chat rows and via this
+/// fallback in the LLM-facing derivation, so even chats with no
+/// location_change messages anchor the model in a real place.
+pub const DEFAULT_CHAT_LOCATION: &str = "Town Square";
+
 /// Walk the message history newest-first; the most recent
 /// `location_change` row's `to` field is the chat's current location.
-/// Returns None when no location_change exists yet (chat never had
-/// one set). Used by build_dialogue_messages to anchor the system
+/// Falls back to `DEFAULT_CHAT_LOCATION` when no location_change
+/// exists yet. Used by build_dialogue_messages to anchor the system
 /// prompt's CURRENT LOCATION line.
 pub fn derive_current_location(recent_messages: &[Message]) -> Option<String> {
     for m in recent_messages.iter().rev() {
@@ -4208,7 +4215,7 @@ pub fn derive_current_location(recent_messages: &[Message]) -> Option<String> {
             }
         }
     }
-    None
+    Some(DEFAULT_CHAT_LOCATION.to_string())
 }
 
 pub fn render_imagined_chapter_for_prompt(content: &str) -> String {

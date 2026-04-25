@@ -20,8 +20,10 @@ pub fn create_group_chat(conn: &Connection, gc: &GroupChat) -> Result<(), rusqli
         "INSERT INTO threads (thread_id, character_id, world_id) VALUES (?1, NULL, ?2)",
         params![gc.thread_id, gc.world_id],
     )?;
+    // current_location defaults to 'Town Square' for new group chats
+    // (matches solo-thread default + the schema-migration backfill).
     conn.execute(
-        "INSERT INTO group_chats (group_chat_id, world_id, character_ids, thread_id, display_name, created_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+        "INSERT INTO group_chats (group_chat_id, world_id, character_ids, thread_id, display_name, created_at, current_location) VALUES (?1, ?2, ?3, ?4, ?5, ?6, 'Town Square')",
         params![gc.group_chat_id, gc.world_id, gc.character_ids.to_string(), gc.thread_id, gc.display_name, gc.created_at],
     )?;
     Ok(())

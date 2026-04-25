@@ -768,6 +768,16 @@ pub fn run_migrations(conn: &Connection) -> Result<(), rusqlite::Error> {
         UPDATE worlds SET state = json_remove(state, '$.location') WHERE json_extract(state, '$.location') IS NOT NULL;
     ").ok();
 
+    // Default location: every chat starts in 'Town Square' until the
+    // user changes it. Backfill any existing NULL values across both
+    // individual chats (threads with character_id NOT NULL) and group
+    // chats. New chat creation sites also explicitly write 'Town
+    // Square'; the derive_current_location fallback in prompts.rs
+    // makes the default visible to the LLM even for brand-new chats
+    // that have no location_change messages yet.
+    conn.execute("UPDATE threads SET current_location = 'Town Square' WHERE current_location IS NULL AND character_id IS NOT NULL", []).ok();
+    conn.execute("UPDATE group_chats SET current_location = 'Town Square' WHERE current_location IS NULL", []).ok();
+
     // ── Canon entries ─────────────────────────────────────────────────────
     //
     // Records the user's deliberate promotion of a specific message moment
