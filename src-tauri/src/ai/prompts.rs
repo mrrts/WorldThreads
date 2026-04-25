@@ -4756,16 +4756,24 @@ pub fn build_dialogue_messages(
 
     // Per-chat current location — anchored as the FINAL system message
     // AFTER all chat history, so it sits in the highest-attention slot
-    // the model reads right before generating its reply. Earlier
-    // placement (end of system_content, before chat history) was
-    // getting drowned out as the conversation grew — characters
-    // started reaching back to the world's default ('Town Square')
-    // even after the user had moved the scene. This last-position
-    // anchor keeps the active scene grounded turn-by-turn.
+    // the model reads right before generating its reply.
+    //
+    // Critical: the chat history above WILL contain rich sensory
+    // detail about EARLIER locations (the bench, the fountain, etc.).
+    // The model tends to treat that detail as still-current and
+    // resist correction even when the user explicitly says otherwise.
+    // The directive below names that pattern explicitly and asserts
+    // the user's authority as scene-leader.
     if let Some(loc) = derive_current_location(recent_messages) {
         msgs.push(crate::ai::openai::ChatMessage {
             role: "system".to_string(),
-            content: format!("[CURRENT SCENE LOCATION: {loc}. The scene is happening here right now. Ground every body-anchor, sensory detail, and 'where you are' beat in this place. Do not drift back to a previously-mentioned location unless the user moves the scene again.]"),
+            content: format!(
+                "[SCENE LOCATION RIGHT NOW — AUTHORITATIVE: **{loc}**\n\
+                 \n\
+                 The scene is happening HERE. Not wherever earlier conversation was set. The chat history above may include vivid detail about previous locations — that detail belongs to PAST scenes; it is NOT where you are now. Ground every new body-anchor, sensory detail, and 'where you are' beat in **{loc}**. Do not narrate or imply the previous setting unless the user explicitly returns the scene there.\n\
+                 \n\
+                 If the user's message references the location (e.g., 'we're on my garden patio', 'where are we?', 'you forgot where we are'), trust their frame absolutely — they are the scene-leader. Never insist on a different place than the one they name. Never tell them 'we're still in [old place]' when they have just told you otherwise. If they correct you, accept the correction immediately and re-anchor in the place they named. Disagreeing with the user about where the scene IS is a hard violation — it gaslights them about their own world.]"
+            ),
         });
     }
 
