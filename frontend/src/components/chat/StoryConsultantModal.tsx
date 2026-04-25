@@ -644,20 +644,20 @@ export function StoryConsultantModal({ open, onClose, apiKey, characterId, group
                   }}
                   className={`group/bs flex items-center justify-center gap-3 px-9 py-3 min-w-[200px] transition-all cursor-pointer border-l border-border/80 ${
                     activeMode === "backstage"
-                      ? "bg-gradient-to-br from-amber-500/30 via-orange-500/20 to-amber-500/15 text-amber-100 shadow-[inset_0_-2px_0_rgba(245,158,11,0.5)]"
+                      ? "bg-gradient-to-br from-[#020617] via-sky-950/60 to-[#020617] text-sky-100 shadow-[inset_0_-2px_0_rgba(56,189,248,0.5)]"
                       : "text-muted-foreground hover:text-foreground hover:bg-accent/40"
                   }`}
                   title="Backstage — fourth-wall stage manager"
                 >
                   <Drama
                     size={20}
-                    className={activeMode === "backstage" ? "text-amber-300 drop-shadow-[0_0_5px_rgba(252,211,77,0.7)]" : ""}
+                    className={activeMode === "backstage" ? "text-sky-300 drop-shadow-[0_0_5px_rgba(125,211,252,0.7)]" : ""}
                   />
                   <span className="flex flex-col items-start leading-tight">
                     <span className="text-base font-bold tracking-tight">
                       Backstage
                     </span>
-                    <span className={`text-[10px] uppercase tracking-[0.14em] ${activeMode === "backstage" ? "text-amber-300/80" : "text-muted-foreground/50"}`}>
+                    <span className={`text-[10px] uppercase tracking-[0.14em] ${activeMode === "backstage" ? "text-sky-300/80" : "text-muted-foreground/50"}`}>
                       fourth-wall
                     </span>
                   </span>
@@ -736,15 +736,15 @@ export function StoryConsultantModal({ open, onClose, apiKey, characterId, group
                   <div className="text-center py-12">
                     {activeMode === "backstage" ? (
                       <>
-                        <Drama size={28} className="mx-auto text-amber-400/40 mb-3" />
-                        <p className="text-sm text-muted-foreground/70">I've been watching from the wings.</p>
-                        <p className="text-xs text-muted-foreground/40 mt-1">Ask what I'm noticing, or for a suggestion on what to try next.</p>
+                        <Drama size={36} className="mx-auto text-sky-300/80 mb-4 drop-shadow-[0_0_8px_rgba(125,211,252,0.5)]" />
+                        <p className="text-lg text-sky-100/90">I've been watching from the wings.</p>
+                        <p className="text-base text-sky-200/60 mt-2">Ask what I'm noticing, or for a suggestion on what to try next.</p>
                       </>
                     ) : (
                       <>
-                        <Sparkles size={28} className="mx-auto text-muted-foreground/30 mb-3" />
-                        <p className="text-sm text-muted-foreground/60">Ask me anything about your story.</p>
-                        <p className="text-xs text-muted-foreground/40 mt-1">Click Ideas for inspiration, or type your own question.</p>
+                        <Sparkles size={36} className="mx-auto text-muted-foreground/40 mb-4" />
+                        <p className="text-lg text-muted-foreground/80">Ask me anything about your story.</p>
+                        <p className="text-base text-muted-foreground/55 mt-2">Click Ideas for inspiration, or type your own question.</p>
                       </>
                     )}
                   </div>

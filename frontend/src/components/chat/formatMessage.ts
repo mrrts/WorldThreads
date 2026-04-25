@@ -267,7 +267,7 @@ function consultantInlineCode({ children }: { children?: React.ReactNode }) {
   }
   return React.createElement(
     "code",
-    { className: "px-1 py-0.5 rounded bg-muted/40 text-[0.9em]" },
+    { className: "px-1 py-0.5 rounded bg-muted/40 text-[0.9em] text-foreground" },
     children,
   );
 }
