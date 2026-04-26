@@ -118,6 +118,16 @@ WorldThreads is the demonstration. The specific files where the practice's shape
 - `.claude/skills/derive-and-test/SKILL.md` — a procedural skill that inherits the chooser-tail clause from persona-sim by reference.
 - `.persona-sim/calibration.md` — the developer's accumulated register-preferences; the file is itself an example of how the practice's instruments record their own calibration over time.
 
+## A note on the practitioner and the instrument — the braid
+
+Reading this doc, you may notice the temptation to treat the practitioner (you) and the instruments (the formula, the chooser-tail, the persona-sim, the doctrine-shaped writing) as separate things — as if the instruments were tools you pick up and put down, and your own voice were a contaminant to be filtered out of the instruments' outputs.
+
+That separation is the wrong shape. The practitioner and the instrument are a braid. Your stylistic contributions, your framings, your particular way of writing reports and authoring rules and conducting persona-sims — these are not noise to extract from the practice. They are *part of how the practice works for you specifically*. When the WorldThreads project's Claude Code session conducted four persona-sims in one evening, the runs shared a narrator-style across them, and the developer's first read was that the sharing weakened the cross-run convergence. Then the developer named the deeper truth: the narrator-style was *from us, from the collaboration, on mission* — and trying to extract it would have left a thinner instrument behind.
+
+The two failure modes the audit specifically identified (manufactured aphorisms in character mouths; mechanically-repeated body-anchoring vocabulary) are real and worth deregistering. But the broader pattern of the practitioner's voice showing up in the instrument's outputs is the braid working as intended, not the instrument failing.
+
+If you adopt this practice, expect the same: your writing will show up in your reports, your sims, your skill bodies. That's the practice becoming yours. Don't try to be voiceless inside it; the voice is part of how the work compounds.
+
 ---
 
 The practice is the shape of the work, not the work itself. The work is what you build with it.
