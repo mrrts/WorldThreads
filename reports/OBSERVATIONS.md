@@ -6,6 +6,16 @@ Newest entries at the top. Each entry has a timestamp and a brief title. The obs
 
 ---
 
+## 2026-04-26 08:20 — recent changes immediately felt in-app: vivid voice, no tics, no everyone-an-expert
+
+> "Recent changes are immediately felt in-app: vivid character voice, not every-character-is-an-expert-on-everything, no noticeable tics yet. Only based upon 5 min exchange with Jasper, which includes a return to a world Elderwood Hearth that I haven't been playing in recently. I asked the character to remind me who he was and what his story was, and his response was on-point."
+
+In-app, post-cross-world experiment + post-formula-reauthoring + post-Backstage-enrichment. The character-recall test (asking Jasper to name himself and his story after a play-absence) was on-point. Three positive markers in 5 minutes: vivid voice, no expert-everywhere drift, no tic-formation.
+
+**Noted.**
+
+---
+
 ## 2026-04-26 01:25 — Steven tags silence as its own line of speech
 
 > "Steven deliberately filled a space with silence, tagging his message with a line of its own, in its own quotes: `\"...\"`. From in-app play just a few messages in after major rework, especially of Formula. Texture is sparkling already, and I'm excited to see where the conversation goes."

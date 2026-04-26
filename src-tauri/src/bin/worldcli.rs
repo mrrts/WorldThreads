@@ -657,6 +657,16 @@ enum Cmd {
         /// behavior. Default false (anchors injected as in production).
         #[arg(long)]
         no_anchor: bool,
+        /// Override the world's description text in the dialogue
+        /// prompt's WORLD section for this call. Use to test
+        /// cross-world derivation effects (what would this character
+        /// say if their world were replaced by [foreign world's
+        /// description]?). The character's other anchors stay intact;
+        /// only the world description is swapped. Pure substrate-swap
+        /// — no preamble injection, no fourth-wall break. See
+        /// reports/2026-04-26-0815 for the worked motivation.
+        #[arg(long)]
+        world_description_override: Option<String>,
     },
 
     // ── runs (read your own prior investigations) ──
@@ -1347,14 +1357,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             };
             cmd_refresh_anchor(&r, &api_key, &character_id, model.as_deref(), confirm_cost).await
         }
-        Cmd::Ask { character_id, message, session, model, confirm_cost, question_summary, no_anchor } => {
+        Cmd::Ask { character_id, message, session, model, confirm_cost, question_summary, no_anchor, world_description_override } => {
             let api_key = match resolve_api_key(cli.api_key.as_deref()) {
                 Some(k) => k,
                 None => return Err(Box::<dyn std::error::Error>::from(
                     "No API key. Set OPENAI_API_KEY, pass --api-key, or add to keychain via:\n  security add-generic-password -s WorldThreadsCLI -a openai -w \"<sk-...>\"".to_string()
                 )),
             };
-            cmd_ask(&r, &api_key, &character_id, &message, session.as_deref(), model.as_deref(), confirm_cost, question_summary.as_deref(), no_anchor).await
+            cmd_ask(&r, &api_key, &character_id, &message, session.as_deref(), model.as_deref(), confirm_cost, question_summary.as_deref(), no_anchor, world_description_override.as_deref()).await
         }
         Cmd::RunsList { limit } => cmd_runs_list(&r, limit),
         Cmd::RunsShow { id } => cmd_runs_show(&r, &id),
@@ -5820,6 +5830,7 @@ async fn cmd_ask(
     confirm_cost: Option<f64>,
     question_summary: Option<&str>,
     no_anchor: bool,
+    world_description_override: Option<&str>,
 ) -> Result<(), Box<dyn std::error::Error>> {
     let _ = r.check_character(character_id)?;
 
@@ -5827,7 +5838,17 @@ async fn cmd_ask(
     let (system_prompt, model_config, prior_messages, session_id, character, world_id) = {
         let conn = r.db.conn.lock().unwrap();
         let character = get_character(&conn, character_id)?;
-        let world = get_world(&conn, &character.world_id)?;
+        let mut world = get_world(&conn, &character.world_id)?;
+        // Cross-world derivation experiments: swap the world's
+        // description text for the foreign world's derivation, leaving
+        // every other field (name, invariants, tone_tags, state) intact.
+        // Pure substrate-swap of the WORLD-section text the dialogue
+        // prompt builder consumes. See reports/2026-04-26-0815 for
+        // the worked motivation, and reports/2026-04-26-* for follow-up
+        // characterization runs that use this flag.
+        if let Some(desc_override) = world_description_override {
+            world.description = desc_override.to_string();
+        }
         let user_profile = get_user_profile(&conn, &character.world_id).ok();
         let recent_journals = list_journal_entries(&conn, character_id, 1).unwrap_or_default();
         let active_quests = list_active_quests(&conn, &character.world_id).unwrap_or_default();
