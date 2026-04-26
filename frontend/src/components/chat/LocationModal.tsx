@@ -141,7 +141,7 @@ export function LocationModal({
       onClick={onClose}
     >
       <div
-        className="bg-card border border-border rounded-xl shadow-2xl shadow-black/50 w-full max-w-md mx-4 overflow-hidden"
+        className="bg-card border border-border rounded-xl shadow-2xl shadow-black/50 w-full max-w-md mx-4"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between px-5 py-3 border-b border-border/50">
@@ -219,7 +219,7 @@ export function LocationModal({
                 </button>
 
                 {dropdownOpen && (
-                  <div className="absolute left-0 right-0 top-full mt-1.5 z-30 rounded-lg border border-border bg-card shadow-2xl shadow-black/40 overflow-hidden animate-in fade-in slide-in-from-top-1 duration-150">
+                  <div className="absolute left-0 right-0 top-full mt-1.5 z-50 rounded-lg border border-border bg-card shadow-2xl shadow-black/40 overflow-hidden animate-in fade-in slide-in-from-top-1 duration-150">
                     <div className="max-h-72 overflow-y-auto py-1">
                       {places.map((p) => (
                         <SavedPlaceRow
