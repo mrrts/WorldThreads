@@ -100,14 +100,19 @@ def _strip_code(text: str) -> str:
 
 
 def last_user_message_text(transcript_path: str) -> str:
-    """Return the text of the most-recent user-TYPED message.
+    """Return the text of the most-recent user INPUT.
 
-    Bug fix: user records in the transcript include both actually-typed
-    messages AND tool_result returns (Bash output, AskUserQuestion
-    answers). Walking all user records and overwriting `last` on every
-    iteration meant the function nearly always returned a tool_result
-    string (or empty). Only update `last` when the message actually
-    contains text content typed by the user.
+    User input has two valid surfaces:
+      1. Typed text in the input box → string content OR text blocks.
+      2. AskUserQuestion answer (incl. chooser-Other free-text notes)
+         → tool_result content that starts with 'User has answered'.
+
+    NOT user input (excluded):
+      - Bash / Edit / Read / Glob / Grep tool_results — those are
+        system acks of operations Claude initiated, not user instructions.
+
+    Walk the transcript; only update `last` when we encounter a record
+    that matches one of the two valid input surfaces above.
     """
     p = pathlib.Path(transcript_path)
     if not p.exists():
@@ -126,16 +131,32 @@ def last_user_message_text(transcript_path: str) -> str:
                 content = msg.get("content")
                 extracted = ""
                 if isinstance(content, str):
+                    # Plain typed text — always counts.
                     extracted = content
                 elif isinstance(content, list):
                     parts = []
                     for b in content:
-                        if isinstance(b, dict) and b.get("type") == "text":
+                        if not isinstance(b, dict):
+                            continue
+                        if b.get("type") == "text":
+                            # Plain typed text block — always counts.
                             parts.append(b.get("text", ""))
+                        elif b.get("type") == "tool_result":
+                            tr = b.get("content", "")
+                            tr_text = ""
+                            if isinstance(tr, str):
+                                tr_text = tr
+                            elif isinstance(tr, list):
+                                for tb in tr:
+                                    if isinstance(tb, dict) and tb.get("type") == "text":
+                                        tr_text += tb.get("text", "")
+                            # Only count tool_result if it's the
+                            # AskUserQuestion answer envelope — those start
+                            # with "User has answered". Skip Bash / Edit /
+                            # Read / etc. acknowledgments.
+                            if tr_text.lstrip().startswith("User has answered"):
+                                parts.append(tr_text)
                     extracted = "\n".join(parts)
-                # Only update `last` if we got real text — a message that
-                # is purely tool_result blocks yields empty extracted and
-                # should NOT overwrite the prior actually-typed message.
                 if extracted.strip():
                     last = extracted
     except Exception:
