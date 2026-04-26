@@ -220,7 +220,7 @@ export function GroupChatView({ store, onNavigateToCharacter }: Props) {
     narrationTone, setNarrationTone,
     narrationInstructions, setNarrationInstructions,
     responseLength, setResponseLength,
-    reactionsEnabled, setReactionsEnabled,
+    reactionsMode, setReactionsMode,
     narrationDirty, setNarrationDirty,
     playingVideo, setPlayingVideo,
     loopVideo, setLoopVideo,
@@ -437,15 +437,15 @@ export function GroupChatView({ store, onNavigateToCharacter }: Props) {
     narrationTone: string;
     narrationInstructions: string;
     responseLength: string;
-    reactionsEnabled: boolean;
+    reactionsMode: "off" | "occasional" | "always";
     chatId: string;
   } | null>(null);
   useEffect(() => {
     if (!chatId) { lastSavedSettingsRef.current = null; return; }
     if (!narrationDirty) {
-      lastSavedSettingsRef.current = { narrationTone, narrationInstructions, responseLength, reactionsEnabled, chatId };
+      lastSavedSettingsRef.current = { narrationTone, narrationInstructions, responseLength, reactionsMode, chatId };
     }
-  }, [chatId, narrationDirty, narrationTone, narrationInstructions, responseLength, reactionsEnabled]);
+  }, [chatId, narrationDirty, narrationTone, narrationInstructions, responseLength, reactionsMode]);
 
   // Auto-save chat settings + record a settings_update message in chat
   // history when something actually changed.
@@ -456,7 +456,7 @@ export function GroupChatView({ store, onNavigateToCharacter }: Props) {
         api.setSetting(`narration_tone.${chatId}`, narrationTone),
         api.setSetting(`narration_instructions.${chatId}`, narrationInstructions),
         api.setSetting(`response_length.${chatId}`, responseLength),
-        api.setSetting(`reactions_enabled.${chatId}`, reactionsEnabled ? "true" : "false"),
+        api.setSetting(`reactions_enabled.${chatId}`, reactionsMode),
       ]);
       const prev = lastSavedSettingsRef.current;
       if (prev && prev.chatId === chatId) {
@@ -475,8 +475,9 @@ export function GroupChatView({ store, onNavigateToCharacter }: Props) {
           };
           changes.push({ key: "narration_instructions", label: "Narration Instructions", from: abbrev(prev.narrationInstructions), to: abbrev(narrationInstructions) });
         }
-        if (prev.reactionsEnabled !== reactionsEnabled) {
-          changes.push({ key: "reactions_enabled", label: "Character Reactions", from: prev.reactionsEnabled ? "On" : "Off", to: reactionsEnabled ? "On" : "Off" });
+        if (prev.reactionsMode !== reactionsMode) {
+          const labelFor = (m: string) => m === "always" ? "Always" : m === "occasional" ? "Occasionally" : "Off";
+          changes.push({ key: "reactions_enabled", label: "Character Reactions", from: labelFor(prev.reactionsMode), to: labelFor(reactionsMode) });
         }
         if (changes.length > 0) {
           const threadId = store.messages.find((m) => m.thread_id)?.thread_id ?? null;
@@ -488,11 +489,11 @@ export function GroupChatView({ store, onNavigateToCharacter }: Props) {
           }
         }
       }
-      lastSavedSettingsRef.current = { narrationTone, narrationInstructions, responseLength, reactionsEnabled, chatId };
+      lastSavedSettingsRef.current = { narrationTone, narrationInstructions, responseLength, reactionsMode, chatId };
       setNarrationDirty(false);
     }, 600);
     return () => clearTimeout(timer);
-  }, [narrationTone, narrationInstructions, responseLength, reactionsEnabled, narrationDirty, chatId, store]);
+  }, [narrationTone, narrationInstructions, responseLength, reactionsMode, narrationDirty, chatId, store]);
 
   const insertEmojiAtCursor = useCallback((emoji: string) => {
     const ta = inputRef.current;
@@ -1276,7 +1277,7 @@ export function GroupChatView({ store, onNavigateToCharacter }: Props) {
                     />
                     {/* Suppressed when reactions are toggled off — otherwise the throbbing
                         pill misleads the user into thinking a reaction is incoming. */}
-                    {isUser && isSending && msgIdx === filteredMsgs.length - 1 && reactionsEnabled && (
+                    {isUser && isSending && msgIdx === filteredMsgs.length - 1 && reactionsMode !== "off" && (
                       <span
                         className="inline-flex items-center gap-1.5 text-sm rounded-full px-3 py-1.5 animate-pulse text-white shadow-md"
                         style={{ background: "linear-gradient(90deg, #f472b6 0%, #a78bfa 50%, #60a5fa 100%)" }}
@@ -1655,20 +1656,31 @@ export function GroupChatView({ store, onNavigateToCharacter }: Props) {
                 </div>
                 <div className="flex items-center justify-between gap-3">
                   <div className="flex flex-col">
-                    <label className="text-xs font-medium text-muted-foreground">Character Reactions</label>
-                    <span className="text-[10px] text-muted-foreground/60">Emoji reactions on your messages</span>
+                    <label className="text-xs font-medium text-muted-foreground">Reactions</label>
+                    <span className="text-[10px] text-muted-foreground/60">How often characters emoji-react</span>
                   </div>
-                  <button
-                    onClick={() => { setReactionsEnabled(!reactionsEnabled); setNarrationDirty(true); }}
-                    className={`relative inline-flex h-5 w-9 flex-shrink-0 items-center rounded-full transition-colors cursor-pointer ${
-                      reactionsEnabled ? "bg-primary" : "bg-input"
-                    }`}
-                    aria-label="Toggle character reactions"
-                  >
-                    <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow-sm transition-transform ${
-                      reactionsEnabled ? "translate-x-[18px]" : "translate-x-[3px]"
-                    }`} />
-                  </button>
+                  <div className="inline-flex rounded-lg overflow-hidden border border-input bg-background">
+                    {([
+                      { mode: "off" as const,        glyph: "🚫",     title: "Off — no reactions" },
+                      { mode: "occasional" as const, glyph: "😀",     title: "Occasionally — text-message-realistic, ~1-in-4 messages" },
+                      { mode: "always" as const,     glyph: "😀😀😀", title: "Always — every message gets a reaction" },
+                    ]).map(({ mode, glyph, title }) => (
+                      <button
+                        key={mode}
+                        onClick={() => { setReactionsMode(mode); setNarrationDirty(true); }}
+                        title={title}
+                        className={`px-2.5 py-1 text-sm leading-none transition-colors cursor-pointer ${
+                          reactionsMode === mode
+                            ? "bg-primary text-primary-foreground"
+                            : "text-muted-foreground hover:text-foreground hover:bg-accent/50"
+                        }`}
+                        aria-label={title}
+                        aria-pressed={reactionsMode === mode}
+                      >
+                        {glyph}
+                      </button>
+                    ))}
+                  </div>
                 </div>
                 <div>
                   <label className="text-xs font-medium text-muted-foreground block mb-1.5">Custom Instructions</label>

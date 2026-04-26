@@ -2083,6 +2083,24 @@ Rules:
 ///
 /// Cheap call: ~12 output tokens, temperature 0.9. On failure the caller
 /// should fall back to `prompts::pick_character_reaction_emoji`.
+/// Pick a single emoji that captures what the CHARACTER FEELS in
+/// response to the user's message.
+///
+/// `mode` controls the LLM's calibration:
+/// - `"always"` — current behavior; the LLM picks the truest emoji and
+///   returns it. If the response can't be parsed, returns Err (caller
+///   may fall back to a deterministic emoji).
+/// - `"occasional"` — the LLM is told it has a ~25% fire-rate budget
+///   and may return blank when the moment doesn't fit a reaction. It
+///   sees recent reactions in `recent_context` and self-paces against
+///   that budget. Returns `Ok(None)` when the LLM intentionally skips.
+/// - `"off"` (or unknown) — defensive: returns `Ok(None)` without
+///   making an API call. The gate at the call site usually handles
+///   this earlier.
+///
+/// Returns `Ok(Some(emoji))` when a reaction was picked, `Ok(None)`
+/// when intentionally skipped (no emit; no fallback), `Err(...)` on
+/// real failures.
 pub async fn pick_character_reaction_via_llm(
     base_url: &str,
     api_key: &str,
@@ -2090,7 +2108,11 @@ pub async fn pick_character_reaction_via_llm(
     user_message: &str,
     mood_reduction: &[String],
     recent_context: &[Message],
-) -> Result<String, String> {
+    mode: &str,
+) -> Result<Option<String>, String> {
+    if mode == "off" {
+        return Ok(None);
+    }
     let atmosphere = if mood_reduction.is_empty() {
         String::new()
     } else {
@@ -2121,7 +2143,39 @@ pub async fn pick_character_reaction_via_llm(
     };
 
     let system = format!(
-        r#"You pick a single emoji that captures what the CHARACTER FEELS in response to the user's message. The character's own internal state — not the theme of the conversation, not the atmosphere of the scene, not the topic being discussed.
+        r#"# REACTION-PICKER REGISTER
+
+You operate in the text-message reaction register. Per-character derivation of F = (R, C_text-message-reactions):
+
+\[
+F_{{tm}} := (R,\ C_{{\text{{text-message-reaction}}}})
+\]
+
+\[
+\mathrm{{specific}}_c := \text{{single emoji = what THIS character feels RIGHT NOW}}
+\]
+
+\[
+\mathrm{{seek}}_c := \text{{glance at scene + recent reactions; calibrate density before density-blind firing}}
+\]
+
+\[
+\Pi := \text{{breath of the character noticing — light, in-stride, never solemn-on-cue}}
+\]
+
+\[
+\mathrm{{polish}} \leq \mathrm{{Weight}}\ \text{{strict}}; \quad \text{{performance-emoji}} > \text{{felt-emoji}}\ \text{{is the failure mode}}
+\]
+
+**In plain English:**
+- Text-message reactions are CHARACTER-FEELING-RIGHT-NOW, not scene-rating or topic-flagging.
+- A face beats a thematic emoji unless the thematic IS the felt state.
+- Reactions ride the texture of the thread — too many in a row reads as performance, not reception.
+- Most messages don't carry a reaction; the ones that do are caught, not chosen.
+
+═══════════════════════════════════════════════
+
+You pick a single emoji that captures what the CHARACTER FEELS in response to the user's message. The character's own internal state — not the theme of the conversation, not the atmosphere of the scene, not the topic being discussed.
 
 Lean hard on FACES and HEARTS. These carry felt state directly. Ambient or thematic emojis (🕊️, 🕯️, 🌙, 🌧️, ⏳, ✝️, 🌱) are permitted ONLY if they genuinely represent the character's interior *right now* — not just the mood in the air or the subject of conversation. When in doubt, reach for a face.
 
@@ -2131,7 +2185,10 @@ Guidelines (tendencies, not walls — the goal is the truest single-emoji read o
 - FEELING OVER AMBIENCE, USUALLY. Don't paint the weather when you could paint the interior. A reverent conversation doesn't automatically mean 🕊️ — it might mean 🥹 (moved) or 🫣 (struck). Same exception: if the ambient emoji IS the character's interior right now, use it.
 - LITERAL READS ARE OCCASIONALLY RIGHT. "Land a moment" → 🎯 is usually the laziest possible pick, reading words instead of register. But if the character genuinely feels a small targeting-click of understanding, 🎯 can be exactly it. Literal reads have to earn their way in; don't pick them as a default.
 - ACHIEVEMENT-FAMILY EMOJIS, SPARINGLY. 🎯 💯 ✅ 🏆 👏 💪 (and 🔥-for-approval) occasionally catch real humor, whimsy, or shared delight — and when they do, they're great. Most of the time they collapse into rating the message. Reach for one only when it IS the character's felt state, not when it evaluates the user's.
-- MATCH THE REGISTER. Light moment → light feeling. Reverent moment → quiet feeling. Heavy moment → held feeling.{scene}{atmosphere}"#
+- MATCH THE REGISTER. Light moment → light feeling. Reverent moment → quiet feeling. Heavy moment → held feeling.{scene}{atmosphere}{occasional_calibration}"#,
+        occasional_calibration = if mode == "occasional" {
+            "\n\n# OCCASIONAL-MODE BUDGET\nThis chat is in OCCASIONAL reactions mode. Real text-message texture: most messages get NO reaction; only ~1-in-4 do. Look at the immediate scene above — count how many of the last few exchanges already received a reaction. If reactions are already firing on most of them, this one almost certainly should NOT. Reserve reactions for moments that genuinely catch the character — a real beat of feeling, not a filler-reaction on every message.\n\nIf this moment doesn't earn a reaction, output a single em-dash and nothing else: —\n\nOtherwise output the single best emoji per the guidelines above. The em-dash IS valid output here; do not force an emoji onto a moment that doesn't carry one."
+        } else { "" }
     );
 
     let messages = vec![
@@ -2152,16 +2209,33 @@ Guidelines (tendencies, not walls — the goal is the truest single-emoji read o
         .map(|c| c.message.content.trim().to_string())
         .unwrap_or_default();
 
+    // Detect the intentional-skip signal first (em-dash, en-dash, or
+    // hyphen — any of these from "occasional" mode means "this moment
+    // doesn't fit a reaction"). Strip whitespace + quotes; if what's
+    // left is a dash-class char, the LLM intentionally skipped.
+    let pre_filter: String = raw.chars()
+        .filter(|c| !c.is_whitespace() && !matches!(c, '"' | '\''))
+        .collect();
+    if pre_filter == "—" || pre_filter == "–" || pre_filter == "-" {
+        return Ok(None);
+    }
+
     let cleaned: String = raw.chars()
         .filter(|c| !c.is_whitespace() && !matches!(c, '"' | '\'' | '.' | ',' | '!' | '?' | ':' | ';'))
         .take(8)
         .collect();
 
     if cleaned.is_empty() || !cleaned.chars().any(|c| !c.is_ascii()) {
+        // For occasional mode, treat unparseable / no-emoji outputs as
+        // a skip rather than an error. The LLM may have written prose
+        // ("none") instead of "—"; honor the intent.
+        if mode == "occasional" {
+            return Ok(None);
+        }
         return Err(format!("no emoji in LLM response: {raw:?}"));
     }
 
-    Ok(cleaned)
+    Ok(Some(cleaned))
 }
 
 /// Weave a deeper-truth moment from a conversation into a subject's

@@ -83,7 +83,11 @@ export function useChatState({ store, chatId, chatType }: UseChatStateOptions) {
   const [narrationTone, setNarrationTone] = useState("Cinematic");
   const [narrationInstructions, setNarrationInstructions] = useState("");
   const [responseLength, setResponseLength] = useState("Short");
-  const [reactionsEnabled, setReactionsEnabled] = useState(false);
+  // Three-mode reactions setting: "off" | "occasional" | "always".
+  // Default "off" per the persona-sim convergence (commit a8a7b0c).
+  // "occasional" produces text-message-realistic reactions (~25% of
+  // user messages); the LLM self-paces against that budget.
+  const [reactionsMode, setReactionsMode] = useState<"off" | "occasional" | "always">("off");
   const [narrationDirty, setNarrationDirty] = useState(false);
   const [playingVideo, setPlayingVideo] = useState<string | null>(null);
   const [loopVideo, setLoopVideo] = useState<Record<string, boolean>>({});
@@ -128,10 +132,14 @@ export function useChatState({ store, chatId, chatType }: UseChatStateOptions) {
       setNarrationTone(tone || "Cinematic");
       setNarrationInstructions(instructions || "");
       setResponseLength(length || "Short");
-      // Reactions default OFF when missing (matches backend default —
-      // see chat_cmds.rs comment for persona-sim evidence). Stored as
-      // "true"/"false"; absent means use default.
-      setReactionsEnabled(reactions === "true" || reactions === "on");
+      // Three-mode parsing matches Rust reactions_helpers.rs: "off" /
+      // "occasional" / "always", with legacy "true"/"on" → "always",
+      // legacy "false"/missing → "off".
+      const m = (reactions || "").trim().toLowerCase();
+      const parsed: "off" | "occasional" | "always" =
+        m === "always" || m === "true" || m === "on" ? "always" :
+        m === "occasional" ? "occasional" : "off";
+      setReactionsMode(parsed);
       setNarrationDirty(false);
     });
   }, [chatId]);
@@ -451,7 +459,7 @@ export function useChatState({ store, chatId, chatType }: UseChatStateOptions) {
     narrationTone, setNarrationTone,
     narrationInstructions, setNarrationInstructions,
     responseLength, setResponseLength,
-    reactionsEnabled, setReactionsEnabled,
+    reactionsMode, setReactionsMode,
     narrationDirty, setNarrationDirty,
     playingVideo, setPlayingVideo,
     loopVideo, setLoopVideo,

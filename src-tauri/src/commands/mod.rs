@@ -16,6 +16,7 @@ pub mod mood_cmds;
 pub mod novel_cmds;
 pub mod portrait_cmds;
 pub mod reaction_cmds;
+pub mod reactions_helpers;
 pub mod settings_cmds;
 pub mod usage_cmds;
 pub mod user_profile_cmds;

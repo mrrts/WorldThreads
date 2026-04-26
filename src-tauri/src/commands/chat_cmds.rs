@@ -392,7 +392,7 @@ pub async fn send_message_cmd(
     let (world, character, thread, recent_msgs, model_config,
          retrieved, should_run_maintenance, user_profile,
          current_mood, mood_enabled, mood_drift_rate, response_length, narration_tone, leader,
-         reactions_enabled) = {
+         reactions_mode) = {
         let conn = db.conn.lock().map_err(|e| e.to_string())?;
         let character = get_character(&conn, &character_id).map_err(|e| e.to_string())?;
         let world = get_world(&conn, &character.world_id).map_err(|e| e.to_string())?;
@@ -473,24 +473,25 @@ pub async fn send_message_cmd(
         let narration_tone = get_setting(&conn, &format!("narration_tone.{}", character_id))
             .ok().flatten();
         let leader = get_setting(&conn, &format!("leader.{}", character_id)).ok().flatten();
-        // Per-chat reactions toggle. Defaults OFF when missing — two
-        // persona-sims (lonely-companion-user 2026-04-25-2355 and
-        // maggie-refresh 2026-04-26-0000) converged on the finding that
-        // the word "reactions" reads as surveillance to depleted-and-
-        // skeptical first-time users; defaulting ON puts the toggle in
-        // the wrong position for the user-shape WorldThreads is for.
-        // Users who want the texture (the original ON-by-default
-        // rationale) can flip on via the chat-settings UI; both the LLM
-        // call AND the emit are skipped when disabled.
-        let reactions_enabled = get_setting(&conn, &format!("reactions_enabled.{}", character_id))
-            .ok().flatten()
-            .map(|v| v != "false" && v != "off")
-            .unwrap_or(false);
+        // Per-chat reactions setting. Three modes: "off" | "occasional"
+        // | "always". Default OFF (per the persona-sim convergence —
+        // see commit a8a7b0c). "occasional" produces realistic-text-
+        // message-feeling reactions on ~25% of user messages: the LLM
+        // emoji-picker is given a budget and decides per-moment whether
+        // to skip (looking at recent reactions in chat history to self-
+        // pace). NOT deterministic-skip in code — that approach was
+        // tried and rejected per Ryan's calibration note. See
+        // reactions_helpers.rs for parsing; orchestrator.rs::
+        // pick_character_reaction_via_llm for the LLM-side calibration.
+        let reactions_mode = crate::commands::reactions_helpers::parse_reactions_mode(
+            get_setting(&conn, &format!("reactions_enabled.{}", character_id))
+                .ok().flatten().as_deref()
+        ).to_string();
 
         (world, character, thread, recent_msgs, model_config,
          retrieved, should_run_maintenance, user_profile,
          current_mood, mood_enabled, mood_drift_rate, response_length, narration_tone, leader,
-         reactions_enabled)
+         reactions_mode)
     };
 
     let (wd, wt) = world_time_fields(&world);
@@ -663,14 +664,14 @@ pub async fn send_message_cmd(
     // (cost + latency saving, not just UI hiding).
     let reaction_context: Vec<Message> = recent_msgs.iter()
         .rev().skip(1).take(4).rev().cloned().collect();
-    let (dialogue_res, reaction_res) = if reactions_enabled {
+    let (dialogue_res, reaction_res) = if reactions_mode != "off" {
         let reaction_fut = orchestrator::pick_character_reaction_via_llm(
             &base, &api_key, &model_config.dialogue_model,
-            &content, &mood_reduction, &reaction_context,
+            &content, &mood_reduction, &reaction_context, &reactions_mode,
         );
         tokio::join!(dialogue_fut, reaction_fut)
     } else {
-        (dialogue_fut.await, Err("reactions disabled".to_string()))
+        (dialogue_fut.await, Ok(None))
     };
     let (mut reply_text, mut dialogue_usage) = dialogue_res?;
 
@@ -785,21 +786,30 @@ pub async fn send_message_cmd(
         (user_message, msg)
     };
 
-    // Phase 6: Character-side reaction (from the parallel pick above, with
-    // chain-based fallback if the LLM call failed). Skipped entirely
-    // when reactions_enabled is false — no fallback emoji either; the
-    // user wants no reaction to appear.
-    let ai_reactions: Vec<Reaction> = if !reactions_enabled {
-        Vec::new()
-    } else {
-        let reaction_emoji = reaction_res
-            .unwrap_or_else(|_| prompts::pick_character_reaction_emoji(&mood_chain));
-        emit_character_reaction(
-            &db,
-            &user_message.message_id,
-            &reaction_emoji,
-            Some(&character.character_id),
-        )
+    // Phase 6: Character-side reaction. Three outcomes per the three
+    // reactions modes:
+    //   - "off"        → no LLM call was made; no emit.
+    //   - "occasional" → LLM may have intentionally skipped (Ok(None));
+    //                    if so, no emit. If it picked an emoji, emit it.
+    //                    If LLM call errored, no fallback emoji (occasional
+    //                    is permissive about skipping).
+    //   - "always"     → LLM call was made; if it returned an emoji emit
+    //                    it; if it errored fall back to the deterministic
+    //                    chain-based pick (preserves prior "always-emit"
+    //                    behavior).
+    let ai_reactions: Vec<Reaction> = match reactions_mode.as_str() {
+        "off" => Vec::new(),
+        "occasional" => match reaction_res {
+            Ok(Some(emoji)) => emit_character_reaction(&db, &user_message.message_id, &emoji, Some(&character.character_id)),
+            _ => Vec::new(),
+        },
+        _ /* always */ => {
+            let reaction_emoji = match reaction_res {
+                Ok(Some(emoji)) => emoji,
+                _ => prompts::pick_character_reaction_emoji(&mood_chain),
+            };
+            emit_character_reaction(&db, &user_message.message_id, &reaction_emoji, Some(&character.character_id))
+        }
     };
 
     // Phase 7: Generate embeddings for new messages — requires OpenAI, skip for LM Studio
@@ -2197,7 +2207,7 @@ pub async fn reset_to_message_cmd(
     // Phase 3: If the anchor is a user message in a 1-on-1 chat, generate a new character response
     // (Skip for group chats — no automatic re-generation)
     if anchor_role == "user" && !is_group {
-        let (recent_msgs, retrieved, user_profile, current_mood, mood_enabled, response_length, narration_tone, leader, reactions_enabled) = {
+        let (recent_msgs, retrieved, user_profile, current_mood, mood_enabled, response_length, narration_tone, leader, reactions_mode) = {
             let conn = db.conn.lock().map_err(|e| e.to_string())?;
             let recent_msgs = list_messages_within_budget(&conn, &thread_id, model_config.safe_history_budget() as i64, 30).map_err(|e| e.to_string())?;
 
@@ -2226,12 +2236,12 @@ pub async fn reset_to_message_cmd(
             let narration_tone = get_setting(&conn, &format!("narration_tone.{}", character_id))
                 .ok().flatten();
         let leader = get_setting(&conn, &format!("leader.{}", character_id)).ok().flatten();
-            let reactions_enabled = get_setting(&conn, &format!("reactions_enabled.{}", character_id))
-                .ok().flatten()
-                .map(|v| v != "false" && v != "off")
-                .unwrap_or(false);
+            let reactions_mode = crate::commands::reactions_helpers::parse_reactions_mode(
+                get_setting(&conn, &format!("reactions_enabled.{}", character_id))
+                    .ok().flatten().as_deref()
+            ).to_string();
 
-            (recent_msgs, retrieved, user_profile, current_mood, mood_enabled, response_length, narration_tone, leader, reactions_enabled)
+            (recent_msgs, retrieved, user_profile, current_mood, mood_enabled, response_length, narration_tone, leader, reactions_mode)
         };
 
         // Mood directive
@@ -2335,14 +2345,14 @@ pub async fn reset_to_message_cmd(
         );
         let reaction_context: Vec<Message> = recent_msgs.iter()
             .rev().skip(1).take(4).rev().cloned().collect();
-        let (dialogue_res, reaction_res) = if reactions_enabled {
+        let (dialogue_res, reaction_res) = if reactions_mode != "off" {
             let reaction_fut = orchestrator::pick_character_reaction_via_llm(
                 &base, &api_key, &model_config.dialogue_model,
-                &anchor_content, &mood_reduction, &reaction_context,
+                &anchor_content, &mood_reduction, &reaction_context, &reactions_mode,
             );
             tokio::join!(dialogue_fut, reaction_fut)
         } else {
-            (dialogue_fut.await, Err("reactions disabled".to_string()))
+            (dialogue_fut.await, Ok(None))
         };
         let (mut reply_text, mut dialogue_usage) = dialogue_res?;
 
@@ -2446,19 +2456,21 @@ pub async fn reset_to_message_cmd(
             (user_message, msg)
         };
 
-        // Character-side reaction (from the parallel pick above). Skipped
-        // when the per-chat reactions_enabled setting is false.
-        let ai_reactions: Vec<Reaction> = if !reactions_enabled {
-            Vec::new()
-        } else {
-            let reaction_emoji = reaction_res
-                .unwrap_or_else(|_| prompts::pick_character_reaction_emoji(&mood_chain));
-            emit_character_reaction(
-                &db,
-                &user_message.message_id,
-                &reaction_emoji,
-                Some(&character.character_id),
-            )
+        // Character-side reaction. See three-mode dispatch in
+        // send_message_cmd for the full rationale.
+        let ai_reactions: Vec<Reaction> = match reactions_mode.as_str() {
+            "off" => Vec::new(),
+            "occasional" => match reaction_res {
+                Ok(Some(emoji)) => emit_character_reaction(&db, &user_message.message_id, &emoji, Some(&character.character_id)),
+                _ => Vec::new(),
+            },
+            _ /* always */ => {
+                let reaction_emoji = match reaction_res {
+                    Ok(Some(emoji)) => emoji,
+                    _ => prompts::pick_character_reaction_emoji(&mood_chain),
+                };
+                emit_character_reaction(&db, &user_message.message_id, &reaction_emoji, Some(&character.character_id))
+            }
         };
 
         return Ok(ResetToMessageResult {
