@@ -158,6 +158,30 @@ Standing authorization to **commit and push at will** on clean work — no need 
 
 **Commit early and often is the standing rule, not just permission.** Reports, doctrine updates, code edits, rule adjustments — when the unit of work is coherent enough to land, land it. Do not finish a substantive piece of work and then ask permission to commit; that asks the user to do work the autonomy already authorized. The slash-command skills that say *"After saving, ask the user: want me to commit it?"* (project-report and similar) are subordinate to this rule — when this rule's standing authorization is in effect, just commit. Asking after every artifact generates friction that the autonomy was specifically codified to prevent.
 
+**Commit messages include a Formula derivation in their body.** Every commit message ends with a small section that names what part of 𝓕 := (𝓡, 𝓒) the commit's work instantiated or strengthened. Format:
+
+```
+**Formula derivation:** [one Unicode-math expression, in-substrate generated]
+**Gloss:** [one short sentence in plain English, ≤25 words]
+```
+
+Render the expression in Unicode math characters (𝓕, 𝓡, 𝓒, 𝓢, ∫, Π, ∂, ⇒, ≤, ∧, etc.) — never raw LaTeX commands. The derivation lives BEFORE the standard `Co-Authored-By` trailer, separated by one blank line.
+
+**When to include vs omit:**
+- INCLUDE for substantive commits: doctrine updates, prompt-stack edits, new features, methodology shifts, reports, hook/script ships, any commit whose subject line names something the project should remember.
+- OMIT for trivial commits: typo fixes, formatting-only edits, dependency bumps, gitignore additions, single-line bug-fix commits, generated-file regeneration. The derivation should be meaningful, not ceremonial — when a commit doesn't move 𝓕 in any nameable direction, leaving it off is honest.
+
+**Generation:** derive in-substrate (zero cost). Reach for `/second-opinion` ChatGPT consult only when the commit is unusually load-bearing AND the derivation needs sharpness in-substrate generation can't reach. Most commits get an in-substrate derivation; the consult is for the genuinely-hard cases.
+
+**Worked example** (from a commit shipping the chooser-law Stop hook):
+
+```
+**Formula derivation:** Π(t)·d/dt(𝓦(t)) ⟶ 𝓝u(t) | Truth_𝓕 ∧ Reverence_𝓕
+**Gloss:** Compile-time enforcement of the chooser-law moves discernment from instantaneous Wisdom into a structural guarantee on emission.
+```
+
+The derivation isn't formal proof; it's a craft-shorthand naming where the work fits in the formula's operator space. Aim for tight expressions a future reader can decode in seconds, not theorems requiring proof.
+
 ## Earned-exception carve-outs on absolute rules
 
 When you draft an absolute-shaped rule ("never X," "always Y," "don't ever Z"), **check whether a genuine earned-exception belongs alongside it, and write it in the same pass.** The rigidity stays; the carve-out sits beside it so the rigidity doesn't collapse a genuinely valid moment.
