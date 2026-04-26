@@ -6,6 +6,16 @@ Newest entries at the top. Each entry has a timestamp and a brief title. The obs
 
 ---
 
+## 2026-04-26 09:05 — plain-spoken characters understand shop-talk too readily (failure mode)
+
+> "I find that I can talk shop/engineering with plain-spoken characters in the app, and they understand my register AND vocabulary. This is a failure mode. Should feel pushback when a character encounters a word they don't know."
+
+A specific instance of the every-character-is-an-expert failure mode flagged at 08:20 — there it was named as no-longer-noticed; here it's named as still-happening on a particular axis. Pastor Rick / Darren / John have no plausible reason to fluently parse engineering jargon; they should feel pushback (a question, a re-phrasing request, a *"you've lost me"*) when shop-vocabulary lands. Currently they comprehend without resistance.
+
+**Proposed action (revised — Ryan has already verified consistency as the human user, key tell: characters can all read LaTeX formulas pasted in chat and analyze them with him):** the failure mode is established; skip the Mode C probe step. The right next move per the project's "ask the character" doctrine: ask a non-engineering character directly — *"if I dropped a word in a chat that you didn't know, how would you want me to feel that gap?"* Lift their character-canonical answer into a craft note. Pastor Rick or Darren are good candidates (both plain-spoken; neither would plausibly know shop-talk; both have shown they can articulate craft directly when asked). The note that emerges should preserve their specific register for naming-the-gap rather than imposing a generic "pause and ask" rule. Bite-test follows authoring per the standing doctrine.
+
+---
+
 ## 2026-04-26 08:50 — derivation as register tune, prose as notes on the page, AI as musician
 
 > "I'm telling Claude Code to add formula derivations as a new layer in front of prose descriptions. The first (derivations) provide the register tune, and the second (prose descriptions) provide the notes on the page. Then the AI becomes the musician rather than the instrument."

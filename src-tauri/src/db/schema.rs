@@ -1794,5 +1794,48 @@ pub fn run_migrations(conn: &Connection) -> Result<(), rusqlite::Error> {
         ").ok();
     }
 
+    // ── derived_formula columns on worlds, characters, user_profiles ─────
+    //
+    // Documentary-form derived-formula storage. Each entity (world,
+    // character, user) gets an optional `derived_formula TEXT` column
+    // holding a character-canonical formula-shorthand derivation of F
+    // = (R, C) for that entity.
+    //
+    // Per the design discipline shipped at .claude/memory/feedback_
+    // auto_derivation_design_discipline.md and the cross-world arc
+    // (reports/2026-04-26-0815/0829/0832/0845), derivations are NOT
+    // injected at the dialogue layer (substrate-swap empirically null).
+    // They are stored for documentary use:
+    //   - Backstage Consultant reads them as additional context
+    //   - reports/ and persona-sims cite them
+    //   - open-source forks find them as readable shorthand
+    //
+    // Population: deferred. Initial values are NULL. worldcli derive-
+    // world / derive-character commands populate manually; AI-trigger-
+    // on-save is a v2 question Ryan named as "let it sit a beat."
+    //
+    // ALTER TABLE ADD COLUMN per CLAUDE.md DATABASE SAFETY rule.
+    let world_has_derivation: bool = conn.query_row(
+        "SELECT 1 FROM pragma_table_info('worlds') WHERE name = 'derived_formula'",
+        [], |_| Ok(true),
+    ).unwrap_or(false);
+    if !world_has_derivation {
+        let _ = conn.execute("ALTER TABLE worlds ADD COLUMN derived_formula TEXT", []);
+    }
+    let char_has_derivation: bool = conn.query_row(
+        "SELECT 1 FROM pragma_table_info('characters') WHERE name = 'derived_formula'",
+        [], |_| Ok(true),
+    ).unwrap_or(false);
+    if !char_has_derivation {
+        let _ = conn.execute("ALTER TABLE characters ADD COLUMN derived_formula TEXT", []);
+    }
+    let user_has_derivation: bool = conn.query_row(
+        "SELECT 1 FROM pragma_table_info('user_profiles') WHERE name = 'derived_formula'",
+        [], |_| Ok(true),
+    ).unwrap_or(false);
+    if !user_has_derivation {
+        let _ = conn.execute("ALTER TABLE user_profiles ADD COLUMN derived_formula TEXT", []);
+    }
+
     Ok(())
 }

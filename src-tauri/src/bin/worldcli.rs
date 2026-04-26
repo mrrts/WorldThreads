@@ -103,6 +103,29 @@ enum Cmd {
     /// Show full world record.
     ShowWorld { world_id: String },
 
+    /// Get or set the documentary `derived_formula` for a world.
+    /// Without --text, prints the currently-stored derivation (or
+    /// "(none)"). With --text, replaces the stored derivation. Per
+    /// the auto-derivation feature design discipline (memory entry
+    /// feedback_auto_derivation_design_discipline.md): derivations
+    /// are documentary; not injected at the dialogue prompt-stack
+    /// layer. Read by Backstage Consultant when present.
+    DeriveWorld {
+        world_id: String,
+        #[arg(long)]
+        text: Option<String>,
+    },
+
+    /// Get or set the documentary `derived_formula` for a character.
+    /// Same shape as derive-world. Per design discipline: must be
+    /// character-canonical (written as the character would derive it,
+    /// in their own register), not a mechanical template-fill.
+    DeriveCharacter {
+        character_id: String,
+        #[arg(long)]
+        text: Option<String>,
+    },
+
     /// Recent messages in a character's solo thread, with optional
     /// query primitives for ad-hoc filtering.
     RecentMessages {
@@ -1263,6 +1286,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         Cmd::ListCharacters { world } => cmd_list_characters(&r, world.as_deref()),
         Cmd::ShowCharacter { character_id } => cmd_show_character(&r, &character_id),
         Cmd::ShowWorld { world_id } => cmd_show_world(&r, &world_id),
+        Cmd::DeriveWorld { world_id, text } => cmd_derive_world(&r, &world_id, text.as_deref()),
+        Cmd::DeriveCharacter { character_id, text } => cmd_derive_character(&r, &character_id, text.as_deref()),
         Cmd::RecentMessages { character_id, limit, grep, before, after, with_context } => {
             cmd_recent_messages(&r, &character_id, limit, grep.as_deref(), before.as_deref(), after.as_deref(), with_context)
         }
@@ -1453,6 +1478,10 @@ fn cmd_show_character(r: &Resolved, character_id: &str) -> Result<(), Box<dyn st
     let _ = r.check_character(character_id)?;
     let conn = r.db.conn.lock().unwrap();
     let c = get_character(&conn, character_id)?;
+    let derived: Option<String> = conn.query_row(
+        "SELECT derived_formula FROM characters WHERE character_id = ?1",
+        params![character_id], |r| r.get(0),
+    ).ok().flatten();
     let v = json!({
         "character_id": c.character_id,
         "display_name": c.display_name,
@@ -1464,6 +1493,7 @@ fn cmd_show_character(r: &Resolved, character_id: &str) -> Result<(), Box<dyn st
         "boundaries": json_array_to_strings(&c.boundaries),
         "backstory_facts": json_array_to_strings(&c.backstory_facts),
         "visual_description": c.visual_description,
+        "derived_formula": derived,
     });
     emit(r.json, v);
     Ok(())
@@ -1473,14 +1503,69 @@ fn cmd_show_world(r: &Resolved, world_id: &str) -> Result<(), Box<dyn std::error
     r.check_world(world_id)?;
     let conn = r.db.conn.lock().unwrap();
     let w = get_world(&conn, world_id)?;
+    let derived: Option<String> = conn.query_row(
+        "SELECT derived_formula FROM worlds WHERE world_id = ?1",
+        params![world_id], |r| r.get(0),
+    ).ok().flatten();
     let v = json!({
         "world_id": w.world_id,
         "name": w.name,
         "description": w.description,
+        "derived_formula": derived,
         "invariants": json_array_to_strings(&w.invariants),
         "state": w.state,
     });
     emit(r.json, v);
+    Ok(())
+}
+
+/// Get or set the documentary derived_formula on a world.
+fn cmd_derive_world(r: &Resolved, world_id: &str, text: Option<&str>) -> Result<(), Box<dyn std::error::Error>> {
+    r.check_world(world_id)?;
+    let conn = r.db.conn.lock().unwrap();
+    match text {
+        Some(new_text) => {
+            conn.execute(
+                "UPDATE worlds SET derived_formula = ?2, updated_at = datetime('now') WHERE world_id = ?1",
+                params![world_id, new_text],
+            )?;
+            let v = json!({"world_id": world_id, "derived_formula": new_text, "updated": true});
+            emit(r.json, v);
+        }
+        None => {
+            let derived: Option<String> = conn.query_row(
+                "SELECT derived_formula FROM worlds WHERE world_id = ?1",
+                params![world_id], |r| r.get(0),
+            ).ok().flatten();
+            let v = json!({"world_id": world_id, "derived_formula": derived});
+            emit(r.json, v);
+        }
+    }
+    Ok(())
+}
+
+/// Get or set the documentary derived_formula on a character.
+fn cmd_derive_character(r: &Resolved, character_id: &str, text: Option<&str>) -> Result<(), Box<dyn std::error::Error>> {
+    let _ = r.check_character(character_id)?;
+    let conn = r.db.conn.lock().unwrap();
+    match text {
+        Some(new_text) => {
+            conn.execute(
+                "UPDATE characters SET derived_formula = ?2, updated_at = datetime('now') WHERE character_id = ?1",
+                params![character_id, new_text],
+            )?;
+            let v = json!({"character_id": character_id, "derived_formula": new_text, "updated": true});
+            emit(r.json, v);
+        }
+        None => {
+            let derived: Option<String> = conn.query_row(
+                "SELECT derived_formula FROM characters WHERE character_id = ?1",
+                params![character_id], |r| r.get(0),
+            ).ok().flatten();
+            let v = json!({"character_id": character_id, "derived_formula": derived});
+            emit(r.json, v);
+        }
+    }
     Ok(())
 }
 
