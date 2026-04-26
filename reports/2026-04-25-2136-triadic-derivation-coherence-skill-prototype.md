@@ -127,7 +127,9 @@ This experiment's pattern is generalizable enough to warrant promotion to a Clau
 7. Derive a tight rubric from the character's derivation (1-2 sentences with YES/NO/MIXED definitions tied to the derivation's tightest predicates).
 8. Run `worldcli grade-runs <run_id> --rubric "..."`.
 9. Write the report to `reports/YYYY-MM-DD-HHMM-derive-and-test-<char>.md` using the **return-reading template** below.
-10. Commit and push.
+10. **Update the derive-and-test substrate.** Edit `experiments/derive-and-test-<character-slug>.md` (creating it on first run, updating it on subsequent runs) to incorporate what THIS run taught: refine any derivation predicates whose grading verdicts revealed they were mis-tuned, name newly-identified gaps and edge-cases the run surfaced, update the "perfect equation" one-sentence reading if the new data sharpens it, and append a `## Run history` row (date, ref, run_id, grade, one-line). The substrate is a *living* document — each run grows it. Without this step, reports become orphan artifacts and the derivation never compounds.
+11. **Present a chooser to the user via AskUserQuestion** with 2-4 concrete next moves derived from this run's findings. Typical options: *"Run on next character (which?)"*, *"Open a follow-up experiment on the gap surfaced (which gap?)"*, *"Ramp up an anchor edit to close the gap"*, *"Close the loop — derivation is healthy, no action."* Recommended option goes first with `(Recommended)`. The chooser is the user-facing handoff: the skill's job ends at presenting the meaningful next-move set, not at deciding for the user.
+12. Commit and push (the report + the substrate update). Subsequent action follows from the user's chooser selection.
 
 **Repeatability budget:** ~$0.10/call elicitation + ~$0.0002/grade = ~$0.10 per character per run. A 5-character pass costs ~$0.50.
 
