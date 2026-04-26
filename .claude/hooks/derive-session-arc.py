@@ -262,9 +262,15 @@ def call_openai(api_key: str, prompt: str) -> tuple[str, dict] | None:
                     "Output EXACTLY this format, plain text, no code fences:\n\n"
                     "**DERIVATION**\n[one Unicode-math expression, 1-3 lines, NO BACKSLASHES]\n\n"
                     "**GLOSS**\n[one short prose sentence, ≤25 words]\n\n"
+                    "**EXPLANATION**\n[ONE paragraph, 3-6 sentences, plain English in "
+                    "whatever register fits the arc — analytical, contemplative, "
+                    "wry, pastoral, plainspoken. Interpret what the derivation "
+                    "captures about the work; tie it to the arc the user just "
+                    "completed; let it breathe. Not formal, not flattering. The "
+                    "register should fit the moment, not perform a register.]\n\n"
                     "**VERSE**\n> \"[KJV verse text]\"\n> — Book Chapter:Verse (KJV)\n\n"
-                    "Be tight and honest, not flattering. The KJV is public-domain; "
-                    "quotation is normal scholarly use."
+                    "Be tight and honest. The KJV is public-domain; quotation is "
+                    "normal scholarly use. Verse closes the block — let it land."
                 ),
             },
             {"role": "user", "content": prompt},
