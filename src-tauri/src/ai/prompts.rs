@@ -4952,6 +4952,34 @@ pub fn build_dialogue_messages(
         } else {
             content
         };
+        // Real-world timestamp prefix on every message — gives the model
+        // a sense of engagement-moment (gap between user turns, time of
+        // day in the user's life, conversation tempo). Format: "[YYYY-MM-DD
+        // HH:MM]" in UTC. Parsed from m.created_at; falls back to bare
+        // content on parse failure.
+        let timestamp_prefix = match chrono::DateTime::parse_from_rfc3339(&m.created_at) {
+            Ok(dt) => format!("[{}]", dt.format("%Y-%m-%d %H:%M")),
+            Err(_) => String::new(),
+        };
+        // Formula momentstamp inline prefix on assistant messages with a
+        // signature. Visible to ALL downstream LLMs that read this chat
+        // history (conscience grader, memory updater, reaction picker,
+        // etc.) so the chat-state-derived-from-𝓕 is part of the message
+        // stream, not just the dialogue prompt.
+        let momentstamp_prefix = if m.role == "assistant" {
+            m.formula_signature.as_deref()
+                .filter(|s| !s.trim().is_empty())
+                .map(|s| format!("[⟨momentstamp: {}⟩]", s))
+                .unwrap_or_default()
+        } else {
+            String::new()
+        };
+        let content = match (timestamp_prefix.is_empty(), momentstamp_prefix.is_empty()) {
+            (true, true) => content,
+            (false, true) => format!("{}\n{}", timestamp_prefix, content),
+            (true, false) => format!("{}\n{}", momentstamp_prefix, content),
+            (false, false) => format!("{} {}\n{}", timestamp_prefix, momentstamp_prefix, content),
+        };
         msgs.push(crate::ai::openai::ChatMessage {
             role: if m.role == "narrative" || m.role == "context" || m.role == "dream" { "system".to_string() } else { m.role.clone() },
             content,

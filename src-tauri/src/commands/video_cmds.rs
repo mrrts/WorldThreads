@@ -84,6 +84,7 @@ pub async fn generate_video_cmd(
             address_to: None,
         mood_chain: None,
         is_proactive: false,
+        formula_signature: None,
         })
         }).map_err(|e| e.to_string())?
         .filter_map(|r| r.ok())

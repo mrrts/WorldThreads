@@ -2509,6 +2509,7 @@ fn pull_eval_window(
                     address_to: r.get(9)?,
                     mood_chain: r.get(10)?,
                     is_proactive: r.get::<_, Option<i64>>(11)?.map(|v| v != 0).unwrap_or(false),
+                    formula_signature: None,
                 }, r.get::<_, String>(12)?)),
             )?;
             rows.filter_map(|r| r.ok()).collect()
@@ -2535,6 +2536,7 @@ fn pull_eval_window(
                     address_to: r.get(9)?,
                     mood_chain: r.get(10)?,
                     is_proactive: r.get::<_, Option<i64>>(11)?.map(|v| v != 0).unwrap_or(false),
+                    formula_signature: None,
                 }, r.get::<_, String>(12)?)),
             )?;
             rows.filter_map(|r| r.ok()).collect()
@@ -2580,6 +2582,7 @@ fn pull_eval_window(
                 address_to: r.get(9)?,
                 mood_chain: r.get(10)?,
                 is_proactive: r.get::<_, Option<i64>>(11)?.map(|v| v != 0).unwrap_or(false),
+                formula_signature: None,
             }),
         )?;
         let mut context: Vec<app_lib::db::queries::Message> = rows.filter_map(|r| r.ok()).collect();

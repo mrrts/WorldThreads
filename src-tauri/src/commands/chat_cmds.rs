@@ -326,6 +326,7 @@ pub fn save_user_message_cmd(
             address_to: None,
         mood_chain: None,
         is_proactive: false,
+        formula_signature: None,
         };
     create_message(&conn, &msg).map_err(|e| e.to_string())?;
     increment_message_counter(&conn, &thread.thread_id).map_err(|e| e.to_string())?;
@@ -370,6 +371,7 @@ pub fn create_context_message_cmd(
             address_to: None,
         mood_chain: None,
         is_proactive: false,
+        formula_signature: None,
         };
 
     if group_chat_id.is_some() {
@@ -413,6 +415,7 @@ pub async fn send_message_cmd(
             address_to: None,
         mood_chain: None,
         is_proactive: false,
+        formula_signature: None,
         };
         create_message(&conn, &user_msg).map_err(|e| e.to_string())?;
         increment_message_counter(&conn, &thread.thread_id).map_err(|e| e.to_string())?;
@@ -640,15 +643,28 @@ pub async fn send_message_cmd(
     // right now. Cost ~$0.005-0.015 per dialogue call; conceptually the
     // saved emoji-reaction budget redirects into this deeper-attention
     // call. Silent skip on any failure (never blocks the dialogue).
-    let formula_momentstamp_text: Option<String> = if reactions_mode == "off" {
-        crate::ai::momentstamp::build_formula_momentstamp(
+    //
+    // Stateful chain: read the LATEST formula_signature from prior
+    // assistant messages in this thread and pass as prior_signature so
+    // the new signature CHAINS from the prior one (running cumulation,
+    // not recompute-from-scratch).
+    let (formula_momentstamp_text, formula_momentstamp_signature): (Option<String>, Option<String>) = if reactions_mode == "off" {
+        let prior_sig: Option<String> = {
+            let conn = db.conn.lock().map_err(|e| e.to_string())?;
+            crate::db::queries::latest_formula_signature(&conn, &thread.thread_id).ok().flatten()
+        };
+        match crate::ai::momentstamp::build_formula_momentstamp(
             &base,
             &api_key,
             &model_config.memory_model,
             &recent_msgs,
-        ).await.ok().flatten()
+            prior_sig.as_deref(),
+        ).await.ok().flatten() {
+            Some(r) => (Some(r.block), Some(r.signature)),
+            None => (None, None),
+        }
     } else {
-        None
+        (None, None)
     };
 
     let dialogue_fut = orchestrator::run_dialogue_with_base(
@@ -789,6 +805,7 @@ pub async fn send_message_cmd(
             address_to: None,
             mood_chain: mood_chain_json.clone(),
             is_proactive: false,
+            formula_signature: formula_momentstamp_signature.clone(),
         };
         create_message(&conn, &msg).map_err(|e| e.to_string())?;
         increment_message_counter(&conn, &thread.thread_id).map_err(|e| e.to_string())?;
@@ -802,6 +819,7 @@ pub async fn send_message_cmd(
             address_to: None,
         mood_chain: None,
         is_proactive: false,
+        formula_signature: None,
         });
 
         (user_message, msg)
@@ -1103,6 +1121,7 @@ pub async fn prompt_character_cmd(
             address_to: None,
         mood_chain: None,
         is_proactive: false,
+        formula_signature: None,
         });
     }
 
@@ -1280,6 +1299,7 @@ pub async fn prompt_character_cmd(
             address_to: None,
             mood_chain: mood_chain_json.clone(),
             is_proactive: false,
+            formula_signature: None,
         };
         create_message(&conn, &msg).map_err(|e| e.to_string())?;
         increment_message_counter(&conn, &thread.thread_id).map_err(|e| e.to_string())?;
@@ -1588,6 +1608,7 @@ pub async fn try_proactive_ping_cmd(
         address_to: None,
         mood_chain: mood_chain_json,
         is_proactive: true,
+        formula_signature: None,
     };
     {
         let conn = db.conn.lock().map_err(|e| e.to_string())?;
@@ -1751,6 +1772,7 @@ pub async fn generate_dream_cmd(
         address_to: None,
         mood_chain: mood_chain_json,
         is_proactive: false,
+        formula_signature: None,
     };
     {
         let conn = db.conn.lock().map_err(|e| e.to_string())?;
@@ -1859,6 +1881,7 @@ pub async fn generate_narrative_cmd(
             address_to: None,
         mood_chain: None,
         is_proactive: false,
+        formula_signature: None,
         };
     {
         let conn = db.conn.lock().map_err(|e| e.to_string())?;
@@ -1898,6 +1921,7 @@ pub async fn adjust_message_cmd(
             address_to: None,
         mood_chain: None,
         is_proactive: false,
+        formula_signature: None,
         }),
             ).map_err(|e| format!("Message not found: {e}"))?;
             (m, "group")
@@ -1912,6 +1936,7 @@ pub async fn adjust_message_cmd(
             address_to: None,
         mood_chain: None,
         is_proactive: false,
+        formula_signature: None,
         }),
             ).map_err(|e| format!("Message not found: {e}"))?;
             (m, "indiv")
@@ -2031,6 +2056,7 @@ pub async fn adjust_message_cmd(
             address_to: None,
         mood_chain: None,
         is_proactive: false,
+        formula_signature: None,
         })
 }
 
@@ -2077,6 +2103,7 @@ pub async fn reset_to_message_cmd(
             address_to: None,
         mood_chain: None,
         is_proactive: false,
+        formula_signature: None,
         })
             }).map_err(|e| e.to_string())?
         };
@@ -2464,6 +2491,7 @@ pub async fn reset_to_message_cmd(
             address_to: None,
             mood_chain: mood_chain_json.clone(),
             is_proactive: false,
+            formula_signature: None,
         };
             create_message(&conn, &msg).map_err(|e| e.to_string())?;
             increment_message_counter(&conn, &thread_id).map_err(|e| e.to_string())?;
@@ -2477,6 +2505,7 @@ pub async fn reset_to_message_cmd(
             address_to: None,
         mood_chain: None,
         is_proactive: false,
+        formula_signature: None,
         });
 
             (user_message, msg)

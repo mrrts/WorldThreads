@@ -791,6 +791,7 @@ pub async fn update_inventory_for_moment_cmd(
             address_to: None,
             mood_chain: None,
             is_proactive: false,
+            formula_signature: None,
         };
         let conn = db.conn.lock().map_err(|e| e.to_string())?;
         let insert = if is_group {

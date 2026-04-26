@@ -603,6 +603,7 @@ pub fn save_group_user_message_cmd(
             address_to: None,
         mood_chain: None,
         is_proactive: false,
+        formula_signature: None,
         };
     create_group_message(&conn, &msg).map_err(|e| e.to_string())?;
     Ok(msg)
@@ -784,6 +785,7 @@ pub async fn send_group_message_cmd(
             address_to: None,
         mood_chain: None,
         is_proactive: false,
+        formula_signature: None,
         };
         create_group_message(&conn, &user_msg).map_err(|e| e.to_string())?;
 
@@ -1010,6 +1012,7 @@ pub async fn send_group_message_cmd(
             address_to: None,
         mood_chain: None,
         is_proactive: false,
+        formula_signature: None,
         });
 
         // Generate response — load mood_reduction + pick chain for AGENCY.
@@ -1093,16 +1096,26 @@ pub async fn send_group_message_cmd(
         }
 
         // Reactions=off depth-signal reward (group surface, flow 1).
-        // Build a Formula momentstamp when reactions are off.
-        let formula_momentstamp_text: Option<String> = if reactions_mode == "off" {
-            crate::ai::momentstamp::build_formula_momentstamp(
+        // Build a Formula momentstamp when reactions are off, with
+        // stateful chain (read prior signature from latest assistant
+        // message in this group chat).
+        let (formula_momentstamp_text, formula_momentstamp_signature): (Option<String>, Option<String>) = if reactions_mode == "off" {
+            let prior_sig: Option<String> = {
+                let conn = db.conn.lock().map_err(|e| e.to_string())?;
+                crate::db::queries::latest_formula_signature_group(&conn, &gc.thread_id).ok().flatten()
+            };
+            match crate::ai::momentstamp::build_formula_momentstamp(
                 &model_config.chat_api_base(),
                 &api_key,
                 &model_config.memory_model,
                 &dialogue_msgs,
-            ).await.ok().flatten()
+                prior_sig.as_deref(),
+            ).await.ok().flatten() {
+                Some(r) => (Some(r.block), Some(r.signature)),
+                None => (None, None),
+            }
         } else {
-            None
+            (None, None)
         };
 
         let (raw_reply, usage) = orchestrator::run_dialogue_with_base(
@@ -1234,6 +1247,7 @@ pub async fn send_group_message_cmd(
             address_to: Some("user".to_string()),
             mood_chain: mood_chain_json.clone(),
             is_proactive: false,
+            formula_signature: formula_momentstamp_signature.clone(),
         };
         {
             let conn = db.conn.lock().map_err(|e| e.to_string())?;
@@ -1394,6 +1408,7 @@ pub async fn prompt_group_character_cmd(
             address_to: None,
         mood_chain: None,
         is_proactive: false,
+        formula_signature: None,
         });
 
     let mood_reduction2 = {
@@ -1500,15 +1515,24 @@ pub async fn prompt_group_character_cmd(
     }
 
     // Reactions=off depth-signal reward (group surface, flow 2).
-    let formula_momentstamp_text2: Option<String> = if reactions_mode == "off" {
-        crate::ai::momentstamp::build_formula_momentstamp(
+    // Stateful chain via prior signature.
+    let (formula_momentstamp_text2, formula_momentstamp_signature2): (Option<String>, Option<String>) = if reactions_mode == "off" {
+        let prior_sig: Option<String> = {
+            let conn = db.conn.lock().map_err(|e| e.to_string())?;
+            crate::db::queries::latest_formula_signature_group(&conn, &gc.thread_id).ok().flatten()
+        };
+        match crate::ai::momentstamp::build_formula_momentstamp(
             &base,
             &api_key,
             &model_config.memory_model,
             &dialogue_msgs,
-        ).await.ok().flatten()
+            prior_sig.as_deref(),
+        ).await.ok().flatten() {
+            Some(r) => (Some(r.block), Some(r.signature)),
+            None => (None, None),
+        }
     } else {
-        None
+        (None, None)
     };
 
     let dialogue_fut = orchestrator::run_dialogue_with_base(
@@ -1656,6 +1680,7 @@ pub async fn prompt_group_character_cmd(
         address_to: canonical_address,
         mood_chain: mood_chain_json2.clone(),
         is_proactive: false,
+        formula_signature: formula_momentstamp_signature2.clone(),
     };
     {
         let conn = db.conn.lock().map_err(|e| e.to_string())?;
@@ -1905,6 +1930,7 @@ pub async fn generate_group_illustration_cmd(
             address_to: None,
         mood_chain: None,
         is_proactive: false,
+        formula_signature: None,
         };
         create_group_message(&conn, &msg).map_err(|e| e.to_string())?;
     }
@@ -1920,6 +1946,7 @@ pub async fn generate_group_illustration_cmd(
             address_to: None,
         mood_chain: None,
         is_proactive: false,
+        formula_signature: None,
         })
     ).map_err(|e| e.to_string())?;
 
@@ -2016,6 +2043,7 @@ pub async fn generate_group_narrative_cmd(
             address_to: None,
         mood_chain: None,
         is_proactive: false,
+        formula_signature: None,
         };
     {
         let conn = db.conn.lock().map_err(|e| e.to_string())?;

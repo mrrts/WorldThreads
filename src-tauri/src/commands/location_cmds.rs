@@ -127,6 +127,7 @@ pub fn set_chat_location_cmd(
         address_to: None,
         mood_chain: None,
         is_proactive: false,
+        formula_signature: None,
     };
 
     if group_chat_id.is_some() {

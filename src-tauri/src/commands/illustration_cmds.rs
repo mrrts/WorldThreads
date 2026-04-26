@@ -394,6 +394,7 @@ pub async fn generate_illustration_cmd(
             address_to: None,
         mood_chain: None,
         is_proactive: false,
+        formula_signature: None,
         };
         create_message(&conn, &msg).map_err(|e| e.to_string())?;
     }
@@ -407,6 +408,7 @@ pub async fn generate_illustration_cmd(
             address_to: None,
         mood_chain: None,
         is_proactive: false,
+        formula_signature: None,
         })
     ).map_err(|e| e.to_string())?;
 
@@ -623,6 +625,7 @@ pub async fn adjust_illustration_cmd(
             address_to: None,
         mood_chain: None,
         is_proactive: false,
+        formula_signature: None,
         };
         create_message(&conn, &msg).map_err(|e| e.to_string())?;
     }
@@ -636,6 +639,7 @@ pub async fn adjust_illustration_cmd(
             address_to: None,
         mood_chain: None,
         is_proactive: false,
+        formula_signature: None,
         })
     ).map_err(|e| e.to_string())?;
 
@@ -1046,6 +1050,7 @@ pub fn attach_previewed_illustration_cmd(
         address_to: None,
         mood_chain: None,
         is_proactive: false,
+        formula_signature: None,
     };
 
     if is_group_thread {

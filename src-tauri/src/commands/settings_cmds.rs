@@ -78,6 +78,7 @@ pub fn record_chat_settings_change_cmd(
         address_to: None,
         mood_chain: None,
         is_proactive: false,
+        formula_signature: None,
     };
 
     if is_group {

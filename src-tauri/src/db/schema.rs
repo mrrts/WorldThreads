@@ -1837,5 +1837,44 @@ pub fn run_migrations(conn: &Connection) -> Result<(), rusqlite::Error> {
         let _ = conn.execute("ALTER TABLE user_profiles ADD COLUMN derived_formula TEXT", []);
     }
 
+    // ── formula_signature on messages + group_messages ──────────────────
+    //
+    // Per-assistant-message Formula momentstamp (the chat-state signature
+    // computed against 𝓕 := (𝓡, 𝓒) when the user has chosen reactions=off).
+    // Stored INLINE on the assistant message that the signature was used
+    // to condition. Two purposes:
+    //
+    //   1. Visibility in chat histories sent to LLMs. Chat-history
+    //      formatters render the signature as an inline prefix on
+    //      assistant messages with one, so downstream LLMs (conscience
+    //      grader, memory updater, reaction picker, etc.) see the
+    //      momentstamp natively when reading the message stream.
+    //
+    //   2. Stateful chain. When computing the next momentstamp, read
+    //      the LATEST formula_signature from prior assistant messages
+    //      in this chat and pass it to ChatGPT as prior_signature
+    //      context. The signature evolves as a hash-chain-style running
+    //      cumulation rather than being recomputed from scratch each
+    //      turn.
+    //
+    // ALTER TABLE ADD COLUMN per CLAUDE.md DATABASE SAFETY rule.
+    // Nullable, no default — most messages will not have a signature
+    // (only assistant replies generated under reactions=off, after the
+    // momentstamp module shipped).
+    let messages_have_sig: bool = conn.query_row(
+        "SELECT 1 FROM pragma_table_info('messages') WHERE name = 'formula_signature'",
+        [], |_| Ok(true),
+    ).unwrap_or(false);
+    if !messages_have_sig {
+        let _ = conn.execute("ALTER TABLE messages ADD COLUMN formula_signature TEXT", []);
+    }
+    let group_messages_have_sig: bool = conn.query_row(
+        "SELECT 1 FROM pragma_table_info('group_messages') WHERE name = 'formula_signature'",
+        [], |_| Ok(true),
+    ).unwrap_or(false);
+    if !group_messages_have_sig {
+        let _ = conn.execute("ALTER TABLE group_messages ADD COLUMN formula_signature TEXT", []);
+    }
+
     Ok(())
 }

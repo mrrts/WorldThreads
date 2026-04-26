@@ -63,6 +63,15 @@ pub struct Message {
     /// them distinctly and by sidebar to surface unread badges.
     #[serde(default)]
     pub is_proactive: bool,
+    /// Formula momentstamp signature (Unicode-math expression) computed
+    /// against 𝓕 := (𝓡, 𝓒) for this assistant reply. Populated only on
+    /// assistant messages generated under reactions=off, post the
+    /// momentstamp module shipping (commit 9f3f81c). Visible in chat
+    /// histories sent to LLMs (rendered as ⟨momentstamp: ...⟩ prefix)
+    /// AND used as prior_signature input when computing the next
+    /// momentstamp (stateful chain).
+    #[serde(default)]
+    pub formula_signature: Option<String>,
 }
 
 pub fn update_message_content(conn: &Connection, message_id: &str, content: &str, tokens_estimate: i64) -> Result<(), rusqlite::Error> {
@@ -320,10 +329,83 @@ pub fn row_to_message(row: &rusqlite::Row) -> Result<Message, rusqlite::Error> {
         address_to: row.get(9).ok(),
         mood_chain: row.get(10).ok(),
         is_proactive: row.get::<_, i64>(11).map(|v| v != 0).unwrap_or(false),
+        formula_signature: row.get(12).ok(),
     })
 }
 
-pub const MSG_COLS: &str = "message_id, thread_id, role, content, tokens_estimate, sender_character_id, created_at, world_day, world_time, address_to, mood_chain, is_proactive";
+pub const MSG_COLS: &str = "message_id, thread_id, role, content, tokens_estimate, sender_character_id, created_at, world_day, world_time, address_to, mood_chain, is_proactive, formula_signature";
+
+/// Update the formula_signature on a message after dialogue lands. Used
+/// by the momentstamp pipeline to persist the chat-state signature on
+/// the assistant message it was used to condition.
+pub fn update_message_formula_signature(
+    conn: &Connection,
+    message_id: &str,
+    signature: &str,
+) -> Result<(), rusqlite::Error> {
+    conn.execute(
+        "UPDATE messages SET formula_signature = ?2 WHERE message_id = ?1",
+        params![message_id, signature],
+    )?;
+    Ok(())
+}
+
+/// Same as update_message_formula_signature but for group_messages.
+pub fn update_group_message_formula_signature(
+    conn: &Connection,
+    message_id: &str,
+    signature: &str,
+) -> Result<(), rusqlite::Error> {
+    conn.execute(
+        "UPDATE group_messages SET formula_signature = ?2 WHERE message_id = ?1",
+        params![message_id, signature],
+    )?;
+    Ok(())
+}
+
+/// Fetch the most-recent assistant-message formula_signature in this
+/// thread, if any. Used as the prior_signature input when computing the
+/// next momentstamp (stateful chain). Returns None when no prior
+/// signature exists (first message under reactions=off, or all prior
+/// messages predate the momentstamp module).
+pub fn latest_formula_signature(
+    conn: &Connection,
+    thread_id: &str,
+) -> Result<Option<String>, rusqlite::Error> {
+    let result: Result<Option<String>, _> = conn.query_row(
+        "SELECT formula_signature FROM messages \
+         WHERE thread_id = ?1 AND role = 'assistant' \
+         AND formula_signature IS NOT NULL \
+         ORDER BY created_at DESC LIMIT 1",
+        params![thread_id],
+        |row| row.get(0),
+    );
+    match result {
+        Ok(s) => Ok(s),
+        Err(rusqlite::Error::QueryReturnedNoRows) => Ok(None),
+        Err(e) => Err(e),
+    }
+}
+
+/// Same for group_messages, scoped to a group_chat's thread_id.
+pub fn latest_formula_signature_group(
+    conn: &Connection,
+    thread_id: &str,
+) -> Result<Option<String>, rusqlite::Error> {
+    let result: Result<Option<String>, _> = conn.query_row(
+        "SELECT formula_signature FROM group_messages \
+         WHERE thread_id = ?1 AND role = 'assistant' \
+         AND formula_signature IS NOT NULL \
+         ORDER BY created_at DESC LIMIT 1",
+        params![thread_id],
+        |row| row.get(0),
+    );
+    match result {
+        Ok(s) => Ok(s),
+        Err(rusqlite::Error::QueryReturnedNoRows) => Ok(None),
+        Err(e) => Err(e),
+    }
+}
 
 
 // ─── FTS Search ─────────────────────────────────────────────────────────────

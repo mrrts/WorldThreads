@@ -85,19 +85,36 @@ fn latex_to_unicode(s: &str) -> String {
     out
 }
 
+/// Result of a momentstamp computation. The block is the full
+/// formatted prompt-injection string; the signature is JUST the
+/// Unicode-math expression line (what gets persisted on the message
+/// for chat-history visibility + stateful chain).
+pub struct MomentstampResult {
+    pub block: String,
+    pub signature: String,
+}
+
 /// Build a brief Unicode-math signature for the current chat-moment.
-/// Returns Ok(Some(formatted_block)) on success, Ok(None) on empty input
-/// or if the API call fails for any reason. Never returns Err — failure
-/// modes are silent so the dialogue path never blocks on this.
+/// Returns Ok(Some(MomentstampResult)) on success, Ok(None) on empty
+/// input or if the API call fails for any reason. Never returns Err —
+/// failure modes are silent so the dialogue path never blocks on this.
 ///
 /// `recent_messages` should be the last ~20-30 messages of the chat
 /// (rolling window). Messages are summarized into the prompt context.
+///
+/// `prior_signature` is the LATEST formula_signature from prior assistant
+/// messages in this chat. When populated, it's passed to ChatGPT as
+/// context so the new signature is computed AGAINST the prior one — a
+/// running-cumulation hash-chain pattern rather than recomputed-from-
+/// scratch each turn. None on first message under reactions=off (no
+/// prior signature exists yet).
 pub async fn build_formula_momentstamp(
     base_url: &str,
     api_key: &str,
     model: &str,
     recent_messages: &[Message],
-) -> Result<Option<String>, String> {
+    prior_signature: Option<&str>,
+) -> Result<Option<MomentstampResult>, String> {
     if recent_messages.is_empty() {
         return Ok(None);
     }
@@ -118,15 +135,32 @@ pub async fn build_formula_momentstamp(
         window.push_str(&format!("{}: {}\n", role, content_preview));
     }
 
+    let prior_block = match prior_signature {
+        Some(prev) if !prev.trim().is_empty() => format!(
+            "── PRIOR MOMENTSTAMP (last computed signature for this chat — let \
+             the new signature CHAIN from this one, not start over from scratch) ──\n\
+             {}\n\n",
+            prev
+        ),
+        _ => String::new(),
+    };
+
     let user_prompt = format!(
         "── MISSION FORMULA (LaTeX source — translate to Unicode in your output) ──\n\
          {}\n\n\
+         {}\
          ── RECENT CHAT WINDOW ──\n\
          {}\n\n\
          ── TASK ──\n\
          Generate the ⟨momentstamp⟩ signature for this chat as it stands now. \
-         One line, Unicode math characters only.",
-        MISSION_FORMULA_LATEX, window
+         One line, Unicode math characters only.{}",
+        MISSION_FORMULA_LATEX,
+        prior_block,
+        window,
+        if prior_signature.is_some() {
+            " The new signature should reflect how the chat has evolved \
+             from the prior signature, not be computed from scratch."
+        } else { "" }
     );
 
     let request = ChatRequest {
@@ -173,5 +207,5 @@ pub async fn build_formula_momentstamp(
         signature
     );
 
-    Ok(Some(block))
+    Ok(Some(MomentstampResult { block, signature }))
 }
