@@ -1659,16 +1659,19 @@ export function GroupChatView({ store, onNavigateToCharacter }: Props) {
                     <label className="text-xs font-medium text-muted-foreground">Reactions</label>
                     <span className="text-[10px] text-muted-foreground/60">How often characters emoji-react</span>
                   </div>
-                  <div className="inline-flex rounded-lg overflow-hidden border border-input bg-background">
+                  <div className="inline-flex border border-input bg-background rounded-lg">
                     {([
                       { mode: "off" as const,        glyph: "🚫",     title: "Off — no reactions" },
                       { mode: "occasional" as const, glyph: "😀",     title: "Occasionally — text-message-realistic, ~1-in-4 messages" },
                       { mode: "always" as const,     glyph: "😀😀😀", title: "Always — every message gets a reaction" },
-                    ]).map(({ mode, glyph, title }) => (
-                      <div key={mode} className="relative group/rxn-mode">
+                    ]).map(({ mode, glyph, title }, idx, arr) => (
+                      <div
+                        key={mode}
+                        className={`relative group/rxn-mode inline-flex ${idx === 0 ? "rounded-l-lg" : ""} ${idx === arr.length - 1 ? "rounded-r-lg" : ""} overflow-visible`}
+                      >
                         <button
                           onClick={() => { setReactionsMode(mode); setNarrationDirty(true); }}
-                          className={`px-2.5 py-1 text-sm leading-none transition-colors cursor-pointer ${
+                          className={`inline-flex items-center justify-center px-2.5 py-1 text-sm leading-none transition-colors cursor-pointer ${idx === 0 ? "rounded-l-lg" : ""} ${idx === arr.length - 1 ? "rounded-r-lg" : ""} ${
                             reactionsMode === mode
                               ? "bg-primary text-primary-foreground"
                               : "text-muted-foreground hover:text-foreground hover:bg-accent/50"
