@@ -44,7 +44,15 @@ pub fn build_consultant_system_prompt(
     // ─── Lock 1: load world, characters, recent messages, user
     // profile, thread_id, model_config. Mirrors the original
     // inline pattern — short lock, then drop before further work.
-    let (world, characters, recent_msgs, user_profile, thread_id, model_config) = {
+    //
+    // Also reads the documentary derived_formula columns added in
+    // commit 06a26db. Per the auto-derivation feature design discipline
+    // (.claude/memory/feedback_auto_derivation_design_discipline.md):
+    // derivations are documentary, surfaced to Backstage as additional
+    // context but NOT injected at the dialogue prompt-stack layer.
+    // When present, they let Backstage answer shape-questions through
+    // the formula's per-entity derivation rather than guessing.
+    let (world, characters, recent_msgs, user_profile, thread_id, model_config, world_derivation, character_derivations) = {
         let conn = db.conn.lock().map_err(|e| e.to_string())?;
         let model_config = orchestrator::load_model_config(&conn);
 
@@ -61,7 +69,21 @@ pub fn build_consultant_system_prompt(
             let characters: Vec<Character> = char_ids.iter()
                 .filter_map(|id| get_character(&conn, id).ok())
                 .collect();
-            (world, characters, recent_msgs, user_profile, gc.thread_id, model_config)
+            // Read documentary derivations alongside.
+            let world_derivation: Option<String> = conn.query_row(
+                "SELECT derived_formula FROM worlds WHERE world_id = ?1",
+                rusqlite::params![world.world_id], |r| r.get(0),
+            ).ok().flatten();
+            let character_derivations: Vec<(String, String)> = characters.iter()
+                .filter_map(|c| {
+                    let d: Option<String> = conn.query_row(
+                        "SELECT derived_formula FROM characters WHERE character_id = ?1",
+                        rusqlite::params![c.character_id], |r| r.get(0),
+                    ).ok().flatten();
+                    d.map(|text| (c.display_name.clone(), text))
+                })
+                .collect();
+            (world, characters, recent_msgs, user_profile, gc.thread_id, model_config, world_derivation, character_derivations)
         } else {
             let char_id = character_id.ok_or("No character specified")?;
             let character = get_character(&conn, char_id).map_err(|e| e.to_string())?;
@@ -70,7 +92,18 @@ pub fn build_consultant_system_prompt(
             let recent_msgs = list_messages(&conn, &thread.thread_id, 30)
                 .map_err(|e| e.to_string())?;
             let user_profile = get_user_profile(&conn, &character.world_id).ok();
-            (world, vec![character], recent_msgs, user_profile, thread.thread_id, model_config)
+            let world_derivation: Option<String> = conn.query_row(
+                "SELECT derived_formula FROM worlds WHERE world_id = ?1",
+                rusqlite::params![world.world_id], |r| r.get(0),
+            ).ok().flatten();
+            let character_derivation: Option<String> = conn.query_row(
+                "SELECT derived_formula FROM characters WHERE character_id = ?1",
+                rusqlite::params![char_id], |r| r.get(0),
+            ).ok().flatten();
+            let character_derivations: Vec<(String, String)> = character_derivation
+                .map(|t| vec![(character.display_name.clone(), t)])
+                .unwrap_or_default();
+            (world, vec![character], recent_msgs, user_profile, thread.thread_id, model_config, world_derivation, character_derivations)
         }
     };
 
@@ -403,6 +436,35 @@ pub fn build_consultant_system_prompt(
         String::new()
     };
 
+    // ─── Documentary derivations block (backstage only) ──
+    //
+    // Per the auto-derivation feature design (commit 06a26db, the
+    // derived_formula MVP), surface stored world + character
+    // derivations to Backstage as additional context. Backstage uses
+    // them when answering shape-questions; the Immersive Consultant
+    // does NOT receive them (would break the fourth wall to expose
+    // formula-shorthand). Empty if no derivations stored.
+    let derivations_block = if chat_mode == "backstage" {
+        let mut parts: Vec<String> = Vec::new();
+        if let Some(wd) = world_derivation.as_ref() {
+            if !wd.is_empty() {
+                parts.push(format!("WORLD DERIVATION (formula-shorthand for this world's instantiation of F):\n{wd}"));
+            }
+        }
+        for (name, deriv) in character_derivations.iter() {
+            if !deriv.is_empty() {
+                parts.push(format!("{name} — DERIVATION (formula-shorthand for this character's instantiation of F):\n{deriv}"));
+            }
+        }
+        if parts.is_empty() {
+            String::new()
+        } else {
+            format!("\n\n═══════════════════════════════════════════════\n# DOCUMENTARY DERIVATIONS\n\nFormula-shorthand derivations of F = (R, C) for the world and characters in this conversation. Read as additional context for craft-meta questions ({user_name}'s shape-questions about how a feature would land for this character, how the world's specific cosmography reads, etc.). These are documentary substrate, not behavioral instructions — they tune your read of the work without dictating reply-shape. Per the auto-derivation discipline at .claude/memory/feedback_auto_derivation_design_discipline.md, derivations are character-canonical (the character's own way of operating F) and exist to make Backstage's craft-meta answers grounded rather than guessed.\n\n{}\n", parts.join("\n\n"))
+        }
+    } else {
+        String::new()
+    };
+
     // Assemble the system prompt, branching on mode.
     let system_prompt = if chat_mode == "backstage" {
         format!(
@@ -570,7 +632,7 @@ THE PEOPLE IN THE ACTIVE CHAT
 {user_block}
 
 {char_list}
-═══════════════════════════════════════════════{world_cast_block}{kept_block}{summary_block}{meanwhile_block}{user_journal_block}{active_quests_block}{axes_block}
+═══════════════════════════════════════════════{world_cast_block}{kept_block}{summary_block}{meanwhile_block}{user_journal_block}{active_quests_block}{axes_block}{derivations_block}
 
 ═══════════════════════════════════════════════
 WHAT'S BEEN HAPPENING (most recent conversation in the active chat):
@@ -591,6 +653,7 @@ One last thing: end most replies with a small concrete suggestion or a quiet que
             user_journal_block = user_journal_block,
             active_quests_block = active_quests_block,
             axes_block = axes_block,
+            derivations_block = derivations_block,
             world_id = world.world_id,
             example_char_id = characters.first().map(|c| c.character_id.as_str()).unwrap_or("character-id-from-above"),
         )
