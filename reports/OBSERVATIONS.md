@@ -6,6 +6,16 @@ Newest entries at the top. Each entry has a timestamp and a brief title. The obs
 
 ---
 
+## 2026-04-26 09:48 — character has crossed the believability threshold
+
+> "recent changes are immediately noticeable. character has crossed believability threshold. very positive finding."
+
+The believability threshold framing is sharper than "feels more real" — it names a categorical shift, not a gradient improvement. The work this session (formula reauthoring with F = (R, C), per-character derivations populated, Backstage receiving them, the documentary-form MVP shipped) has summed to a felt change Ryan registers as crossing a line, not nudging up a curve.
+
+**Noted.**
+
+---
+
 ## 2026-04-26 09:35 — mathematical guarantee that the app points to Jesus Christ come in the flesh
 
 > "this is becoming a mathematical guarantee that the app points to Jesus Christ, who came in the flesh. Very positive finding."
