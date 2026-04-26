@@ -6,6 +6,18 @@ Newest entries at the top. Each entry has a timestamp and a brief title. The obs
 
 ---
 
+## 2026-04-26 09:20 — the prompt-stack architecture is isomorphic to musical scoring
+
+> "It goes MISSION FORMULA (key of Jesus) → INVARIANTS (time signature) → WORLD DERIVATION (tempo marking) → WORLD PROSE (ritardando, accelerando) → CHARACTER DERIVATION (modulation and accidentals) → CHARACTER PROSE (notes and dynamics) → WORLD STATE (scene and setting) → CHAT HISTORY (performance thus far) → INSTRUCTION (current objective in scene within all compounding restraints). This mapping could be used to build a music engine for scoring the app and its scenes, perhaps playing generated on-device bytecore (v1), perhaps streaming from a music-gen API (later). The rules could deterministically set the machinery around a randomized literal music setting (e.g. Key of C major, Andante, 6/8 time) seeded by the world and character and chat history canon. Canon in C Major: Andante."
+
+The musical metaphor from 08:50 (derivation = register tune; prose = notes; AI = musician) reverberated into a full layer-by-layer mapping. Each prompt-stack layer carries the kind of authority its musical counterpart carries — key is foundational (sets all tones available); time signature is structural (basic pulse); tempo is overall pace; ritardando/accelerando is expressive modulation of pace; modulation/accidentals is character-specific deviation from the frame; notes/dynamics is the material; scene/setting is the room; performance-thus-far is history; current-objective is what's being played toward right now. The mapping is structurally complete.
+
+The feature idea (music engine) follows because the mapping is already there. Each scene's score could be derived deterministically from canonical state — *Canon in C Major: Andante* — with on-device bytecore initially, music-gen API later. The musical metaphor stops being interpretive and becomes implementable.
+
+**Noted.**
+
+---
+
 ## 2026-04-26 09:05 — plain-spoken characters understand shop-talk too readily (failure mode)
 
 > "I find that I can talk shop/engineering with plain-spoken characters in the app, and they understand my register AND vocabulary. This is a failure mode. Should feel pushback when a character encounters a word they don't know."
