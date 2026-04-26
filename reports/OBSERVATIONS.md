@@ -6,6 +6,17 @@ Newest entries at the top. Each entry has a timestamp and a brief title. The obs
 
 ---
 
+## 2026-04-26 14:50 — Grok lands literary imagery after Mission Formula tuning
+
+> "Grok is a good companion when registers are calibrated. It output literary vivid imagery from my world after a short couple of turns tuning with Mission Formula and a few derivations."
+
+Cross-LLM observation: Grok (xAI) responds to the same conditioning-frame discipline that the project codified in `feedback_cross_llm_consultation_preface.md` for ChatGPT. After a short calibration with the MISSION FORMULA + a few character/world derivations, Grok produced literary vivid imagery from Ryan's world — the same shape the in-app substrate is tuned to produce. Suggests the cross-LLM hygiene principle generalizes beyond ChatGPT: any frontier model conditioned on the formula-as-runtime-prefix can be invited into the project's register.
+
+**Proposed action.** Extend `/second-opinion` to add xAI/Grok as a third invocation path alongside codex exec (Path A, repo-aware) and direct ChatGPT API (Path B, general-knowledge). Path C: direct xAI API via curl + keychain key (assuming a `XAI_API_KEY` slot is added to the existing keychain fallback chain). Use cases where Grok's register strength fits: literary imagery, world-color, tone-tuning, anything where a different frontier model's register would tighten the read. Cost would bill against the same daily $5 budget. Worth doing if Ryan finds himself reaching for Grok more than once.
+
+---
+
+
 ## 2026-04-26 11:55 — cross-LLM refinement loop closes (concatenation > composition)
 
 > Ryan pasted the prior reply (about ChatGPT-saw-the-prose-but-not-deployment-context) BACK into ChatGPT, which sharpened it further: *"Concatenation at system level is stronger than composition at semantic level. Two blocks that 'agree' conceptually are weak. Two blocks that are co-present in the conditioning prefix on every forward pass become a single attractor."* Plus a reusable minimal preface for future cross-LLM artifact-sharing.
