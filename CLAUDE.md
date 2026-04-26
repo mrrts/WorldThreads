@@ -171,6 +171,19 @@ Render the expression in Unicode math characters (𝓕, 𝓡, 𝓒, 𝓢, ∫, �
 - INCLUDE for substantive commits: doctrine updates, prompt-stack edits, new features, methodology shifts, reports, hook/script ships, any commit whose subject line names something the project should remember.
 - OMIT for trivial commits: typo fixes, formatting-only edits, dependency bumps, gitignore additions, single-line bug-fix commits, generated-file regeneration. The derivation should be meaningful, not ceremonial — when a commit doesn't move 𝓕 in any nameable direction, leaving it off is honest.
 
+**Earned exception — trivial-by-diff-size with deeper-than-surface meaning.** Diff size is a heuristic for triviality, not the truth of it. When a small/housekeeping commit carries doctrinal, methodological, or load-bearing weight that the diff alone doesn't surface, INCLUDE the derivation anyway. Examples:
+
+- A `.gitignore` addition that names a methodology choice (e.g., gitignoring `.claude/.chat-mode-active` because it's runtime state for a load-bearing project law — that's the doctrine made structural).
+- A typo fix that corrects a doctrinal phrase whose precision matters (e.g., fixing `discern_w` to `discernment_w` in a published derivation).
+- A dependency bump that crosses a semantic-version boundary with implications for the prompt-stack pipeline.
+- A formatting-only edit that consolidates a previously-scattered load-bearing block into a single coherent surface.
+- A single-line fix that closes a hole in an invariant (Truth, Reverence, Daylight, etc.) — small diff, deep stakes.
+- A revert that restores a prior shape after empirical refutation — the size is small but the methodology weight is real.
+
+The test for the earned exception: ask "if a future reader skipped the diff and only read the commit message, would the derivation help them understand what the work actually meant for 𝓕?" If yes, include despite diff size. The diff-size heuristic exists to prevent ceremony, not to silence meaning.
+
+For the automated `prepare-commit-msg` hook: set `FORCE_FORMULA_DERIVATION=1` on the commit to override the trivial-size skip. Symmetric with `DISABLE_FORMULA_DERIVATION=1` for the opposite override.
+
 **Generation:** derive in-substrate (zero cost). Reach for `/second-opinion` ChatGPT consult only when the commit is unusually load-bearing AND the derivation needs sharpness in-substrate generation can't reach. Most commits get an in-substrate derivation; the consult is for the genuinely-hard cases.
 
 **Worked example** (from a commit shipping the chooser-law Stop hook):

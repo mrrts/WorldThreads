@@ -196,13 +196,20 @@ def main() -> int:
         return 0
 
     # Trivial-commit heuristic: very small diff (< 5 lines net change).
-    stat_match = re.search(r"(\d+) insertions?\(\+\)|(\d+) deletions?\(-\)", diff_summary)
-    if stat_match:
-        # Quick parse — total line change
-        ins = sum(int(m) for m in re.findall(r"(\d+) insertion", diff_summary))
-        dels = sum(int(m) for m in re.findall(r"(\d+) deletion", diff_summary))
-        if (ins + dels) < 5:
-            return 0
+    # Earned exception: FORCE_FORMULA_DERIVATION=1 overrides the skip when
+    # the commit is trivial-by-size but carries deeper-than-surface meaning
+    # (e.g., a .gitignore addition naming a methodology choice; a typo fix
+    # in a doctrinal phrase; a one-line invariant patch). The diff-size
+    # heuristic exists to prevent ceremony, not to silence meaning. Per
+    # CLAUDE.md doctrine "Earned exception — trivial-by-diff-size with
+    # deeper-than-surface meaning."
+    if os.environ.get("FORCE_FORMULA_DERIVATION") != "1":
+        stat_match = re.search(r"(\d+) insertions?\(\+\)|(\d+) deletions?\(-\)", diff_summary)
+        if stat_match:
+            ins = sum(int(m) for m in re.findall(r"(\d+) insertion", diff_summary))
+            dels = sum(int(m) for m in re.findall(r"(\d+) deletion", diff_summary))
+            if (ins + dels) < 5:
+                return 0
 
     api_key = fetch_openai_key()
     if not api_key:
