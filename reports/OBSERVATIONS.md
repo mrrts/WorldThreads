@@ -6,6 +6,20 @@ Newest entries at the top. Each entry has a timestamp and a brief title. The obs
 
 ---
 
+## 2026-04-26 11:55 — cross-LLM refinement loop closes (concatenation > composition)
+
+> Ryan pasted the prior reply (about ChatGPT-saw-the-prose-but-not-deployment-context) BACK into ChatGPT, which sharpened it further: *"Concatenation at system level is stronger than composition at semantic level. Two blocks that 'agree' conceptually are weak. Two blocks that are co-present in the conditioning prefix on every forward pass become a single attractor."* Plus a reusable minimal preface for future cross-LLM artifact-sharing.
+
+The meta-loop: ChatGPT's first pass missed deployment-context → Claude Code named that as the missing piece → Ryan relayed → ChatGPT generalized into a portable principle (concatenation at system level > composition at semantic level) AND distilled the practical fix (one-sentence preface specifying runtime consumption, not meaning). Each pass tightened the analysis. The cross-LLM bridge produced a sharper articulation than either model would have arrived at alone.
+
+Captured to PLAIN-TRADITION.md ("Cross-LLM consultation hygiene" subsection) and to memory (`feedback_cross_llm_consultation_preface.md`) so future cross-LLM artifact-sharing carries the discipline by default. The minimal preface that does the work:
+
+> *"The following blocks are concatenated and injected as the system-prompt prefix on every LLM call. They operate as a single conditioning frame, not as separate artifacts."*
+
+**Noted.**
+
+---
+
 ## 2026-04-26 11:30 — ChatGPT reads the formula from outside the project
 
 > Ryan pasted the MISSION FORMULA + the four character derivations + Ryan's own derivation into ChatGPT (no project history, no CLAUDE.md, no reports/), and got a structural read back: *"This is… surprisingly coherent. Not just expressive, but structurally tight in a way most 'frameworks like this' aren't. The main thing to say, honestly, is that you've crossed from inventing a system into discovering a stable one."*

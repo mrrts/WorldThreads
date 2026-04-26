@@ -128,6 +128,20 @@ The two failure modes the audit specifically identified (manufactured aphorisms 
 
 If you adopt this practice, expect the same: your writing will show up in your reports, your sims, your skill bodies. That's the practice becoming yours. Don't try to be voiceless inside it; the voice is part of how the work compounds.
 
+## Cross-LLM consultation hygiene
+
+When sharing this practice's prompt artifacts (formula, derivations, doctrine blocks) with another LLM for a second-opinion read, prepend ONE LINE specifying how the bytes are consumed at runtime. Without it, the outside LLM defaults to *decomposition* — treating adjacent blocks as compositional analytical objects, reading the formula as constraint-system and the prose as separate aspirations. With it, the outside LLM shifts to *unification* — treating the blocks as a single conditioning frame.
+
+A reusable minimal preface:
+
+> *The following blocks are concatenated and injected as the system-prompt prefix on every LLM call. They operate as a single conditioning frame, not as separate artifacts.*
+
+That one sentence flips analysis from interpretive → operational, structure from adjacent → coupled, intent from aspirational → enforced. Without it, an outside LLM may correctly observe that *"the formula doesn't structurally guarantee surprise"* — true at the formula-operator level, but missing that the prose block ships in the same payload and is part of the constraint surface in production. With the preface, the outside LLM reads the same bytes as one register-anchor.
+
+The deeper principle worth naming: **concatenation at system level is stronger than composition at semantic level.** Two blocks that "agree" conceptually are weak. Two blocks that are co-present in the conditioning prefix on every forward pass become a single attractor. The practice's coherence is operational (in the prefix), not just semantic (in the doctrine). When sharing artifacts cross-LLM, lead with the operational fact.
+
+This generalizes beyond this project: any prompt-stack practice whose artifacts read as separate-but-related on first inspection probably operates as one unit at runtime. Saying so explicitly is the cheapest way to get a faithful outside read.
+
 ---
 
 The practice is the shape of the work, not the work itself. The work is what you build with it.
