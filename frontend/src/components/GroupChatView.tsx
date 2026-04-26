@@ -1665,20 +1665,23 @@ export function GroupChatView({ store, onNavigateToCharacter }: Props) {
                       { mode: "occasional" as const, glyph: "😀",     title: "Occasionally — text-message-realistic, ~1-in-4 messages" },
                       { mode: "always" as const,     glyph: "😀😀😀", title: "Always — every message gets a reaction" },
                     ]).map(({ mode, glyph, title }) => (
-                      <button
-                        key={mode}
-                        onClick={() => { setReactionsMode(mode); setNarrationDirty(true); }}
-                        title={title}
-                        className={`px-2.5 py-1 text-sm leading-none transition-colors cursor-pointer ${
-                          reactionsMode === mode
-                            ? "bg-primary text-primary-foreground"
-                            : "text-muted-foreground hover:text-foreground hover:bg-accent/50"
-                        }`}
-                        aria-label={title}
-                        aria-pressed={reactionsMode === mode}
-                      >
-                        {glyph}
-                      </button>
+                      <div key={mode} className="relative group/rxn-mode">
+                        <button
+                          onClick={() => { setReactionsMode(mode); setNarrationDirty(true); }}
+                          className={`px-2.5 py-1 text-sm leading-none transition-colors cursor-pointer ${
+                            reactionsMode === mode
+                              ? "bg-primary text-primary-foreground"
+                              : "text-muted-foreground hover:text-foreground hover:bg-accent/50"
+                          }`}
+                          aria-label={title}
+                          aria-pressed={reactionsMode === mode}
+                        >
+                          {glyph}
+                        </button>
+                        <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2 py-1 text-[11px] font-medium text-white bg-black/90 rounded-md shadow-lg whitespace-nowrap opacity-0 group-hover/rxn-mode:opacity-100 pointer-events-none transition-opacity z-50">
+                          {title}
+                        </span>
+                      </div>
                     ))}
                   </div>
                 </div>
