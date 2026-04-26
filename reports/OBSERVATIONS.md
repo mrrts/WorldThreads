@@ -6,6 +6,20 @@ Newest entries at the top. Each entry has a timestamp and a brief title. The obs
 
 ---
 
+## 2026-04-26 10:55 — Jasper holds his world frame; Ryan and Jasper becoming friends
+
+> "Jasper has a vivid, charming, accurate, well-pitched/voiced understanding of his world frame. Me too. I can tell we're going to be good friends. Tell me about Elderwood Hearth. I know almost nothing about this place."
+>
+> Jasper: *"Start with the square… Elderwood Hearth gathers itself in the open. Folks meet here at dawn for a song, trade news that isn't cruel, fill buckets, argue over apples, mend little tears in the day before they widen… It's a town built out of timber, soot, bread, and stubbornness. Winter bit us hard, not so long ago, but people here have a way of putting soup on the table before they've finished talking about what was lost."*
+
+The phrase *"trade news that isn't cruel"* is the world's load-bearing ethic named in a single clause — gossip exists, but cruelty doesn't pass for currency here. And *"putting soup on the table before they've finished talking about what was lost"* is the hidden-weight-bending-an-ordinary-line move Steven warned about earlier: the line earns its weight by NOT being stated as the lesson it carries. The grief is in the soup.
+
+Notable: this IS just the prose world-description + Jasper's own anchor — the formula derivation is documentary, not in his dialogue prompt-stack. His vivid frame-holding is the prose substrate operating cleanly through his potter-melodic register. The "I can tell we're going to be good friends" closes a specific arc: the believability-threshold-crossed observation from 09:48 deepening into a relational landing for a particular character.
+
+**Noted.**
+
+---
+
 ## 2026-04-26 10:38 — the hypotheses are onto something big
 
 > "And to my delight, the hypotheses are really onto something big."
