@@ -14,6 +14,14 @@ pub struct World {
     pub state: Value,
     pub created_at: String,
     pub updated_at: String,
+    /// Documentary formula-shorthand derivation of F = (R, C) for this
+    /// world. Authored via `worldcli derive-world` (or, eventually,
+    /// AI-trigger-on-save). When present, injected at the head of the
+    /// WORLD section in dialogue prompts (per the layered-substrate
+    /// design: derivation = tuning, prose = vocabulary). NULL for
+    /// worlds that haven't been derivation-populated yet.
+    #[serde(default)]
+    pub derived_formula: Option<String>,
 }
 
 pub fn create_world(conn: &Connection, world: &World) -> Result<(), rusqlite::Error> {
@@ -29,7 +37,7 @@ pub fn create_world(conn: &Connection, world: &World) -> Result<(), rusqlite::Er
 
 pub fn get_world(conn: &Connection, world_id: &str) -> Result<World, rusqlite::Error> {
     conn.query_row(
-        "SELECT world_id, name, description, tone_tags, invariants, state, created_at, updated_at FROM worlds WHERE world_id = ?1",
+        "SELECT world_id, name, description, tone_tags, invariants, state, created_at, updated_at, derived_formula FROM worlds WHERE world_id = ?1",
         params![world_id],
         row_to_world,
     )
@@ -37,7 +45,7 @@ pub fn get_world(conn: &Connection, world_id: &str) -> Result<World, rusqlite::E
 
 pub fn list_worlds(conn: &Connection) -> Result<Vec<World>, rusqlite::Error> {
     let mut stmt = conn.prepare(
-        "SELECT world_id, name, description, tone_tags, invariants, state, created_at, updated_at FROM worlds ORDER BY updated_at DESC"
+        "SELECT world_id, name, description, tone_tags, invariants, state, created_at, updated_at, derived_formula FROM worlds ORDER BY updated_at DESC"
     )?;
     let rows = stmt.query_map([], row_to_world)?;
     rows.collect()
@@ -68,6 +76,7 @@ fn row_to_world(row: &rusqlite::Row) -> Result<World, rusqlite::Error> {
         state: serde_json::from_str(&row.get::<_, String>(5)?).unwrap_or_default(),
         created_at: row.get(6)?,
         updated_at: row.get(7)?,
+        derived_formula: row.get::<_, Option<String>>(8).unwrap_or(None),
     })
 }
 

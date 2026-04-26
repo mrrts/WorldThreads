@@ -56,11 +56,19 @@ pub struct Character {
     /// Defaults to "normal" for backward-compatible behavior.
     #[serde(default = "default_action_beat_density")]
     pub action_beat_density: String,
+    /// Documentary formula-shorthand derivation of F = (R, C) for
+    /// this character. Authored via `worldcli derive-character` (or,
+    /// eventually, AI-trigger-on-save). When present, injected at
+    /// the head of the IDENTITY section in dialogue prompts (per the
+    /// layered-substrate design: derivation = tuning, prose =
+    /// vocabulary). NULL for characters not yet derivation-populated.
+    #[serde(default)]
+    pub derived_formula: Option<String>,
 }
 
 fn default_action_beat_density() -> String { "normal".to_string() }
 
-const CHAR_COLS: &str = "character_id, world_id, display_name, identity, voice_rules, boundaries, backstory_facts, relationships, state, avatar_color, sex, is_archived, created_at, updated_at, visual_description, visual_description_portrait_id, inventory, last_inventory_day, signature_emoji, action_beat_density";
+const CHAR_COLS: &str = "character_id, world_id, display_name, identity, voice_rules, boundaries, backstory_facts, relationships, state, avatar_color, sex, is_archived, created_at, updated_at, visual_description, visual_description_portrait_id, inventory, last_inventory_day, signature_emoji, action_beat_density, derived_formula";
 
 pub fn create_character(conn: &Connection, ch: &Character) -> Result<(), rusqlite::Error> {
     conn.execute(
@@ -86,7 +94,7 @@ pub fn get_character(conn: &Connection, character_id: &str) -> Result<Character,
 
 pub fn list_characters(conn: &Connection, world_id: &str) -> Result<Vec<Character>, rusqlite::Error> {
     let mut stmt = conn.prepare(
-        "SELECT c.character_id, c.world_id, c.display_name, c.identity, c.voice_rules, c.boundaries, c.backstory_facts, c.relationships, c.state, c.avatar_color, c.sex, c.is_archived, c.created_at, c.updated_at, c.visual_description, c.visual_description_portrait_id, c.inventory, c.last_inventory_day, c.signature_emoji, c.action_beat_density
+        "SELECT c.character_id, c.world_id, c.display_name, c.identity, c.voice_rules, c.boundaries, c.backstory_facts, c.relationships, c.state, c.avatar_color, c.sex, c.is_archived, c.created_at, c.updated_at, c.visual_description, c.visual_description_portrait_id, c.inventory, c.last_inventory_day, c.signature_emoji, c.action_beat_density, c.derived_formula
          FROM characters c
          LEFT JOIN threads t ON t.character_id = c.character_id
          LEFT JOIN (SELECT thread_id, MAX(created_at) AS last_msg FROM messages GROUP BY thread_id) m ON m.thread_id = t.thread_id
@@ -386,6 +394,7 @@ fn row_to_character(row: &rusqlite::Row) -> Result<Character, rusqlite::Error> {
         last_inventory_day: row.get(17).ok(),
         signature_emoji: row.get::<_, Option<String>>(18).ok().flatten().unwrap_or_default(),
         action_beat_density: row.get::<_, Option<String>>(19).ok().flatten().unwrap_or_else(|| "normal".to_string()),
+        derived_formula: row.get::<_, Option<String>>(20).unwrap_or(None),
     })
 }
 

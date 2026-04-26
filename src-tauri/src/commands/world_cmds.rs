@@ -25,6 +25,7 @@ pub fn create_world_cmd(db: State<Database>, name: String) -> Result<World, Stri
         state: default_state,
         created_at: now.clone(),
         updated_at: now,
+        derived_formula: None,
     };
     create_world(&conn, &world).map_err(|e| e.to_string())?;
 
@@ -61,6 +62,7 @@ pub fn create_world_cmd(db: State<Database>, name: String) -> Result<World, Stri
             last_inventory_day: None,
             signature_emoji: String::new(),
             action_beat_density: "normal".to_string(),
+            derived_formula: None,
         };
         create_character(&conn, &ch).map_err(|e| e.to_string())?;
         create_thread(&conn, &Thread {

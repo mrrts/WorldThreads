@@ -2081,6 +2081,7 @@ pub async fn reset_to_message_cmd(
                 inventory: serde_json::Value::Array(vec![]), last_inventory_day: None,
                 signature_emoji: String::new(),
             action_beat_density: "normal".to_string(),
+            derived_formula: None,
             };
             (dummy, world, mc)
         } else {

@@ -586,6 +586,7 @@ pub async fn auto_generate_world_with_characters_cmd(
         state,
         created_at: now.clone(),
         updated_at: now.clone(),
+        derived_formula: None,
     };
     let world_name_for_log = world_record.name.clone();
 
@@ -632,6 +633,7 @@ pub async fn auto_generate_world_with_characters_cmd(
                 last_inventory_day: None,
                 signature_emoji: ch_in.signature_emoji.trim().to_string(),
                 action_beat_density: ch_in.action_beat_density.trim().to_lowercase(),
+                derived_formula: None,
             };
             create_character(&conn, &character).map_err(|e| e.to_string())?;
             create_thread(&conn, &Thread {

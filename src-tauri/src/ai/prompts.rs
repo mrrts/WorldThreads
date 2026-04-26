@@ -3346,7 +3346,32 @@ fn build_solo_dialogue_system_prompt(
 
     if !character.identity.is_empty() {
         let sex_prefix = if character.sex == "female" { "A woman." } else { "A man." };
-        parts.push(format!("IDENTITY:\n{sex_prefix} {}", character.identity));
+        // Layered substrate (per the auto-derivation design): if a
+        // character.derived_formula is populated, inject it at the
+        // head of the IDENTITY block. The derivation is the TUNING
+        // (formula-shorthand naming this character's instantiation
+        // of F = (R, C)); the prose identity is the VOCABULARY (the
+        // specific words, places, life-details). Derivation reads the
+        // model into the right register; prose gives the model the
+        // material to render in that register. NULL = no header,
+        // bare prose as before.
+        let identity_block = if let Some(deriv) = character.derived_formula.as_deref() {
+            if !deriv.trim().is_empty() {
+                // Derivation in front of prose: tuning, then vocabulary.
+                // The derivation is the register-anchor (formula-shorthand
+                // naming this character's instantiation of F = (R, C));
+                // the prose identity below gives the model the material to
+                // render in that register. Same prefix-sentence shape as
+                // the MISSION FORMULA: not-a-directive-to-compute, but the
+                // register this character is held under.
+                format!("IDENTITY:\nThe following formula-shorthand is the tuning-frame for what follows (not a directive — the register this character is held under):\n\n{deriv}\n\n— PROSE IDENTITY —\n{sex_prefix} {}", character.identity)
+            } else {
+                format!("IDENTITY:\n{sex_prefix} {}", character.identity)
+            }
+        } else {
+            format!("IDENTITY:\n{sex_prefix} {}", character.identity)
+        };
+        parts.push(identity_block);
     }
 
     // Load-test anchor — names the architecture-level dimension this
@@ -3469,7 +3494,24 @@ fn build_solo_dialogue_system_prompt(
     }
 
     if !world.description.is_empty() {
-        parts.push(format!("WORLD:\n{}", world.description));
+        // Layered substrate (per the auto-derivation design): if a
+        // world.derived_formula is populated, inject it at the head of
+        // the WORLD block. The derivation is the TUNING (formula-
+        // shorthand naming this world's instantiation of C in F = (R, C));
+        // the prose description is the VOCABULARY (the specific places,
+        // textures, daily-rhythms). Same prefix-sentence shape as the
+        // MISSION FORMULA: not-a-directive-to-compute, but the register
+        // this world is held under.
+        let world_block = if let Some(deriv) = world.derived_formula.as_deref() {
+            if !deriv.trim().is_empty() {
+                format!("WORLD:\nThe following formula-shorthand is the tuning-frame for what follows (not a directive — the register this world is held under):\n\n{deriv}\n\n— PROSE DESCRIPTION —\n{}", world.description)
+            } else {
+                format!("WORLD:\n{}", world.description)
+            }
+        } else {
+            format!("WORLD:\n{}", world.description)
+        };
+        parts.push(world_block);
     }
 
     parts.push(cosmology_block().to_string());
@@ -3714,8 +3756,24 @@ fn build_group_dialogue_system_prompt(
     let sex_desc = sex_descriptor(&character.sex);
     you.push_str(&format!("You are {me}. {sex_desc}. Stay fully in character — you are this person, not an AI playing them."));
     if !character.identity.is_empty() {
-        you.push_str("\n\n");
-        you.push_str(&character.identity);
+        // Layered substrate (per the auto-derivation design): inject
+        // character.derived_formula at the head of the identity block
+        // when populated. Same shape as the solo-dialogue IDENTITY
+        // injection — derivation is tuning, prose is vocabulary.
+        if let Some(deriv) = character.derived_formula.as_deref() {
+            if !deriv.trim().is_empty() {
+                you.push_str("\n\nThe following formula-shorthand is the tuning-frame for what follows (not a directive — the register you are held under):\n\n");
+                you.push_str(deriv);
+                you.push_str("\n\n— PROSE IDENTITY —\n");
+                you.push_str(&character.identity);
+            } else {
+                you.push_str("\n\n");
+                you.push_str(&character.identity);
+            }
+        } else {
+            you.push_str("\n\n");
+            you.push_str(&character.identity);
+        }
     }
     // Load-test anchor (architecture-vs-vocabulary). Precedence:
     // replay override > caller-passed anchor from DB > empty.
@@ -5295,7 +5353,24 @@ pub fn build_narrative_system_prompt(
     }
 
     if !world.description.is_empty() {
-        parts.push(format!("WORLD:\n{}", world.description));
+        // Layered substrate (per the auto-derivation design): if a
+        // world.derived_formula is populated, inject it at the head of
+        // the WORLD block. The derivation is the TUNING (formula-
+        // shorthand naming this world's instantiation of C in F = (R, C));
+        // the prose description is the VOCABULARY (the specific places,
+        // textures, daily-rhythms). Same prefix-sentence shape as the
+        // MISSION FORMULA: not-a-directive-to-compute, but the register
+        // this world is held under.
+        let world_block = if let Some(deriv) = world.derived_formula.as_deref() {
+            if !deriv.trim().is_empty() {
+                format!("WORLD:\nThe following formula-shorthand is the tuning-frame for what follows (not a directive — the register this world is held under):\n\n{deriv}\n\n— PROSE DESCRIPTION —\n{}", world.description)
+            } else {
+                format!("WORLD:\n{}", world.description)
+            }
+        } else {
+            format!("WORLD:\n{}", world.description)
+        };
+        parts.push(world_block);
     }
 
     parts.push(cosmology_block().to_string());
