@@ -8,10 +8,11 @@ type: feedback
 
 **The default chooser** — when no more specific question fits the moment:
 
-- **Continue** — present more options for what to do next
+- **Yes, proceed** — go ahead with whatever the reply just proposed / set up / asked about
+- **Continue** — skip the proposed thing, present more next-step options
 - **Exit** — end here
 
-Reach for the default when the work just shipped is self-contained and there's no obvious next-question shape. The user can pick Continue to stay in the conversation (you respond by surfacing context-fitting next-step choosers) or Exit to end cleanly.
+The three-option default covers the natural shapes of "ready for X?" / "shall I Y?" moments: the user can either accept the proposal (Yes), redirect to other options (Continue), or end cleanly (Exit). When the reply doesn't propose anything specific, omit "Yes, proceed" and use just {Continue, Exit}. Use a more specific chooser whenever the moment fits one — the default is a fallback, not a target.
 
 **Use a more specific chooser whenever one fits.** The Continue/Exit fallback is exactly that — a fallback. When the just-finished work has a natural follow-up (test it? extend it? schedule a verification?), present those options as the chooser instead. Specificity beats default. The /run-experiment skill's hypothesis-audition chooser is the canonical example of doing it right.
 
@@ -30,6 +31,6 @@ Reach for the default when the work just shipped is self-contained and there's n
 
 The exception is real: thinking-out-loud / conversational back-and-forth / exploratory talk are categories where the every-turn-chooser ceremony imposes more friction than value. The marker pattern keeps the exception self-contained — the model cannot self-authorize chat mode; the user signals it, the hook detects it, the law suspends. When the user wants structured mode back, they say so. The marker file is project-local (`.claude/.chat-mode-active`); add to .gitignore if you don't want it tracked across sessions, or leave it out of source control entirely (it's runtime state, not artifact).
 
-**End your replies with the chooser, not with prose.** When you have nothing specific to ask, the Continue/Exit default IS the ending. No "let me know if…" / "happy to keep going" / "want me to…?" prose tail before the chooser — those are surface forms of the same drift the law was strengthened to eliminate.
+**End your replies with the chooser, not with prose.** When you have nothing specific to ask, the Yes-proceed/Continue/Exit (or Continue/Exit) default IS the ending. No "let me know if…" / "happy to keep going" / "want me to…?" prose tail before the chooser — those are surface forms of the same drift the law was strengthened to eliminate.
 
 **Edge case — mid-paragraph rhetorical questions** (*"Why does this matter? Because…"*) are still fine inside the body of a reply. They're not asks of the user; they're rhetorical structure. The law applies to the END of every turn, not to question marks anywhere in the body.
