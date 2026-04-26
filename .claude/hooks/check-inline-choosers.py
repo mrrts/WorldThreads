@@ -102,8 +102,16 @@ def last_assistant_used_askuserquestion(transcript_path: str) -> bool | None:
 
 
 def last_user_message_text(transcript_path: str) -> str:
-    """Return the text of the most-recent user message in the transcript.
-    Used for chat-mode signal detection."""
+    """Return the text of the most-recent user-TYPED message.
+
+    Bug fix (2026-04-26): user records in the transcript include both
+    actually-typed messages AND tool_result returns (Bash output,
+    AskUserQuestion answers). Walking all user records and overwriting
+    `last` on every iteration meant the function nearly always returned
+    a tool_result string (or empty). Only update `last` when the
+    extracted text is non-empty — a message that is purely tool_result
+    blocks should NOT overwrite the prior actually-typed message.
+    """
     p = pathlib.Path(transcript_path)
     if not p.exists():
         return ""
@@ -119,18 +127,17 @@ def last_user_message_text(transcript_path: str) -> str:
                 if msg.get("role") != "user":
                     continue
                 content = msg.get("content")
+                extracted = ""
                 if isinstance(content, str):
-                    last = content
+                    extracted = content
                 elif isinstance(content, list):
                     parts = []
                     for b in content:
-                        if isinstance(b, dict):
-                            if b.get("type") == "text":
-                                parts.append(b.get("text", ""))
-                            elif b.get("type") == "tool_result":
-                                # Skip tool_result content — it's not a user instruction
-                                continue
-                    last = "\n".join(parts)
+                        if isinstance(b, dict) and b.get("type") == "text":
+                            parts.append(b.get("text", ""))
+                    extracted = "\n".join(parts)
+                if extracted.strip():
+                    last = extracted
     except Exception:
         return ""
     return last

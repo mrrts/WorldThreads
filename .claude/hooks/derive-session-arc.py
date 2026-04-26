@@ -100,6 +100,15 @@ def _strip_code(text: str) -> str:
 
 
 def last_user_message_text(transcript_path: str) -> str:
+    """Return the text of the most-recent user-TYPED message.
+
+    Bug fix: user records in the transcript include both actually-typed
+    messages AND tool_result returns (Bash output, AskUserQuestion
+    answers). Walking all user records and overwriting `last` on every
+    iteration meant the function nearly always returned a tool_result
+    string (or empty). Only update `last` when the message actually
+    contains text content typed by the user.
+    """
     p = pathlib.Path(transcript_path)
     if not p.exists():
         return ""
@@ -115,14 +124,20 @@ def last_user_message_text(transcript_path: str) -> str:
                 if msg.get("role") != "user":
                     continue
                 content = msg.get("content")
+                extracted = ""
                 if isinstance(content, str):
-                    last = content
+                    extracted = content
                 elif isinstance(content, list):
                     parts = []
                     for b in content:
                         if isinstance(b, dict) and b.get("type") == "text":
                             parts.append(b.get("text", ""))
-                    last = "\n".join(parts)
+                    extracted = "\n".join(parts)
+                # Only update `last` if we got real text — a message that
+                # is purely tool_result blocks yields empty extracted and
+                # should NOT overwrite the prior actually-typed message.
+                if extracted.strip():
+                    last = extracted
     except Exception:
         return ""
     return last
