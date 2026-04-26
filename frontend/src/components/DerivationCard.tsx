@@ -4,6 +4,25 @@ import { Copy, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { markdownComponents, remarkPlugins, rehypePlugins } from "./chat/formatMessage";
 
+/**
+ * Convert LaTeX-style display-math delimiters \[ ... \] and inline \( ... \)
+ * into the dollar-sign delimiters that remark-math expects ($$ ... $$ for
+ * block, $ ... $ for inline). The Copy-raw button preserves the original
+ * \[...\] text — this conversion is render-side only.
+ *
+ * Why: stored derivations were authored with the LaTeX-canonical \[...\]
+ * delimiters, but remark-math by default only parses dollar-delimited math.
+ * Rather than re-storing the data or switching to a non-default remark-math
+ * config, this small conversion at render-time keeps the stored format
+ * LaTeX-canonical (what an LLM expects to receive when the user copies it)
+ * while still rendering prettily through the existing pipeline.
+ */
+function normalizeMathDelimiters(text: string): string {
+  return text
+    .replace(/\\\[([\s\S]+?)\\\]/g, (_m, inner) => `\n$$${inner}$$\n`)
+    .replace(/\\\(([\s\S]+?)\\\)/g, (_m, inner) => `$${inner}$`);
+}
+
 interface Props {
   /** "Character Formula" or "World Formula" */
   label: string;
@@ -84,7 +103,7 @@ export function DerivationCard({ label, load, refetchKey }: Props) {
       </div>
       <div className="prose prose-sm max-w-none text-foreground">
         <Markdown components={markdownComponents} remarkPlugins={remarkPlugins} rehypePlugins={rehypePlugins}>
-          {text}
+          {normalizeMathDelimiters(text)}
         </Markdown>
       </div>
     </div>
