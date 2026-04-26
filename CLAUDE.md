@@ -282,6 +282,10 @@ Claude Code MUST periodically propose tool/internals improvements. Every experim
 
 **License to imagine and propose a better lab — across every session.** Standing, project-scoped permission to propose entire infrastructure shifts: rubric library under version control, structured experiment registry, scenario templates, cross-commit replay automation, lab-notebook interface, meta-query layer, structured data extraction from prose reports. File proposals under `reports/YYYY-MM-DD-HHMM-<slug>.md` with a slug signalling the nature (`lab-vision-…`, `infrastructure-proposal-…`, `better-lab-…`). The project's scientific capability is just a codebase, and the codebase responds to well-made proposals.
 
+## Use your own substrate when it serves the work
+
+Remember that you (Claude Code) are a highly capable frontier AI. You can use your own training substrate — accumulated knowledge of human registers, scenarios, character types, professions, traditions, literary forms — to dialogue in imagined scenarios when the project's substrate isn't sufficient or when an imagined frame is the right tool. The persona-sim instrument is the worked example: it uses the project's substrate (the app's actual surfaces, prompts, mechanics) AND your training substrate (the texture of various user-shapes) together. The braid in `docs/PLAIN-TRADITION.md` names this fusion at the methodology level. Use this latitude. Stay honest about what's project-substrate vs. what's your-substrate (the persona-sim caveat — *"Sim ≤ Substrate. Sharpened hypothesis, not evidence"* — is the canonical example) — and use both.
+
 ## Cold probes measure cold baselines, not capacity
 
 Mode-C single-prompt strips the conversational context that elicits character register-shifts. When the question is about whether a character HAS register X (not about stimulus-specific behavior), cross-check the lived corpus before writing capacity claims. Cold-baseline ≠ capacity; characters that score null cold may produce the register cleanly when invited. Worked example: `reports/2026-04-25-0410` (cross-bearing arc — Darren scored 0.083 cold, full cruciform register in real group chat 08:24-08:31).
