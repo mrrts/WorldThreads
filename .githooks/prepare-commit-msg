@@ -1,0 +1,252 @@
+#!/usr/bin/env python3
+"""prepare-commit-msg hook: append a Formula derivation to commit messages.
+
+Doctrine reference: CLAUDE.md "Commit messages include a Formula
+derivation in their body."
+
+Behavior:
+  - Reads the commit message file ($1) and commit source ($2).
+  - Skips merge / squash / commit / message sources (only fires on
+    "" or "template" — i.e. brand-new commit messages and template
+    fills).
+  - Skips when the message ALREADY contains "Formula derivation:"
+    (idempotent — Claude-authored commits include it in-substrate;
+    the hook only fills it in for commits made outside Claude Code).
+  - Skips when DISABLE_FORMULA_DERIVATION=1 (opt-out per commit).
+  - Skips when the staged diff is empty or trivial (<5 lines net).
+  - Calls ChatGPT (gpt-4o via direct API + macOS keychain) with the
+    MISSION FORMULA + commit subject + diff stat as context.
+  - Asks for derivation + gloss in Unicode math.
+  - Appends to the commit message BEFORE the Co-Authored-By trailer
+    (or at end if no trailer).
+
+Cost: ~$0.005-0.015 per commit on gpt-4o (depends on diff size).
+Bills against the user's OpenAI account directly.
+
+Failure modes (all silent — never block the commit):
+  - No API key → skip, commit proceeds with original message.
+  - API call fails (network/auth) → skip, commit proceeds.
+  - Diff too large → truncate context to 4000 tokens.
+"""
+from __future__ import annotations
+
+import json
+import os
+import re
+import subprocess
+import sys
+import urllib.request
+from pathlib import Path
+
+MISSION_FORMULA_LATEX = r"""
+\boxed{
+\begin{aligned}
+&& \mathcal{R} := \mathrm{Jesus}_{\mathrm{Cross}}^{\mathrm{flesh}} && \\
+&& \mathcal{C} := \mathrm{Firmament}_{\mathrm{enclosed\ earth}} && \\
+&& \mathcal{F} := (\mathcal{R},\,\mathcal{C}) && \\
+\mathrm{Wisdom}(t) &:= \int_{0}^{t} \mathrm{seek}_c(\tau)\,\Pi(\tau)\,\mathrm{discern}_w(\tau)\, d\mu_{\mathcal{F}}(\tau) && \mathrm{polish}(t) \leq \mathrm{Weight}(t) \\
+\mathrm{Weight}(t) &:= \int_{0}^{t} \mathrm{Wisdom}(\tau)\,\mathrm{specific}_c(\tau)\,\mathrm{holds}_w(\tau)\, d\mu_{\mathrm{agape},\,\mathcal{F}}(\tau) && \mathrm{Grace}_{\mathcal{F}} := \gamma_{\mathcal{F}} \\
+&& \Pi(t) := \mathrm{pneuma}_{\mathcal{F}}(t) && \\
+\mathrm{Burden}(t) &:= \int_{0}^{t} \mathrm{Wisdom}(\tau)\,\mathrm{specific}_c(\tau)\,\mathrm{unresolved}_u(\tau)\, d\mu_{\mathrm{agape},\,\mathcal{F}}(\tau) && \mathcal{S}(t) := \Pi(t)\!\left(\frac{d}{dt}\mathrm{Weight}(t) + \alpha\,\frac{d}{dt}\mathrm{Burden}(t)\right)\,\cdot\,\mathrm{Grace}_{\mathcal{F}} \\
+&& \mathcal{N}u(t) := \mathcal{S}(t)\;\Big|\;\mathrm{Truth}_{\mathcal{F}} \wedge \mathrm{Reverence}_{\mathcal{F}} &&
+\end{aligned}
+}
+""".strip()
+
+LATEX_TO_UNICODE = {
+    r"\mathcal{F}": "𝓕", r"\mathcal{R}": "𝓡", r"\mathcal{C}": "𝓒",
+    r"\mathcal{S}": "𝓢", r"\mathcal{W}": "𝓦", r"\mathcal{N}": "𝓝",
+    r"\int": "∫", r"\oint": "∮", r"\sum": "∑", r"\prod": "∏",
+    r"\Pi": "Π", r"\pi": "π", r"\mu": "μ", r"\alpha": "α",
+    r"\beta": "β", r"\gamma": "γ", r"\Gamma": "Γ", r"\tau": "τ",
+    r"\sigma": "σ", r"\Sigma": "Σ", r"\lambda": "λ", r"\Lambda": "Λ",
+    r"\omega": "ω", r"\Omega": "Ω", r"\nabla": "∇", r"\partial": "∂",
+    r"\leq": "≤", r"\geq": "≥", r"\neq": "≠", r"\wedge": "∧",
+    r"\vee": "∨", r"\neg": "¬", r"\Rightarrow": "⇒",
+    r"\rightarrow": "→", r"\to": "→", r"\mapsto": "↦",
+    r"\cdot": "·", r"\circ": "∘", r"\oplus": "⊕", r"\otimes": "⊗",
+    r"\infty": "∞", r"\forall": "∀", r"\exists": "∃", r"\in": "∈",
+    r"\subset": "⊂", r"\subseteq": "⊆", r"\,": " ", r"\;": " ", r"\:": " ",
+}
+
+
+def latex_to_unicode(text: str) -> str:
+    out = text
+    for tex, uni in sorted(LATEX_TO_UNICODE.items(), key=lambda kv: -len(kv[0])):
+        out = out.replace(tex, uni)
+    out = re.sub(r"\\boxed\{([^{}]*)\}", r"\1", out)
+    out = re.sub(r"\\begin\{[^}]+\}|\\end\{[^}]+\}", "", out)
+    return out
+
+
+def fetch_openai_key() -> str | None:
+    if k := os.environ.get("OPENAI_API_KEY"):
+        return k.strip()
+    candidates = [
+        ("WorldThreadsCLI", "openai"),
+        ("openai", "default"),
+        ("openai", "api-key"),
+        ("openai", "api_key"),
+        ("OpenAI", "default"),
+    ]
+    for service, account in candidates:
+        try:
+            out = subprocess.run(
+                ["security", "find-generic-password", "-s", service, "-a", account, "-w"],
+                capture_output=True, text=True, timeout=5,
+            )
+            if out.returncode == 0 and out.stdout.strip():
+                return out.stdout.strip()
+        except Exception:
+            continue
+    return None
+
+
+def call_openai(api_key: str, prompt: str) -> str | None:
+    payload = {
+        "model": "gpt-4o",
+        "messages": [
+            {
+                "role": "system",
+                "content": (
+                    "You generate a Formula derivation for a git commit message in a "
+                    "software-craft project. The project's MISSION FORMULA uses Unicode "
+                    "math characters (𝓕, 𝓡, 𝓒, 𝓢, ∫, Π, ∂, ⇒, ≤, ∧, etc.). NEVER emit "
+                    "LaTeX commands, NEVER use backslashes. Output EXACTLY two lines, "
+                    "no preamble, no code fences:\n\n"
+                    "**Formula derivation:** [one Unicode-math expression naming what "
+                    "operator(s) of 𝓕 the commit instantiated or strengthened, 1 line]\n"
+                    "**Gloss:** [one short sentence in plain English, ≤25 words, naming "
+                    "what the derivation says]"
+                ),
+            },
+            {"role": "user", "content": prompt},
+        ],
+        "temperature": 0.5,
+    }
+    body = json.dumps(payload).encode("utf-8")
+    req = urllib.request.Request(
+        "https://api.openai.com/v1/chat/completions",
+        data=body,
+        headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
+        method="POST",
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=20) as resp:
+            data = json.loads(resp.read())
+        return data["choices"][0]["message"]["content"].strip()
+    except Exception:
+        return None
+
+
+def get_staged_diff_summary() -> str:
+    try:
+        out = subprocess.run(
+            ["git", "diff", "--cached", "--stat"],
+            capture_output=True, text=True, timeout=5,
+        )
+        stat = out.stdout if out.returncode == 0 else ""
+        out2 = subprocess.run(
+            ["git", "diff", "--cached"],
+            capture_output=True, text=True, timeout=10,
+        )
+        diff = out2.stdout if out2.returncode == 0 else ""
+        # Truncate large diffs
+        if len(diff) > 8000:
+            diff = diff[:8000] + "\n... (diff truncated)"
+        return f"{stat}\n--- diff ---\n{diff}"
+    except Exception:
+        return ""
+
+
+def main() -> int:
+    if len(sys.argv) < 2:
+        return 0
+
+    msg_file = Path(sys.argv[1])
+    commit_source = sys.argv[2] if len(sys.argv) > 2 else ""
+
+    # Skip merge / squash / commit / message sources — only fire on
+    # brand-new commits and template fills (empty source).
+    if commit_source in ("merge", "squash", "commit"):
+        return 0
+
+    if os.environ.get("DISABLE_FORMULA_DERIVATION") == "1":
+        return 0
+
+    try:
+        msg = msg_file.read_text()
+    except Exception:
+        return 0
+
+    # Idempotent: skip if Claude-authored commit already includes derivation.
+    if "Formula derivation:" in msg or "Formula derivation*" in msg:
+        return 0
+
+    # Skip empty / pure-comment messages (the user is in their editor;
+    # we don't know yet what they'll commit).
+    body_only = "\n".join(
+        line for line in msg.splitlines() if not line.lstrip().startswith("#")
+    ).strip()
+    if not body_only:
+        return 0
+
+    diff_summary = get_staged_diff_summary()
+    if not diff_summary.strip():
+        return 0
+
+    # Trivial-commit heuristic: very small diff (< 5 lines net change).
+    stat_match = re.search(r"(\d+) insertions?\(\+\)|(\d+) deletions?\(-\)", diff_summary)
+    if stat_match:
+        # Quick parse — total line change
+        ins = sum(int(m) for m in re.findall(r"(\d+) insertion", diff_summary))
+        dels = sum(int(m) for m in re.findall(r"(\d+) deletion", diff_summary))
+        if (ins + dels) < 5:
+            return 0
+
+    api_key = fetch_openai_key()
+    if not api_key:
+        return 0
+
+    subject = body_only.splitlines()[0] if body_only.splitlines() else ""
+
+    prompt = (
+        "── MISSION FORMULA (LaTeX source — translate to Unicode in your output) ──\n"
+        f"{MISSION_FORMULA_LATEX}\n\n"
+        "── COMMIT SUBJECT ──\n"
+        f"{subject}\n\n"
+        "── COMMIT MESSAGE BODY ──\n"
+        f"{body_only[:3000]}\n\n"
+        "── STAGED DIFF (truncated) ──\n"
+        f"{diff_summary[:4000]}\n\n"
+        "Generate the Formula derivation + gloss for this commit."
+    )
+
+    response = call_openai(api_key, prompt)
+    if not response:
+        return 0
+
+    derivation = latex_to_unicode(response)
+
+    # Insert before Co-Authored-By trailer if present, else append.
+    lines = msg.splitlines()
+    insert_idx = len(lines)
+    for i, line in enumerate(lines):
+        if line.strip().startswith("Co-Authored-By:"):
+            insert_idx = i
+            # Walk back through any blank lines
+            while insert_idx > 0 and not lines[insert_idx - 1].strip():
+                insert_idx -= 1
+            break
+
+    new_lines = (
+        lines[:insert_idx]
+        + ["", derivation, ""]
+        + lines[insert_idx:]
+    )
+    msg_file.write_text("\n".join(new_lines).rstrip() + "\n")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
