@@ -103,8 +103,8 @@ pub fn update_group_message_content(conn: &Connection, message_id: &str, content
 
 pub fn create_message(conn: &Connection, m: &Message) -> Result<(), rusqlite::Error> {
     conn.execute(
-        "INSERT INTO messages (message_id, thread_id, role, content, tokens_estimate, sender_character_id, created_at, world_day, world_time, address_to, mood_chain, is_proactive) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12)",
-        params![m.message_id, m.thread_id, m.role, m.content, m.tokens_estimate, m.sender_character_id, m.created_at, m.world_day, m.world_time, m.address_to, m.mood_chain, m.is_proactive as i64],
+        "INSERT INTO messages (message_id, thread_id, role, content, tokens_estimate, sender_character_id, created_at, world_day, world_time, address_to, mood_chain, is_proactive, formula_signature) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13)",
+        params![m.message_id, m.thread_id, m.role, m.content, m.tokens_estimate, m.sender_character_id, m.created_at, m.world_day, m.world_time, m.address_to, m.mood_chain, m.is_proactive as i64, m.formula_signature],
     )?;
     // Don't index illustration/video content in FTS — they contain binary data (base64)
     if m.role != "illustration" && m.role != "video" && m.role != "inventory_update" {

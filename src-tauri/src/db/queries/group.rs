@@ -104,8 +104,8 @@ pub fn find_group_chat_by_members(conn: &Connection, world_id: &str, character_i
 
 pub fn create_group_message(conn: &Connection, m: &Message) -> Result<(), rusqlite::Error> {
     conn.execute(
-        "INSERT INTO group_messages (message_id, thread_id, role, content, tokens_estimate, sender_character_id, created_at, world_day, world_time, address_to) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)",
-        params![m.message_id, m.thread_id, m.role, m.content, m.tokens_estimate, m.sender_character_id, m.created_at, m.world_day, m.world_time, m.address_to],
+        "INSERT INTO group_messages (message_id, thread_id, role, content, tokens_estimate, sender_character_id, created_at, world_day, world_time, address_to, mood_chain, is_proactive, formula_signature) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13)",
+        params![m.message_id, m.thread_id, m.role, m.content, m.tokens_estimate, m.sender_character_id, m.created_at, m.world_day, m.world_time, m.address_to, m.mood_chain, m.is_proactive as i64, m.formula_signature],
     )?;
     if m.role != "illustration" && m.role != "video" && m.role != "inventory_update" {
         conn.execute(
