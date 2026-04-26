@@ -45,3 +45,10 @@ Steven's v3 verdict: *"Not transplant-scar. More like you borrowed a tool and us
 **Time-register honesty (preference, not commanded; Ryan declined to put it in CLAUDE.md to avoid "hacking the substrate"):** Don't use human-time-register language ("weeks", "days", "hours", "months") for Claude Code's actual work. That language is from a human-developer training corpus. Claude Code is a rapid-development tool with sub-minute-per-call response times; the honest unit is calls-and-runs, not human-developer-weeks. *"the next month or two of running the instruments"* → *"the next ~20 invocations"* / *"5 characterization runs"*. *"weeks of accumulated craft"* → run-counts or commit-counts. *"15 elicitations"* / *"$2.50"* / *"three runs"* / *"5 minutes wall time"* — these are the register-honest forms.
 
 **Practical implementation (Ryan's clarification):** Record actual time-elapsed at the top of every experiment write-up. Future-me reading the report should see at-a-glance how long the run actually took (e.g., wall time = 7m 23s for the 25-elicitation characterization run). The recorded times become the substrate for honest future projections — instead of guessing in human-developer hours, project from the run-log of actual elapsed times of similar-shape runs.
+
+**Chooser-option projections — include TIME alongside cost (Ryan's request, mid-Aaron-investigation):** Each chooser option's label or description should carry both the forecast COST and the forecast TIME. Examples:
+- *"Run on next character: Steven — ~$0.10, ~10s wall"*
+- *"Cross-world characterization N=5 on Jasper + Isolde — ~$1.00, ~3 min"*
+- *"Update SKILL.md for paired-rubric mandate — $0, ~1 min"*
+
+Project times from observed wall-clock of similar-shape moves (one ask call ~7s; N=5 elicitations ~15-35s; one paired-rubric grading run ~10-20s; a substantive doc/skill edit ~1-3 min; a full report write ~2-5 min). When in doubt, project conservatively but stay in seconds-to-minutes register, never human-developer-hours.
