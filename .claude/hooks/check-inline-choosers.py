@@ -54,14 +54,17 @@ def extract_last_assistant_text(transcript_path: str) -> str:
     return last
 
 
+def _strip_code(text: str) -> str:
+    text = re.sub(r"```.*?```", "", text, flags=re.DOTALL)
+    text = re.sub(r"`[^`]+`", "", text)
+    return text
+
+
 def detect_inline_chooser(text: str) -> bool:
     """Return True if the tail of the assistant message looks like an inline chooser."""
     if not text:
         return False
-    tail = text[-1800:]
-    # Strip fenced code blocks and inline code so docs/examples don't false-trigger.
-    tail = re.sub(r"```.*?```", "", tail, flags=re.DOTALL)
-    tail = re.sub(r"`[^`]+`", "", tail)
+    tail = _strip_code(text[-1800:])
 
     paren_letters = re.findall(r"\(([a-zA-Z])\)", tail)
     if len(paren_letters) >= 3 and {"a", "b", "c"}.issubset({c.lower() for c in paren_letters}):
@@ -72,6 +75,28 @@ def detect_inline_chooser(text: str) -> bool:
         return True
 
     return False
+
+
+def detect_trailing_question(text: str) -> bool:
+    """Return True if the assistant's reply ends with a question to the user.
+
+    The rule: any end-of-reply ask — yes/no, "want me to X?", "should I Y?",
+    multi-option enumerated, or open-ended — should be an AskUserQuestion call,
+    not inline text. We catch this by: take the last non-empty content line
+    after stripping code blocks, strip trailing markdown punctuation, and check
+    if it ends with `?`. Mid-paragraph rhetorical questions (which are answered
+    in the same paragraph) don't trigger because they aren't the final line.
+    """
+    if not text:
+        return False
+    tail = _strip_code(text[-1500:])
+    lines = [ln.strip() for ln in tail.split("\n") if ln.strip()]
+    if not lines:
+        return False
+    last = lines[-1]
+    # Strip trailing markdown emphasis / closing punctuation that isn't `?`
+    last = last.rstrip("*_)] >")
+    return last.endswith("?")
 
 
 def main() -> int:
@@ -88,15 +113,26 @@ def main() -> int:
         return 0
 
     text = extract_last_assistant_text(transcript_path)
-    if not detect_inline_chooser(text):
+    is_chooser = detect_inline_chooser(text)
+    is_trailing_q = detect_trailing_question(text)
+    if not (is_chooser or is_trailing_q):
         return 0
 
+    if is_chooser and is_trailing_q:
+        kind = "INLINE CHOOSER + TRAILING QUESTION"
+    elif is_chooser:
+        kind = "INLINE CHOOSER"
+    else:
+        kind = "TRAILING QUESTION"
+
     warning = (
-        "INLINE CHOOSER DETECTED in your last reply. "
+        f"{kind} DETECTED in your last reply. "
         "Project rule (.claude/memory/feedback_choosers_via_askuserquestion.md): "
-        "present 2-4 discrete options via the AskUserQuestion tool, NOT inline-text "
-        '"**A** — ... **B** — ..." or "(a) ... (b) ..." bullets the user has to type '
-        "a letter to select. Re-present the same options as an AskUserQuestion call now."
+        "ANY end-of-reply ask of the user — multi-option, enumerated, OR a single "
+        'yes/no question like "Want me to X?" / "Should I Y?" — must use the '
+        "AskUserQuestion tool, NOT inline text. Re-present the question(s) as an "
+        "AskUserQuestion call now (use Yes/No options for single-question asks). "
+        "Do not end your reply with a question mark in plain text."
     )
     print(json.dumps({"decision": "block", "reason": warning}))
     return 0

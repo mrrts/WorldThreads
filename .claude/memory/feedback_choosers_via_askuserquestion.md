@@ -8,13 +8,17 @@ When presenting a chooser between 2–4 mutually-exclusive options, **use the As
 
 **Why:** typing a single letter in response to inline text is friction the AskUserQuestion UI removes; the chooser surface is purpose-built for this exact shape and produces cleaner conversation logs. Ryan flagged this 2026-04-26 after I presented an inline A/B/C list of paths-forward (commit `.claude/`-tracking gap discussion) and he had to type "b" — the cleaner shape would have been three options in an AskUserQuestion call.
 
-**How to apply:**
-- Whenever you're about to write ANY enumerated-options shape — `**A** — ... **B** — ... **C** — ...`, OR `(a) ... (b) ... (c)`, OR `1) ... 2) ... 3)`, OR `Want me to X or Y or Z?` — invoke AskUserQuestion with the same options as labeled choices instead.
-- Applies to: pick-among-paths-forward moments, methodology choices, scope choices, "should I do X or Y or Z" decisions — anywhere there's a discrete set of options the user picks from.
-- Applies EVEN WHEN the rest of the reply is correct — a single chooser-shape at the END of an otherwise-good message still violates the rule (this is the failure mode caught 2026-04-26: I shipped this exact memory entry, then ended the next reply with `(a)/(b)/(c)` inline).
-- Free-text questions and open-ended asks remain inline (no chooser shape, no AskUserQuestion).
+**How to apply — the broad rule:**
+- ANY end-of-reply ask of the user uses AskUserQuestion. That includes:
+  - Enumerated multi-option: `**A** — ... **B** — ... **C** — ...`, `(a) ... (b) ... (c)`, `1) ... 2) ... 3)`
+  - Single yes/no offer: `Want me to X?`, `Should I Y?`, `Shall I Z?`, `Ready to ship?`
+  - Open-ended end-of-reply ask: any sentence ending in `?` as the final line of the reply
+- For yes/no offers, use `multiSelect: false` with two clear options (e.g., "Yes — proceed" / "No — hold here") plus a third "Other" if there's a meaningful third path.
+- Applies EVEN WHEN the rest of the reply is correct — a single chooser-shape OR trailing question at the END of an otherwise-good message still violates the rule. (Failure modes caught 2026-04-26: shipped the entry, then ended next reply with `(a)/(b)/(c)` inline; then shipped the hook, then ended next reply with "Want me to /schedule…?" trailing yes/no.)
 - The /run-experiment skill's hypothesis-audition chooser is the canonical example of doing it right.
 
-**Compile-time enforcement:** `.claude/hooks/check-inline-choosers.py` is a Stop hook (wired in `.claude/settings.json`) that scans the tail of each assistant reply for chooser-shape patterns and blocks the turn-end with a system-reminder if detected. The memory entry is the soft reminder; the hook is the structural guarantee. If the hook fires on a legitimate non-chooser, tighten the regex — don't soften the rule.
+**What still belongs inline:** mid-paragraph rhetorical questions answered in the same paragraph (*"Why does this matter? Because…"*) — not asks of the user. The trigger is **a question mark on the final line of the reply**, not any question mark anywhere.
 
-**Edge case — when inline IS right:** narrative explanation ending in a single open question (*"want me to keep going?"*) doesn't need AskUserQuestion; the chooser shape requires 2+ discrete options. The trigger is *enumerated options*, not *any question*.
+**End your replies with statements, not questions.** When you have nothing to ask, end with a status line ("Shipped." / "Done." / "Logged."). When you do have something to ask, the AskUserQuestion call IS the ending — no trailing prose question needed.
+
+**Compile-time enforcement:** `.claude/hooks/check-inline-choosers.py` is a Stop hook (wired in `.claude/settings.json`) that scans the tail of each assistant reply for: (1) inline-chooser patterns, AND (2) trailing-question patterns (final line ending in `?`, code-stripped). Either triggers a `decision: block` with a system-reminder telling the model to re-present as AskUserQuestion. The memory entry is the soft reminder; the hook is the structural guarantee. If the hook fires on a legitimate non-chooser, tighten the regex — don't soften the rule.
