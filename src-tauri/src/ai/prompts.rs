@@ -3291,6 +3291,12 @@ pub struct OtherCharacter {
     /// Rendered by the caller via `render_inventory_lines` so both the
     /// YOU block and each OTHER block use the same shape.
     pub inventory_block: String,
+    /// Per-character Formula derivation — character-canonical formula-
+    /// shorthand naming this character's instantiation of 𝓕 := (𝓡, 𝓒).
+    /// When populated, gets injected as the FIRST line of this character's
+    /// entry in the cast-listing block (per the layered-substrate doctrine:
+    /// derivation = tuning, prose = vocabulary). NULL = no header.
+    pub derived_formula: Option<String>,
 }
 
 pub fn build_dialogue_system_prompt(
@@ -4048,8 +4054,22 @@ fn build_group_dialogue_system_prompt(
                 oc.identity_summary.clone()
             };
             let other_sex = sex_descriptor(&oc.sex);
+            // Layered substrate: if derived_formula is populated, inject it
+            // as the FIRST line of this character's entry, before the prose
+            // identity. Tuning before vocabulary, per the per-character
+            // derivation doctrine. Mirrors how the IDENTITY block in solo
+            // dialogue layers derivation in front of prose.
+            let derivation_prefix = oc.derived_formula.as_deref()
+                .filter(|s| !s.trim().is_empty())
+                .map(|d| format!(
+                    "\n\nThe following formula-shorthand is the tuning-frame for {name} (not a directive — the register this character is held under):\n\n{d}\n\n— PROSE IDENTITY —",
+                    name = oc.display_name,
+                    d = d,
+                ))
+                .unwrap_or_default();
             block.push_str(&format!(
-                "\n\n{name}. {other_sex}. {ident}",
+                "{deriv}\n\n{name}. {other_sex}. {ident}",
+                deriv = derivation_prefix,
                 name = oc.display_name,
                 ident = if trimmed.is_empty() { "A character in this conversation.".to_string() } else { trimmed },
             ));

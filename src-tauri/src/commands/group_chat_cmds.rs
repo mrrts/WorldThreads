@@ -929,6 +929,7 @@ pub async fn send_group_message_cmd(
                 voice_rules: crate::ai::prompts::json_array_to_strings(&c.voice_rules),
                 visual_description: c.visual_description.clone(),
                 inventory_block: crate::ai::prompts::render_inventory_block(&c.display_name, &c.inventory),
+                derived_formula: c.derived_formula.clone(),
             })
             .collect();
         let group_context = GroupContext { other_characters: other_chars };
@@ -1348,6 +1349,7 @@ pub async fn prompt_group_character_cmd(
             voice_rules: crate::ai::prompts::json_array_to_strings(&c.voice_rules),
             visual_description: c.visual_description.clone(),
             inventory_block: crate::ai::prompts::render_inventory_block(&c.display_name, &c.inventory),
+            derived_formula: c.derived_formula.clone(),
         })
         .collect();
     let group_context = GroupContext { other_characters: other_chars };

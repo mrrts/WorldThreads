@@ -317,7 +317,16 @@ pub fn build_consultant_system_prompt(
             .map(|c| {
                 let one_liner = c.identity.lines().next().unwrap_or("").trim();
                 let tag = if one_liner.is_empty() { String::new() } else { format!(" — {one_liner}") };
-                format!("  - {} (character_id: {}){}", c.display_name, c.character_id, tag)
+                // Per-character Formula derivation, when populated, gets a
+                // separate indented line so the consultant sees each cast
+                // member's tuning-frame alongside their identity. Tuning
+                // before vocabulary, mirroring the dialogue layered
+                // substrate.
+                let deriv = c.derived_formula.as_deref()
+                    .filter(|s| !s.trim().is_empty())
+                    .map(|d| format!("\n      ⟨𝓕-derivation⟩ {}", d.replace('\n', " ")))
+                    .unwrap_or_default();
+                format!("  - {} (character_id: {}){}{}", c.display_name, c.character_id, tag, deriv)
             })
             .collect();
         let cast_block = if cast_lines.is_empty() {
