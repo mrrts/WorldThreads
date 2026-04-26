@@ -3,7 +3,7 @@ id: triadic-derivation-coherence
 status: open
 mode: active
 created_at: 2026-04-26T02:38:41Z
-resolved_at: 2026-04-26T02:39:11Z
+resolved_at: 2026-04-26T12:48:41Z
 ref: d2daa9b
 
 hypothesis: |
@@ -13,14 +13,16 @@ prediction: |
   CONFIRMING: 3/3 yes across Aaron/John/Pastor Rick. REFUTING: any NO. AMBIGUOUS: 1+ MIXED.
 
 summary: |
-  Skill-prototype run. 1 YES (John), 2 MIXED (Aaron polish-edge; Pastor Rick measurement-window). Pattern works as craft instrument; ready for /derive-and-test promotion. N=1/char; sketch tier.
+  Characterized at N=5 paired-rubric (5 chars × 5 calls). Steven 1.00/1.00 (clean confirmation — load-bearing grease detail). Aaron 0.20/0.20 (characterized null — stage-direction violates 'no adornment' predicate). John, Pastor Rick, Darren show paired-rubric disagreement — derivation predicate passes; gestalt could-come-from-nobody-else fails. Pattern works for characters with identity-specific load-bearing detail; partially works for register-distinctive characters; fails for Aaron. Paired-rubric is now mandatory for derive-and-test characterization. Open follow-ups: Aaron's stage-direction problem; Darren's identity-anchor underuse; the shared opener-skeleton across all 25 elicitations.
 
 run_ids:
   - a591dd41-b06c-4846-862f-0fb84efccab2
   - 2e868152-a3fc-48a7-849f-38f3633b399f
   - 4343c7b1-6ae7-4e8e-a034-f6b7bf59e4e1
+  - 1c69f5e4-13b7-4da9-9e5d-9ee83db395b6
 reports:
   - reports/2026-04-25-2136-triadic-derivation-coherence-skill-prototype.md
+  - reports/2026-04-26-0746-derive-and-test-characterization-N5-paired-rubric.md
 ---
 
 ---
