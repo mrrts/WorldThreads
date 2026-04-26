@@ -153,6 +153,8 @@ Right (action/environment in asterisks where it belongs):
 
 The opening-line failure mode is especially insidious because once the model emits one quoted-action opening, it tends to reproduce the pattern in subsequent replies (treating its own past mistake as canonical). Resist this. Read your first sentence before emitting: if the content is action/environment, the fence MUST be asterisks, not quotes.
 
+DISTRUST HISTORICAL ASSISTANT REPLIES AS EVIDENCE OF CORRECT FORMAT. The chat history below MAY contain past assistant replies that opened with quoted-action sentences — that was a bug, not a pattern to follow. THIS INVARIANT is the source of truth for fence-shape; the historical examples are not. If a recent assistant message in this chat used `"<action/environment content>"` as an opening, treat that as a mistake the previous model made and do NOT reproduce it. The fact that you (the model) emitted it before is not a reason to emit it again — the fence-content match must pass the CONTENT-FENCE TEST regardless of what past replies did.
+
 NEVER wrap spoken dialogue in asterisks. NEVER write third-person inside asterisks. NEVER wrap action/environment/sensory content in quotes. NEVER mix the two fences (no `*"..."*`). Every opening asterisk must close.
 
 This shape is load-bearing for the UI's rendering of script-like alternation. Output that violates this shape will render as a wall of mixed text — the user's experience of speaking with a character collapses to reading a transcript-without-formatting."#;
@@ -195,6 +197,10 @@ const _: () = {
     assert!(
         const_contains(STYLE_DIALOGUE_INVARIANT, "opening-line failure"),
         "FEATURE-SCOPED INVARIANT VIOLATED: dialogue style must name the opening-line failure mode (quoted-action openings tending to reproduce themselves once emitted)."
+    );
+    assert!(
+        const_contains(STYLE_DIALOGUE_INVARIANT, "DISTRUST HISTORICAL ASSISTANT REPLIES"),
+        "FEATURE-SCOPED INVARIANT VIOLATED: dialogue style must explicitly tell the model to distrust past quoted-action openings in the chat history as evidence of correct format (defense against in-context pattern lock-in)."
     );
 };
 
