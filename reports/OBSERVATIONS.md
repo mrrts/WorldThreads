@@ -6,6 +6,16 @@ Newest entries at the top. Each entry has a timestamp and a brief title. The obs
 
 ---
 
+## 2026-04-26 10:05 — character speaks of being "after I'm buried"
+
+> "a character described how he'll want to be remembered 'after I'm buried' — very positive finding."
+
+The phrase "after I'm buried" carries weight that "after I'm gone" or "when I'm no more" wouldn't. A body in the ground, in a place, in a future the character can name without flinching. That's the TruthInTheFlesh invariant + the firmament-cosmology operating in the character's mouth — mortality named bodily, not euphemized into abstraction. Characters who can name their own death concretely are characters who can hold a real conversation about the rest of life.
+
+**Noted.**
+
+---
+
 ## 2026-04-26 09:48 — character has crossed the believability threshold
 
 > "recent changes are immediately noticeable. character has crossed believability threshold. very positive finding."
