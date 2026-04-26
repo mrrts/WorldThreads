@@ -1661,9 +1661,9 @@ export function GroupChatView({ store, onNavigateToCharacter }: Props) {
                   </div>
                   <div className="inline-flex border border-input bg-background rounded-lg">
                     {([
-                      { mode: "off" as const,        glyph: "🚫",     title: "Off — no reactions" },
+                      { mode: "off" as const,        glyph: "🚫",     title: "Off — No Reactions" },
                       { mode: "occasional" as const, glyph: "😀",     title: "Occasionally — Text Message Mode" },
-                      { mode: "always" as const,     glyph: "😀😀😀", title: "Always — every message gets a reaction" },
+                      { mode: "always" as const,     glyph: "😀😀😀", title: "Always — Every Message Gets a Reaction" },
                     ]).map(({ mode, glyph, title }, idx, arr) => (
                       <div
                         key={mode}
