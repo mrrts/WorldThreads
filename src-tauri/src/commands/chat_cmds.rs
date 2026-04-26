@@ -473,15 +473,19 @@ pub async fn send_message_cmd(
         let narration_tone = get_setting(&conn, &format!("narration_tone.{}", character_id))
             .ok().flatten();
         let leader = get_setting(&conn, &format!("leader.{}", character_id)).ok().flatten();
-        // Per-chat reactions toggle. Defaults ON when missing — emoji
-        // reactions provide texture for the LLM's read of the emotional
-        // arc, even if crude. Users who find them cutesy can flip off
-        // via the chat-settings UI; both the LLM call AND the emit are
-        // skipped when disabled.
+        // Per-chat reactions toggle. Defaults OFF when missing — two
+        // persona-sims (lonely-companion-user 2026-04-25-2355 and
+        // maggie-refresh 2026-04-26-0000) converged on the finding that
+        // the word "reactions" reads as surveillance to depleted-and-
+        // skeptical first-time users; defaulting ON puts the toggle in
+        // the wrong position for the user-shape WorldThreads is for.
+        // Users who want the texture (the original ON-by-default
+        // rationale) can flip on via the chat-settings UI; both the LLM
+        // call AND the emit are skipped when disabled.
         let reactions_enabled = get_setting(&conn, &format!("reactions_enabled.{}", character_id))
             .ok().flatten()
             .map(|v| v != "false" && v != "off")
-            .unwrap_or(true);
+            .unwrap_or(false);
 
         (world, character, thread, recent_msgs, model_config,
          retrieved, should_run_maintenance, user_profile,
@@ -2225,7 +2229,7 @@ pub async fn reset_to_message_cmd(
             let reactions_enabled = get_setting(&conn, &format!("reactions_enabled.{}", character_id))
                 .ok().flatten()
                 .map(|v| v != "false" && v != "off")
-                .unwrap_or(true);
+                .unwrap_or(false);
 
             (recent_msgs, retrieved, user_profile, current_mood, mood_enabled, response_length, narration_tone, leader, reactions_enabled)
         };

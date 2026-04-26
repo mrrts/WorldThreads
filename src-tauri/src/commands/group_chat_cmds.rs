@@ -829,13 +829,15 @@ pub async fn send_group_message_cmd(
         let ctx: Vec<Message> = all.into_iter()
             .filter(|m| m.message_id != user_msg.message_id)
             .collect();
-        // Per-chat reactions toggle (group-scoped). Default ON when
-        // missing — matches solo behavior and matches what the
-        // frontend displays as default.
+        // Per-chat reactions toggle (group-scoped). Default OFF when
+        // missing — matches solo behavior. Persona-sim evidence
+        // (lonely-companion-user 2026-04-25-2355, maggie-refresh
+        // 2026-04-26-0000) converged on the toggle defaulting ON
+        // being read as surveillance for the user-shape this app is for.
         let reactions_enabled = get_setting(&conn, &format!("reactions_enabled.{}", gc.group_chat_id))
             .ok().flatten()
             .map(|v| v != "false" && v != "off")
-            .unwrap_or(true);
+            .unwrap_or(false);
         (r, ctx, reactions_enabled)
     };
     // Skip launching the reaction LLM call entirely when reactions are
@@ -1338,7 +1340,7 @@ pub async fn prompt_group_character_cmd(
         let reactions_enabled = get_setting(&conn, &format!("reactions_enabled.{}", gc.group_chat_id))
             .ok().flatten()
             .map(|v| v != "false" && v != "off")
-            .unwrap_or(true);
+            .unwrap_or(false);
         (rl, nt, leader, reactions_enabled)
     };
 

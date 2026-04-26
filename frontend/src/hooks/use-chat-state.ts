@@ -83,7 +83,7 @@ export function useChatState({ store, chatId, chatType }: UseChatStateOptions) {
   const [narrationTone, setNarrationTone] = useState("Cinematic");
   const [narrationInstructions, setNarrationInstructions] = useState("");
   const [responseLength, setResponseLength] = useState("Short");
-  const [reactionsEnabled, setReactionsEnabled] = useState(true);
+  const [reactionsEnabled, setReactionsEnabled] = useState(false);
   const [narrationDirty, setNarrationDirty] = useState(false);
   const [playingVideo, setPlayingVideo] = useState<string | null>(null);
   const [loopVideo, setLoopVideo] = useState<Record<string, boolean>>({});
@@ -128,9 +128,10 @@ export function useChatState({ store, chatId, chatType }: UseChatStateOptions) {
       setNarrationTone(tone || "Cinematic");
       setNarrationInstructions(instructions || "");
       setResponseLength(length || "Short");
-      // Reactions default ON when missing (matches backend default).
-      // Stored as "true"/"false"; absent means use default.
-      setReactionsEnabled(reactions !== "false" && reactions !== "off");
+      // Reactions default OFF when missing (matches backend default —
+      // see chat_cmds.rs comment for persona-sim evidence). Stored as
+      // "true"/"false"; absent means use default.
+      setReactionsEnabled(reactions === "true" || reactions === "on");
       setNarrationDirty(false);
     });
   }, [chatId]);
