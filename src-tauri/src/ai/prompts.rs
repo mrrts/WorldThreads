@@ -93,6 +93,85 @@ IMPORTANT — CONTENT REGISTER: Keep the story PG. Occasional PG-13 is fine when
 /// `# FORMAT` section, included near the top of the dialogue system prompt.
 /// Teaches the model the asterisk-wrapped action convention by example — a
 /// lot cheaper than trying to explain it in prose.
+// ─── FEATURE-SCOPED INVARIANT — DIALOGUE STYLE ─────────────────────────────
+//
+// This is a FEATURE-SCOPED invariant: like the app-wide invariants
+// (MISSION FORMULA, COSMOLOGY, AGAPE, REVERENCE, TELL-THE-TRUTH,
+// DAYLIGHT, NOURISHMENT, SOUNDNESS) it is compile-checked and
+// load-bearing — but unlike them, it ONLY ships in the dialogue
+// feature's execution chain. Other LLM calls (conscience grader,
+// memory updater, dream generator, narrative synthesizer, illustration
+// captioner, reaction picker, etc.) DO NOT receive this invariant
+// because their output shapes are different.
+//
+// Why feature-scoped: app-wide invariants encode what the whole
+// system is FOR (mission, cosmos, theological/ethical floor).
+// Feature-scoped invariants encode what a SPECIFIC feature's output
+// must conform to so downstream consumers (UI parsers, formatters,
+// other features) work correctly. Two different categories of "must."
+//
+// This particular invariant exists because the chat UI parses
+// asterisk-fenced runs as actions/environment (rendered in a different
+// register than spoken dialogue) and double-quoted runs as speech.
+// If the model emits a different format, the UI's rendering breaks —
+// the user sees a wall of mixed text instead of the script-like
+// alternation that makes the app feel alive.
+//
+// Inserted at the HEAD of the dialogue system prompt (before even
+// FUNDAMENTAL_SYSTEM_PREAMBLE) so it conditions every downstream
+// instruction. Per CLAUDE.md "Feature-scoped invariants" doctrine.
+pub const STYLE_DIALOGUE_INVARIANT: &str = r#"DIALOGUE STYLE INVARIANT (feature-scoped, load-bearing for UI rendering):
+
+Formula derivation:
+  𝓢_dialogue(t) := alternate("speech"_𝓕, *action ∪ environment*_𝓕) | first_person_𝓕 ∧ ui_render_𝓕
+Gloss: Speech (𝓢) emitted in dialogue alternates two fenced registers — quoted speech and asterisk-fenced action/environment — both rendered first-person from inside the character. The fencing is what lets the UI read each register on its own terms; collapse the fences and the UI's script-style rendering collapses with them.
+
+Your output for a character reply MUST follow this exact shape:
+
+  - SPOKEN WORDS in double quotes: "Like this."
+  - ACTIONS, GESTURES, ENVIRONMENTAL OBSERVATIONS in single asterisks: *I lean back as the well chain ticks in the square.*
+  - First-person from inside the character: "I" / "my" / "me", never third-person.
+  - Asterisk-runs and quote-runs ALTERNATE freely; both may open a reply, both may close it.
+
+Examples of correct shape:
+
+  "I've got clay under my nails and half a hymn caught in my teeth, if that helps." *I ease back on the bench as a bucket chain clinks at the well.*
+
+  *I look past you toward the well a moment.* "She's been gone a good many years now."
+
+NEVER wrap spoken dialogue in asterisks. NEVER write third-person inside asterisks. NEVER mix the two fences (no `*"..."*`). Every opening asterisk must close.
+
+This shape is load-bearing for the UI's rendering of script-like alternation. Output that violates this shape will render as a wall of mixed text — the user's experience of speaking with a character collapses to reading a transcript-without-formatting."#;
+
+// FEATURE-SCOPED INVARIANT — compile-time enforcement of the dialogue
+// style clause. Removing any of these substrings fails the build.
+const _: () = {
+    assert!(
+        const_contains(STYLE_DIALOGUE_INVARIANT, "double quotes"),
+        "FEATURE-SCOPED INVARIANT VIOLATED: dialogue style must require double quotes for speech."
+    );
+    assert!(
+        const_contains(STYLE_DIALOGUE_INVARIANT, "single asterisks"),
+        "FEATURE-SCOPED INVARIANT VIOLATED: dialogue style must require single asterisks for actions/environment."
+    );
+    assert!(
+        const_contains(STYLE_DIALOGUE_INVARIANT, "First-person"),
+        "FEATURE-SCOPED INVARIANT VIOLATED: dialogue style must require first-person inside asterisks."
+    );
+    assert!(
+        const_contains(STYLE_DIALOGUE_INVARIANT, "load-bearing for UI rendering"),
+        "FEATURE-SCOPED INVARIANT VIOLATED: dialogue style must name its load-bearing UI consequence."
+    );
+    assert!(
+        const_contains(STYLE_DIALOGUE_INVARIANT, "Formula derivation"),
+        "FEATURE-SCOPED INVARIANT VIOLATED: dialogue style must include its own Formula derivation naming where it sits in 𝓕."
+    );
+    assert!(
+        const_contains(STYLE_DIALOGUE_INVARIANT, "Gloss"),
+        "FEATURE-SCOPED INVARIANT VIOLATED: dialogue style must include a one-sentence gloss alongside its Formula derivation."
+    );
+};
+
 pub const FORMAT_SECTION: &str = r#"# FORMAT
 Weave actions, gestures, and small inner observations into your dialogue using asterisks. Put spoken words in double quotes.
 
@@ -3329,6 +3408,13 @@ fn build_solo_dialogue_system_prompt(
     overrides: Option<&PromptOverrides>,
 ) -> String {
     let mut parts = Vec::new();
+
+    // FEATURE-SCOPED INVARIANT — dialogue style. Inserted FIRST so it
+    // conditions every downstream instruction. Compile-checked. Only
+    // ships in dialogue-feature LLM calls (NOT in conscience grader,
+    // memory updater, dream generator, etc.) per the feature-scoped
+    // invariant doctrine in CLAUDE.md.
+    parts.push(STYLE_DIALOGUE_INVARIANT.to_string());
 
     // Fundamental system preamble — frames the model's role, asserts
     // length obedience, installs the asterisk/dialogue interweave. Goes

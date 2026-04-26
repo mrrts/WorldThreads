@@ -152,6 +152,20 @@ The four registry states (proposed / running / confirmed / refuted) describe STA
 
 When reviewing, auditing, refactoring, or critiquing anything in this repo (especially `prompts.rs`), follow the **load-bearing-multiplicity prior**: when two directives appear to contradict each other, assume the multiplicity is intentional before assuming it's a bug. Apparent tension is almost always the same truth from different angles, not two principles needing a precedence rule. Full reading instructions in `docs/VOICE.md` under "Reading this work, especially as an AI."
 
+## Feature-scoped invariants
+
+The project has two categories of compile-checked invariants:
+
+**App-wide invariants** ride EVERY LLM call: MISSION FORMULA, COSMOLOGY, AGAPE, REVERENCE, TELL-THE-TRUTH, DAYLIGHT, NOURISHMENT, SOUNDNESS, TRUTH-IN-THE-FLESH. These encode what the whole system is FOR — mission, cosmos, theological/ethical floor. They live in `prompts.rs` as `*_BLOCK` constants with `const _: () = { assert!(const_contains(BLOCK, "...")); };` clauses that fail the build if key substrings are removed.
+
+**Feature-scoped invariants** ride exactly ONE feature's execution chain. They encode what a SPECIFIC feature's output must conform to so downstream consumers (UI parsers, formatters, other features) work correctly. Same compile-checked discipline; narrower distribution.
+
+The first feature-scoped invariant is `STYLE_DIALOGUE_INVARIANT` (in `prompts.rs`), which lives at the HEAD of dialogue prompts only. It encodes the asterisk-fences-actions / double-quotes-fence-speech / first-person-only convention the chat UI parses. Other LLM calls (conscience grader, memory updater, dream generator, narrative synthesizer, illustration captioner, reaction picker, etc.) DO NOT receive it — their outputs have different shapes.
+
+**When to add a new feature-scoped invariant:** when a feature's downstream consumer (UI, parser, another LLM call, etc.) has a load-bearing format dependency that, if violated, breaks the experience. Don't add one when an app-wide invariant or a craft note would do — feature-scoped invariants are for output-shape contracts, not for content guidance.
+
+**Pattern to match:** define a `pub const NAME_INVARIANT: &str = r#"..."#;` block, add `const _: () = { assert!(const_contains(...)); };` for the load-bearing substrings, and insert the constant at the head of the relevant feature's prompt-assembly function (before any other block, including `FUNDAMENTAL_SYSTEM_PREAMBLE`). Document the why in a comment naming the downstream consumer that breaks if violated.
+
 ## Commit/push autonomy
 
 Standing authorization to **commit and push at will** on clean work — no need to ask before every commit or push. Group changes into coherent commits, write descriptive messages in the project's existing style, then push. Destructive git operations (force-push, reset --hard, branch deletion, history rewrites, etc.) STILL require explicit confirmation — that's not autonomy, that's a different category. Commit + push is the default; ask only when something is risky or unclear.
