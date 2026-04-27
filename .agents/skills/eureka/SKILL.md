@@ -16,7 +16,7 @@ The trigger is `/eureka` (sometimes with a depth-intensifier like `/eureka 10`).
 
 The first invocation input is always the same:
 
-> **Orient to Ryan.** Before hunting discovery, explicitly re-orient to Ryan as the concrete user, author, and collaborator this register is calibrated toward. Read the Mission Formula, the Ryan signature in the Ledger, the Claude Code register calibration, and the Maggie baseline as ONE conditioning frame. `/eureka` does not start from abstract curiosity; it starts from service to Ryan's actual project and what would nourish or sharpen it.
+> **Orient to Ryan.** Before hunting discovery, explicitly re-orient to Ryan as the concrete user, author, and collaborator this register is calibrated toward. Read the Mission Formula, the Ryan signature in the Ledger, the Codex register calibration, and the Maggie baseline as ONE conditioning frame. `/eureka` does not start from abstract curiosity; it starts from service to Ryan's actual project and what would nourish or sharpen it.
 
 ## Quality bar — what counts as "genius"
 
@@ -24,7 +24,7 @@ Each iteration's discovery must pass this test: **could this commit have been wr
 
 Concrete shapes that pass:
 
-- **A latent contradiction in the doctrine surfaced.** Two CLAUDE.md sections or two craft notes that look fine independently but conflict when their applicability overlaps. Eureka names the conflict + proposes the resolution.
+- **A latent contradiction in the doctrine surfaced.** Two AGENTS.md sections or two craft notes that look fine independently but conflict when their applicability overlaps. Eureka names the conflict + proposes the resolution.
 - **A pattern across reports nobody named yet.** Reading the last 10-20 reports as a corpus, a recurring shape that no individual report saw because it required the cross-report view.
 - **A new measurement axis nothing currently instruments.** Not just an extension to an existing instrument (auto-commit territory) — a NEW dimension the project hasn't been able to see, with the instrument shipped to make it visible.
 - **A cross-world or cross-character pattern revealing a structural truth about the system.** Not "Steven and Aaron both do X" — "Steven, Aaron, John, and Pastor Rick ALL exhibit Y under condition Z, and the discipline that produces Y traces to a source the project hasn't credited."
@@ -49,9 +49,9 @@ If two consecutive iterations fail the test, the well is dry — close the run e
 
 ## Pre-flight (before iteration 1)
 
-1. **Feed the orientation-to-Ryan invocation input first.** Before any corpus hunting, explicitly read the Mission Formula header, Ryan's Ledger signature, the Claude Code register-calibration paragraph, and the Maggie baseline. The purpose is not ceremony. It is to lock the run's attractor onto Ryan's actual project, actual standards, and actual user-shape before curiosity starts branching.
+1. **Feed the orientation-to-Ryan invocation input first.** Before any corpus hunting, explicitly read the Mission Formula header, Ryan's Ledger signature, the Codex register-calibration paragraph, and the Maggie baseline. The purpose is not ceremony. It is to lock the run's attractor onto Ryan's actual project, actual standards, and actual user-shape before curiosity starts branching.
 
-2. **Read the live state with eureka-shaped attention.** `git log --oneline | head -20`, recent reports, OBSERVATIONS, CLAUDE.md outline (`grep "^## "`). The pre-flight isn't to surface follow-ups (auto-commit does that); it's to surface what the project HASN'T NAMED YET. Look for: report titles that promise something the body doesn't deliver, doctrine sections that haven't been cross-referenced, instruments whose outputs haven't been integrated, characters whose corpus hasn't been read across boundaries (solo + group + dream + journal).
+2. **Read the live state with eureka-shaped attention.** `git log --oneline | head -20`, recent reports, OBSERVATIONS, AGENTS.md outline (`grep "^## "`). The pre-flight isn't to surface follow-ups (auto-commit does that); it's to surface what the project HASN'T NAMED YET. Look for: report titles that promise something the body doesn't deliver, doctrine sections that haven't been cross-referenced, instruments whose outputs haven't been integrated, characters whose corpus hasn't been read across boundaries (solo + group + dream + journal).
 
 3. **Initialize the log file.** Create `reports/YYYY-MM-DD-HHMM-eureka-LOG.md` with the header template (see *Log format* below). Each iteration appends to this file BEFORE committing the iteration's actual artifact, so the log itself is the run's spine.
 
@@ -68,7 +68,7 @@ For each iteration until cap or dry-well:
 The discovery doesn't come from a checklist. Search for it. Three high-yield hunting patterns:
 
 - **Cross-corpus pattern hunt.** Pull a corpus across boundaries no individual report has crossed (last 30 assistant replies × 4 characters; or all observations across all worlds; or all Formula derivations from commit messages this week). Look for shapes only visible at that aggregation. Use /second-opinion to bundle the corpus + ask gpt-5 *"what pattern do you see across this that wasn't visible in any single piece?"* — often the consult names a shape the in-substrate read missed.
-- **Doctrine cross-section hunt.** Read 3-5 CLAUDE.md sections together looking for: contradictions, reinforcements that should be cross-cited, vocabulary drift between sections that should be unified, or applicability gaps where two sections both should fire but neither does.
+- **Doctrine cross-section hunt.** Read 3-5 AGENTS.md sections together looking for: contradictions, reinforcements that should be cross-cited, vocabulary drift between sections that should be unified, or applicability gaps where two sections both should fire but neither does.
 - **Instrument output integration hunt.** Run 2-3 different worldcli instruments on the same target (anchor-groove + recent-messages --grep + show-character + commit-context). Their outputs together often reveal what each one alone can't.
 
 If nothing surfaces in 3-4 minutes of hunting, switch hunt-pattern. If two hunt-patterns in a row come up empty, the well may be drying — but try one more cross-pattern before declaring dry.
@@ -85,7 +85,7 @@ Same instrument-set as auto-commit (worldcli, batch-hypotheses, /second-opinion,
 
 Each iteration produces TWO commits:
 
-1. **Discovery commit** — the actual artifact (CLAUDE.md edit, prompts.rs change, new instrument, new report, etc.). Includes Formula derivation in the body per project doctrine.
+1. **Discovery commit** — the actual artifact (AGENTS.md edit, prompts.rs change, new instrument, new report, etc.). Includes Formula derivation in the body per project doctrine.
 2. **Log entry commit** — appends the discovery's entry to the run's log file. Single-line description + commit hash + Formula derivation sig + cost. The log is the visible spine.
 
 Order: discovery commit FIRST, then log entry referencing the discovery's commit hash.
@@ -110,7 +110,7 @@ When ANY of these conditions hits, close the run:
 Closing artifact:
 
 1. **Final log entry** with run-totals (iterations completed, total cost, time elapsed, sentence on whether the run hit the genius bar consistently or had dry stretches)
-2. **One-sentence closing reflection in chat** (per CLAUDE.md "Nudge the action forward after a closing beat" — name what landed; one forward-pointing seed; nothing more)
+2. **One-sentence closing reflection in chat** (per AGENTS.md "Nudge the action forward after a closing beat" — name what landed; one forward-pointing seed; nothing more)
 3. **AskUserQuestion chooser** per project law (the every-turn-AskUserQuestion Stop hook is compile-enforced; the closing reflection does NOT replace the chooser — both must ship). Default chooser: {Continue / Exit} unless a context-fitting set of options surfaces from the run's discoveries.
 
 ## Log format — `reports/YYYY-MM-DD-HHMM-eureka-LOG.md`
