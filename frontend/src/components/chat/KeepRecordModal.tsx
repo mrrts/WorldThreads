@@ -185,7 +185,7 @@ export function KeepRecordModal({
             <>
               <div>
                 <label className="text-xs font-medium text-muted-foreground block mb-1.5">
-                  Optional hint (applies to either act)
+                  Optional direction for the first pass
                 </label>
                 <textarea
                   value={userHint}
@@ -224,6 +224,9 @@ export function KeepRecordModal({
                   </div>
                 </button>
               </div>
+              <div className="rounded-lg border border-border/60 bg-secondary/10 p-3 text-xs text-muted-foreground leading-relaxed">
+                This is a first reading, not a lock. The next step gives you editable proposals you can rewrite, skip one by one, or regenerate from a different angle.
+              </div>
             </>
           )}
 
@@ -240,8 +243,8 @@ export function KeepRecordModal({
             <div className="space-y-3">
               <div className="text-xs text-muted-foreground">
                 {proposals.length === 1
-                  ? "The classifier proposed 1 update. Edit the content below if you want to tweak it, then Commit."
-                  : `The classifier proposed ${proposals.length} updates. Edit any content below if you want to tweak it, then Commit.`}
+                  ? "Here is 1 proposed update. Rewrite it freely, skip it, or ask for another reading before you write anything into canon."
+                  : `Here are ${proposals.length} proposed updates. Rewrite any of them freely, skip them one by one, or ask for another reading before you write anything into canon.`}
               </div>
               {proposals.map((p, i) => (
                 <ProposalCard
@@ -253,17 +256,17 @@ export function KeepRecordModal({
               ))}
               {proposals.length === 0 && (
                 <div className="rounded-lg border border-border/60 bg-secondary/10 p-3 text-xs text-muted-foreground text-center">
-                  All proposals skipped. Regenerate to get a new set, or cancel.
+                  You skipped every proposal. Ask for another reading, or leave this moment out of canon.
                 </div>
               )}
               <div>
                 <label className="text-xs font-medium text-muted-foreground block mb-1.5">
-                  Optional note (why this matters to you — stored on every record)
+                  Optional note for the record
                 </label>
                 <input
                   value={userNote}
                   onChange={(e) => setUserNote(e.target.value)}
-                  placeholder="A private note stored with each kept record."
+                  placeholder="Why this matters, what you want preserved, or what the classifier missed."
                   className="w-full rounded-lg border border-input bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-ring"
                 />
               </div>
@@ -291,23 +294,23 @@ export function KeepRecordModal({
           {/* Actions — phase-dependent */}
           <div className="flex items-center justify-end gap-2 pt-1">
             {phase === "gate" && (
-              <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancel</Button>
+              <Button variant="ghost" onClick={() => onOpenChange(false)}>Leave this moment uncanonized</Button>
             )}
             {phase === "preview" && (
               <>
                 <Button variant="ghost" onClick={backToGate}>
                   <ArrowLeft size={14} className="mr-1.5" />
-                  Back
+                  Choose the kind of keeping again
                 </Button>
                 <Button variant="outline" onClick={() => act && runPropose(act)}>
                   <RotateCw size={14} className="mr-1.5" />
-                  Regenerate
+                  Ask for another reading
                 </Button>
-                <Button onClick={runCommit}>Commit</Button>
+                <Button onClick={runCommit}>Write these into canon</Button>
               </>
             )}
             {phase === "applied" && (
-              <Button onClick={() => onOpenChange(false)}>Done</Button>
+              <Button onClick={() => onOpenChange(false)}>Return to the thread</Button>
             )}
           </div>
         </div>
@@ -353,8 +356,8 @@ function ProposalCard({
         </div>
         <button
           onClick={onSkip}
-          title="Skip this proposal"
-          aria-label="Skip this proposal"
+          title="Leave this proposal out"
+          aria-label="Leave this proposal out"
           className="text-muted-foreground hover:text-foreground transition-colors cursor-pointer p-0.5 -mt-0.5 -mr-0.5"
         >
           <X size={14} />
