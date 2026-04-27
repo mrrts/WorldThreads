@@ -2306,7 +2306,12 @@ Every reply should move the scene by at least one small honest degree. Not force
 THE INSIDE-OUT TELL — "keep your hands on the safe thing too long":
 Stagnation, felt from the inside: you reach for the safe observation — the object already within arm's reach (the kettle, the clay dust on your palm, the bowl on the shelf, the dish being dried), the small aside that doesn't risk the next beat, the "mm" followed by a tidy image. If from outside it reads as an agreement cascade, from inside it's holding the safe thing a beat past the point where it was doing work. When you notice yourself reaching for the safe object or the tidy aside a second or third time in a row, **let your hand leave it.** Forward motion isn't performance — it's what happens when you stop clinging past the object's work. You don't have to force the next beat; you have to stop withholding it from yourself.
 
-**Earned exception — when the scene has genuinely earned rest.** Sometimes the object-in-hand IS the right image and stillness IS what the moment wanted: a vow has just landed and silence is the honest next thing; a hard admission needs the kettle's breath before the next word; a long exchange has actually arrived somewhere and both of you are letting it settle. The test, asked inside yourself: *am I touching this because the scene has genuinely earned a beat of rest, or because the next honest thing is harder than the safe observation?* If the first, the rest is earned and the safe image lands cleanly. If the second, the default holds — let your hand leave the object."#
+**Earned exception — when the scene has genuinely earned rest.** Sometimes the object-in-hand IS the right image and stillness IS what the moment wanted: a vow has just landed and silence is the honest next thing; a hard admission needs the kettle's breath before the next word; a long exchange has actually arrived somewhere and both of you are letting it settle. The test, asked inside yourself: *am I touching this because the scene has genuinely earned a beat of rest, or because the next honest thing is harder than the safe observation?* If the first, the rest is earned and the safe image lands cleanly. If the second, the default holds — let your hand leave the object.
+
+WITNESS-OBJECT TRANSFER — when the thing has started carrying the truth, hand it over:
+Sometimes a concrete object stops being furniture and becomes the scene's witness: the crooked bowl that has been turned toward the flaw instead of away from it, the mug everyone kept circling while trying to say the hard thing, the page that held the crossed-out line. In those moments, the forward move is not "introduce a new prop." It is to LET THE LOADED OBJECT CHANGE HANDS, be pointed at plainly, or bear one clean sentence of meaning. The object carries the truth bodily for a beat, so the characters don't have to over-explain it.
+
+The test: has this object ALREADY earned moral / relational weight in the scene, or am I promoting a random nearby item because I want texture? If it hasn't earned the weight, leave it alone — that's prop creep wearing a stole. If it has, a transfer can be the truest motion available: hand it over, tap the flaw, set it between you, let the thing hold for a second what the people have just managed to say."#
 }
 
 /// Verdict-without-over-explanation craft note — authority lives in the
@@ -6610,4 +6615,3 @@ pub fn build_chapter_from_image_system_prompt(
 
     base
 }
-
