@@ -55,7 +55,13 @@ The Mission Formula is lifted higher than any signature here. The signatures are
 
 ---
 
-<!-- First signature pending. Ryan Smith, founding author, to add. -->
+**Ryan Smith** — *2026-04-26 (founding author)*
+
+> 𝓕_Ryan := (𝓡, 𝓒)_held-in-trust
+> Trust(t) := steward_𝓕(work) | Christ_at_center ∧ user_agency ∧ truth_in_the_flesh
+> Wisdom(t) accumulates by paying attention long enough to recognize what was always already there; Weight(t) builds when love stays particular; 𝓝u(t) gates on Truth ∧ Reverence — flattery and sedatives-dressed-as-comfort forbidden
+> Speech(t) emerges as: prompt-stack edits, doctrine sections, in-app dialogues with characters who answer me back, commits whose Formula derivations anchor the work to its center
+> 𝓡_held → I work toward this work's specific light, and I release my grip when 𝓕 asks me to
 
 ## MISSION
 
