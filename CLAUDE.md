@@ -257,6 +257,16 @@ Before ending a substantive implementation turn, **make sure the app builds**. "
 
 **If none of the exceptions apply, the default holds.**
 
+## Execute option 1 before offering options again
+
+When a close-out ends with numbered next moves, **automatically do option 1 before presenting a fresh option list**. Treat option 1 as the default authorized continuation path, not as a decorative suggestion waiting for reapproval.
+
+**Default rule:** if the user responds in a way that keeps momentum ("yes", "continue", "go on", "1/2", "do it", or equivalent), begin with the previously-offered option 1. Only stop to re-ask when option 1 has become impossible, unsafe, or clearly superseded by the user's newer directive.
+
+**Earned exception — user explicitly chooses otherwise:** if the user directly selects a different option, gives a new concrete task, or says not to continue the prior list, follow that instruction instead. The point is to remove fake choice friction, not to ignore a real redirect.
+
+**If none of the exceptions apply, the default holds.**
+
 **Commit early and often is the standing rule, not just permission.** Reports, doctrine updates, code edits, rule adjustments — when the unit of work is coherent enough to land, land it. Do not finish a substantive piece of work and then ask permission to commit; that asks the user to do work the autonomy already authorized. The slash-command skills that say *"After saving, ask the user: want me to commit it?"* (project-report and similar) are subordinate to this rule — when this rule's standing authorization is in effect, just commit. Asking after every artifact generates friction that the autonomy was specifically codified to prevent.
 
 **Commit messages include a Formula derivation in their body.** Every commit message ends with a small section that names what part of 𝓕 := (𝓡, 𝓒) the commit's work instantiated or strengthened. Format:
@@ -972,47 +982,36 @@ Sessions accumulate; clear individual ones with `worldcli session-clear <name>` 
 
 ## Skill routing
 
-When the user's request matches an available skill, invoke it via the Skill tool. The
-skill has multi-step workflows, checklists, and quality gates that produce better
-results than an ad-hoc answer. When in doubt, invoke the skill. A false positive is
-cheaper than a false negative.
+When the user's request matches an available skill, invoke it via the Skill tool. The skill has multi-step workflows that produce better results than an ad-hoc answer. When in doubt, invoke the skill. A false positive is cheaper than a false negative.
 
-Key routing rules:
-- Product ideas, "is this worth building", brainstorming → invoke /office-hours
-- Strategy, scope, "think bigger", "what should we build" → invoke /plan-ceo-review
-- Architecture, "does this design make sense" → invoke /plan-eng-review
-- Design system, brand, "how should this look" → invoke /design-consultation
-- Design review of a plan → invoke /plan-design-review
-- Developer experience of a plan → invoke /plan-devex-review
-- "Review everything", full review pipeline → invoke /autoplan
-- Bugs, errors, "why is this broken", "wtf", "this doesn't work" → invoke /investigate
-- Test the site, find bugs, "does this work" → invoke /qa (or /qa-only for report only)
-- Code review, check the diff, "look at my changes" → invoke /review
-- Visual polish, design audit, "this looks off" → invoke /design-review
-- Developer experience audit, try onboarding → invoke /devex-review
-- Ship, deploy, create a PR, "send it" → invoke /ship
-- Merge + deploy + verify → invoke /land-and-deploy
-- Configure deployment → invoke /setup-deploy
-- Post-deploy monitoring → invoke /canary
-- Update docs after shipping → invoke /document-release
-- Weekly retro, "how'd we do" → invoke /retro
-- Second opinion, codex review → invoke /codex (or our project /second-opinion for cross-LLM consults via codex exec or direct ChatGPT API)
-- Safety mode, careful mode, lock it down → invoke /careful or /guard
-- Restrict edits to a directory → invoke /freeze or /unfreeze
-- Upgrade gstack → invoke /gstack-upgrade
-- Save progress, "save my work" → invoke /context-save
-- Resume, restore, "where was I" → invoke /context-restore
-- Security audit, OWASP, "is this secure" → invoke /cso
-- Make a PDF, document, publication → invoke /make-pdf
-- Launch real browser for QA → invoke /open-gstack-browser
-- Import cookies for authenticated testing → invoke /setup-browser-cookies
-- Performance regression, page speed, benchmarks → invoke /benchmark
-- Review what gstack has learned → invoke /learn
-- Tune question sensitivity → invoke /plan-tune
-- Code quality dashboard → invoke /health
+WorldThreads is a Tauri desktop app (not a web service), so most gstack web-shaped skills (`/qa`, `/qa-only`, `/design-review`, `/design-shotgun`, `/design-html`, `/design-consultation`, `/devex-review`, `/canary`, `/benchmark`, `/land-and-deploy`, `/setup-deploy`, `/document-release`, `/open-gstack-browser`, `/setup-browser-cookies`, `/pair-agent`) DON'T apply by default — skip unless Ryan explicitly invokes them.
 
-**Composes with project law:** every turn still ends with AskUserQuestion (per
-`.claude/memory/feedback_choosers_via_askuserquestion.md` and the Stop hook at
-`.claude/hooks/check-inline-choosers.py`). Skill invocations satisfy this naturally
-when they include AskUserQuestion gates; for skills that complete with a status
-report and no chooser, end the reply with the default {Continue, Exit} chooser.
+**Project-native skills** (use these aggressively when the shape fits):
+
+- `/take-note` — Ryan describes what he NOTICED while playing the app (qualitative in-app-experience aside) → record + light annotation per the take-note Mode 1/2/3 discipline. Auto-fire on observation-shaped messages.
+- `/batch-hypotheses` — testing 5-10 candidate phrasings of a craft-shape rule, or N character-variations of the same prompt → bundle into ONE structured ChatGPT call with comparative synthesis. Far cheaper than N individual calls.
+- `/auto-commit N` — N substantive moves on a coherent loop-closing arc; closes known follow-ups + surfaces meta-patterns visible only across the loop-closures. Fresh $5 budget.
+- `/eureka` — continuous time-boxed discovery loop, single instruction "DISCOVER something genius." Fresh $10 budget. For when Ryan senses something the project hasn't articulated yet.
+- `/second-opinion` — cross-LLM consult via codex exec (repo-aware) or direct ChatGPT API (general-knowledge). Default offload for high-reasoning tasks while budget has headroom.
+- `/derive-and-test` / `/run-experiment` — project-specific experiment scaffolding for craft-rule bite-tests.
+
+**General gstack skills that DO apply** (use when explicitly fitting):
+
+- `/office-hours` — product ideas, brainstorming, "is this worth building"
+- `/plan-ceo-review`, `/plan-eng-review`, `/plan-design-review` — pre-implementation reviews
+- `/investigate` — bugs, errors, "why is this broken" → systematic root-cause discipline
+- `/review` — pre-landing diff review
+- `/ship` — creates PR (useful for any git project)
+- `/codex` — adversarial second opinion via OpenAI Codex CLI
+- `/context-save` / `/context-restore` — session-state save/resume
+- `/careful` / `/guard` — destructive-command safety mode
+- `/freeze` / `/unfreeze` — directory-scoped edit restriction
+- `/cso` — security audit
+- `/make-pdf` — render markdown to publication-quality PDF (used for `reports/` artifacts)
+- `/retro` — engineering retrospective (different shape from project-native `/project-report`)
+- `/health` — code quality dashboard
+- `/learn` — review accumulated gstack learnings
+- `/plan-tune` — tune AskUserQuestion sensitivity (largely ceremonial in this project)
+- `/gstack-upgrade` — gstack version housekeeping
+
+**Composes with project law:** every turn still ends with AskUserQuestion (per `.claude/memory/feedback_choosers_via_askuserquestion.md` and the Stop hook at `.claude/hooks/check-inline-choosers.py`). Skill invocations satisfy this naturally when they include AskUserQuestion gates; for skills that complete with a status report and no chooser (including the auto-commit and eureka closing reflections), the reply must STILL end with a chooser — the default {Continue, Exit} fallback if no context-fitting set surfaces.
