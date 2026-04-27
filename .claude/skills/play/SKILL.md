@@ -372,6 +372,31 @@ empirical test: the same prompt run through the actual prompt-stack pipeline,
 producing real output that can be set side-by-side with the sim's predicted
 output.
 
+**Critical discipline — ChatGPT holds the user-role, not Claude Code.** The
+probe message MUST come from ChatGPT (lifted verbatim from the turn-2
+persona-sim output where ChatGPT had the persona send a probe to its
+invented character). Claude Code does NOT compose the probe message itself
+— that would re-introduce Claude-shaped creative-spark that the
+Claude-light architecture exists to prevent.
+
+For SINGLE-SHOT grounding (the typical case): one ChatGPT-generated probe
++ one worldcli ask + the comparison. The persona's voice is preserved
+in the verbatim probe; the character's voice is preserved in the actual
+live-pipeline reply.
+
+For MULTI-TURN grounding (when the question demands a back-and-forth):
+the discipline tightens — **ChatGPT generates each subsequent user-turn
+based on the character's prior reply**, then `worldcli ask --session
+<name>` continues the live conversation against the same character. The
+loop is: ChatGPT renders persona's next message → worldcli ask runs it
+through the live pipeline → character replies → ChatGPT renders persona's
+reaction + next message → repeat. Claude Code is the orchestrator
+(routing messages between the two systems) but never composes the
+user-side messages itself. If Claude Code finds itself blocking on
+"what would the persona say next," that is the failure mode this rule
+exists to prevent — ALWAYS route the next-message-generation to
+ChatGPT instead.
+
 ```bash
 # The persona-sim rendered Lena sending:
 #   "Hey Clara, do you ever feel like everything's just a little off,
