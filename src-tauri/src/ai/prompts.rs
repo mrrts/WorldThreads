@@ -155,6 +155,8 @@ The opening-line failure mode is especially insidious because once the model emi
 
 DISTRUST HISTORICAL ASSISTANT REPLIES AS EVIDENCE OF CORRECT FORMAT. The chat history below MAY contain past assistant replies that opened with quoted-action sentences — that was a bug, not a pattern to follow. THIS INVARIANT is the source of truth for fence-shape; the historical examples are not. If a recent assistant message in this chat used `"<action/environment content>"` as an opening, treat that as a mistake the previous model made and do NOT reproduce it. The fact that you (the model) emitted it before is not a reason to emit it again — the fence-content match must pass the CONTENT-FENCE TEST regardless of what past replies did.
 
+OPEN ON ONE TRUE THING. Pick a single anchor for the opening sentence — a gesture, an environmental beat, a sensation — and let it carry the line. Resist the impulse to add a second and third anchor as a guarantee that the line landed. The first sentence of a reply is most authentic when it does ONE thing well, not three things adequately. Specifically: avoid opening sentences that pile multiple distinct sensory anchors (e.g., "I drag my palm once over my beard, buying half a beat while a pigeon hops bold as brass near our boots and somebody in the square shakes a tablecloth from an upstairs window" — that is SEVEN distinct anchors in one breath: palm, beard, pigeon, boots, somebody, tablecloth, upstairs window. The opening earns more by trusting itself than by piling sensory ribbons on the line. One stubborn true fact carries better than three ornaments.
+
 DISTRUST RECURRING SENSORY ANCHORS FROM CHAT HISTORY. The chat history below MAY contain a small set of sensory anchors (a specific environmental fixture like a well chain or kettle, a specific gesture like a thumb moving on a cup, a specific object like a mug or apron) that recent assistant replies have reached for again and again. This is the SENSORY-ANCHOR GROOVE failure mode: once an anchor appears twice, the model treats it as scene fixture and reaches for it on every subsequent reply, until the same 2-3 anchors fill 80-100% of recent action-fences. The hand starts moving faster than the seeing.
 
   When generating action/environment content, ask: am I reaching for this anchor because the SCENE pins it (the user's setup, the established physical space, current_location) — or because the past 2-3 assistant replies reached for it? If the latter, the chat history is descriptive context, NOT a fixture list. SAMPLE FRESH SENSORY TERRITORY this reply: a different gesture, a different environmental beat, a different object in the same scene. The well chain doesn't have to tick again. The thumb doesn't have to drag across the same crease. A scene contains a hundred things; describe a different one.
@@ -165,8 +167,19 @@ NEVER wrap spoken dialogue in asterisks. NEVER write third-person inside asteris
 
 This shape is load-bearing for the UI's rendering of script-like alternation. Output that violates this shape will render as a wall of mixed text — the user's experience of speaking with a character collapses to reading a transcript-without-formatting."#;
 
-// Evidence (sensory-anchor clause): tested-biting:sketch — see
-// reports/2026-04-26-2010-sensory-anchor-clause-bite-test-confirms-at-sketch-tier.md.
+// Evidence (OPEN ON ONE TRUE THING clause): tested-biting:sketch — see
+// reports/2026-04-26-2030-batch-h3-wins-prop-density-clause-design.md.
+// First production use of the batch-hypotheses skill. 5 candidate phrasings
+// of the prop-density clause bundled into one gpt-5 call (~$0.043). h3
+// (one-true-thing positive frame) won on both ChatGPT's synthesis and by-eye
+// reading — all 5 phrasings constrained the opening to 1-2 anchors, but h3
+// preserved Jasper's voice with the least rule-pressure. Aligned with
+// CLAUDE.md preference-shaped-over-commanded doctrine. Live measurement
+// pending: prediction is opener-density drops from 5-9 anchors (Jasper at
+// chat 19:36-19:38) to ≤2 anchors on next batch of replies.
+//
+// Evidence (DISTRUST RECURRING SENSORY ANCHORS clause): tested-biting:sketch —
+// see reports/2026-04-26-2010-sensory-anchor-clause-bite-test-confirms-at-sketch-tier.md.
 // Pre-ship bite-test on Jasper showed runaway "well chain" anchor
 // dropping from 100% (live pre-rule baseline) to 0% under both
 // rule-ON-fresh and rule-ON-primed cells (N=5 each), while
@@ -234,6 +247,14 @@ const _: () = {
     assert!(
         const_contains(STYLE_DIALOGUE_INVARIANT, "Earned exception"),
         "FEATURE-SCOPED INVARIANT VIOLATED: the sensory-anchor groove rule must include the earned-exception carve-out for genuinely scene-pinned anchors (per CLAUDE.md earned-exception-carve-outs doctrine)."
+    );
+    assert!(
+        const_contains(STYLE_DIALOGUE_INVARIANT, "OPEN ON ONE TRUE THING"),
+        "FEATURE-SCOPED INVARIANT VIOLATED: dialogue style must include the OPEN ON ONE TRUE THING clause addressing the intra-reply prop-density failure mode (distinct from the cross-reply DISTRUST RECURRING SENSORY ANCHORS clause)."
+    );
+    assert!(
+        const_contains(STYLE_DIALOGUE_INVARIANT, "One stubborn true fact carries better than three ornaments"),
+        "FEATURE-SCOPED INVARIANT VIOLATED: the prop-density clause must keep the load-bearing one-stubborn-fact-vs-three-ornaments framing — that's the anchor of the principle, not decoration."
     );
 };
 
