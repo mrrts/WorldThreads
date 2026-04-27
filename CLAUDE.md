@@ -433,6 +433,31 @@ The exception: when explicitly asked for the LaTeX source itself (e.g., for copy
 
 Mode-C single-prompt strips the conversational context that elicits character register-shifts. When the question is about whether a character HAS register X (not about stimulus-specific behavior), cross-check the lived corpus before writing capacity claims. Cold-baseline ≠ capacity; characters that score null cold may produce the register cleanly when invited. Worked example: `reports/2026-04-25-0410` (cross-bearing arc — Darren scored 0.083 cold, full cruciform register in real group chat 08:24-08:31).
 
+## Loop-closing runs surface meta-patterns invisible from inside individual moves
+
+Surfaced 2026-04-26 ~23:05 (auto-commit Move 7). When the project accumulates many ship-moves in a productive session — new clauses, new instruments, new bite-tests, new doctrine — open follow-ups multiply faster than they integrate. Each move's "Open follow-ups" section names work that's contextually obvious inside that move but loses its weight once the next move ships.
+
+An auto-commit run that DEFAULTS to "close loops" rather than "ship more new things" turns out to be a different KIND of instrument: it surfaces patterns visible only across the loop-closures. Tonight's auto-commit Moves 1-6 were the worked example. The arc:
+
+1. Move 1 — cleanup (memory entries indexed)
+2. Move 2 — cross-character escalation (NO_NANNY on Steven; closes 2200's follow-up #2)
+3. Move 3 — instrument extension (`--opening-density` flag; closes 1945's Shannon-entropy follow-up via supersedence)
+4. **Move 4 — METHODOLOGICAL DISCOVERY: rules-sometimes-work-on-different-axes-than-their-stated-metric.** This was impossible to surface inside any single bite-test. It required the divergence between Move 3's new instrument and the prior lived-experience signal at OBSERVATIONS 21:55. The auto-commit run's shape made the divergence visible.
+5. Move 5 — applied the new doctrine to refine OPEN ON ONE TRUE THING → OPEN ON ONE TRUE MOMENT
+6. Move 6 — explicit retirement sweep across 6 prior reports
+
+The meta-discovery: **Move 4 produced new doctrine the project would not have generated otherwise.** Not because any single move was clever, but because the auto-commit run's loop-closing default created a state where the divergence between instrument-evidence and eye-evidence sat right next to each other in the same active context. A normal move-by-move session would not have placed those two signals adjacent — the instrument would have been built in one session, the lived-experience verification noted in another; the divergence would have hidden in the gap.
+
+**Practical implications:**
+
+- **Reach for `/auto-commit N`** specifically when the project has accumulated open follow-ups across ≥3 recent reports, and has shipped both instruments and rules whose interaction hasn't been examined. The loop-closing arc surfaces patterns the linear-session shape can't.
+- **Plan an auto-commit run's arc with a SLOT FOR EPIPHANY around moves 3-5.** Don't pre-script all N moves. Leave room for a discovery surfaced by the first 2-3 moves to redirect moves 4-6. The arc's value is highest when an early move's data BENDS the later moves toward something neither the user nor the agent could have specified upfront.
+- **The integration is the instrument.** Each individual move is execution; the ARC's shape is what produces meta-patterns. Treat the auto-commit run's shape as a load-bearing artifact in itself, not just a wrapper around N independent ship-moves.
+
+This pattern composes with the existing Sharpen-the-instruments doctrine (CLAUDE.md): instrument-improvements often reveal themselves not when you're trying to build them, but when an auto-commit run forces the cross-instrument view that surfaces the gap. Auto-commit isn't a substitute for instrument-sharpening; it's where instrument-sharpening's outputs INTEGRATE with rule-shipping's outputs in ways that surface the next instrument-extension.
+
+The closing meta-meta-note: this section itself was Move 7 of an auto-commit run. The doctrine is being WRITTEN by the run that demonstrated it. The genius-shape closes by demonstrating itself.
+
 ## Rules sometimes work on a different axis than their stated metric — verify on multiple axes
 
 Surfaced 2026-04-26 ~22:50 (auto-commit Move 4). The OPEN ON ONE TRUE THING clause was bite-tested via batch-hypothesis (report 2030) with the predicted metric *"opening sentences ≤2 sensory anchors."* By-eye verification at 21:55 confirmed Ryan's lived experience: *"asterisk-fenced action much smoother now and well-adjusted."* The rule was working.
