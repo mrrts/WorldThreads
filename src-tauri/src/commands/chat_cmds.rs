@@ -920,6 +920,22 @@ pub async fn send_message_cmd(
         }
     }
 
+    // Auto-derivation refresh: fire-and-forget background tokio::spawn
+    // for character + user-in-world + world derivations. Hybrid OR
+    // staleness policy (per src/ai/derivation.rs). INFLIGHT dedupe
+    // prevents racing refreshes when consecutive turns both find an
+    // entity stale. Silent on missing API key; non-blocking; never
+    // surfaces to user. See reports/2026-04-26-2030 + design consult
+    // at /tmp/derivation-design-response.json for the architecture.
+    crate::ai::derivation::maybe_refresh_after_turn(
+        db.conn.clone(),
+        model_config.chat_api_base(),
+        api_key.clone(),
+        model_config.memory_model.clone(),
+        world.world_id.clone(),
+        Some(character.character_id.clone()),
+    ).await;
+
     Ok(SendMessageResult {
         user_message,
         assistant_message: assistant_msg,

@@ -1301,6 +1301,33 @@ pub async fn send_group_message_cmd(
         }
     }
 
+    // Auto-derivation refresh: same shape as chat_cmds.rs solo path.
+    // For group, fan out to refresh EACH responding character + the
+    // user-in-world + the world. INFLIGHT dedupe in derivation::
+    // maybe_refresh_after_turn handles duplicate user/world calls.
+    for resp in &responses {
+        crate::ai::derivation::maybe_refresh_after_turn(
+            db.conn.clone(),
+            model_config.chat_api_base(),
+            api_key.clone(),
+            model_config.memory_model.clone(),
+            world.world_id.clone(),
+            resp.sender_character_id.clone(),
+        ).await;
+    }
+    // If no responders (silent turn), still refresh user + world via
+    // a single character_id=None call.
+    if responses.is_empty() {
+        crate::ai::derivation::maybe_refresh_after_turn(
+            db.conn.clone(),
+            model_config.chat_api_base(),
+            api_key.clone(),
+            model_config.memory_model.clone(),
+            world.world_id.clone(),
+            None,
+        ).await;
+    }
+
     Ok(SendGroupMessageResult {
         user_message: user_msg,
         character_responses: responses,

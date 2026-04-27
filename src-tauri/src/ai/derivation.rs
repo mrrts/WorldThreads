@@ -475,12 +475,12 @@ pub fn is_stale_user_in_world(conn: &Connection, world_id: &str) -> bool {
 /// Skips silently when api_key is empty (e.g., user hasn't configured
 /// OpenAI key). Logs failures via log::warn but never surfaces to user.
 ///
-/// The DB connection is opened FRESH inside the spawned task using
-/// db::connect — passing a Connection across thread boundaries isn't
-/// safe, and the staleness check + persist must happen on a fresh
-/// connection anyway.
+/// Uses the existing Arc<Mutex<Connection>> from Database state — the
+/// inner sync blocks acquire and release the lock; await never holds
+/// the guard. This pools cleanly with the rest of the app's DB usage
+/// rather than re-opening files.
 pub async fn maybe_refresh_after_turn(
-    db_path: std::path::PathBuf,
+    db: std::sync::Arc<std::sync::Mutex<Connection>>,
     base_url: String,
     api_key: String,
     model: String,
@@ -496,12 +496,12 @@ pub async fn maybe_refresh_after_turn(
     if let Some(cid) = character_id.clone() {
         let key = DerivationKey::Character(cid.clone());
         if try_claim(&key) {
-            let db_path = db_path.clone();
+            let db = db.clone();
             let base_url = base_url.clone();
             let api_key = api_key.clone();
             let model = model.clone();
             tokio::spawn(async move {
-                if let Err(e) = refresh_character_inner(&db_path, &base_url, &api_key, &model, &cid).await {
+                if let Err(e) = refresh_character_inner(&db, &base_url, &api_key, &model, &cid).await {
                     log::warn!("[derivation] character {cid} refresh failed: {e}");
                 }
                 release(&key);
@@ -514,13 +514,13 @@ pub async fn maybe_refresh_after_turn(
     // User-in-world refresh
     let user_key = DerivationKey::UserInWorld(world_id.clone());
     if try_claim(&user_key) {
-        let db_path = db_path.clone();
+        let db = db.clone();
         let base_url = base_url.clone();
         let api_key = api_key.clone();
         let model = model.clone();
         let wid = world_id.clone();
         tokio::spawn(async move {
-            if let Err(e) = refresh_user_inner(&db_path, &base_url, &api_key, &model, &wid).await {
+            if let Err(e) = refresh_user_inner(&db, &base_url, &api_key, &model, &wid).await {
                 log::warn!("[derivation] user-in-world {wid} refresh failed: {e}");
             }
             release(&user_key);
@@ -530,13 +530,13 @@ pub async fn maybe_refresh_after_turn(
     // World refresh
     let world_key = DerivationKey::World(world_id.clone());
     if try_claim(&world_key) {
-        let db_path = db_path.clone();
+        let db = db.clone();
         let base_url = base_url.clone();
         let api_key = api_key.clone();
         let model = model.clone();
         let wid = world_id.clone();
         tokio::spawn(async move {
-            if let Err(e) = refresh_world_inner(&db_path, &base_url, &api_key, &model, &wid).await {
+            if let Err(e) = refresh_world_inner(&db, &base_url, &api_key, &model, &wid).await {
                 log::warn!("[derivation] world {wid} refresh failed: {e}");
             }
             release(&world_key);
@@ -545,60 +545,66 @@ pub async fn maybe_refresh_after_turn(
 }
 
 async fn refresh_character_inner(
-    db_path: &std::path::Path,
+    db: &std::sync::Arc<std::sync::Mutex<Connection>>,
     base_url: &str,
     api_key: &str,
     model: &str,
     character_id: &str,
 ) -> Result<(), String> {
-    // Build prompt + check staleness in a SYNC scope so Connection
-    // doesn't span the async LLM call below (Connection is !Send).
+    // Build prompt + check staleness in a SYNC scope so the lock guard
+    // doesn't span the async LLM call below.
     let prompt = {
-        let conn = Connection::open(db_path).map_err(|e| e.to_string())?;
+        let conn = db.lock().map_err(|e| format!("lock: {e}"))?;
         if !is_stale_character(&conn, character_id) { return Ok(()); }
         build_character_prompt(&conn, character_id)?
     };
     let derivation = synthesize_from_prompt(base_url, api_key, model, prompt).await?;
-    let conn = Connection::open(db_path).map_err(|e| e.to_string())?;
-    persist_character_derivation(&conn, character_id, &derivation).map_err(|e| e.to_string())?;
+    {
+        let conn = db.lock().map_err(|e| format!("lock: {e}"))?;
+        persist_character_derivation(&conn, character_id, &derivation).map_err(|e| e.to_string())?;
+    }
     log::info!("[derivation] character {character_id} refreshed");
     Ok(())
 }
 
 async fn refresh_world_inner(
-    db_path: &std::path::Path,
+    db: &std::sync::Arc<std::sync::Mutex<Connection>>,
     base_url: &str,
     api_key: &str,
     model: &str,
     world_id: &str,
 ) -> Result<(), String> {
     let prompt = {
-        let conn = Connection::open(db_path).map_err(|e| e.to_string())?;
+        let conn = db.lock().map_err(|e| format!("lock: {e}"))?;
         if !is_stale_world(&conn, world_id) { return Ok(()); }
         build_world_prompt(&conn, world_id)?
     };
     let derivation = synthesize_from_prompt(base_url, api_key, model, prompt).await?;
-    let conn = Connection::open(db_path).map_err(|e| e.to_string())?;
-    persist_world_derivation(&conn, world_id, &derivation).map_err(|e| e.to_string())?;
+    {
+        let conn = db.lock().map_err(|e| format!("lock: {e}"))?;
+        persist_world_derivation(&conn, world_id, &derivation).map_err(|e| e.to_string())?;
+    }
     log::info!("[derivation] world {world_id} refreshed");
     Ok(())
 }
 
 async fn refresh_user_inner(
-    db_path: &std::path::Path,
+    db: &std::sync::Arc<std::sync::Mutex<Connection>>,
     base_url: &str,
     api_key: &str,
     model: &str,
     world_id: &str,
 ) -> Result<(), String> {
     let prompt = {
-        let conn = Connection::open(db_path).map_err(|e| e.to_string())?;
+        let conn = db.lock().map_err(|e| format!("lock: {e}"))?;
         if !is_stale_user_in_world(&conn, world_id) { return Ok(()); }
         build_user_in_world_prompt_owned(&conn, world_id)?
     };
     let derivation = synthesize_from_prompt(base_url, api_key, model, prompt).await?;
-    let conn = Connection::open(db_path).map_err(|e| e.to_string())?;
-    persist_user_derivation(&conn, world_id, &derivation).map_err(|e| e.to_string())?;
+    {
+        let conn = db.lock().map_err(|e| format!("lock: {e}"))?;
+        persist_user_derivation(&conn, world_id, &derivation).map_err(|e| e.to_string())?;
+    }
     log::info!("[derivation] user-in-world {world_id} refreshed");
     Ok(())
 }
