@@ -551,9 +551,9 @@ Craft notes are written against imagined failure modes. **Rules shipped without 
 
 You (Claude Code) have a CLI binary at `src-tauri/src/bin/worldcli.rs` that lets you converse with the user's characters and inspect db state DIRECTLY, without needing the user to copy/paste between the UI and our chat. **Reach for this tool whenever you want to verify a prompt theory, run a quick A/B test, or apply the "ask the character" pattern from above without round-tripping through the user.**
 
-### What this tool actually is — third reflective surface
+### What this tool actually is — temporal braid surface
 
-Three reflective surfaces: `reports/` (past — interpretive reads of git history); the harness (future — automated regression); `worldcli` (present — empirical query of the lived corpus on demand). Worldcli answers *"what is actually true about this character RIGHT NOW, in the data?"*
+Three reflective surfaces still hold, but `worldcli` no longer fits cleanly as merely the "present" one. `reports/` read the past interpretively; the harness pressures the future automatically; `worldcli` now BRAIDS the temporal directions together. It can query the lived corpus right now, reconstruct the prompt-stack state that produced an older chat (`commit-context`), sample before/after windows around historical refs (`sample-windows` / `evaluate` / `synthesize`), persist today's expensive probes into tomorrow's read-only substrate (`*-runs`), and stage future active scenarios (`replay`, `lab scenario`). The better question is no longer just *"what is actually true about this character RIGHT NOW, in the data?"* It is *"what is true across the time-structure of this system, and what can today's session inherit without buying again?"*
 
 ### The deeper shape — worldcli is a fossilizing lab, not just a talk interface
 
