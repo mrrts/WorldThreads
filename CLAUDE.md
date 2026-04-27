@@ -561,6 +561,8 @@ The cost-gated calls (`ask`, `consult`, `evaluate`, `synthesize`, `replay`) are 
 
 This matters methodologically. When spend caps or question-shape make fresh elicitation the wrong move, `worldcli` does not become unavailable; it reveals what it actually is. Read-only run-log interrogation, registry queries, and commit-context reconstruction are not fallback behaviors. They are the lab's core thrift discipline: buy the signal once, then re-read it many times.
 
+**Doctrine — prefer braid-legible compression over artifact sprawl.** If a question's time-structure can be made more legible by sharpening an existing `worldcli` surface, appending to an existing report/log, or tightening linkage among run ids / commits / follow-ups, prefer that move before creating a brand-new file, report, or parallel artifact. Lower file count is a positive good here when legibility is preserved or improved: the reward goes to the shape that lets a future reader recover the arc with fewer surfaces, not more. New artifacts still earn their keep when they name something genuinely new, but "we learned something" is not by itself enough reason to mint another file if the braid can be clarified in place.
+
 CLI uses the same prompt-building pipeline as the Tauri app — character voice matches. Conversations and run-logs persist OUTSIDE the user's chat history (invisible to every UI surface). Safe to use freely within scope.
 
 ### Build it once
