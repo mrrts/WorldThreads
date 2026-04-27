@@ -354,10 +354,7 @@ export function UserProfileEditor({ store }: Props) {
             </Field>
           </FieldGroup>
 
-          <FieldGroup label="How characters see you">
-            <p className="text-xs text-muted-foreground mb-3">
-              Optional. Tap a few quick choices below and characters in this world will read you a little more clearly. Skip this entirely if you'd rather just chat — characters will form their own read of you over time.
-            </p>
+          <FieldGroup label="How characters will read you">
             <HowCharactersSeeYouSection
               worldId={worldId}
               apiKey={store.apiKey}
@@ -653,6 +650,31 @@ function HowCharactersSeeYouSection({
   const [showFormula, setShowFormula] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Skip-affordance state. The /play burned-by-AI-companions persona-sim
+  // (reports/2026-04-27-0804-...) showed the questionnaire-rendered-inline
+  // reads as personality-profiling for users with prior bad AI-companion
+  // history. Default-collapse behind an explicit Set-it-up / Skip choice;
+  // persist the skip per-world so the surface doesn't trip-wire next time.
+  const [expanded, setExpanded] = useState(false);
+  const [dismissed, setDismissed] = useState(false);
+
+  useEffect(() => {
+    if (!worldId) return;
+    api.getSetting(`derivation_dismissed.${worldId}`).then((v) => {
+      setDismissed(v === "1");
+    }).catch(() => {});
+  }, [worldId]);
+
+  const handleDismiss = async () => {
+    setDismissed(true);
+    setExpanded(false);
+    if (worldId) await api.setSetting(`derivation_dismissed.${worldId}`, "1").catch(() => {});
+  };
+  const handleReopen = async () => {
+    setDismissed(false);
+    setExpanded(true);
+    if (worldId) await api.setSetting(`derivation_dismissed.${worldId}`, "0").catch(() => {});
+  };
 
   const visibleQuestions = SUB_QUESTIONS.filter((q) => showDeeper || !q.optional);
 
@@ -697,6 +719,53 @@ function HowCharactersSeeYouSection({
   // the plain-English read welcomes first and the derivation stays
   // available as the deeper paired form.
   const hasResult = !!currentDerivation || !!currentSummary;
+
+  // Collapsed-default state: when there's no result yet, no choices started,
+  // and the user hasn't expanded, show the skip-affordance instead of the
+  // full questionnaire. Honors Lena's verdict from the burned-by-AI play.
+  if (!hasResult && !expanded && !anyChoiceSet) {
+    if (dismissed) {
+      return (
+        <div className="space-y-2 py-1">
+          <p className="text-xs text-muted-foreground italic">
+            Skipped for this world. Characters will form their own read of you over time.
+          </p>
+          <button
+            type="button"
+            onClick={handleReopen}
+            className="text-xs text-primary/70 hover:text-primary underline-offset-2 hover:underline"
+          >
+            Change your mind? Set it up.
+          </button>
+        </div>
+      );
+    }
+    return (
+      <div className="space-y-3 py-1">
+        <p className="text-xs text-muted-foreground leading-relaxed">
+          Optional. If you'd like, you can author a few quick choices that shape how characters in this world will read you. Or skip this entirely — characters will form their own read of you over time, just from chatting.
+        </p>
+        <div className="flex items-center gap-2">
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => setExpanded(true)}
+            className="text-xs"
+          >
+            Set it up
+          </Button>
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={handleDismiss}
+            className="text-xs text-muted-foreground hover:text-foreground"
+          >
+            Skip for now
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4">
