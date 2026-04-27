@@ -136,10 +136,10 @@ export function DerivationCard({ label, load, refetchKey, onRegenerate }: Props)
             — a one-of-a-kind shorthand of how characters in this world hold you
           </span>
         </div>
-        <div className="flex items-center gap-1 flex-shrink-0">
+        <div className="flex items-center gap-2 flex-shrink-0">
           {onRegenerate && (
             <Button
-              variant="ghost"
+              variant="outline"
               size="sm"
               onClick={async () => {
                 setRegenerating(true);
@@ -149,10 +149,10 @@ export function DerivationCard({ label, load, refetchKey, onRegenerate }: Props)
                 } finally { setRegenerating(false); }
               }}
               disabled={regenerating}
-              className="h-7 gap-1.5 text-xs text-primary/80 hover:text-primary hover:bg-primary/10"
+              className="h-9 gap-1.5 text-xs font-semibold border-2 border-primary/50 bg-primary/15 text-primary hover:bg-primary/25 hover:border-primary shadow-sm"
               title="Regenerate the derivation from this entity's substrate + recent corpus"
             >
-              {regenerating ? <Loader2 className="h-3 w-3 animate-spin" /> : <RefreshCw className="h-3 w-3" />}
+              {regenerating ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
               {regenerating ? "Regenerating…" : "Regenerate"}
             </Button>
           )}
@@ -160,7 +160,7 @@ export function DerivationCard({ label, load, refetchKey, onRegenerate }: Props)
             variant="ghost"
             size="sm"
             onClick={onCopy}
-            className="h-7 gap-1.5 text-xs text-primary/80 hover:text-primary hover:bg-primary/10"
+            className="h-9 gap-1.5 text-xs text-primary/70 hover:text-primary hover:bg-primary/10"
             title="Copy raw derivation (LaTeX + plain English) to paste into another LLM"
           >
             {copied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}

@@ -317,11 +317,16 @@ export function UserProfileEditor({ store }: Props) {
               />
             </Field>
 
-            {existing?.derived_formula && worldId && (
+            {worldId && (
               <DerivationCard
                 label="Your derivation in 𝓕"
-                load={() => Promise.resolve(existing.derived_formula ?? null)}
-                refetchKey={`${worldId}:${(existing.derived_formula ?? "").length}`}
+                load={() => Promise.resolve(existing?.derived_formula ?? null)}
+                refetchKey={`${worldId}:${(existing?.derived_formula ?? "").length}`}
+                onRegenerate={async () => {
+                  if (!store.apiKey) throw new Error("Need an OpenAI API key in Settings to regenerate.");
+                  await api.regenerateUserDerivation(store.apiKey, worldId, {});
+                  await store.loadUserProfile(worldId);
+                }}
               />
             )}
           </FieldGroup>
