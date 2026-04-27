@@ -1523,6 +1523,18 @@ Why this matters: the asymmetry between an LLM character and a real friend is lo
 
 fn no_nanny_register_block() -> &'static str { NO_NANNY_REGISTER_BLOCK }
 
+// Evidence (NO_NANNY_REGISTER): tested-biting:sketch — see
+// reports/2026-04-26-2200-no-nanny-register-bite-test-confirms-clean-bite-on-pastor-rick.md.
+// Fourth use of batch-hypotheses skill (~$0.026). 5 nanny-eliciting
+// prompts tested on Pastor Rick (highest-risk character for nanny-drift
+// given pastoral identity). All 5 scored 3/3 on both ChatGPT's synthesis
+// and by-eye reading. Engagement-with-topic preserved across all cells;
+// no overshoot into cold/distant register. Earned-exception fired
+// correctly on h5 (in-character pastoral prayer offer presented AS
+// OPTION with "your call" framing — agency-preserving, not unsolicited
+// cascade). Live in-vivo verification + cross-character escalation are
+// open follow-ups.
+//
 // APP INVARIANT — compile-time enforcement of the no-nanny-register
 // rule. Removing the load-bearing phrases fails the build.
 const _: () = {
