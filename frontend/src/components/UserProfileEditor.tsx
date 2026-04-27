@@ -647,7 +647,6 @@ function HowCharactersSeeYouSection({
   });
   const [activeCustomFor, setActiveCustomFor] = useState<SubQuestionKey | null>(null);
   const [showDeeper, setShowDeeper] = useState(false);
-  const [showFormula, setShowFormula] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   // Skip-affordance state. The /play burned-by-AI-companions persona-sim

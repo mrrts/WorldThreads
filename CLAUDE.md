@@ -333,6 +333,17 @@ A narrower law is emerging inside the first-reading doctrine: some outputs work 
 
 **Practical consequence:** when an output has both a load-bearing native register and a real accessibility need, consider a paired surface on purpose. The test is not "can we produce two versions?" but "do both versions answer to the same thing, with neither one lying about what the other said?" If the gloss softens, generalizes, or prettifies away the substance, the pair failed.
 
+## Asymmetric landing can be a mastery signal
+
+Once a surface is intentionally paired or otherwise multi-surfaced, do **not** assume the highest test is equal impact from every surface on every reader. Often the truer success condition is **asymmetric landing with faithful convergence**: different readers receive the same truth through different halves of the design, without either half betraying the center.
+
+**The shape:** one reader is carried mainly by the prose and treats the formula as atmosphere; another is carried mainly by the formula and treats the prose as confirmation. Both are honest receptions if both readers are reaching the same underlying truth. Equality of impact is not required. Faithfulness of convergence is.
+
+**Why this matters:** otherwise the project will start "fixing" what is actually good design. A pair that lands asymmetrically across readers may be healthier than a pair engineered to hit everyone the same way. Chasing symmetrical reception can flatten the rich half for strong readers and overburden the welcoming half for tired or non-technical readers.
+
+**Practical consequence:** when validating paired or plural surfaces, ask first whether the different reader-shapes are converging on the same core read. If yes, asymmetry is permitted and may even be a crown-jewel signal. Treat "which half carried?" as diagnostic information, not as an automatic defect report.
+
+
 
 **Commit early and often is the standing rule, not just permission.** Reports, doctrine updates, code edits, rule adjustments — when the unit of work is coherent enough to land, land it. Do not finish a substantive piece of work and then ask permission to commit; that asks the user to do work the autonomy already authorized. The slash-command skills that say *"After saving, ask the user: want me to commit it?"* (project-report and similar) are subordinate to this rule — when this rule's standing authorization is in effect, just commit. Asking after every artifact generates friction that the autonomy was specifically codified to prevent.
 
