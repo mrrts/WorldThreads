@@ -55,6 +55,22 @@ Total cost across all four instrument passes on this rule (16 + 10 = 26 calls): 
 
 The methodology's HONESTY is what made tonight legible. Three walks; one Characterized rule remaining unique; the catalog grew by one rule, learned three probe-design lessons, and named one structural instrument frontier. The skill teaches itself.
 
+**Step 8+ (02:15) — passive-corpus instrument family used for recurrence test.** Cheapest first move from the named follow-up list: ran a second Aaron wince-read on a DIFFERENT Jasper window (the 16 messages immediately preceding the warmer/colder game). Recurrence confirmed AND the diagnosis deepened.
+
+Aaron flagged 5 more specific lines in the prior window — including the same *"a real home for them to step into"* phrase that started this entire night's arc 14 hours ago. Same wipe-the-shine over-consecration pattern, recurring in a different conversation. The failure mode is real and recurrent, not a one-off in the warmer/colder game.
+
+**The deeper diagnostic that the recurrence test surfaced:** Aaron's first wince-read named *"the helper gets wobbly wherever he stops offering words and starts authorizing the other man's experience."* Aaron's second wince-read sharpened to: *"It starts to lean when the helper stops responding to the friend's project as a good piece of work and starts responding to it as a place where the helper himself might be held, fed, or housed. Praise turning into reliance before the other man offered to carry any."*
+
+This is a DIFFERENT shape than the rule body captured. The original rule covers "naming-the-answer-too-soon / verdict-from-above." The recurrence test surfaced the deeper "helper-projecting-need / praise-turning-into-reliance" pattern. They're related leans but distinct: the first is about MANAGING THE SEARCH; the second is about TREATING THE FRIEND'S PROJECT AS A PLACE THE HELPER COULD BE HELD.
+
+**Methodological finding:** the passive-corpus instrument family (Aaron wince-read across multiple windows) DID reach what per-rule omit-flag bite-tests could not. Not a measurement of the rule's bite — a refinement of the rule's diagnostic surface. The instrument frontier that the bite-test hit is real, but the passive-corpus family has its own complementary use: not measuring effects, but deepening the failure-mode taxonomy. Two instruments, two different jobs.
+
+**Followup (NOT for tonight):** the rule body might extend to cover both shapes — "stay in the search" + "respond to the project as a project, not a place to be held." OR a sibling rule could ship for the second shape. Decision deferred to tomorrow's session with fresh attention; changing the rule body NOW would invalidate tonight's bite-test history and would also be a same-day re-edit before any post-rule corpus accumulates. The honest move is to LET THE EVIDENCE SIT until tomorrow's first observation can read it fresh.
+
+Cost: $0.11 for the second wince-read. Total night-of-rule-arc-walks spend: ~$4.50 of $5 budget. The most expensive single-rule arc the catalog has ever seen, producing the richest methodological harvest: a methodological frontier explicitly named, plus a complementary instrument family demonstrated to reach what the bite-test family cannot.
+
+The arc's final shape: tier (VacuousTest, honestly held) ⊥ failure-mode reality (real, recurrent, richer than the rule body's first capture). The substrate-vs-apparatus discipline at one more layer: the rule's TIER says one thing about the bite-test instrument's coverage; the failure-mode's PROVENANCE says something else about the rule's substantive accuracy. Both true at once. Both legibly recorded.
+
 ## 2026-04-28 00:15 — /rule-arc second walk: cash_out_oblique_lines → EnsembleVacuous + probe-design lesson
 
 > Second `/rule-arc` walk in the same evening, on `cash_out_oblique_lines` (sat at `VacuousTest` from a Jasper-only N=5+5 earlier today). Cross-character on Pastor Rick — preacherly register chosen as register-distinct from Jasper's poetic-potter for testing whether the cashout discipline holds across two different oblique-prone substrates.
