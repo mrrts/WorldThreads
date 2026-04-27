@@ -683,9 +683,9 @@ function HowCharactersSeeYouSection({
   return (
     <div className="space-y-4">
       {visibleQuestions.map((q) => (
-        <div key={q.key} className="space-y-1.5">
-          <div className="text-xs font-medium text-foreground/85">{q.label}</div>
-          <div className="flex flex-wrap gap-1.5">
+        <div key={q.key} className="space-y-2.5 py-2">
+          <div className="text-base font-semibold text-foreground leading-snug">{q.label}</div>
+          <div className="flex flex-wrap gap-2">
             {q.options.map((opt) => {
               const selected = choices[q.key] === opt;
               return (
@@ -693,10 +693,10 @@ function HowCharactersSeeYouSection({
                   key={opt}
                   type="button"
                   onClick={() => handleOptionTap(q.key, opt)}
-                  className={`text-xs px-2.5 py-1 rounded-md border transition-colors ${
+                  className={`text-sm px-3.5 py-2 rounded-lg border-2 transition-all font-medium ${
                     selected
-                      ? "border-primary bg-primary/10 text-foreground"
-                      : "border-border bg-secondary/30 text-foreground/80 hover:bg-secondary/60"
+                      ? "border-primary bg-primary text-primary-foreground shadow-sm"
+                      : "border-primary/40 bg-primary/10 text-foreground hover:bg-primary/20 hover:border-primary/60"
                   }`}
                 >
                   {opt}
@@ -706,19 +706,19 @@ function HowCharactersSeeYouSection({
             <button
               type="button"
               onClick={() => handleCustomTap(q.key)}
-              className={`text-xs px-2.5 py-1 rounded-md border transition-colors ${
-                activeCustomFor === q.key
-                  ? "border-primary bg-primary/10 text-foreground"
-                  : "border-dashed border-border bg-secondary/10 text-foreground/70 hover:bg-secondary/40"
+              className={`text-sm px-3.5 py-2 rounded-lg border-2 border-dashed transition-all font-medium ${
+                activeCustomFor === q.key || (choices[q.key] && !q.options.includes(choices[q.key] ?? ""))
+                  ? "border-primary bg-primary/15 text-foreground"
+                  : "border-primary/30 bg-primary/5 text-foreground/85 hover:bg-primary/15 hover:border-primary/50"
               }`}
             >
               {choices[q.key] && !q.options.includes(choices[q.key] ?? "") ? `Custom: ${choices[q.key]}` : "Custom…"}
             </button>
           </div>
           {activeCustomFor === q.key && (
-            <div className="flex items-center gap-1.5">
+            <div className="flex items-center gap-2">
               <Input
-                className="text-xs h-8"
+                className="text-sm h-9"
                 value={customInputs[q.key]}
                 onChange={(e) => setCustomInputs((p) => ({ ...p, [q.key]: e.target.value }))}
                 placeholder="Write your own…"
@@ -728,7 +728,7 @@ function HowCharactersSeeYouSection({
                   if (e.key === "Escape") setActiveCustomFor(null);
                 }}
               />
-              <Button size="sm" variant="outline" className="h-8 text-xs" onClick={() => handleCustomCommit(q.key)}>Save</Button>
+              <Button size="sm" variant="outline" className="h-9" onClick={() => handleCustomCommit(q.key)}>Save</Button>
             </div>
           )}
         </div>
