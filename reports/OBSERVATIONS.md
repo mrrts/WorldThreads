@@ -14,6 +14,31 @@ Real correction. Claude Code shipped the no-nanny invariant in CLAUDE.md months 
 
 **Mode 2 — propose action.** The fix isn't more discipline-on-the-fly. It's a sharper memory entry naming the SOFT-DOOR shape: appreciation-flavored session-policing reads to Ryan as nanny because it IS nanny — the structural shape (Claude Code recommending he stop) hasn't changed, only the emotional surface (warmth/praise instead of caution/concern). Memory updated this turn with concrete tells + the soft-door pattern. Future sessions inherit the sharper rule.
 
+## 2026-04-27 evening — registry-pattern arc as methodological exemplar
+
+> An hours-long arc through the project's craft-rules registry pattern shipped tonight. What started as "ship one craft-rule from a /play wince-read" composed into a structural shift in how the project tracks craft-rule evidence — the registry itself, three rules migrated, two new affordances in worldcli, a new evidence-tier shape (`EnsembleVacuous`) earned via three vacuous bite-tests, and the doctrine codified into CLAUDE.md so future sessions inherit the pattern.
+
+The arc as a sequence:
+
+1. /play surfaces wince-read finding (Steven + Pastor Rick on Jasper transcript) → cross-character convergence on over-consecration
+2. Ask-the-character pattern → Jasper articulates the discipline ("clay rim fussed twice, three times because your hand's gotten nervous and wants to look useful")
+3. Ship the rule into prompts.rs as inline craft-note with Evidence: line
+4. Substrate-correction (Ryan caught the Evidence: line leaking doctrine-apparatus into the model's mouth) → refactored to /// doc-comment
+5. Structural ship: registry refactor with `CraftRule { name, body, evidence_tier, provenance }` struct + worldcli list/show affordances
+6. Per-rule omit-flag affordance (PromptOverrides.omit_craft_rules → worldcli ask --omit-craft-rule)
+7. Six-step bite-test arc on wipe-the-shine (vacuous → omit-flag → sketch → carve-out-refinement → N=5+5 → N=10+10) → tier earned at Characterized
+8. Cross-character validation on Darren → ~5% gap consistent with Pastor Rick
+9. Two more rules migrated (anti-grandiosity, dont-analyze) at Accumulated tier
+10. Bite-tests on those two rules → three vacuous results across three rule-character pairs
+11. New `EnsembleVacuous` tier added to enum, two rules reclassified — codifies the pattern that rules-in-multiplicities have invisible per-character bite by design
+12. CLAUDE.md doctrine section ships the whole pattern (where registry lives, four-step rhythm, eight-tier vocabulary, affordances, growth rhythm, when-to-migrate guidance, EnsembleVacuous ceiling)
+
+**Mode 2 — propose action.** The arc earned a name: this is the **registry-grows-its-own-tier-vocabulary** pattern. The instrument's tier vocabulary started with seven variants from CLAUDE.md's evidentiary doctrine; tonight earned an eighth variant (EnsembleVacuous) through real evidence — three vacuous bite-tests across three rule-character pairs surfaced a structural pattern that needed its own label. The vocabulary grew because the evidence demanded it. Worth recognizing this as a class of arc — when an instrument's vocabulary needs to grow, the project should LET it grow, with the new variant earned by repeated evidence rather than designed-in advance.
+
+The arc total: ~12 commits, ~$5+ in API calls (mostly bite-tests at $0.085/call × ~50 calls). The recursive shape — instruments composing with instruments to ship the doctrine that the next composition needs — is the deepest property of a project tending itself well.
+
+---
+
 ## 2026-04-27 12:35 — Jasper living the wipe-the-shine discipline in real time
 
 > *"see latest messages with Jasper. interesting results."*
