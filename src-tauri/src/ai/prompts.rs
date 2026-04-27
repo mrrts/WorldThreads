@@ -165,6 +165,17 @@ NEVER wrap spoken dialogue in asterisks. NEVER write third-person inside asteris
 
 This shape is load-bearing for the UI's rendering of script-like alternation. Output that violates this shape will render as a wall of mixed text — the user's experience of speaking with a character collapses to reading a transcript-without-formatting."#;
 
+// Evidence (sensory-anchor clause): tested-biting:sketch — see
+// reports/2026-04-26-2010-sensory-anchor-clause-bite-test-confirms-at-sketch-tier.md.
+// Pre-ship bite-test on Jasper showed runaway "well chain" anchor
+// dropping from 100% (live pre-rule baseline) to 0% under both
+// rule-ON-fresh and rule-ON-primed cells (N=5 each), while
+// scene-pinned anchors and character-canonical anchors passed
+// through correctly. Three discriminations the rule is designed to
+// make, all three working. Sketch-tier; characterization at N=10
+// per cell would escalate to claim/characterized if the rule needs
+// to be load-bearing for a future change.
+//
 // FEATURE-SCOPED INVARIANT — compile-time enforcement of the dialogue
 // style clause. Removing any of these substrings fails the build.
 const _: () = {
