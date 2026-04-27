@@ -30,6 +30,22 @@ The skill is on-demand, not auto-fired. Ryan invokes `/play` explicitly; Claude
 Code does not propose `/play` proactively unless an in-flight design decision is
 clearly waiting on persona-sim evidence.
 
+## What `/play` is now
+
+`/play` is no longer just a persona-sim freshness check. Under the Claude-light +
+Step 2.5 methodology, it has become a **differential instrument**.
+
+That means the high-value artifact is often NOT a single branch's impression.
+It is the DELTA between branches:
+- persona-sim prediction vs live-pipeline grounding
+- sympathetic reader vs adversarial reader
+- no-math reader vs math-fluent reader
+- pre-encounter expectation vs post-pressure-test verdict
+
+The strongest `/play` findings now come from what only becomes visible when those
+branches are held beside each other. Treat the gap as first-class evidence, not as
+mere disagreement to be ironed out.
+
 ## When this skill does NOT fit
 
 - Persona-sim evidence is **not real-user evidence**. Per `docs/PLAIN-TRADITION.md`
@@ -335,6 +351,9 @@ how the app lands for this persona. Step 2.5 produces an **empirical branch**
 — actual app data that bears on the theoretical branch's claims. The two
 branches are then compared in Step 3's report. Where they agree, the verdict
 strengthens; where they diverge, the divergence IS the discriminating signal.
+**This is the instrument's center of gravity.** The comparison is not a sanity
+check on the "real" result; it is the place where hidden lift, hidden drag, or
+hidden asymmetry becomes measurable.
 
 The empirical branch picks ONE of two paths (or both, when warranted). Pick
 whichever is the cheapest honest test of the theoretical branch's central
@@ -425,7 +444,11 @@ Three possible outcomes:
 
 DIVERGENT outcomes are the highest-value findings — they catch persona-sim
 bias (charitable reading toward the project, or projection of the developer's
-expectations onto the model's actual capacities).
+expectations onto the model's actual capacities). The skill's newest validated
+pattern (`reports/2026-04-27-0834-play-quintet-meta-divergent-better.md`) is
+that **systematic DIVERGENT-BETTER can reveal doctrine-lift invisible to the
+persona-sim alone**. Don't collapse divergence too quickly into "sim was wrong";
+name what became visible only because the second branch existed.
 
 #### When to use which path
 
