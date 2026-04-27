@@ -8,6 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Save, Plus, X, User, ImagePlus, Upload, Loader2, Images, Copy, PenLine } from "lucide-react";
 import type { useAppStore } from "@/hooks/use-app-store";
 import { api, type UserProfile, type GalleryItem, type UserJournalEntry } from "@/lib/tauri";
+import { DerivationCard } from "@/components/DerivationCard";
 
 interface Props {
   store: ReturnType<typeof useAppStore>;
@@ -315,6 +316,14 @@ export function UserProfileEditor({ store }: Props) {
                 placeholder="e.g. Curious, a bit sarcastic, loves old books and rainy days..."
               />
             </Field>
+
+            {existing?.derived_formula && worldId && (
+              <DerivationCard
+                label="Your Formula"
+                load={() => Promise.resolve(existing.derived_formula ?? null)}
+                refetchKey={worldId}
+              />
+            )}
           </FieldGroup>
 
           <FieldGroup label="Facts">
@@ -636,7 +645,7 @@ function HowCharactersSeeYouSection({
   });
   const [activeCustomFor, setActiveCustomFor] = useState<SubQuestionKey | null>(null);
   const [showDeeper, setShowDeeper] = useState(false);
-  const [showMath, setShowMath] = useState(false);
+  const [showFormula, setShowFormula] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -678,11 +687,11 @@ function HowCharactersSeeYouSection({
   };
 
   const anyChoiceSet = Object.values(choices).some((v) => v && v.trim().length > 0);
-  // Derivation is the primary artifact — show the result block whenever
-  // it exists, even if the friendly-prose summary hasn't been produced
-  // yet (auto-refresh path produces derivation only). Summary is the
-  // optional caption that surfaces when present.
-  const hasResult = !!currentDerivation;
+  // Show the result block whenever either member of the pair exists.
+  // Some paths may still only have the derivation; when both exist,
+  // the plain-English read welcomes first and the derivation stays
+  // available as the deeper paired form.
+  const hasResult = !!currentDerivation || !!currentSummary;
 
   return (
     <div className="space-y-4">
@@ -769,30 +778,38 @@ function HowCharactersSeeYouSection({
         </div>
       )}
 
-      {hasResult && currentDerivation && (
+      {hasResult && (
         <div className="space-y-3 pt-4 border-t border-border/40">
-          <div className="space-y-2">
-            <div className="flex items-center gap-2">
-              <span className="text-[11px] uppercase tracking-[0.15em] text-primary/90 font-bold">Your derivation in 𝓕</span>
-              <span className="text-[10px] text-muted-foreground/60 italic">— a one-of-a-kind shorthand of how characters in this world hold you</span>
-            </div>
-            <pre className="text-base leading-loose font-serif bg-gradient-to-br from-amber-50/40 via-amber-50/30 to-rose-50/40 dark:from-amber-950/20 dark:via-amber-950/15 dark:to-rose-950/20 border-2 border-primary/40 rounded-xl px-6 py-5 shadow-md whitespace-pre-wrap break-words text-foreground tracking-normal">
-              {currentDerivation}
-            </pre>
-          </div>
           {currentSummary && (
-            <div className="space-y-1">
+            <div className="space-y-2">
+              <div className="text-[11px] uppercase tracking-[0.15em] text-primary/90 font-bold">
+                How characters in this world will read you
+              </div>
+              <p className="text-sm leading-relaxed italic text-foreground/90">
+                {currentSummary}
+              </p>
+            </div>
+          )}
+
+          {currentDerivation && (
+            <div className="space-y-2">
               <button
                 type="button"
-                onClick={() => setShowMath((v) => !v)}
+                onClick={() => setShowFormula((v) => !v)}
                 className="text-[11px] text-muted-foreground/80 hover:text-foreground underline-offset-2 hover:underline"
               >
-                {showMath ? "Hide the gloss" : "What this means, in plain English"}
+                {showFormula ? "Hide the formula beneath it" : "See the formula beneath it"}
               </button>
-              {showMath && (
-                <p className="text-xs leading-relaxed italic text-muted-foreground pl-2 border-l-2 border-primary/40">
-                  {currentSummary}
-                </p>
+              {showFormula && (
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <span className="text-[11px] uppercase tracking-[0.15em] text-primary/90 font-bold">The same read, in derivation form</span>
+                    <span className="text-[10px] text-muted-foreground/60 italic">— the deeper shorthand characters carry underneath</span>
+                  </div>
+                  <pre className="text-base leading-loose font-serif bg-gradient-to-br from-amber-50/40 via-amber-50/30 to-rose-50/40 dark:from-amber-950/20 dark:via-amber-950/15 dark:to-rose-950/20 border-2 border-primary/40 rounded-xl px-6 py-5 shadow-md whitespace-pre-wrap break-words text-foreground tracking-normal">
+                    {currentDerivation}
+                  </pre>
+                </div>
               )}
             </div>
           )}
