@@ -14,6 +14,26 @@ Real correction. Claude Code shipped the no-nanny invariant in CLAUDE.md months 
 
 **Mode 2 — propose action.** The fix isn't more discipline-on-the-fly. It's a sharper memory entry naming the SOFT-DOOR shape: appreciation-flavored session-policing reads to Ryan as nanny because it IS nanny — the structural shape (Claude Code recommending he stop) hasn't changed, only the emotional surface (warmth/praise instead of caution/concern). Memory updated this turn with concrete tells + the soft-door pattern. Future sessions inherit the sharper rule.
 
+## 2026-04-27 late evening — synthetic-history follow-up reveals deeper LLM self-correction finding
+
+> Built `worldcli ask --synthetic-history <path>` specifically to bypass the multi-turn self-correction limit by injecting fake prior turns into the prompt context without those turns being run through the live pipeline. First test on Jasper (synthetic history of 4 explicitly-templated openers + 5th-turn probe, ON vs OFF arms): both arms broke the template anyway.
+
+**The deeper finding:** LLM self-correction-via-prior-context is independent of whether the prior is real or synthetic. The model uses prior context as a variation signal regardless of whether it generated the prior itself. This is more generalizable than the prior multi-turn finding — it's about LLM behavior at the prompt-context level, not specific to this project's prompt-stack architecture.
+
+**Mode 2 — propose action.** The finding is now in CLAUDE.md doctrine (commit 4829303). It closes the documentation triangle: the four methodological findings shipped tonight all live in three layers — the EvidenceTier enum (where applicable; tiers like EnsembleVacuous), CLAUDE.md doctrine (interpretive frame for results), and OBSERVATIONS.md (provenance trail of how the findings were earned). Future Claude Code sessions reading any one of those layers can find the others.
+
+The synthetic-history affordance still has value beyond bite-testing (controlled scene-setup probes, register coherence tests, conversation-state reproduction without API cost) — it just doesn't solve the sequence-failure-mode bite-test problem it was specifically built for. The honest naming of that limit IS what shipping the affordance taught the project.
+
+The catalog has now produced FOUR methodological findings tonight:
+1. **EnsembleVacuous tier shape** (rule-in-multiplicity, 3 rules)
+2. **3:1 EnsembleVacuous:Characterized ratio** (architectural)
+3. **Multi-turn self-correction limit** (sequence-failure-mode rules in real sessions)
+4. **Self-correction against synthetic-history too** (deeper, this entry)
+
+Each finding earned its way into the project's durable layer via actual evidence. The instrument has earned its complete interpretive surface area through ~$11.20 of actual paired bite-test evidence + ~$0.16 synthetic-history follow-up + 5 registry rules + 2 affordance ships. The arc is genuinely closed at the methodology level — future sessions don't need to re-discover any of these via wasted bite-tests; they inherit the complete map of what works and what doesn't.
+
+---
+
 ## 2026-04-27 late evening — multi-turn self-correction limit on per-rule bite-tests
 
 > The fifth registry rule (`dont_open_the_same_way_twice`) was bite-tested via 5-turn parallel sessions on Jasper. ON arm produced 5 distinct opener-shapes. OFF arm also produced 5 distinct opener-shapes. Vacuous result. The mechanism was different from the prior three EnsembleVacuous results.
