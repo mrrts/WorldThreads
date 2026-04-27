@@ -555,6 +555,12 @@ You (Claude Code) have a CLI binary at `src-tauri/src/bin/worldcli.rs` that lets
 
 Three reflective surfaces: `reports/` (past — interpretive reads of git history); the harness (future — automated regression); `worldcli` (present — empirical query of the lived corpus on demand). Worldcli answers *"what is actually true about this character RIGHT NOW, in the data?"*
 
+### The deeper shape — worldcli is a fossilizing lab, not just a talk interface
+
+The cost-gated calls (`ask`, `consult`, `evaluate`, `synthesize`, `replay`) are only the FRONT EDGE of the instrument. The deeper center is that every expensive move immediately fossilizes into cheap, queryable substrate: `~/.worldcli/runs/`, `evaluate-runs`, `synthesize-runs`, `replay-runs`, the experiment registry, and `commit-context` as the inverse path back into prompt-stack state. In practice this means `worldcli` is not best understood as *"a CLI for talking to characters."* It is a **memory-first lab surface** where paid elicitation becomes durable evidence and future sessions can work read-only against what earlier sessions already bought.
+
+This matters methodologically. When spend caps or question-shape make fresh elicitation the wrong move, `worldcli` does not become unavailable; it reveals what it actually is. Read-only run-log interrogation, registry queries, and commit-context reconstruction are not fallback behaviors. They are the lab's core thrift discipline: buy the signal once, then re-read it many times.
+
 CLI uses the same prompt-building pipeline as the Tauri app — character voice matches. Conversations and run-logs persist OUTSIDE the user's chat history (invisible to every UI surface). Safe to use freely within scope.
 
 ### Build it once
