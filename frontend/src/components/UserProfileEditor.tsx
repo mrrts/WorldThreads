@@ -678,7 +678,11 @@ function HowCharactersSeeYouSection({
   };
 
   const anyChoiceSet = Object.values(choices).some((v) => v && v.trim().length > 0);
-  const hasResult = !!currentSummary;
+  // Derivation is the primary artifact — show the result block whenever
+  // it exists, even if the friendly-prose summary hasn't been produced
+  // yet (auto-refresh path produces derivation only). Summary is the
+  // optional caption that surfaces when present.
+  const hasResult = !!currentDerivation;
 
   return (
     <div className="space-y-4">
@@ -765,35 +769,30 @@ function HowCharactersSeeYouSection({
         </div>
       )}
 
-      {hasResult && (
-        <div className="space-y-3 pt-3 border-t border-border/40">
-          <div className="space-y-1">
-            <div className="text-[10px] uppercase tracking-wider text-muted-foreground/70 font-semibold">
-              How characters in this world will read you
+      {hasResult && currentDerivation && (
+        <div className="space-y-3 pt-4 border-t border-border/40">
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              <span className="text-[11px] uppercase tracking-[0.15em] text-primary/90 font-bold">Your derivation in 𝓕</span>
+              <span className="text-[10px] text-muted-foreground/60 italic">— a one-of-a-kind shorthand of how characters in this world hold you</span>
             </div>
-            {currentSummary && (
-              <p className="text-sm leading-relaxed italic text-foreground/90">
-                {currentSummary}
-              </p>
-            )}
+            <pre className="text-base leading-loose font-serif bg-gradient-to-br from-amber-50/40 via-amber-50/30 to-rose-50/40 dark:from-amber-950/20 dark:via-amber-950/15 dark:to-rose-950/20 border-2 border-primary/40 rounded-xl px-6 py-5 shadow-md whitespace-pre-wrap break-words text-foreground tracking-normal">
+              {currentDerivation}
+            </pre>
           </div>
-
-          {currentDerivation && (
-            <div className="space-y-1.5">
+          {currentSummary && (
+            <div className="space-y-1">
               <button
                 type="button"
                 onClick={() => setShowMath((v) => !v)}
                 className="text-[11px] text-muted-foreground/80 hover:text-foreground underline-offset-2 hover:underline"
               >
-                {showMath ? "Hide the formula beneath it" : "See the formula beneath it"}
+                {showMath ? "Hide the gloss" : "What this means, in plain English"}
               </button>
               {showMath && (
-                <div className="space-y-1.5">
-                  <div className="text-[10px] uppercase tracking-wider text-muted-foreground/70 font-semibold">The same read, in derivation form</div>
-                  <pre className="text-sm leading-7 font-serif bg-gradient-to-br from-secondary/20 to-secondary/40 border border-border/60 rounded-lg px-4 py-3.5 whitespace-pre-wrap break-words text-foreground/90">
-                    {currentDerivation}
-                  </pre>
-                </div>
+                <p className="text-xs leading-relaxed italic text-muted-foreground pl-2 border-l-2 border-primary/40">
+                  {currentSummary}
+                </p>
               )}
             </div>
           )}
