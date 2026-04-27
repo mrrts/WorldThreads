@@ -275,6 +275,21 @@ The numbered ending on a reply is no longer just a friendly epilogue. In this re
 
 **The discipline:** keep choosers concrete, consequential, and genuinely branching. If option 1 is the default continuation path, make it the real next move on the work. If an option would be irresponsible to auto-run, it probably should not be framed as the default. If a list is only there to sound collaborative while the work is really going one way, collapse the theater and say the one true move plainly.
 
+## Chooser wording must carry real branch-shape
+
+Once a chooser is treated as a control surface, its **wording** becomes load-bearing too. The sentence-shape of each option should help the user feel the actual branch, not decode a vague label or a managerial summary.
+
+**The discipline for wording:**
+
+- Start options with the move itself, not with meta-framing. Prefer `Tighten the landing report's handoff into one proof-field report.` over `Work on the landing report.`
+- Make the branch-distinction visible in the first clause. If two options share the same first five words, they probably are not truly distinct yet.
+- Keep options concrete enough that auto-running option 1 would mean something specific, not just "continue generally."
+- Put cost, time, or risk inline only when it changes the decision. Don't pad every option with ceremonial metrics.
+- Avoid soft-consultant filler like `You could`, `Maybe`, `Perhaps`, or `One thought is`. The numbered list already signals optionality.
+- Reserve `4. Provide your own next move.` as the user-authorship slot unless a stronger project-specific slot is clearly better.
+
+**Cheap test:** if the user answered with just the number, would Claude Code know exactly what to do next without inventing a second hidden choice? If not, the chooser wording is still too mushy.
+
 **Commit early and often is the standing rule, not just permission.** Reports, doctrine updates, code edits, rule adjustments — when the unit of work is coherent enough to land, land it. Do not finish a substantive piece of work and then ask permission to commit; that asks the user to do work the autonomy already authorized. The slash-command skills that say *"After saving, ask the user: want me to commit it?"* (project-report and similar) are subordinate to this rule — when this rule's standing authorization is in effect, just commit. Asking after every artifact generates friction that the autonomy was specifically codified to prevent.
 
 **Commit messages include a Formula derivation in their body.** Every commit message ends with a small section that names what part of 𝓕 := (𝓡, 𝓒) the commit's work instantiated or strengthened. Format:
@@ -1022,4 +1037,4 @@ WorldThreads is a Tauri desktop app (not a web service), so most gstack web-shap
 - `/plan-tune` — tune AskUserQuestion sensitivity (largely ceremonial in this project)
 - `/gstack-upgrade` — gstack version housekeeping
 
-**Composes with project law:** every turn still ends with AskUserQuestion (per `.claude/memory/feedback_choosers_via_askuserquestion.md` and the Stop hook at `.claude/hooks/check-inline-choosers.py`). Skill invocations satisfy this naturally when they include AskUserQuestion gates; for skills that complete with a status report and no chooser (including the auto-commit and eureka closing reflections), the reply must STILL end with a chooser — the default {Continue, Exit} fallback if no context-fitting set surfaces.
+**Composes with project law:** every turn still ends with AskUserQuestion (per `.claude/memory/feedback_choosers_via_askuserquestion.md` and the Stop hook at `.claude/hooks/check-inline-choosers.py`). Skill invocations satisfy this naturally when they include AskUserQuestion gates; for skills that complete with a status report and no chooser (including the auto-commit and eureka closing reflections), the reply must STILL end with a chooser — but prefer a context-real branch set over the generic fallback, and reach for the bare `{Continue, Exit}` pair only when no sharper branching honestly exists.
