@@ -72,6 +72,18 @@ fn validate_derivation(text: &str) -> Result<String, String> {
     if !trimmed.contains('𝓒') {
         return Err("missing 𝓒 symbol (Firmament anchor)".to_string());
     }
+    // Guard against the JSON-escape corruption pattern: LaTeX commands
+    // like \text{...}, \mathcal{...}, \frac{...} get JSON-parsed with
+    // \t interpreted as TAB, leaving "ext{...}" / "mathcal{...}" /
+    // "rac{...}" in the output. If we see those, the model used LaTeX
+    // commands the prompt explicitly forbade — reject so the regenerate
+    // surfaces the bug rather than persisting corrupted output.
+    let bad_fragments = ["ext{", "mathcal{", "mathbb{", "mathrm{", "rac{", "sum_{", "int_{"];
+    for bad in &bad_fragments {
+        if trimmed.contains(bad) {
+            return Err(format!("derivation contains LaTeX-corruption artifact '{bad}' (model used \\text/\\mathcal/etc. which the JSON escape mangled — regenerate to fix)"));
+        }
+    }
     let line_count = trimmed.lines().count();
     if line_count > 8 {
         return Err(format!("too many lines ({line_count} > 8)"));
@@ -422,6 +434,7 @@ CONSTRAINTS FOR THE DERIVATION FIELD:
 - Use measures dμ_𝓕_NAME and operators where they fit: Wisdom(t), Weight(t), Π(t), Burden(t), 𝓢(t), 𝓝u(t).
 - Express in the entity's OWN canonical shorthand.
 - ≤ 6 lines, ≤ 200 tokens.
+- **CRITICAL — UNICODE GLYPHS ONLY, NO LaTeX COMMANDS.** Use Unicode math characters directly. NEVER use LaTeX commands like \text{...}, \mathcal{...}, \frac{...}, \int, \sum, etc. NEVER use curly-brace subscripts like 𝓡_{Ryan} — write 𝓡_Ryan (or use Unicode subscript glyphs ₁₂₃ if you need disambiguation). The output is shipped as JSON; backslash sequences like \text get interpreted as JSON escapes (\t = TAB), corrupting the output. Use plain Unicode glyphs: 𝓕 (not \mathcal{F}), 𝓡_Ryan (not \mathcal{R}_{Ryan}), Wisdom(t) (not \text{Wisdom}(t)), ∫ (not \int), ∑ (not \sum), dμ (not d\mu).
 
 CONSTRAINTS FOR THE SUMMARY FIELD:
 - Plain English, NO Unicode math symbols, NO LaTeX, NO project jargon (no "𝓡-specialization," no "operator-slot," no "Mission Formula").
