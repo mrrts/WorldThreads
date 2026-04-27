@@ -620,6 +620,23 @@ to act on the play (different persona, defer, real-user probe instead, etc.).
   shape can count as a discovery-move, with the run-arc explicitly naming why.
 - **/second-opinion** — /play uses the same direct-ChatGPT-API path. Bills to
   the same daily authorization.
+- **The craft-rules registry** (`CRAFT_RULES_DIALOGUE` in `prompts.rs`,
+  documented in CLAUDE.md's "Craft-rules registry — substrate ⊥ apparatus
+  as architecture" section). When a /play wince-read surfaces a craft-shape
+  signal — a specific failure mode in specific replies the persona reliably
+  catches — the natural downstream move is the registry, not just /derive-
+  and-test. The four-step rule-shipping rhythm (lift body, add tier +
+  provenance, strip from inline, optionally bite-test) is the path from
+  /play sketch-tier signal to durable doctrine. The wipe-the-shine rule
+  (registry's first Characterized entry) was earned exactly this way:
+  cross-character /play wince-read → ask-the-character articulation →
+  registry migration → six-step bite-test arc → Characterized tier. Per
+  CLAUDE.md's 3:1 architectural finding: most rules surfaced via /play
+  will land EnsembleVacuous after bite-tests (rule operating as part of
+  the load-bearing multiplicity); the rare rule that targets a SPECIFIC
+  failure mode in SPECIFIC replies and is PROBE-REPLICABLE earns
+  Characterized via the wipe-the-shine path. /play's job is to surface
+  the signal; the registry's job is to test it and label it honestly.
 
 ## Honesty notes
 
