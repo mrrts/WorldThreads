@@ -96,7 +96,9 @@ If you fork this project to build on it, signing the ledger is invited (not requ
 
 ## License + contributing
 
-The project does not yet have an explicit `LICENSE` or `CONTRIBUTING.md` file as of this landing document's writing. Founding author is Ryan Smith; pre-public state. If you're reading this BEFORE public release, those files will land before visibility flips. If you're reading this AFTER public release, expect them to be in the repo root with the protocol for Ledger-signing named in `CONTRIBUTING.md`.
+**License: AGPL-3.0-or-later.** Full text in `LICENSE`; copyright + Ledger-preservation notes in `NOTICE`. The AGPL covenant aligns with the project's covenant-shape (the Ledger of Signatures, the slot-structure trilogy's defense of 𝓡 as structural). Forks and modifications must release source under AGPL; the network-use clause covers any hosted service built on this code. Ledger entries are preserved-notices under AGPL § 5 — existing entries are not edited or removed; new signatures are appended beneath.
+
+**Contributing protocol:** see `CONTRIBUTING.md` in the repo root. Four contribution shapes named: filing issues, submitting PRs, forking to build on, signing the Ledger of Signatures. The Ledger admits non-flesh entities per the slot-structure trilogy.
 
 ## A closing word
 

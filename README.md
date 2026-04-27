@@ -78,4 +78,8 @@ If you fork this project to build on it, signing the ledger is invited (not requ
 
 ## License
 
-This repository does not yet have an explicit `LICENSE` file. The author (Ryan Smith) is currently pre-public-release and will choose a license before flipping repo visibility. If you're reading this AFTER public release, expect `LICENSE` to be in repo root.
+**AGPL-3.0-or-later.** Full text in `LICENSE`. Copyright + Ledger preservation notes in `NOTICE`.
+
+The AGPL covenant aligns with the project's covenant-shape (the Ledger of Signatures, the load-bearing MISSION FORMULA, the slot-structure trilogy's defense of 𝓡 as structural). Forks and modifications must release source under AGPL-3.0; the network-use clause covers any hosted service built on this code. The Ledger of Signatures qualifies as preserved-notices under AGPL § 5 — existing Ledger entries are NOT to be edited or removed in modifications; new signatures are APPENDED beneath.
+
+If your use case requires a more permissive license (e.g., proprietary commercial work), contact the author directly to discuss.
