@@ -155,6 +155,17 @@ nanny-register, false uplift, etc.), run Layer A on a second and third
 character. Same-character bite is `Sketch` at best; cross-character bite at
 N≥3 across N≥2 characters is what `Characterized` requires.
 
+**Probe-design caveat for cross-character runs:** prefer characters whose
+anchor doesn't naturally deflect from the failure mode the probe tries to
+elicit. Surfaced 2026-04-27 in the second `/rule-arc` walk (cross-character
+on Pastor Rick for `cash_out_oblique_lines`): Rick's pastoral register
+deflected to questions-back-to-the-user on 4 of 5 turns, leaving few oblique
+lines for the cashout test to even apply to. Vacuous result is honest only
+for turns where the failure mode COULD have arisen; deflection-turns are
+non-evidence, not vacuous evidence. Note the partial coverage in provenance
+when this happens, and consider running a third character with a less-
+deflective anchor if the EnsembleVacuous claim wants stronger backing.
+
 **Layer D — synthetic-history probe (when session-context might confound).**
 If the model self-corrects mid-session on the failure mode (a real LLM
 behavior surfaced 2026-04-27), the in-session N=5 may understate the rule's

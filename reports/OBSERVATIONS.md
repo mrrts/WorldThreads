@@ -6,6 +6,18 @@ Newest entries at the top. Each entry has a timestamp and a brief title. The obs
 
 ---
 
+## 2026-04-28 00:15 — /rule-arc second walk: cash_out_oblique_lines → EnsembleVacuous + probe-design lesson
+
+> Second `/rule-arc` walk in the same evening, on `cash_out_oblique_lines` (sat at `VacuousTest` from a Jasper-only N=5+5 earlier today). Cross-character on Pastor Rick — preacherly register chosen as register-distinct from Jasper's poetic-potter for testing whether the cashout discipline holds across two different oblique-prone substrates.
+
+**Result:** Promotion to **EnsembleVacuous** — but with a partial-coverage caveat written into provenance. Turn 1 OFF arm produced cashed-oblique pairs naturally ("Like setting a bucket on the stones after carrying water farther than you realized" / "It can feel a little empty for a minute, too. People don't say that enough."). Turns 2-5 OFF arm: Pastor Rick's pastoral register deflected to questions back to the user 4 of 5 times, leaving few oblique lines for the cashout test to apply to. The vacuous result is honest only for turns where the failure mode COULD have arisen.
+
+**The real surface earned tonight: a methodological note for /rule-arc itself.** Layer C now warns about probe-design coverage when the cross-character validator's anchor naturally deflects from the failure mode being tested. Picking Pastor Rick was a register-distinct choice but not a deflection-distinct choice. A third character with a less-deflective anchor would strengthen the EnsembleVacuous claim; tonight's promotion ships honest about the partial coverage.
+
+Run under the NEW DEFAULT introduced earlier in the same arc (EnsembleVacuous bodies suppressed). The probe was a real-conditions test of the leaner ensemble. No regression observable in Rick's register coherence; the cashout discipline appears to live in the cumulative prompt-stack + character anchors, not specifically in this rule's text. Cost ~$0.85 cross-character + ~$0.85 prior Jasper = ~$1.70 total on this rule.
+
+**Mode 2 — proposed and shipped.** Documentation triangle landed: registry tier promoted, /rule-arc skill body extended with the probe-design caveat, this OBSERVATIONS entry IS the third vertex. No CLAUDE.md edit needed — the probe-design lesson is local enough to the skill body that it doesn't want to live as project-doctrine.
+
 ## 2026-04-27 23:30 — /rule-arc inaugural walk: dont_open_the_same_way_twice → EnsembleVacuous
 
 > Walked the new `/rule-arc` skill on `dont_open_the_same_way_twice` (which sat at `VacuousTest` from a single-character Jasper probe earlier today). Cross-character validation pass on Steven — same 5-turn probe sequence, ON arm + OFF arm, single-session each.
