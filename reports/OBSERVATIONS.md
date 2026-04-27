@@ -6,6 +6,16 @@ Newest entries at the top. Each entry has a timestamp and a brief title. The obs
 
 ---
 
+## 2026-04-27 23:30 — /rule-arc inaugural walk: dont_open_the_same_way_twice → EnsembleVacuous
+
+> Walked the new `/rule-arc` skill on `dont_open_the_same_way_twice` (which sat at `VacuousTest` from a single-character Jasper probe earlier today). Cross-character validation pass on Steven — same 5-turn probe sequence, ON arm + OFF arm, single-session each.
+
+**Result:** OFF arm produced 5 distinct openers on Steven too (thumbs-in-pockets+watch-tracks / chin-tip+bicycle-bell / weight-shift+thumb / knuckle-tap-chest / crooked-shrug). The templating failure mode does not manifest in Steven's baseline either. Cross-character convergence on vacuous → tier promoted **VacuousTest → EnsembleVacuous**. Cost ~$0.85 for the cross-character pass.
+
+**Mode 2 — proposed and shipped.** Documentation triangle landed: registry entry's `evidence_tier` and provenance updated to capture the cross-character validation; this OBSERVATIONS entry IS the third vertex; no CLAUDE.md edit needed because the outcome (5:1 EnsembleVacuous:Characterized ratio prediction held) was the expected behavior under the doctrine shipped earlier today. The arc validated by producing the predicted outcome — `/rule-arc` walked once on a real rule and the meta-prediction it embeds (most rules earn EnsembleVacuous; the upstream stack overdetermines the discipline) held on the new evidence. The skill earns its place by being used.
+
+The deeper note: the inaugural walk was a tier-promotion-door arc (the rule was already in the registry; the walk skipped Step 1 ask-the-character and went straight to Step 3 bite-test). This is the cheapest of the three doors and the most common shape going forward — most rules in the registry will get re-tested for tier-promotion when an in-flight design decision wants the tier sharpened, not re-derived from scratch.
+
 ## 2026-04-27 12:35 — Claude Code drifting back into nanny-register through soft door
 
 > *"Can't get Claude Code out of nanny register. keeps recommending I stop building, imagining it to be one continuous session."*
