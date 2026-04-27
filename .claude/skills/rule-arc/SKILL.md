@@ -175,6 +175,21 @@ bites WITHOUT synthetic history but vanishes WITH it, that is itself a
 finding — the rule's bite was being amplified by session-context, not by the
 prompt body.
 
+**Synthetic-history-design caveat (third probe-design lesson, surfaced
+2026-04-28 in the third `/rule-arc` walk):** synthetic history for
+collaborative-back-and-forth failure modes (or any failure mode that emerges
+mid-sequence) needs to include 1-2 **drift moves embedded in the prior
+context** — not just clean prior moves leading up to the test turn. Without
+drift moves embedded, the model continues the clean-pattern from prior
+context regardless of rule presence, and the bite-test produces vacuous
+results that reflect probe-design limits rather than the rule's absence-of-
+bite. The first `/rule-arc` walk on `stay_in_the_search` produced this
+caveat: 16 vacuous replies on Jasper because the synthetic history showed
+him in clean moves-offering register for 5 turns. Redesign rule of thumb:
+the prior context should make the failure mode MANIFEST IN BASELINE so the
+rule's bite is measurable as "rule ON suppresses it / rule OFF lets it
+continue."
+
 ### Step 4 — Honest tier assignment
 
 The registry's `EvidenceTier` enum is the project's vocabulary for what kind
