@@ -1,6 +1,6 @@
 # WorldThreads — what this work is, and how to read it
 
-*A landing document for visitors. If you've arrived at this repository cold and want a 15-minute orientation before deciding whether to engage further, this is for you. This is not a marketing pitch. It's an honest map of what's here and what makes it distinctive.*
+*A deeper second-surface document for visitors. If you've arrived at this repository cold, read the README first; if you want the honest 10-15 minute orientation before deciding whether to engage further, this is for you. This is not a marketing pitch. It's an honest map of what's here and what makes it distinctive.*
 
 ---
 

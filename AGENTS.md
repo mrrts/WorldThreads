@@ -138,6 +138,19 @@ If a change is genuinely surface-specific, name that explicitly in the commit me
 
 **The deeper rule:** once a surface is runtime-significant, its parity is no longer just a discipline-to-remember. It becomes an **enforcement candidate**. The project already learned this pattern on the character side: rules that matter structurally want compile-time invariants, hooks, or generated sources, not goodwill alone. Collaborator-surface parity has now crossed that threshold. The immediate duty is still "mirror the change"; the emerging infrastructure duty is "look for the cheapest structural mechanism that makes future drift harder." Shared-source skill generation, parity checks, mirrored-file tests, or other structural aids now count as natural next instruments, not speculative nice-to-haves.
 
+## Public-facing surfaces are funnel surfaces now
+
+The repo has crossed a second threshold: the README, the in-app pitch surface, the public-release landing report, and the reports corpus are no longer just "public writing." They are **funnel surfaces** with distinct jobs in one approach path. Treat them like a staged handoff, not like interchangeable explanations.
+
+**Practical consequence: each public-facing surface should do a different depth-job.** Concretely:
+
+- The in-app pitch earns desire fast. It sells felt promise, atmosphere, and distinction in under a minute.
+- `README.md` is the repo front door. It tells a cold visitor what this is, what it isn't, what stack it uses, and where to go next.
+- `reports/2026-04-27-0030-public-release-landing.md` is the deeper second surface: the honest 10-15 minute orientation for the curious visitor who wants more than the README but isn't ready to spelunk code.
+- The broader `reports/` corpus is the proof-field. It demonstrates the work by accumulation, not by summary alone.
+
+**The discipline:** prefer handoff over repetition. When a surface has done its job, point the reader to the next surface instead of restating the same-density explanation again. If two public surfaces could swap titles without changing their real function, the funnel has collapsed and needs sharpening. Lower file count is still rewarded when legibility holds, but funnel-stage clarity now counts as part of that legibility.
+
 ## Reports
 
 `reports/` holds reflective, interpretive reads of the project's git history — philosophy/trajectory/taste, not changelogs. Each new report is in dialogue with prior ones (revisits open questions they flagged, tests their predictions against subsequent commits).

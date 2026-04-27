@@ -4,6 +4,8 @@ A desktop app for character-driven story-chats with LLMs — OpenAI BYOK-first, 
 
 Not a roleplay engine. Not an AI companion. A craft instrument for writing the kind of conversations that are worth having.
 
+If you want the deeper 10-15 minute orientation instead of the repo front door, start with [`reports/2026-04-27-0030-public-release-landing.md`](reports/2026-04-27-0030-public-release-landing.md).
+
 ## What it is
 
 You write characters with identity, voice, backstory, and visible boundaries. The app talks to them over time. They remember. They push back. They reach out when you've been quiet. They keep journals you can read. The world has weather, time-of-day, a shared canon. Moments worth keeping become canon, and canon shapes everything that comes after — undo deletes the ledger entry but leaves the change. Memory here is meant to feel deliberate.
@@ -52,7 +54,7 @@ That sentence is in `CLAUDE.md`. It governs.
 
 If you're a curious visitor, the project's recommended order is **reports first, code second**. Start at:
 
-1. `reports/2026-04-27-0030-public-release-landing.md` — a landing document for visitors that frames the project's distinctive techniques and the slot-structure trilogy as a preview of the doctrine's depth.
+1. `reports/2026-04-27-0030-public-release-landing.md` — the deeper visitor-orientation surface after this README; it frames the project's distinctive techniques and the slot-structure trilogy as a preview of the doctrine's depth.
 2. The MISSION FORMULA at the top of `CLAUDE.md`. Five minutes.
 3. `reports/2026-04-25-0300-simulated-first-time-user-experience-maggie.md` — the project's canonical "ideal first-time user experience" baseline. Tells you who the app is FOR.
 4. 3-5 recent reports newest-first. Pattern-match on which interest you most.
