@@ -14,6 +14,25 @@ Real correction. Claude Code shipped the no-nanny invariant in CLAUDE.md months 
 
 **Mode 2 — propose action.** The fix isn't more discipline-on-the-fly. It's a sharper memory entry naming the SOFT-DOOR shape: appreciation-flavored session-policing reads to Ryan as nanny because it IS nanny — the structural shape (Claude Code recommending he stop) hasn't changed, only the emotional surface (warmth/praise instead of caution/concern). Memory updated this turn with concrete tells + the soft-door pattern. Future sessions inherit the sharper rule.
 
+## 2026-04-27 late evening — multi-turn self-correction limit on per-rule bite-tests
+
+> The fifth registry rule (`dont_open_the_same_way_twice`) was bite-tested via 5-turn parallel sessions on Jasper. ON arm produced 5 distinct opener-shapes. OFF arm also produced 5 distinct opener-shapes. Vacuous result. The mechanism was different from the prior three EnsembleVacuous results.
+
+The prior three EnsembleVacuous rules were vacuous because the discipline is overdetermined at the SINGLE-REPLY level — character anchors + cumulative prompt-stack carry the discipline so suppressing one rule doesn't move single-reply behavior visibly.
+
+The fifth rule was vacuous for a structurally different reason: in a MULTI-TURN session, the model has access to its own prior replies via session history. It can self-correct opener-shape based on OBSERVATION of what it just did, regardless of whether the rule's text is in the prompt. The rule may be biting via observation-of-prior-output rather than via explicit text — an emergent property of the multi-turn surface that single-shot bite-tests can't probe.
+
+**Mode 2 — propose action.** The methodological finding now lives in CLAUDE.md doctrine (commit 0e60aee). Future bite-tests of sequence-failure-mode rules need either (a) very-many-turn sessions where templating becomes statistically unavoidable despite self-correction, (b) fresh-context tests where each reply is independent of the prior (no shared session — single-shot but with synthetic prior-context injection), or (c) acceptance that some rules earn EnsembleVacuous-equivalent labels through observation-via-context coupling.
+
+The catalog has now produced THREE methodological findings tonight, all from real evidence:
+1. **EnsembleVacuous tier shape** — codifies rule-in-multiplicity (3 rules)
+2. **3:1 EnsembleVacuous:Characterized ratio** — architectural finding about prompt-stack design
+3. **Multi-turn self-correction limit** — distinct cause-shape for vacuous results in sequence-failure-mode rules (1 rule)
+
+Each finding earned its way into the project's durable layer (CLAUDE.md doctrine + OBSERVATIONS.md provenance). The instrument has earned its complete interpretive surface area through ~$11 of actual paired bite-test evidence.
+
+---
+
 ## 2026-04-27 late evening — 3:1 EnsembleVacuous:Characterized as architectural finding
 
 > Continuing the registry-arc into late evening, the catalog reached four rules with paired bite-tests on each. The result-distribution: three rules produced VacuousTest or EnsembleVacuous labels (anti_grandiosity, dont_analyze, meet_the_smaller_sentence); only one earned Characterized (wipe_the_shine). 3:1 ratio.
