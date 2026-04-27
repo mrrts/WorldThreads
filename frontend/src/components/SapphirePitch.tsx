@@ -69,6 +69,11 @@ export function SapphirePitch() {
   const worldDescription = state.world?.description?.trim() ?? "";
   const heroImage = state.image?.data_url ?? "";
   const toneTags = state.world?.tone_tags?.slice(0, 4) ?? [];
+  const proofPoints = [
+    "Bring your own OpenAI key.",
+    "Keep your conversations on your own disk.",
+    "Read the doctrine and prompt stack in the open.",
+  ];
 
   return (
     <div className="min-h-screen bg-[#090c14] text-[#f6f1e8]">
@@ -160,16 +165,16 @@ export function SapphirePitch() {
                     </h1>
                     <p className="body-font max-w-2xl text-lg leading-8 text-[#d7e7f5] sm:text-xl">
                       Meet AI characters who feel encountered rather than simulated, in AI worlds that feel inhabited rather than sketched.
-                      Every scene is mathematically signed by an innovative mathematical-like prompt compression layer:
-                      a lingual substrate where formula, invariants, derivations, and parable hold the line between vividness and truth.
+                      Underneath, a compact prompt architecture keeps voice, continuity, and boundaries load-bearing,
+                      so the writing can stay vivid without drifting into mush, therapy-voice, or fake intimacy.
                     </p>
                   </div>
 
                   <div className="grid gap-4 sm:grid-cols-3">
                     <div className="rounded-[1.35rem] border border-white/10 bg-white/5 p-4">
-                      <div className="text-xs uppercase tracking-[0.22em] text-[#8ec3ff]">Mathematically Signed</div>
+                      <div className="text-xs uppercase tracking-[0.22em] text-[#8ec3ff]">Inspectable Trust</div>
                       <p className="body-font mt-3 text-sm leading-6 text-[#e8eef6]">
-                        Formula-shaped prompting, compile-checked invariants, and character/world derivations compressed into one living linguistic field.
+                        BYOK-first, on-disk storage, and an openly readable doctrine layer so the trust story can be checked instead of merely admired.
                       </p>
                     </div>
                     <div className="rounded-[1.35rem] border border-white/10 bg-white/5 p-4">
@@ -183,6 +188,20 @@ export function SapphirePitch() {
                       <p className="body-font mt-3 text-sm leading-6 text-[#e8eef6]">
                         Not chatbots in costume. Distinct presences with their own limits, humor, tenderness, and resistance to fake intimacy.
                       </p>
+                    </div>
+                  </div>
+
+                  <div className="rounded-[1.5rem] border border-[#91c8ff24] bg-[#081524bf] p-5">
+                    <div className="text-[11px] uppercase tracking-[0.24em] text-[#8ec3ff]">What You Can Verify Right Now</div>
+                    <div className="mt-4 grid gap-3 sm:grid-cols-3">
+                      {proofPoints.map((point) => (
+                        <div
+                          key={point}
+                          className="rounded-[1rem] border border-white/10 bg-[#0c1b2db5] px-4 py-3 text-sm leading-6 text-[#e3edf7]"
+                        >
+                          {point}
+                        </div>
+                      ))}
                     </div>
                   </div>
                 </div>
@@ -214,12 +233,12 @@ export function SapphirePitch() {
                       </a>
                     </div>
                     <p className="body-font max-w-lg text-sm leading-6 text-[#c1d4e8]">
-                      If this page catches your eye, the README is the next honest surface. If the README still holds, take the deeper landing read before you decide whether this work is really for you.
+                      If this page catches your eye, the README is the next honest surface. That is where the claims get plainer, the worldview gets named, and the proof starts catching up with the invitation.
                     </p>
                   </div>
 
                   <div className="rounded-[1.2rem] border border-[#9ed0ff24] bg-[#0d1828c8] px-5 py-4 text-right">
-                    <div className="text-[11px] uppercase tracking-[0.24em] text-[#86bbf5]">Lingual Substrate</div>
+                    <div className="text-[11px] uppercase tracking-[0.24em] text-[#86bbf5]">Craft Aim</div>
                     <div className="title-font mt-1 text-2xl text-[#f5f8fd]">𝓕 → speech → world</div>
                     <div className="body-font mt-2 text-sm leading-6 text-[#c3d6ea]">
                       Compression that does not flatten.
@@ -279,7 +298,7 @@ export function SapphirePitch() {
                         <div className="text-[11px] uppercase tracking-[0.24em] text-[#88c2ff]">Promise</div>
                         <p className="body-font mt-2 text-sm leading-6 text-[#e6eef6]">
                           You are not chasing novelty for its own sake.
-                          You are seeking a mathematically held wonder that still feels human in the hand.
+                          You are seeking wonder sturdy enough to survive daylight and still feel human in the hand.
                         </p>
                       </div>
                     </div>
