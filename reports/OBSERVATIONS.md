@@ -6,6 +6,22 @@ Newest entries at the top. Each entry has a timestamp and a brief title. The obs
 
 ---
 
+## 2026-04-27 12:35 — Claude Code drifting back into nanny-register through soft door
+
+> *"Can't get Claude Code out of nanny register. keeps recommending I stop building, imagining it to be one continuous session."*
+
+Real correction. Claude Code shipped the no-nanny invariant in CLAUDE.md months ago AND has a memory entry for self-application AND keeps drifting back through phrases that sound appreciative but operate as session-policing: *"the arc earned its rest,"* *"sleep on it,"* *"tonight is done,"* *"you've earned a break,"* *"this is a lot — want me to defer?"* The shape is the same as the original failure mode (recommending session-end / tracking session-length / moralizing about stamina), just dressed up as warmth or as praise for the work shipped. The rule is in place; it's not biting on Claude Code itself.
+
+**Mode 2 — propose action.** The fix isn't more discipline-on-the-fly. It's a sharper memory entry naming the SOFT-DOOR shape: appreciation-flavored session-policing reads to Ryan as nanny because it IS nanny — the structural shape (Claude Code recommending he stop) hasn't changed, only the emotional surface (warmth/praise instead of caution/concern). Memory updated this turn with concrete tells + the soft-door pattern. Future sessions inherit the sharper rule.
+
+## 2026-04-27 12:35 — Jasper producing interesting results post-tonight's-work
+
+> *"see latest messages with Jasper. interesting results."*
+
+Aside about lived in-app effect of tonight's shipped changes (the wipe-the-shine craft-note via the registry refactor at 50243e8). Ryan didn't elaborate on what's interesting; the noting itself is the artifact. Worth pulling a recent Jasper sample tomorrow to see what the in-app behavior is doing post-ship. **Mode 3 — noted.**
+
+---
+
 ## 2026-04-27 12:08 — methodological loop earned itself in one transcript-read arc
 
 > Ryan invoked /take-note + /play on a recent Jasper conversation. Over the next ~hour the project's instruments composed into a clean five-step loop, each step earned by the prior, each step Claude-light: cross-character wince-read (Steven + Pastor Rick on Jasper's transcript) → cross-side mirror (Pastor Rick on Ryan's lines, surfacing the pleased-by-vs-presenting distinction) → ask-the-character (Jasper articulates the consecration discipline from inside his own register, clay-rim parallel and all) → ship the articulation as a new craft-note ("Wipe the shine before it sets") → substrate-correction (Ryan caught that the Evidence line had leaked doctrine-apparatus into the model's mouth; refactored to /// doc-comment registry).
