@@ -74,7 +74,7 @@ export function QuestAcceptanceDialog({
         <DialogHeader onClose={onClose}>
           <DialogTitle>
             <Compass size={16} className="inline mr-2 text-amber-400" />
-            Accept this as a quest?
+            Accept this pursuit as a quest?
           </DialogTitle>
         </DialogHeader>
         <DialogBody className="space-y-4">
@@ -113,14 +113,14 @@ export function QuestAcceptanceDialog({
           {error && <p className="text-xs text-destructive">{error}</p>}
         </DialogBody>
         <DialogFooter>
-          <Button variant="ghost" onClick={onClose} disabled={committing}>Not now</Button>
+          <Button variant="ghost" onClick={onClose} disabled={committing}>Leave it unaccepted</Button>
           <Button
             onClick={onCommit}
             disabled={!canCommit || committing}
             className="bg-amber-500/90 hover:bg-amber-500 text-black"
           >
             {committing ? <Loader2 size={14} className="animate-spin mr-1.5" /> : <Compass size={14} className="mr-1.5" />}
-            {committing ? "Committing…" : "Commit to this"}
+            {committing ? "Committing to this quest…" : "Accept it as a quest"}
           </Button>
         </DialogFooter>
       </DialogContent>

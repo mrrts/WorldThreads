@@ -533,14 +533,14 @@ export function BackstageActionCard({ block, ctx }: Props) {
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-amber-500/90 hover:bg-amber-500 text-black text-xs font-medium transition-colors cursor-pointer"
               >
                 <Compass size={12} />
-                Consider accepting
+                Open the quest ceremony
               </button>
               <button
                 onClick={() => setState("dismissed")}
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-border/50 text-muted-foreground hover:text-foreground hover:bg-accent text-xs transition-colors cursor-pointer"
               >
                 <X size={12} />
-                Not now
+                Leave this unaccepted
               </button>
             </div>
           </div>

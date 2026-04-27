@@ -282,9 +282,9 @@ function QuestClosingDialog({
         <DialogHeader onClose={onClose}>
           <DialogTitle>
             {kind === "complete" ? (
-              <><Check size={16} className="inline mr-2 text-emerald-400" />Complete this quest?</>
+              <><Check size={16} className="inline mr-2 text-emerald-400" />Name this quest complete?</>
             ) : (
-              <><X size={16} className="inline mr-2 text-muted-foreground" />Let this quest go?</>
+              <><X size={16} className="inline mr-2 text-muted-foreground" />Release this quest honestly?</>
             )}
           </DialogTitle>
         </DialogHeader>
@@ -306,14 +306,14 @@ function QuestClosingDialog({
           {error && <p className="text-xs text-destructive">{error}</p>}
         </DialogBody>
         <DialogFooter>
-          <Button variant="ghost" onClick={onClose} disabled={committing}>Never mind</Button>
+          <Button variant="ghost" onClick={onClose} disabled={committing}>Keep it as it is</Button>
           <Button
             onClick={onCommit}
             disabled={committing}
             className={kind === "complete" ? "bg-emerald-500/90 hover:bg-emerald-500 text-black" : ""}
           >
             {committing ? <Loader2 size={14} className="animate-spin mr-1.5" /> : (kind === "complete" ? <Check size={14} className="mr-1.5" /> : <X size={14} className="mr-1.5" />)}
-            {kind === "complete" ? "Mark complete" : "Let it go"}
+            {kind === "complete" ? "Write it into the record as complete" : "Write it into the record as released"}
           </Button>
         </DialogFooter>
       </DialogContent>
