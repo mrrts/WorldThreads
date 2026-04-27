@@ -6,6 +6,16 @@ Newest entries at the top. Each entry has a timestamp and a brief title. The obs
 
 ---
 
+## 2026-04-26 23:27 — calibration approved, V2.0.0
+
+> "We are calibrated. It's approved. Ship it. V2.0.0."
+
+This landed after the register-calibration, parable-bearing Mission Formula invariant, and Jasper-corpus witness-object discovery work had all been shipped into doctrine and prompts. The note reads as project-level lived approval of the collaborator/app register as it is now landing.
+
+**Noted.**
+
+---
+
 ## 2026-04-26 22:08 — Jasper steadies at Medium length on Auto setting
 
 > *"Jasper has steadied himself in a roughly Medium-length response-length register in our dialogue. Notable that my current chat setting for length is Auto."*
