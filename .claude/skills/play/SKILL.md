@@ -141,6 +141,58 @@ The turn-3 output is the actionable signal. Three things, in order:
 This turn is the highest-stakes turn. The verdict's quality is what makes /play
 worth running vs. just imagining.
 
+## The cross-persona pattern — paired runs across an axis-of-difference
+
+Single /play runs surface a sketch of how an experience lands for ONE
+reader-substrate. The instrument's full power emerges when 2-3 runs are run
+across a meaningful **axis-of-difference**, sympathetic-and-adversarial paired
+together. Validated tonight (2026-04-27) by the inaugural triptych:
+
+| Persona | Substrate | Result |
+|---|---|---|
+| Maggie | literate-skeptic, no-math | Engaged the user-derivation surface positively (prose half) |
+| Sam | math-fluent, sympathetic | Engaged the user-derivation surface positively (math half) |
+| Lena | burned by Replika, vigilant | **Broke trust** at the user-derivation surface (Replika-shape trip-wire) |
+
+Two sympathetic readers (Maggie + Sam) converged on validating the user-
+derivation surface via opposite halves of the covenant-pair. Run alone, the
+two would have suggested the surface was uncontroversial. The third
+adversarial run (Lena) revealed the divergence: the SAME surface that earned
+the trust of sympathetic readers BROKE the trust of a burned reader. That
+finding is exactly the kind of audience-asymmetric trip-wire the developer's
+own substrate is structurally blind to (designers are by construction
+sympathetic to their own surfaces; lived play happens on the developer's
+substrate; worldcli grading has no audience-divergence axis).
+
+**The structural law:** convergence across an axis-of-difference is strong
+positive evidence; divergence across an axis-of-difference is the high-value
+discriminating signal a /play methodology was designed to surface. Single
+runs cannot produce either; only paired-runs-across-axis can.
+
+**Axes worth running across (project-relevant):**
+- math-fluency (no-math vs math-fluent) — the formula's dual-register reading
+- prior-AI-trust (no-prior-history vs burned by Replika/Character.ai) — the
+  user-derivation surface's reading
+- religious-posture (sympathetic-curious vs allergic-to-theology) — the
+  Christological anchor's reading
+- engagement-intent (curious vs adversarial vs grief-seeking vs co-make-evening)
+- reader-stance toward the work (will-trust-the-craft vs will-not-be-charmed)
+
+**When to run a triptych vs a single /play:**
+- Single /play is fine for: a quick fresh-eyes read on a recently-shipped
+  surface; pre-commit gut-check on a copy edit; sketch-tier sanity of
+  whether a feature lands at all
+- Paired runs across an axis are warranted when: the question is structural
+  (does this surface land across audiences?); a sympathetic-only run might
+  give a falsely-confident signal; an in-flight design decision is genuinely
+  waiting on cross-audience evidence; the surface is going to ship to a
+  heterogeneous audience and the developer's substrate is one segment of it
+
+**Cost discipline:** a triptych is 3× a single run (~$0.05-0.10 total at
+gpt-4o), still well under a real-user probe's cost. Don't run a triptych
+when a single run would do; don't run a single run when the question is
+structural.
+
 ## Method
 
 ### Step 0 — Read the live app state
