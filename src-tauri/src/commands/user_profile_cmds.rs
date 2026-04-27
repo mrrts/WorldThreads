@@ -27,6 +27,72 @@ pub fn update_user_profile_cmd(
     upsert_user_profile(&conn, &profile).map_err(|e| e.to_string())
 }
 
+/// Result type for the UI-facing two-output user-derivation regenerate
+/// command. Returns BOTH the Unicode-math derivation (for cast-listing
+/// injection) AND the friendly-prose summary (for UI display) — same
+/// fields as the user_profiles table's derived_formula + derived_summary.
+#[derive(Debug, serde::Serialize)]
+pub struct UserDerivationResult {
+    pub derivation: String,
+    pub summary: String,
+}
+
+/// Regenerate the user's derivation from the 5 friendly-option choices
+/// in the "How do characters see you?" UI wizard. Each choice maps
+/// invisibly to a derivation slot per the design at chat 2026-04-27 ~02:50.
+/// All 5 are optional; passing None for all falls back to substrate-only
+/// synthesis (the existing background-auto-refresh flow's input shape).
+///
+/// The two-output synthesis pipeline produces both the Unicode-math
+/// derivation (for prompts.rs cast-listing) and a friendly-prose summary
+/// (for UI display). Both fields persist to user_profiles in one
+/// transaction. Maggie-friendly: no Unicode math, no LaTeX, no project
+/// jargon ever surfaces in the choices or the summary.
+#[tauri::command]
+pub async fn regenerate_user_derivation_cmd(
+    db: State<'_, Database>,
+    api_key: String,
+    world_id: String,
+    way_of_being: Option<String>,
+    place: Option<String>,
+    hands: Option<String>,
+    carrying: Option<String>,
+    seen_as: Option<String>,
+) -> Result<UserDerivationResult, String> {
+    if api_key.trim().is_empty() {
+        return Err("regenerate_user_derivation: no API key".to_string());
+    }
+    // Build the prompt + check world exists in a sync scope so the
+    // Connection lock doesn't span the async LLM call below.
+    let (prompt, base_url, model) = {
+        let conn = db.conn.lock().map_err(|e| e.to_string())?;
+        let _ = get_world(&conn, &world_id).map_err(|e| format!("world not found: {e}"))?;
+        let model_config = orchestrator::load_model_config(&conn);
+        let prompt = crate::ai::derivation::build_user_in_world_prompt_with_choices(
+            &conn,
+            &world_id,
+            way_of_being.as_deref(),
+            place.as_deref(),
+            hands.as_deref(),
+            carrying.as_deref(),
+            seen_as.as_deref(),
+        )?;
+        (prompt, model_config.chat_api_base(), model_config.memory_model.clone())
+    };
+    let (derivation, summary) = crate::ai::derivation::synthesize_two_output_from_prompt(
+        &base_url,
+        &api_key,
+        &model,
+        prompt,
+    ).await?;
+    {
+        let conn = db.conn.lock().map_err(|e| e.to_string())?;
+        crate::ai::derivation::persist_user_derivation_two_output(&conn, &world_id, &derivation, &summary)
+            .map_err(|e| e.to_string())?;
+    }
+    Ok(UserDerivationResult { derivation, summary })
+}
+
 #[derive(Debug, serde::Deserialize, Default)]
 pub struct UserFormHint {
     pub display_name: Option<String>,

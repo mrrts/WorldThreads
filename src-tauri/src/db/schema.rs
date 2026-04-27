@@ -1858,6 +1858,29 @@ pub fn run_migrations(conn: &Connection) -> Result<(), rusqlite::Error> {
         }
     }
 
+    // ── derived_summary — friendly-prose companion to derived_formula ──
+    //
+    // The derived_formula field stores Unicode-math derivation for cast-listing
+    // injection (load-bearing for prompt-stack); derived_summary stores a
+    // human-readable plain-English translation of the same derivation for
+    // UI display. Two-output synthesis pipeline produces both from one
+    // ChatGPT call when invoked via the Maggie-friendly UI flow (per the
+    // 5-sub-question wizard at frontend/src/components/UserProfileEditor.tsx).
+    //
+    // ALTER TABLE ADD COLUMN per CLAUDE.md DATABASE SAFETY rule.
+    for table in &["worlds", "characters", "user_profiles"] {
+        let has_col: bool = conn.query_row(
+            &format!("SELECT 1 FROM pragma_table_info('{table}') WHERE name = 'derived_summary'"),
+            [], |_| Ok(true),
+        ).unwrap_or(false);
+        if !has_col {
+            let _ = conn.execute(
+                &format!("ALTER TABLE {table} ADD COLUMN derived_summary TEXT"),
+                [],
+            );
+        }
+    }
+
     // ── formula_signature on messages + group_messages ──────────────────
     //
     // Per-assistant-message Formula momentstamp (the chat-state signature

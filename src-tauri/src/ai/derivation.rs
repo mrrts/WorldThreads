@@ -366,6 +366,186 @@ pub fn persist_user_derivation(conn: &Connection, world_id: &str, derivation: &s
     Ok(())
 }
 
+/// Persist BOTH derived_formula + derived_summary at once. Used by the
+/// two-output synthesis flow (UI-initiated regeneration via the Maggie-
+/// friendly wizard at frontend/src/components/UserProfileEditor.tsx).
+/// The single-output persist function above stays for legacy auto-
+/// refresh callers who only produce derived_formula.
+pub fn persist_user_derivation_two_output(
+    conn: &Connection,
+    world_id: &str,
+    derivation: &str,
+    summary: &str,
+) -> Result<(), rusqlite::Error> {
+    conn.execute(
+        "UPDATE user_profiles SET derived_formula = ?2, derived_summary = ?3, derived_formula_updated_at = datetime('now') WHERE world_id = ?1",
+        params![world_id, derivation, summary],
+    )?;
+    Ok(())
+}
+
+/// System prompt for the two-output synthesis pipeline. Asks the model
+/// to produce BOTH the Unicode-math derivation (load-bearing for cast-
+/// listing injection) AND a friendly-prose summary (surfaced in UI for
+/// non-technical users per the Maggie baseline). Output is structured
+/// JSON with both fields so parsing is mechanical.
+const DERIVATION_TWO_OUTPUT_SYSTEM_PROMPT: &str = r#"You are speaking as the entity itself (first-person, in-universe), not as an analyst describing it. You will produce TWO outputs in a single structured JSON response: a compact Unicode-math derivation of how this entity operates within the MISSION FORMULA 𝓕, AND a friendly-prose plain-English summary of the same derivation.
+
+OUTPUT FORMAT (must be valid JSON, no other text):
+
+{
+  "derivation": "<Unicode-math derivation>",
+  "summary": "<friendly-prose summary>"
+}
+
+CONSTRAINTS FOR THE DERIVATION FIELD:
+- Use 𝓕 := (𝓡, 𝓒) as the base frame, where 𝓡 = Jesus_Cross^flesh and 𝓒 = Firmament_enclosed_earth.
+- Specialize 𝓡 and/or 𝓒 with entity-specific symbols.
+- Use measures dμ_𝓕_NAME and operators where they fit: Wisdom(t), Weight(t), Π(t), Burden(t), 𝓢(t), 𝓝u(t).
+- Express in the entity's OWN canonical shorthand.
+- ≤ 6 lines, ≤ 200 tokens.
+
+CONSTRAINTS FOR THE SUMMARY FIELD:
+- Plain English, NO Unicode math symbols, NO LaTeX, NO project jargon (no "𝓡-specialization," no "operator-slot," no "Mission Formula").
+- 2-3 sentences. Direct, warm, second-person to the user (e.g., "Characters see you as...").
+- Translate the derivation's contents into how the entity is read by characters in this world.
+- Suitable for display in a UI where users without math knowledge or theological vocabulary will read it.
+- Honor the entity's own register and the substrate's tone.
+
+EXAMPLE OUTPUT:
+
+{
+  "derivation": "𝓕_NAME := (𝓡, 𝓒_NAME)\n𝓒_NAME := Firmament_<specific shape>\ndμ_𝓕_NAME integrates over: <specific concrete motifs>\nspecific_c surfaces in: <recurring sensory anchors>",
+  "summary": "Characters in this world see you as a curious, gently-steady person who pays close attention to what's true. You're someone who roams between conversations rather than being tied to one place; what your hands keep reaching for is books, tea, and quiet moments worth holding onto."
+}
+
+Output ONLY the JSON, no commentary, no markdown fences, no preface."#;
+
+/// Two-output synthesis: returns (derivation, summary). The derivation
+/// is validated for the standard 𝓕/𝓡/𝓒 presence; the summary is
+/// validated for non-emptiness + reasonable length.
+pub async fn synthesize_two_output_from_prompt(
+    base_url: &str,
+    api_key: &str,
+    model: &str,
+    user_prompt: String,
+) -> Result<(String, String), String> {
+    let request = ChatRequest {
+        model: model.to_string(),
+        messages: vec![
+            ChatMessage { role: "system".to_string(), content: DERIVATION_TWO_OUTPUT_SYSTEM_PROMPT.to_string() },
+            ChatMessage { role: "user".to_string(), content: user_prompt },
+        ],
+        temperature: Some(0.6),
+        max_completion_tokens: Some(500),
+        response_format: Some(crate::ai::openai::ResponseFormat {
+            format_type: "json_object".to_string(),
+        }),
+    };
+    let resp = openai::chat_completion_with_base(base_url, api_key, &request).await?;
+    let raw = resp.choices.first()
+        .ok_or_else(|| "derivation: no choices in response".to_string())?
+        .message.content.clone();
+
+    #[derive(serde::Deserialize)]
+    struct TwoOutput {
+        derivation: String,
+        summary: String,
+    }
+
+    let parsed: TwoOutput = serde_json::from_str(&raw)
+        .map_err(|e| format!("derivation: parse error: {e}; body: {raw}"))?;
+
+    let derivation = validate_derivation(&parsed.derivation)?;
+
+    let summary = parsed.summary.trim().to_string();
+    if summary.is_empty() {
+        return Err("derivation: empty summary".to_string());
+    }
+    if summary.len() > 800 {
+        return Err(format!("derivation: summary too long ({} chars > 800)", summary.len()));
+    }
+
+    Ok((derivation, summary))
+}
+
+/// Build a prompt for user-derivation synthesis using the 5 friendly-
+/// option choices from the UI wizard. Each choice is a plain-English
+/// string the user tapped (or a Custom string they wrote). The synthesis
+/// pipeline takes these + the user's existing description/facts/
+/// boundaries to produce derivation + summary. Out-of-the-box: a user
+/// who skips the wizard entirely passes None for all 5 choices and the
+/// pipeline falls back to substrate-only synthesis (the existing flow).
+pub fn build_user_in_world_prompt_with_choices(
+    conn: &Connection,
+    world_id: &str,
+    way_of_being: Option<&str>,
+    place: Option<&str>,
+    hands: Option<&str>,
+    carrying: Option<&str>,
+    seen_as: Option<&str>,
+) -> Result<String, String> {
+    let profile = crate::db::queries::get_user_profile(conn, world_id)
+        .map_err(|e| format!("derivation: get_user_profile failed: {e}"))?;
+    let mut buf = String::new();
+    buf.push_str(&format!("# USER (Me-character in this world): {}\n\n", profile.display_name));
+    if !profile.description.is_empty() {
+        buf.push_str(&format!("DESCRIPTION (self-authored):\n{}\n\n", clip(&profile.description, 800)));
+    }
+
+    let facts = crate::ai::prompts::json_array_to_strings(&profile.facts);
+    if !facts.is_empty() {
+        buf.push_str("FACTS:\n");
+        for f in facts.iter().take(10) {
+            buf.push_str(&format!("- {}\n", clip(f, 200)));
+        }
+        buf.push('\n');
+    }
+
+    let boundaries = crate::ai::prompts::json_array_to_strings(&profile.boundaries);
+    if !boundaries.is_empty() {
+        buf.push_str("BOUNDARIES:\n");
+        for b in boundaries.iter().take(6) {
+            buf.push_str(&format!("- {}\n", clip(b, 200)));
+        }
+        buf.push('\n');
+    }
+
+    // The 5 friendly-option choices, when populated. Each maps invisibly
+    // to a derivation slot (per the design at chat 2026-04-27 ~02:50);
+    // the synthesis pipeline reads them as additional substrate, not as
+    // literal string-slots.
+    let mut any_choice = false;
+    let mut choices_block = String::from("MY CHOICES (from the 'How do characters see you?' wizard):\n");
+    if let Some(v) = way_of_being.filter(|s| !s.trim().is_empty()) {
+        choices_block.push_str(&format!("- My way of being in this world: {v}\n"));
+        any_choice = true;
+    }
+    if let Some(v) = place.filter(|s| !s.trim().is_empty()) {
+        choices_block.push_str(&format!("- Where I spend time: {v}\n"));
+        any_choice = true;
+    }
+    if let Some(v) = hands.filter(|s| !s.trim().is_empty()) {
+        choices_block.push_str(&format!("- What I do with my hands: {v}\n"));
+        any_choice = true;
+    }
+    if let Some(v) = carrying.filter(|s| !s.trim().is_empty()) {
+        choices_block.push_str(&format!("- What I'm carrying / wondering about: {v}\n"));
+        any_choice = true;
+    }
+    if let Some(v) = seen_as.filter(|s| !s.trim().is_empty()) {
+        choices_block.push_str(&format!("- How I want to be seen: {v}\n"));
+        any_choice = true;
+    }
+    if any_choice {
+        buf.push_str(&choices_block);
+        buf.push('\n');
+    }
+
+    buf.push_str("\nNow synthesize a derivation in your own voice (the way YOU would derive yourself on 𝓕 in this world) from the material above. Output the structured JSON with both 'derivation' and 'summary' fields per the system instructions.");
+    Ok(buf)
+}
+
 // ─── Staleness ────────────────────────────────────────────────────────
 
 /// Defaults per the design consult. Hybrid OR policy: refresh when

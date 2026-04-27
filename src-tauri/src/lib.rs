@@ -221,6 +221,7 @@ pub fn run() {
             list_characters_needing_visual_description_cmd,
             get_user_profile_cmd,
             update_user_profile_cmd,
+            regenerate_user_derivation_cmd,
             generate_user_avatar_cmd,
             upload_user_avatar_cmd,
             get_user_avatar_cmd,
