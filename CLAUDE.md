@@ -814,6 +814,11 @@ worldcli replay-runs search "<substring>"
 # characters have never been probed?" Status lifecycle: proposed → running
 # → confirmed | refuted | open. See experiments/README.md for the schema
 # and the bar for when to register vs when the run-log alone is enough.
+#
+# Deeper rule: the hypothesis slug is the durable memory unit; individual
+# run ids are evidence attachments. When reconstructing an investigation's
+# braid, ask "which question is this run serving?" before treating the run
+# itself as the primary object.
 worldcli lab list [--status <s>]
 worldcli lab open                    # just proposed | running | open
 worldcli lab show <slug>

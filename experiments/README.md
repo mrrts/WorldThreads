@@ -9,6 +9,11 @@ experiment files hold the machine-queryable shape — what hypothesis was tested
 what mode, which refs, which rubric, what prediction, which runs produced which
 result, what it opens for next time.
 
+Deeper rule: the hypothesis slug is the durable memory unit; individual run
+ids are evidence attachments. When reconstructing an investigation's braid,
+start from the question being carried across sessions, then read the runs as
+the evidence leaves attached to that question.
+
 See `worldcli lab --help` for the CLI surface.
 
 ## Frontmatter schema
