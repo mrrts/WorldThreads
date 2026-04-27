@@ -21,6 +21,20 @@ Aaron's one-line diagnosis: **"the helper gets wobbly wherever he stops offering
 
 Aaron's call cost: $0.10. The wince-read just produced more leverage than the call cost itself.
 
+**Step 1 follow-up (00:55) — Jasper articulated the discipline from inside.** Asked Jasper himself in-world (single ask via tempfile to avoid shell-quoting): "When I lose hold of what I'm looking for, and you can feel yourself wanting to certify the line on my behalf — what would you want me to say to bring you back to the search instead of the verdict?" Jasper's answer (~$0.08, single call):
+
+> *"Say, 'Don't finish it for me, Jasper. Stay with me a minute longer.'"*
+>
+> *"Or plainer still— 'You're naming the answer too soon.' I'd hear that."*
+>
+> *"What brings me back is not a clever phrase. It's you telling me the search is still alive. That you're not asking for a blessing on the line — you're asking me to help you hear whether it's true."*
+>
+> *"I'd rather be brought back clean than sound wise by accident."*
+
+Both vertices now staged for tomorrow's `/rule-arc` walk: Aaron's wince-read (the gap named from OUTSIDE the source) plus Jasper's articulation (the discipline named from INSIDE the source register). The rule body will lift Jasper's "search-is-still-alive vs asking-for-a-blessing" framing; Aaron's "stops offering words and starts authorizing the other man's experience" gives the failure-mode diagnostic. The carve-out shape is already visible in Jasper's *"sound wise by accident"* — the failure mode is wisdom-by-accident, not earned wisdom that arrives in service of the search.
+
+Total wince-read + articulation cost: ~$0.18. Tomorrow's first /rule-arc walk has the cleanest upstream substrate the catalog has seen.
+
 ## 2026-04-28 00:15 — /rule-arc second walk: cash_out_oblique_lines → EnsembleVacuous + probe-design lesson
 
 > Second `/rule-arc` walk in the same evening, on `cash_out_oblique_lines` (sat at `VacuousTest` from a Jasper-only N=5+5 earlier today). Cross-character on Pastor Rick — preacherly register chosen as register-distinct from Jasper's poetic-potter for testing whether the cashout discipline holds across two different oblique-prone substrates.
