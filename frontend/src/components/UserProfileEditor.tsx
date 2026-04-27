@@ -340,6 +340,19 @@ export function UserProfileEditor({ store }: Props) {
             </Field>
           </FieldGroup>
 
+          <FieldGroup label="How characters see you">
+            <p className="text-xs text-muted-foreground mb-3">
+              Optional. Tap a few quick choices below and characters in this world will read you a little more clearly. Skip this entirely if you'd rather just chat — characters will form their own read of you over time.
+            </p>
+            <HowCharactersSeeYouSection
+              worldId={worldId}
+              apiKey={store.apiKey}
+              currentSummary={existing?.derived_summary ?? null}
+              currentDerivation={existing?.derived_formula ?? null}
+              onUpdated={async () => { if (worldId) await store.loadUserProfile(worldId); }}
+            />
+          </FieldGroup>
+
           <FieldGroup label="Journal">
             <div className="flex items-start justify-between gap-4 mb-3">
               <p className="text-xs text-muted-foreground flex-1">
@@ -515,6 +528,267 @@ function FactsList({ items, onChange, placeholder }: {
           <Plus size={14} className="mr-1" /> Add
         </Button>
       </div>
+    </div>
+  );
+}
+
+// ─── HowCharactersSeeYouSection ──────────────────────────────────────
+//
+// The Maggie-friendly UI for the user-derivation authoring flow. Five
+// sub-questions, each presented as 3 pre-written options + a #4 Custom
+// (free text). Sub-questions 1-3 are default-shown; 4-5 are collapsed
+// under a "Want to go deeper?" toggle so the lazy/tired user can finish
+// in 3 taps.
+//
+// On Generate, the regenerate_user_derivation_cmd Tauri command is
+// invoked with the chosen options. It returns BOTH the Unicode-math
+// derivation (for cast-listing injection — hidden by default behind a
+// "See the math" toggle) AND a friendly-prose summary (displayed
+// prominently as "Here's how characters in this world will see you").
+// No Unicode math, no LaTeX, no project jargon ever surfaces in the
+// option labels or in the summary.
+
+type SubQuestionKey = "way_of_being" | "place" | "hands" | "carrying" | "seen_as";
+
+interface SubQuestionDef {
+  key: SubQuestionKey;
+  label: string;
+  options: readonly string[];
+  optional?: boolean;
+}
+
+const SUB_QUESTIONS: readonly SubQuestionDef[] = [
+  {
+    key: "way_of_being" as const,
+    label: "What's your way of being in this world?",
+    options: [
+      "Curious + a little quiet",
+      "Steady + warm",
+      "Playful + sharp",
+    ],
+  },
+  {
+    key: "place" as const,
+    label: "Where do you spend most of your time?",
+    options: [
+      "I roam — wherever the conversation takes me",
+      "One place — a particular spot I keep coming back to",
+      "A few places — moving between them",
+    ],
+  },
+  {
+    key: "hands" as const,
+    label: "What do you do with your hands?",
+    options: [
+      "I read / I write / I make notes",
+      "I make things — cooking, crafting, building",
+      "I work with people — talking, listening, gathering",
+    ],
+  },
+  {
+    key: "carrying" as const,
+    label: "What are you carrying or wondering about right now?",
+    optional: true,
+    options: [
+      "Something I'm working through — a question that doesn't quit",
+      "A burden I'm carrying for someone else — caring for / worrying about",
+      "Lightness — nothing heavy right now",
+    ],
+  },
+  {
+    key: "seen_as" as const,
+    label: "How would you want to be seen, in one plain sentence?",
+    optional: true,
+    options: [
+      "As honest — not flattering",
+      "As gentle — meeting the moment with care",
+      "As clear — saying the thing the simple way",
+    ],
+  },
+];
+
+function HowCharactersSeeYouSection({
+  worldId,
+  apiKey,
+  currentSummary,
+  currentDerivation,
+  onUpdated,
+}: {
+  worldId: string | undefined;
+  apiKey: string;
+  currentSummary: string | null;
+  currentDerivation: string | null;
+  onUpdated: () => Promise<void>;
+}) {
+  const [choices, setChoices] = useState<Record<SubQuestionKey, string | undefined>>({
+    way_of_being: undefined,
+    place: undefined,
+    hands: undefined,
+    carrying: undefined,
+    seen_as: undefined,
+  });
+  const [customInputs, setCustomInputs] = useState<Record<SubQuestionKey, string>>({
+    way_of_being: "",
+    place: "",
+    hands: "",
+    carrying: "",
+    seen_as: "",
+  });
+  const [activeCustomFor, setActiveCustomFor] = useState<SubQuestionKey | null>(null);
+  const [showDeeper, setShowDeeper] = useState(false);
+  const [showMath, setShowMath] = useState(false);
+  const [generating, setGenerating] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const visibleQuestions = SUB_QUESTIONS.filter((q) => showDeeper || !q.optional);
+
+  const handleOptionTap = (key: SubQuestionKey, option: string) => {
+    setChoices((prev) => ({ ...prev, [key]: option }));
+    setActiveCustomFor((cur) => (cur === key ? null : cur));
+  };
+
+  const handleCustomTap = (key: SubQuestionKey) => {
+    setActiveCustomFor(key);
+  };
+
+  const handleCustomCommit = (key: SubQuestionKey) => {
+    const v = customInputs[key].trim();
+    if (v) {
+      setChoices((prev) => ({ ...prev, [key]: v }));
+    }
+    setActiveCustomFor(null);
+  };
+
+  const handleGenerate = async () => {
+    if (!worldId) return;
+    if (!apiKey) {
+      setError("Need an OpenAI API key to generate. Set it in Settings.");
+      return;
+    }
+    setGenerating(true);
+    setError(null);
+    try {
+      await api.regenerateUserDerivation(apiKey, worldId, choices);
+      await onUpdated();
+    } catch (e: any) {
+      setError(typeof e === "string" ? e : (e?.message ?? "Generate failed"));
+    } finally {
+      setGenerating(false);
+    }
+  };
+
+  const anyChoiceSet = Object.values(choices).some((v) => v && v.trim().length > 0);
+  const hasResult = !!currentSummary;
+
+  return (
+    <div className="space-y-4">
+      {visibleQuestions.map((q) => (
+        <div key={q.key} className="space-y-1.5">
+          <div className="text-xs font-medium text-foreground/85">{q.label}</div>
+          <div className="flex flex-wrap gap-1.5">
+            {q.options.map((opt) => {
+              const selected = choices[q.key] === opt;
+              return (
+                <button
+                  key={opt}
+                  type="button"
+                  onClick={() => handleOptionTap(q.key, opt)}
+                  className={`text-xs px-2.5 py-1 rounded-md border transition-colors ${
+                    selected
+                      ? "border-primary bg-primary/10 text-foreground"
+                      : "border-border bg-secondary/30 text-foreground/80 hover:bg-secondary/60"
+                  }`}
+                >
+                  {opt}
+                </button>
+              );
+            })}
+            <button
+              type="button"
+              onClick={() => handleCustomTap(q.key)}
+              className={`text-xs px-2.5 py-1 rounded-md border transition-colors ${
+                activeCustomFor === q.key
+                  ? "border-primary bg-primary/10 text-foreground"
+                  : "border-dashed border-border bg-secondary/10 text-foreground/70 hover:bg-secondary/40"
+              }`}
+            >
+              {choices[q.key] && !q.options.includes(choices[q.key] ?? "") ? `Custom: ${choices[q.key]}` : "Custom…"}
+            </button>
+          </div>
+          {activeCustomFor === q.key && (
+            <div className="flex items-center gap-1.5">
+              <Input
+                className="text-xs h-8"
+                value={customInputs[q.key]}
+                onChange={(e) => setCustomInputs((p) => ({ ...p, [q.key]: e.target.value }))}
+                placeholder="Write your own…"
+                autoFocus
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") handleCustomCommit(q.key);
+                  if (e.key === "Escape") setActiveCustomFor(null);
+                }}
+              />
+              <Button size="sm" variant="outline" className="h-8 text-xs" onClick={() => handleCustomCommit(q.key)}>Save</Button>
+            </div>
+          )}
+        </div>
+      ))}
+
+      {!showDeeper && (
+        <button
+          type="button"
+          onClick={() => setShowDeeper(true)}
+          className="text-xs text-muted-foreground hover:text-foreground underline-offset-2 hover:underline"
+        >
+          Want to go deeper? (Two more, optional)
+        </button>
+      )}
+
+      <div className="flex items-center gap-2 pt-1">
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={handleGenerate}
+          disabled={generating || !anyChoiceSet || !worldId || !apiKey}
+        >
+          {generating ? <Loader2 size={12} className="animate-spin mr-1.5" /> : null}
+          {generating ? "Generating…" : (hasResult ? "Regenerate" : "Generate")}
+        </Button>
+        {!anyChoiceSet && !hasResult && (
+          <span className="text-xs text-muted-foreground italic">Pick at least one option above</span>
+        )}
+      </div>
+
+      {error && (
+        <div className="text-xs text-destructive bg-destructive/10 border border-destructive/30 rounded p-2">
+          {error}
+        </div>
+      )}
+
+      {hasResult && (
+        <div className="space-y-2 pt-2 border-t border-border/40">
+          <div className="text-xs font-medium text-foreground/85">Here's how characters in this world will see you:</div>
+          <p className="text-sm leading-relaxed text-foreground/90 italic">
+            {currentSummary}
+          </p>
+          {currentDerivation && (
+            <div>
+              <button
+                type="button"
+                onClick={() => setShowMath((v) => !v)}
+                className="text-[11px] text-muted-foreground/80 hover:text-foreground underline-offset-2 hover:underline"
+              >
+                {showMath ? "Hide the math version" : "See the math version"}
+              </button>
+              {showMath && (
+                <pre className="mt-1.5 text-[11px] leading-relaxed font-mono bg-secondary/30 border border-border/40 rounded p-2 whitespace-pre-wrap break-words">
+                  {currentDerivation}
+                </pre>
+              )}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

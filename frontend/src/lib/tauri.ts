@@ -336,6 +336,13 @@ export interface UserProfile {
   boundaries: string[];
   avatar_file: string;
   updated_at: string;
+  derived_formula?: string | null;
+  derived_summary?: string | null;
+}
+
+export interface UserDerivationResult {
+  derivation: string;
+  summary: string;
 }
 
 export interface PortraitInfo {
@@ -515,6 +522,20 @@ export const api = {
 
   getUserProfile: (worldId: string) => invoke<UserProfile | null>("get_user_profile_cmd", { worldId }),
   updateUserProfile: (profile: UserProfile) => invoke<void>("update_user_profile_cmd", { profile }),
+  regenerateUserDerivation: (apiKey: string, worldId: string, choices: {
+    way_of_being?: string;
+    place?: string;
+    hands?: string;
+    carrying?: string;
+    seen_as?: string;
+  }) => invoke<UserDerivationResult>("regenerate_user_derivation_cmd", {
+    apiKey, worldId,
+    wayOfBeing: choices.way_of_being ?? null,
+    place: choices.place ?? null,
+    hands: choices.hands ?? null,
+    carrying: choices.carrying ?? null,
+    seenAs: choices.seen_as ?? null,
+  }),
   generateUserAvatar: (apiKey: string, worldId: string, formHint?: { display_name?: string; description?: string }) =>
     invoke<string>("generate_user_avatar_cmd", { apiKey, worldId, formHint: formHint ?? null }),
   uploadUserAvatar: (worldId: string, imageData: string) =>
