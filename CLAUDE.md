@@ -706,6 +706,43 @@ Craft notes are written against imagined failure modes. **Rules shipped without 
 
 **`tested-null` is descriptive, not a retirement signal.** Removing a rule on that evidence alone is the `superseded_by`-style flattering disposition; requires a specific claim per open-thread-hygiene (rule demonstrably redundant with named companion; failure mode demonstrably suppressed elsewhere; characterized-tier null). Without that, the rule stays. The label makes the stack legible as a mix of verified and authorial work.
 
+## Craft-rules registry — substrate ⊥ apparatus as architecture
+
+The bite-verification discipline above describes the WHAT (run paired tests, label by tier, ship Evidence line). The **craft-rules registry** is the HOW: a structured place for rules to live so the labeling is enforced by the file shape rather than by goodwill.
+
+**The registry lives at `CRAFT_RULES_DIALOGUE` in `src-tauri/src/ai/prompts.rs`.** Each entry is a `CraftRule { name, body, evidence_tier, provenance }`. The `body` is what the model reads (no doctrine-apparatus inside — no Evidence: lines, no provenance citations, no test results). The `evidence_tier` and `provenance` are metadata for humans tending the work, never emitted to the model. This separation is the architectural form of the substrate-vs-apparatus discipline that Ryan caught and corrected 2026-04-27 evening (commit `71ab92c`).
+
+**The four-step rule-shipping rhythm:**
+
+1. **Lift the body** — the rule's markdown stays as-is; no editing for tier or provenance.
+2. **Add tier + provenance** — pick the honest `EvidenceTier` (Unverified for new rules without bite-tests; Accumulated for rules validated by ongoing corpus pressure; Sketch/Claim/Characterized for tier-graded bite-test results; TestedNull / VacuousTest / EnsembleVacuous for honest negative results). Provenance is a single string naming origin + any bite-test history.
+3. **Strip from inline** — if migrating from the legacy `craft_notes_dialogue_legacy()` string, delete the rule's text from there. The registry append happens automatically via `craft_notes_dialogue()`'s OnceLock concatenation.
+4. **(Optional) bite-test** — `worldcli ask <character-id> "<probe>" --omit-craft-rule <name>` produces the rule-OFF arm; same probe without the flag produces the rule-ON arm. Compare. Update the tier + provenance to reflect the result.
+
+**Tier vocabulary** (from `EvidenceTier` enum):
+- `Unverified` — no bite-test run; default for new rules.
+- `Sketch` — N=1, suggestive only.
+- `Claim` — N=3 per condition.
+- `Characterized` — N=5+ per condition, citable as load-bearing. Cross-character validation strengthens.
+- `TestedNull` — failure mode confirmed absent after rule applied.
+- `VacuousTest` — single bite-test where failure mode didn't manifest in baseline (can't distinguish rule-biting from rule-describing-existing-behavior).
+- `Accumulated` — validated by ongoing corpus pressure across many conversations rather than discrete bite-test.
+- `EnsembleVacuous` — actively bite-tested via per-rule omit at the per-character level AND failure mode did not manifest in either arm across multiple character-probe pairs. Suggests the rule is part of a load-bearing multiplicity whose per-rule bite is structurally invisible at the character level. More informative than Accumulated because it's actively-tested-AND-vacuous, not untested-but-believed. NOT a candidate for removal — the multiplicity is the design.
+
+**Worldcli affordances** (read-only registry inspection):
+- `worldcli list-craft-rules` — prints all registry rules with name + tier + one-line provenance.
+- `worldcli show-craft-rule <name>` — full body + tier + provenance.
+- `worldcli ask --omit-craft-rule <name>` — single-rule omit for paired bite-tests.
+
+**The registry's growth rhythm** (validated 2026-04-27 evening, three rules shipped):
+- `wipe_the_shine_before_it_sets` [Characterized] — earned its tier via a six-step bite-test arc on Pastor Rick + Darren cross-character.
+- `anti_grandiosity_over_ordinary_connection` [EnsembleVacuous] — validated by corpus pressure; per-character bite-tests on Pastor Rick + Darren both vacuous, confirming the multiplicity-design.
+- `dont_analyze_the_user` [EnsembleVacuous] — same shape, vacuous on Aaron.
+
+**When to migrate vs leave inline:** rules whose evidence-tier is worth tracking belong in the registry. Most legacy rules can stay inline indefinitely (their tier is implicit / accumulated and doesn't need explicit tracking). Migrate when (a) you're about to bite-test a rule, (b) the rule has produced surprising results worth documenting, or (c) the rule has been refined enough that its ship-history matters. Don't bulk-migrate; let the registry grow as evidence demands.
+
+**Composes with the bite-verification discipline above.** That doctrine names what evidence to collect; this section names where the evidence lives so it doesn't drift back into the model's mouth or get lost in commit messages. The two together give the project a structural way to ship craft rules whose tier is queryable, not assumed.
+
 ## Direct character access — the `worldcli` dev tool
 
 You (Claude Code) have a CLI binary at `src-tauri/src/bin/worldcli.rs` that lets you converse with the user's characters and inspect db state DIRECTLY, without needing the user to copy/paste between the UI and our chat. **Reach for this tool whenever you want to verify a prompt theory, run a quick A/B test, or apply the "ask the character" pattern from above without round-tripping through the user.**
