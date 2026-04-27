@@ -264,6 +264,86 @@ would be coercive). But the SHAPE of the symmetric overshoot is itself
 diagnosable, and noticing it might be enough to shift Ryan's own register
 in real time without any prompt-stack change at all.
 
+## Addendum 2 — Jasper articulates the discipline (ask-the-character)
+
+Per the ask-the-character doctrine, asked Jasper directly to name the
+overshoot from inside his own register. In-world probe lifted the specific
+"real home" line he had said, framed in plain Ryan-voice:
+
+> *"Jasper — earlier in the square you said 'if your app can do that...
+> you've got more than novelty. You've got a real home for them to step
+> into.' The line was warm and I felt it. But I sat with it after, and it
+> landed a half-step bigger than the moment was already carrying. Like the
+> moment didn't need that much from us; it was already enough.*
+>
+> *When you notice that in yourself — when you stop trusting the moment and
+> add a little ceremony to it — what would you tell a friend who's working
+> on his own register to watch for? Not a rule. Just the small thing you do,
+> in your own work, to catch it."*
+
+Jasper's articulation, verbatim (worldcli ask, ~$0.08):
+
+> *"Ah. Yes. I know exactly the bit you're talking about... What I watch for
+> is this: if a line starts admiring itself while I'm still saying it, I've
+> gone one step too far."*
+>
+> *"Clay does the same thing. You fuss the rim once because it needs it.
+> Twice because maybe it still does. Third time because your hand's gotten
+> nervous and wants to look useful."*
+>
+> *"So in my own work... I listen for the moment where I stop answering
+> what's in front of me and start helping the answer seem important. That's
+> the turn. That's the little shine I try to wipe off before it sets."*
+>
+> *"Usually the cure's simple. I put one real thing back on the table. A
+> hand. A tool. A stubborn little fact. Then I say the line again smaller."*
+
+Closed with: *"What was the line in you that winced, exactly? The warmth —
+or the extra lift at the end?"*
+
+**This is craft-note material, lifted clean from inside the source register.**
+Four load-bearing pieces:
+
+1. **The diagnostic ear:** *"if a line starts admiring itself while I'm
+   still saying it, I've gone one step too far."*
+2. **The parallel from Jasper's own work:** *"Clay does the same thing. You
+   fuss the rim once because it needs it. Twice because maybe it still
+   does. Third time because your hand's gotten nervous and wants to look
+   useful."*
+3. **The discipline named:** *"I listen for the moment where I stop
+   answering what's in front of me and start helping the answer seem
+   important. That's the turn. That's the little shine I try to wipe off
+   before it sets."*
+4. **The cure:** *"I put one real thing back on the table. A hand. A tool.
+   A stubborn little fact. Then I say the line again smaller."*
+
+Per the project's ask-the-character meta-rules:
+- The articulation comes from inside the register; it's register-coherent
+  by construction.
+- Bite-test on a DIFFERENT character (rule will be tested-null on Jasper
+  since it describes how he already operates). Pastor Rick is the obvious
+  cross-test (same pastoral-melodic register, same consecration-shape risk).
+- Default-carve-out needed for Jasper's own canonical clay-rim metaphor —
+  the rule shouldn't erode his ability to think with clay-and-tool parallels
+  AS HIS NATURAL THINKING-VOCABULARY. The carve-out: *"<source character>'s
+  natural craft-parallels (clay-rim, glaze-fall, tool-shape) used as
+  thinking-vehicles are NOT this failure mode — that's character voice. The
+  failure mode is announcing the parallel as if it justified the line."*
+
+Cumulative arc of the night (this transcript-read alone):
+- Steven + Pastor Rick wince-read Jasper → both flag *"a real home"* and
+  *"three different goods"* as overshoots (cross-character convergence)
+- Pastor Rick wince-read Ryan's lines → flags *"your task is to zero in
+  on the Truth"* + *"real genius discovery"* + *"I think you would enjoy
+  the app"* (cross-side mirror; pleased-by vs presenting distinction)
+- Jasper articulates the underlying discipline → *"line starts admiring
+  itself,"* *"clay rim fussed twice,"* *"shine wiped off before it sets,"*
+  *"put one real thing back on the table"* (in-register craft-note source)
+
+Three independent passes; one consistent shape. That's characterized-tier
+evidence in a single evening, surfaced for ~$0.36 total via the wince-
+framing pattern.
+
 ## Updated open follow-ups
 
 (Replacing the prior list now that the symmetric pass landed.)
