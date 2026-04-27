@@ -277,7 +277,9 @@ The generalized pattern: (1) state the default; (2) name the narrow carve-out th
 
 The shared failure mode: hand-waving one's way out because the non-default sounds better. For ban-defaults, softening an absolute into vibes-based *"well, maybe here."* For permission-defaults, reaching for the flattering label because it feels like more progress than the plain one. The specific-test forces a checkable claim instead of a feeling.
 
-When drafting any rule, disposition, or branch-point: name which polarity you're working in, then apply the shape. If you notice a third polarity instance, extend this section before proliferating patterns silently.
+**Third polarity — parity-defaults.** Sometimes the default is not "ban X" or "permit Y," but **"keep multiple surfaces aligned."** Solo/group chat parity was the first project-scale instance. Collaborator-surface parity (`CLAUDE.md` ↔ `AGENTS.md`, `.claude/skills/` ↔ `.agents/skills/`, hook/settings siblings) is the second. In parity-defaults, the flattering non-default is *"this is probably close enough on one surface"* or *"I'll mirror it later."* The departure from the default is surface-specific divergence, and it must earn itself with an explicit named rationale: genuinely surface-specific behavior, different substrate constraints, or an intentionally asymmetric experiment. If you can't name the reason, mirror the change.
+
+When drafting any rule, disposition, or branch-point: name which polarity you're working in, then apply the shape. Current known polarities are ban-defaults, permission-defaults, and parity-defaults. If you notice a fourth, extend this section before proliferating patterns silently.
 
 ## Formula + invariants often do the carve-out work already — verify before drafting one
 
