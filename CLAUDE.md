@@ -464,6 +464,22 @@ worldcli recent-messages <char-id> \
     [--with-context N] \
     [--json]
 
+# Sensory-anchor groove diagnostic — the in-vivo "Jasper test" as a
+# CLI primitive. Pulls last N solo+group assistant lines for the
+# character, counts bigram + trigram recurrence (per-reply unique),
+# ranks top-K by recurrence rate, and diagnoses RUNAWAY (top anchor
+# >0.7 — priming-compounding; scene-state intervention often needed) /
+# MILD GROOVE (0.4-0.7 — universal baseline band) / WITHIN BAND (<0.4).
+# Cheap (~$0). Use as the data-driven measurement instrument for
+# pre-rule vs post-rule bite-tests of any prompt-stack change targeting
+# the sensory-anchor axis. Threshold defaults to 0.4 = the universal-
+# baseline floor surfaced by reports/2026-04-26-1945.
+worldcli anchor-groove <char-id> \
+    [--limit N]              # default 10
+    [--threshold F]          # default 0.4
+    [--top-k K] \            # default 10
+    [--json]
+
 # Group-chat surfaces (some characters live mostly here, not in solo):
 worldcli list-group-chats [--world <id>] [--json]
 worldcli group-messages <group-chat-id> \
