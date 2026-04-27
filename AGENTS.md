@@ -155,6 +155,8 @@ The repo has crossed a second threshold: the README, the in-app pitch surface, t
 
 `reports/` holds reflective, interpretive reads of the project's git history — philosophy/trajectory/taste, not changelogs. Each new report is in dialogue with prior ones (revisits open questions they flagged, tests their predictions against subsequent commits).
 
+**Read by function, not by folder adjacency.** `reports/` is no longer one genre just because it is one directory. `2026-04-27-0030-public-release-landing.md` is a funnel surface, not proof-field. `OBSERVATIONS.md` is a lived-use memory ledger. `*-eureka-LOG.md` files are run spines. `retiring-*.md` files are follow-up-hygiene acts. Trajectory reads and natural-experiment findings remain the two main report genres, but path alone no longer tells the whole function.
+
 Naming: `YYYY-MM-DD-HHMM-<purpose-slug>.md` (e.g. `2026-04-21-1903-philosophy-trajectory.md`). Time is 24-hour, no separator between hours and minutes — keeps the file list sorted chronologically even when multiple reports land the same day. The slug should name the report's purpose, not genericize it.
 
 A `post-commit` hook (`.githooks/post-commit`, wired via `core.hooksPath`) nudges when **10+ commits and 3+ days** have passed since the newest report. The floor is deliberately low so reports can keep up with active iteration — this project's current mode uses reports as a live retrospective channel, not a quarterly summary. Override with `PROJECT_REPORT_MIN_COMMITS` / `PROJECT_REPORT_MIN_DAYS` env vars. Ad-hoc `/project-report` runs are ALWAYS valid — the floor is a nudge threshold (the minimum rate at which the hook will bug you), not a ceiling (there is no "too often" for reports that genuinely name something new).

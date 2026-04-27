@@ -1,6 +1,9 @@
 import { useEffect, useState } from "react";
 import { api, type World, type WorldImageInfo } from "@/lib/tauri";
 
+const README_URL = "https://github.com/mrrts/world-threads";
+const LANDING_REPORT_URL = "https://github.com/mrrts/world-threads/blob/main/reports/2026-04-27-0030-public-release-landing.md";
+
 type PitchState = {
   world: World | null;
   image: WorldImageInfo | null;
@@ -119,6 +122,16 @@ export function SapphirePitch() {
             0 20px 52px rgba(9, 82, 191, 0.48),
             inset 0 1px 0 rgba(255,255,255,0.26);
         }
+        .sapphire-secondary {
+          border: 1px solid rgba(142, 195, 255, 0.2);
+          background: rgba(10, 22, 38, 0.7);
+          color: #ddecfb;
+          box-shadow: inset 0 1px 0 rgba(255,255,255,0.05);
+        }
+        .sapphire-secondary:hover {
+          border-color: rgba(142, 195, 255, 0.34);
+          background: rgba(12, 28, 48, 0.86);
+        }
       `}</style>
 
       <div className="sapphire-shell sapphire-grid">
@@ -177,13 +190,31 @@ export function SapphirePitch() {
                 <div className="mt-8 flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
                   <div className="max-w-xl space-y-3">
                     <a
-                      href="/"
+                      href={README_URL}
+                      target="_blank"
+                      rel="noreferrer"
                       className="sapphire-button inline-flex rounded-full px-7 py-4 text-base font-semibold transition-all duration-200"
                     >
-                      Begin the Grand Seek for the Crown of Sapphire
+                      Read the WorldThreads README
                     </a>
+                    <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+                      <a
+                        href={LANDING_REPORT_URL}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="sapphire-secondary inline-flex rounded-full px-6 py-3 text-sm font-medium transition-all duration-200"
+                      >
+                        Take the 15-minute orientation
+                      </a>
+                      <a
+                        href="/"
+                        className="inline-flex rounded-full border border-transparent px-2 py-3 text-sm font-medium text-[#b9d8f6] transition-colors duration-200 hover:text-white"
+                      >
+                        Or step straight into the app
+                      </a>
+                    </div>
                     <p className="body-font max-w-lg text-sm leading-6 text-[#c1d4e8]">
-                      Enter a world where the dialogue has a mathematical spine, the beauty has a conscience, and the people feel met instead of manufactured.
+                      If this page catches your eye, the README is the next honest surface. If the README still holds, take the deeper landing read before you decide whether this work is really for you.
                     </p>
                   </div>
 
