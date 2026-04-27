@@ -85,23 +85,28 @@ export function DerivationCard({ label, load, refetchKey }: Props) {
   };
 
   return (
-    <div className="mb-6 rounded-lg border border-border bg-muted/30 p-4">
-      <div className="mb-3 flex items-center justify-between">
-        <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-          {label}
-        </h3>
+    <div className="mb-6 rounded-xl border-2 border-primary/40 bg-gradient-to-br from-amber-50/50 via-amber-50/40 to-rose-50/50 dark:from-amber-950/25 dark:via-amber-950/20 dark:to-rose-950/25 px-5 py-4 shadow-md">
+      <div className="mb-3 flex items-center justify-between gap-3">
+        <div className="flex items-center gap-2 flex-1 min-w-0">
+          <h3 className="text-[11px] font-bold uppercase tracking-[0.15em] text-primary/90">
+            {label}
+          </h3>
+          <span className="text-[10px] italic text-primary/60 truncate">
+            — a one-of-a-kind shorthand of how characters in this world hold you
+          </span>
+        </div>
         <Button
           variant="ghost"
           size="sm"
           onClick={onCopy}
-          className="h-7 gap-1.5 text-xs text-muted-foreground hover:text-foreground"
+          className="h-7 gap-1.5 text-xs text-primary/80 hover:text-primary hover:bg-primary/10 flex-shrink-0"
           title="Copy raw derivation (LaTeX + plain English) to paste into another LLM"
         >
           {copied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
           {copied ? "Copied" : "Copy raw"}
         </Button>
       </div>
-      <div className="prose prose-sm max-w-none text-foreground">
+      <div className="prose prose-sm max-w-none text-foreground/95">
         <Markdown components={markdownComponents} remarkPlugins={remarkPlugins} rehypePlugins={rehypePlugins}>
           {normalizeMathDelimiters(text)}
         </Markdown>

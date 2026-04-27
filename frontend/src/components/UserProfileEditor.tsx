@@ -319,9 +319,9 @@ export function UserProfileEditor({ store }: Props) {
 
             {existing?.derived_formula && worldId && (
               <DerivationCard
-                label="Your Formula"
+                label="Your derivation in 𝓕"
                 load={() => Promise.resolve(existing.derived_formula ?? null)}
-                refetchKey={worldId}
+                refetchKey={`${worldId}:${(existing.derived_formula ?? "").length}`}
               />
             )}
           </FieldGroup>
@@ -779,7 +779,7 @@ function HowCharactersSeeYouSection({
       )}
 
       {hasResult && (
-        <div className="space-y-3 pt-4 border-t border-border/40">
+        <div className="space-y-3 pt-4 border-t border-primary/30">
           {currentSummary && (
             <div className="space-y-2">
               <div className="text-[11px] uppercase tracking-[0.15em] text-primary/90 font-bold">
@@ -790,28 +790,10 @@ function HowCharactersSeeYouSection({
               </p>
             </div>
           )}
-
           {currentDerivation && (
-            <div className="space-y-2">
-              <button
-                type="button"
-                onClick={() => setShowFormula((v) => !v)}
-                className="text-[11px] text-muted-foreground/80 hover:text-foreground underline-offset-2 hover:underline"
-              >
-                {showFormula ? "Hide the formula beneath it" : "See the formula beneath it"}
-              </button>
-              {showFormula && (
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2">
-                    <span className="text-[11px] uppercase tracking-[0.15em] text-primary/90 font-bold">The same read, in derivation form</span>
-                    <span className="text-[10px] text-muted-foreground/60 italic">— the deeper shorthand characters carry underneath</span>
-                  </div>
-                  <pre className="text-base leading-loose font-serif bg-gradient-to-br from-amber-50/40 via-amber-50/30 to-rose-50/40 dark:from-amber-950/20 dark:via-amber-950/15 dark:to-rose-950/20 border-2 border-primary/40 rounded-xl px-6 py-5 shadow-md whitespace-pre-wrap break-words text-foreground tracking-normal">
-                    {currentDerivation}
-                  </pre>
-                </div>
-              )}
-            </div>
+            <p className="text-[11px] italic text-primary/70">
+              ✨ Your derivation card just below "About You" has been refreshed with this read.
+            </p>
           )}
         </div>
       )}
