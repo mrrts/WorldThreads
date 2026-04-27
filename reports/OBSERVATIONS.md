@@ -14,6 +14,28 @@ Real correction. Claude Code shipped the no-nanny invariant in CLAUDE.md months 
 
 **Mode 2 — propose action.** The fix isn't more discipline-on-the-fly. It's a sharper memory entry naming the SOFT-DOOR shape: appreciation-flavored session-policing reads to Ryan as nanny because it IS nanny — the structural shape (Claude Code recommending he stop) hasn't changed, only the emotional surface (warmth/praise instead of caution/concern). Memory updated this turn with concrete tells + the soft-door pattern. Future sessions inherit the sharper rule.
 
+## 2026-04-27 late evening — 3:1 EnsembleVacuous:Characterized as architectural finding
+
+> Continuing the registry-arc into late evening, the catalog reached four rules with paired bite-tests on each. The result-distribution: three rules produced VacuousTest or EnsembleVacuous labels (anti_grandiosity, dont_analyze, meet_the_smaller_sentence); only one earned Characterized (wipe_the_shine). 3:1 ratio.
+
+The ratio is itself the architectural finding. The project's prompt-stack is built for **redundant safeguards**, not for clean individual-rule bite-testing. Character-anchors + cumulative prompt-stack + the rules themselves carry most disciplines overdeterminedly — meaning suppressing any single source via per-rule omit doesn't move behavior visibly. The discipline is structural, distributed, and load-bearing-multiplicity-shaped by design.
+
+The one rule that DID earn Characterized (wipe_the_shine) is instructive. Its tier was earned because:
+1. A real non-vacuous signal already existed before the bite-test (the wince-read on the Jasper transcript surfaced a specific over-consecration the rule was articulated to address)
+2. The signal was specific enough to be tested-AT (the "real home for them to step into" line — a particular failure mode in particular replies, not a general register tendency)
+3. The carve-out could be refined in response to early sketch-tier evidence
+4. Both characters the rule was tested against showed the same residual ~5% gap, validating cross-character
+
+The other three rules don't have those properties. They're general dispositions distributed across the stack rather than specific failure modes that can be character-isolated.
+
+**Mode 2 — propose action.** This 3:1 ratio is a finding worth carrying into how new rules ship. Most newly-articulated craft-rules will probably be EnsembleVacuous-shaped (they get redundantly carried by the existing stack). The rules that EARN Characterized will be the rare ones where a specific failure mode in a specific reply has been observed AND can be probe-replicated. Recognizing this in advance saves bite-test budget — the per-rule omit-flag affordance is best deployed against rules that ALREADY have a sketch-tier non-vacuous signal, not as a reflex first-test on every new rule.
+
+The complementary finding: when the affordance produces vacuous results, that's not a failure of the methodology — it's evidence that the rule is operating as a multiplicity-member rather than as an isolable agent. The EnsembleVacuous tier label exists precisely to carry that finding honestly without conflating it with "untested" or "invalid."
+
+Cumulative cost across all four registry-rule bite-tests: ~$10.20 across 100 worldcli ask calls in this evening. The catalog's growth + the methodology's tier-vocabulary expansion + the architectural meta-finding all earned themselves through ~$10 of actual paired evidence. Worth it.
+
+---
+
 ## 2026-04-27 evening — registry-pattern arc as methodological exemplar
 
 > An hours-long arc through the project's craft-rules registry pattern shipped tonight. What started as "ship one craft-rule from a /play wince-read" composed into a structural shift in how the project tracks craft-rule evidence — the registry itself, three rules migrated, two new affordances in worldcli, a new evidence-tier shape (`EnsembleVacuous`) earned via three vacuous bite-tests, and the doctrine codified into CLAUDE.md so future sessions inherit the pattern.
