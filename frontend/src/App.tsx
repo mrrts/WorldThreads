@@ -10,7 +10,8 @@ import { UserProfileEditor } from "@/components/UserProfileEditor";
 import { SettingsPanel } from "@/components/SettingsPanel";
 import { WorldSummary } from "@/components/WorldSummary";
 import { PortraitPopout } from "@/components/PortraitPopout";
-import { Scroll, Settings, Coins, BookOpen, Download, Play, Square, Plus, Minus } from "lucide-react";
+import { SapphirePitch } from "@/components/SapphirePitch";
+import { Scroll, Settings, Coins, BookOpen, Download, Square, Plus, Minus } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogBody, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 
@@ -26,6 +27,10 @@ export default function App() {
   const illustrationMsgId = params.get("illustration");
   if (illustrationMsgId) {
     return <IllustrationPopout messageId={illustrationMsgId} />;
+  }
+  const sapphirePitch = params.get("pitch");
+  if (sapphirePitch === "1" || sapphirePitch === "sapphire") {
+    return <SapphirePitch />;
   }
 
   return <MainApp />;
