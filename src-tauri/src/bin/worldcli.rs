@@ -822,6 +822,24 @@ enum Cmd {
         /// rule, compare outputs. Names: see `worldcli list-craft-rules`.
         #[arg(long, value_name = "NAME")]
         omit_craft_rule: Vec<String>,
+        /// Inject SYNTHETIC prior conversation history into the prompt
+        /// context for this call, WITHOUT actually running those turns
+        /// through the live pipeline. Path to a JSON file containing an
+        /// array of {role, content} objects (alternating user/assistant).
+        ///
+        /// Why this exists: --session loads REAL prior turns the model
+        /// generated, which means the model can self-correct against its
+        /// own actual output — making multi-turn bite-tests of sequence-
+        /// failure-mode rules vacuous (per CLAUDE.md's registry doctrine
+        /// finding). Synthetic history injects a CONTROLLED prior context
+        /// (e.g., 4 turns of opener-templating) so the failure-mode is
+        /// MANIFEST IN BASELINE — then the rule's bite on the next turn
+        /// can be measured: does it break the template (ON arm) or
+        /// continue it (OFF arm)?
+        ///
+        /// Mutually exclusive with --session.
+        #[arg(long, value_name = "PATH", conflicts_with = "session")]
+        synthetic_history: Option<PathBuf>,
     },
 
     // ── runs (read your own prior investigations) ──
@@ -1573,14 +1591,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             };
             cmd_refresh_anchor(&r, &api_key, &character_id, model.as_deref(), confirm_cost).await
         }
-        Cmd::Ask { character_id, message, session, model, confirm_cost, question_summary, no_anchor, world_description_override, omit_craft_rule } => {
+        Cmd::Ask { character_id, message, session, model, confirm_cost, question_summary, no_anchor, world_description_override, omit_craft_rule, synthetic_history } => {
             let api_key = match resolve_api_key(cli.api_key.as_deref()) {
                 Some(k) => k,
                 None => return Err(Box::<dyn std::error::Error>::from(
                     "No API key. Set OPENAI_API_KEY, pass --api-key, or add to keychain via:\n  security add-generic-password -s WorldThreadsCLI -a openai -w \"<sk-...>\"".to_string()
                 )),
             };
-            cmd_ask(&r, &api_key, &character_id, &message, session.as_deref(), model.as_deref(), confirm_cost, question_summary.as_deref(), no_anchor, world_description_override.as_deref(), omit_craft_rule).await
+            cmd_ask(&r, &api_key, &character_id, &message, session.as_deref(), model.as_deref(), confirm_cost, question_summary.as_deref(), no_anchor, world_description_override.as_deref(), omit_craft_rule, synthetic_history.as_deref()).await
         }
         Cmd::RunsList { limit } => cmd_runs_list(&r, limit),
         Cmd::RunsShow { id } => cmd_runs_show(&r, &id),
@@ -7120,6 +7138,7 @@ async fn cmd_ask(
     no_anchor: bool,
     world_description_override: Option<&str>,
     omit_craft_rules: Vec<String>,
+    synthetic_history: Option<&std::path::Path>,
 ) -> Result<(), Box<dyn std::error::Error>> {
     let _ = r.check_character(character_id)?;
 
@@ -7172,33 +7191,58 @@ async fn cmd_ask(
         let mut model_config = orchestrator::load_model_config(&conn);
         if let Some(m) = model_override { model_config.dialogue_model = m.to_string(); }
 
-        let (session_id, prior_messages): (Option<String>, Vec<(String, String)>) = match session {
-            None => (None, Vec::new()),
-            Some(name) => {
-                let existing: Option<String> = conn.query_row(
-                    "SELECT session_id FROM dev_chat_sessions WHERE name = ?1",
-                    params![name], |r| r.get(0),
-                ).ok();
-                let id = match existing {
-                    Some(id) => id,
-                    None => {
-                        let new_id = uuid::Uuid::new_v4().to_string();
-                        conn.execute(
-                            "INSERT INTO dev_chat_sessions (session_id, name, character_id) VALUES (?1, ?2, ?3)",
-                            params![new_id, name, character_id],
-                        )?;
-                        new_id
-                    }
-                };
-                let mut stmt = conn.prepare(
-                    "SELECT role, content FROM dev_chat_messages \
-                     WHERE session_id = ?1 ORDER BY created_at ASC"
-                )?;
-                let rows: Vec<(String, String)> = stmt
-                    .query_map(params![id], |r| Ok((r.get(0)?, r.get(1)?)))?
-                    .filter_map(|r| r.ok())
-                    .collect();
-                (Some(id), rows)
+        let (session_id, prior_messages): (Option<String>, Vec<(String, String)>) = if let Some(synth_path) = synthetic_history {
+            // Load synthetic prior history from a JSON file. Format:
+            // [{"role": "user", "content": "..."}, {"role": "assistant", "content": "..."}, ...]
+            // No DB write — these turns are NOT persisted to dev_chat_messages.
+            // Used for fresh-context bite-tests where we want a CONTROLLED
+            // prior context (e.g., 4 turns of opener-templating) so the
+            // failure mode is manifest in baseline.
+            let synth_text = std::fs::read_to_string(synth_path)
+                .map_err(|e| format!("synthetic-history: failed to read {synth_path:?}: {e}"))?;
+            let parsed: Vec<serde_json::Value> = serde_json::from_str(&synth_text)
+                .map_err(|e| format!("synthetic-history: failed to parse {synth_path:?} as JSON array: {e}"))?;
+            let mut rows: Vec<(String, String)> = Vec::with_capacity(parsed.len());
+            for (i, msg) in parsed.iter().enumerate() {
+                let role = msg.get("role")
+                    .and_then(|v| v.as_str())
+                    .ok_or_else(|| format!("synthetic-history[{i}]: missing 'role' string"))?;
+                let content = msg.get("content")
+                    .and_then(|v| v.as_str())
+                    .ok_or_else(|| format!("synthetic-history[{i}]: missing 'content' string"))?;
+                rows.push((role.to_string(), content.to_string()));
+            }
+            eprintln!("[worldcli] synthetic-history: injected {} turns from {synth_path:?} (NOT persisted)", rows.len());
+            (None, rows)
+        } else {
+            match session {
+                None => (None, Vec::new()),
+                Some(name) => {
+                    let existing: Option<String> = conn.query_row(
+                        "SELECT session_id FROM dev_chat_sessions WHERE name = ?1",
+                        params![name], |r| r.get(0),
+                    ).ok();
+                    let id = match existing {
+                        Some(id) => id,
+                        None => {
+                            let new_id = uuid::Uuid::new_v4().to_string();
+                            conn.execute(
+                                "INSERT INTO dev_chat_sessions (session_id, name, character_id) VALUES (?1, ?2, ?3)",
+                                params![new_id, name, character_id],
+                            )?;
+                            new_id
+                        }
+                    };
+                    let mut stmt = conn.prepare(
+                        "SELECT role, content FROM dev_chat_messages \
+                         WHERE session_id = ?1 ORDER BY created_at ASC"
+                    )?;
+                    let rows: Vec<(String, String)> = stmt
+                        .query_map(params![id], |r| Ok((r.get(0)?, r.get(1)?)))?
+                        .filter_map(|r| r.ok())
+                        .collect();
+                    (Some(id), rows)
+                }
             }
         };
         let world_id = character.world_id.clone();
