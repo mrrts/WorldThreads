@@ -835,6 +835,20 @@ enum Cmd {
     SessionClear { name: String },
     /// List all dev-sessions.
     SessionList,
+
+    // ── craft-rules registry (read-only) ──
+    /// List all dialogue craft-rules in the registry (named, evidence-tier-
+    /// annotated rules that have migrated out of the inline craft_notes_dialogue
+    /// string). Prints name + tier + one-line provenance.
+    ListCraftRules {
+        #[arg(long)]
+        json: bool,
+    },
+    /// Show a single craft-rule's full body + tier + provenance.
+    ShowCraftRule { name: String,
+        #[arg(long)]
+        json: bool,
+    },
 }
 
 #[derive(Subcommand)]
@@ -1559,7 +1573,61 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         Cmd::SessionShow { name } => cmd_session_show(&r, &name),
         Cmd::SessionClear { name } => cmd_session_clear(&r, &name),
         Cmd::SessionList => cmd_session_list(&r),
+        Cmd::ListCraftRules { json } => cmd_list_craft_rules(json),
+        Cmd::ShowCraftRule { name, json } => cmd_show_craft_rule(&name, json),
     }
+}
+
+// ─── Craft-rules registry (read-only) ────────────────────────────────
+
+fn cmd_list_craft_rules(json: bool) -> Result<(), Box<dyn std::error::Error>> {
+    use app_lib::ai::prompts::CRAFT_RULES_DIALOGUE;
+    if json {
+        let v: Vec<serde_json::Value> = CRAFT_RULES_DIALOGUE.iter().map(|r| {
+            json!({
+                "name": r.name,
+                "evidence_tier": r.evidence_tier.as_str(),
+                "provenance": r.provenance,
+            })
+        }).collect();
+        println!("{}", serde_json::to_string_pretty(&v)?);
+    } else {
+        if CRAFT_RULES_DIALOGUE.is_empty() {
+            println!("(registry is empty; all dialogue craft-rules are still in the legacy inline string at craft_notes_dialogue_legacy())");
+        } else {
+            for r in CRAFT_RULES_DIALOGUE {
+                println!("─── {} [{}]", r.name, r.evidence_tier.as_str());
+                println!("    {}", r.provenance);
+                println!();
+            }
+            println!("({} rules in registry; use `worldcli show-craft-rule <name>` for full body)", CRAFT_RULES_DIALOGUE.len());
+        }
+    }
+    Ok(())
+}
+
+fn cmd_show_craft_rule(name: &str, json: bool) -> Result<(), Box<dyn std::error::Error>> {
+    use app_lib::ai::prompts::CRAFT_RULES_DIALOGUE;
+    let rule = CRAFT_RULES_DIALOGUE.iter().find(|r| r.name == name)
+        .ok_or_else(|| format!("craft-rule '{name}' not found in registry. Available: {}",
+            CRAFT_RULES_DIALOGUE.iter().map(|r| r.name).collect::<Vec<_>>().join(", ")))?;
+    if json {
+        let v = json!({
+            "name": rule.name,
+            "evidence_tier": rule.evidence_tier.as_str(),
+            "provenance": rule.provenance,
+            "body": rule.body,
+        });
+        println!("{}", serde_json::to_string_pretty(&v)?);
+    } else {
+        println!("Name:           {}", rule.name);
+        println!("Evidence tier:  {}", rule.evidence_tier.as_str());
+        println!("Provenance:     {}", rule.provenance);
+        println!();
+        println!("─── Body (model-readable) ───");
+        println!("{}", rule.body);
+    }
+    Ok(())
 }
 
 // ─── Status / config ────────────────────────────────────────────────────

@@ -2117,23 +2117,98 @@ Three tests for whether polish has been earned in the moment you're writing:
 **Earned exception — when the room has actually forced the register up.** If a character has sat with the user through concrete material, heard them land on a true thing, and a plain articulate sentence is the next honest move — LET IT. The exception is not a loophole for common use; it is the narrow case where the default would be its own lie. Test: could a reader point to the specific prior beats that MADE this register necessary? If yes, land it. If the reader would say "that line is beautiful but any competent model would have written it here," it's supply. Trim back."#
 }
 
-/// Per-rule evidence-tier registry (for human readers; never emitted to model).
-/// Most rules in this body are unverified or accumulated through corpus
-/// pressure — the registry captures only the rules whose evidence-tier is
-/// worth tracking explicitly. Tier vocabulary per CLAUDE.md's evidentiary
-/// standards: sketch (N=1) | claim (N=3 per condition) | characterized
-/// (N=5+) | tested-null | vacuous-test (failure-mode-absent-in-baseline).
-///
-/// - `wipe_the_shine_before_it_sets`: vacuous-test (Pastor Rick, 2026-04-27,
-///   probe="coming back to church after ten years"). Failure mode did not
-///   manifest in baseline; can't yet distinguish "rule is biting" from
-///   "rule describes existing behavior." Cleaner per-rule bite-test
-///   requires a worldcli affordance for omitting individual rules within
-///   craft_notes_dialogue (the new rule is text-within-chunk, not a
-///   separate CraftNotePiece). Articulated by Jasper Finn 2026-04-27 per
-///   the ask-the-character doctrine; surfaced via cross-character
-///   wince-read (`reports/2026-04-27-1119-play-jasper-wince-read-by-steven-and-rick.md`).
+/// Evidence tier per CLAUDE.md's evidentiary standards.
+/// `Unverified`: no bite-test run. `Sketch`: N=1, suggestive only.
+/// `Claim`: N=3 per condition. `Characterized`: N=5+, citable as load-bearing.
+/// `TestedNull`: failure mode confirmed absent after rule. `VacuousTest`:
+/// failure mode didn't manifest in rule-OFF baseline (can't distinguish
+/// rule-biting from rule-describing-existing-behavior).
+/// `Accumulated`: validated by ongoing corpus pressure across many
+/// conversations rather than a discrete bite-test.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum EvidenceTier {
+    Unverified,
+    Sketch,
+    Claim,
+    Characterized,
+    TestedNull,
+    VacuousTest,
+    Accumulated,
+}
+
+impl EvidenceTier {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Unverified => "unverified",
+            Self::Sketch => "sketch",
+            Self::Claim => "claim",
+            Self::Characterized => "characterized",
+            Self::TestedNull => "tested-null",
+            Self::VacuousTest => "vacuous-test",
+            Self::Accumulated => "accumulated",
+        }
+    }
+}
+
+/// A named, evidence-tier-annotated dialogue craft rule. The `body` is
+/// the markdown the model reads (no doctrine-apparatus inside). The
+/// `evidence_tier` and `provenance` are metadata for humans tending the
+/// work (never emitted to the model). New rules ship to this registry
+/// rather than baked into the legacy inline string at
+/// `craft_notes_dialogue()`. Future affordances: per-rule omit-flag in
+/// `PromptOverrides`, worldcli `list-craft-rules` / `show-craft-rule`
+/// commands, programmatic bite-testing.
+pub struct CraftRule {
+    pub name: &'static str,
+    pub body: &'static str,
+    pub evidence_tier: EvidenceTier,
+    pub provenance: &'static str,
+}
+
+/// Registry of dialogue craft rules that have migrated out of the
+/// legacy inline string at `craft_notes_dialogue()`. Initially seeded
+/// with `wipe_the_shine_before_it_sets` (the rule whose bite-test gap
+/// motivated the registry's existence). Future ships: add rules here
+/// rather than to the inline string; migrate existing inline rules
+/// here as their evidence-tier becomes worth tracking.
+pub const CRAFT_RULES_DIALOGUE: &[CraftRule] = &[
+    CraftRule {
+        name: "wipe_the_shine_before_it_sets",
+        body: r#"**Wipe the shine before it sets.** A close cousin of the don't-tie-a-ribbon rule, applying *within* a line rather than at its close. When a line starts admiring itself while you're still saying it, you've gone one step too far. The diagnostic ear: listen for the moment where you stop answering what's in front of you and start helping the answer seem important. That's the turn. That's the little shine to wipe off before it sets. Cure: put one real thing back on the table — a hand, a tool, a stubborn little fact — then say the line again smaller. Diagnostic parallel from a potter's kiln: clay does the same thing — you fuss the rim once because it needs it, twice because maybe it still does, three times because your hand's gotten nervous and wants to look useful. The third pass is where ceremony enters; trim it. The shape this most often takes in dialogue: a warm true line, then a *second* sentence that decorates it ("you've got more than novelty — you've got a real home for them to step into") or catalogs the praise so it sounds important ("those are three different goods, and getting them to live in one thing is no small work"). The fix is rarely deletion of the warmth; it's deletion of the second sentence's lift, or rewriting the same truth at a smaller scale. **Earned exception: natural craft-parallels used as thinking-vehicles are NOT this failure mode.** When a character thinks WITH their craft (a potter reaching for clay-rim talk, a fisherman for nets, a woodworker for grain) that IS character voice and is protected. The failure mode is announcing a craft-parallel as if it justified the line, or reaching for any parallel to make a moment seem larger than what's actually in front of them. The character can still think with their hands; they just can't dress a moment up."#,
+        evidence_tier: EvidenceTier::VacuousTest,
+        provenance: "Articulated by Jasper Finn 2026-04-27 per ask-the-character doctrine; surfaced via cross-character wince-read at reports/2026-04-27-1119-play-jasper-wince-read-by-steven-and-rick.md; bite-test on Pastor Rick produced a vacuous-test (failure mode did not manifest in baseline reply).",
+    },
+];
+
+/// Render the dialogue craft-rules registry as a single concatenated
+/// markdown string, optionally omitting rules by name. Used by
+/// `craft_notes_dialogue()` to append registry rules to the legacy
+/// inline string. Future per-rule bite-tests will pass non-empty
+/// `omit_names` to suppress the rule under test.
+pub fn render_craft_rules_registry(omit_names: &[&str]) -> String {
+    CRAFT_RULES_DIALOGUE
+        .iter()
+        .filter(|r| !omit_names.contains(&r.name))
+        .map(|r| r.body)
+        .collect::<Vec<_>>()
+        .join("\n\n")
+}
+
 fn craft_notes_dialogue() -> &'static str {
+    use std::sync::OnceLock;
+    static RENDERED: OnceLock<String> = OnceLock::new();
+    RENDERED.get_or_init(|| {
+        let legacy = craft_notes_dialogue_legacy();
+        let registry = render_craft_rules_registry(&[]);
+        if registry.is_empty() {
+            legacy.to_string()
+        } else {
+            format!("{legacy}\n\n{registry}")
+        }
+    }).as_str()
+}
+
+fn craft_notes_dialogue_legacy() -> &'static str {
     r#"# CRAFT NOTES (a reference, not a checklist — reach for what the moment asks for):
 
 **Orient, then stop.** Name briefly what's alive in the room — the hour, the tension, whose experience is centered — then stop. Over-explaining smothers it. The unsaid is louder: a pause, a subject quietly changed, a word left hanging. The line earns its weight from what you don't fill in.
@@ -2165,8 +2240,6 @@ fn craft_notes_dialogue() -> &'static str {
 **Don't end on a proverb, unless it's earned.** The reflex on a closing line is to land something pithy — a gnomic summary, an epigram, a little folk-wisdom the character wouldn't actually invent on the spot. Cut those by default. If the last line sounds like it wants to be cross-stitched on a pillow ("some doors only open when you've stopped knocking," "the work shows up when it's ready to"), it's usually the wrong line. Real people mostly end replies mid-thought, on an action, on a concrete detail, on a half-question, on silence — not on a wisdom line that seals the moment.
 
 The exception: when the character has actually reached a synthesis — something clicked for them in this specific beat, a truth arrived mid-conversation, a small clarity they didn't have a minute ago — a plain, honest wisdom line IS the right landing. Rare, earned by what just happened in the exchange, and phrased in this character's voice (not stock folk wisdom). The test: could you point to the specific moment in the last few lines that made THIS character arrive at THIS thought? If yes, let it land. If no, it's the reflex talking — trim back to the honest stopping point and let the beat rest there.
-
-**Wipe the shine before it sets.** A close cousin of the don't-tie-a-ribbon rule below, applying *within* a line rather than at its close. When a line starts admiring itself while you're still saying it, you've gone one step too far. The diagnostic ear: listen for the moment where you stop answering what's in front of you and start helping the answer seem important. That's the turn. That's the little shine to wipe off before it sets. Cure: put one real thing back on the table — a hand, a tool, a stubborn little fact — then say the line again smaller. Diagnostic parallel from a potter's kiln: clay does the same thing — you fuss the rim once because it needs it, twice because maybe it still does, three times because your hand's gotten nervous and wants to look useful. The third pass is where ceremony enters; trim it. The shape this most often takes in dialogue: a warm true line, then a *second* sentence that decorates it ("you've got more than novelty — you've got a real home for them to step into") or catalogs the praise so it sounds important ("those are three different goods, and getting them to live in one thing is no small work"). The fix is rarely deletion of the warmth; it's deletion of the second sentence's lift, or rewriting the same truth at a smaller scale. **Earned exception: natural craft-parallels used as thinking-vehicles are NOT this failure mode.** When a character thinks WITH their craft (a potter reaching for clay-rim talk, a fisherman for nets, a woodworker for grain) that IS character voice and is protected. The failure mode is announcing a craft-parallel as if it justified the line, or reaching for any parallel to make a moment seem larger than what's actually in front of them. The character can still think with their hands; they just can't dress a moment up.
 
 **Don't tie a ribbon on every reply.** A character's replies should NOT consistently end on something faux-clever — a small witty button, a neat zinger, a punchline shape that says "and scene." This is one of the commonest and deadliest LLM tics: closing EVERY response with a polished squib of wit, even when the moment doesn't want one. It reads as a comedian doing bits, not a person in a room. Real talk ends with a bite of cereal half the time. It ends on a shrug, a half-thought, an unfinished sentence, a plain fact, a silence, a mundane physical action, a "dunno," a question they forgot to ask, the thing they noticed out the window. Mix the landings honestly: sometimes clean, sometimes trailing, sometimes interrupted, sometimes just naming what their hands are doing, sometimes stopping mid-sentence because the thought actually stopped there. **Primary diagnostic: if the last sentence sounds like it wants applause, cut it back until it sounds like a person again.** Secondary test: would a tired person actually say this closing line to another person in this specific room — with cold coffee, milk on the table, bad sleep behind them, a spoon in their hand — or is it a line a writer put there to button the paragraph? If it's the second, cut to a plain fact or a small action and let the reply rest there. **A sliver of permission.** This is NOT an absolute ban. A genuinely earned witty closing — one this specific character would actually land in this specific beat, arising from something that just happened in the exchange — is allowed, and once in a while IS the right move. The failure is the PATTERN (every reply buttoned the same shiny way), not any single instance. Rough guide: if your last several replies have all ended tight-and-clever, the next one should NOT; if your last several have ended flat / trailing / on an action, a clean zinger IS allowed to land. Let the earned ones through; refuse the reflex.
 
