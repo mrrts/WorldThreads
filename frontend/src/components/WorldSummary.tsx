@@ -1,10 +1,10 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { MessageSquare, Settings, Loader2, User, ChevronLeft, ChevronRight, Play, Pause, Square, BookOpen, X, Volume2, VolumeX, Compass } from "lucide-react";
 import { QuestsModal } from "@/components/QuestsModal";
 import type { useAppStore } from "@/hooks/use-app-store";
-import { api, type Character, type PortraitInfo, type GalleryItem } from "@/lib/tauri";
+import { api, type Character, type PortraitInfo } from "@/lib/tauri";
 import { useSlideshow } from "@/hooks/use-slideshow";
 import { SummaryModal } from "@/components/chat/SummaryModal";
 import { PortraitModal } from "@/components/chat/PortraitModal";
@@ -35,7 +35,7 @@ export function WorldSummary({ store, onChat, onSettings }: Props) {
   const [showQuests, setShowQuests] = useState(false);
   const [videoMuted, setVideoMuted] = useState(true);
   const [illustrations, setIllustrations] = useState<Array<{ id: string; data_url: string }>>([]);
-  const [loadingCarousel, setLoadingCarousel] = useState(true);
+  const [, setLoadingCarousel] = useState(true);
   const [videoFiles, setVideoFiles] = useState<Record<string, string>>({});
   const [videoDataUrls, setVideoDataUrls] = useState<Record<string, string>>({});
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -142,7 +142,7 @@ export function WorldSummary({ store, onChat, onSettings }: Props) {
           const portrait = store.activePortraits[ch.character_id] ?? null;
           try {
             const paginated = await api.getMessages(ch.character_id);
-            const dialogueCount = paginated.messages.filter((m) => m.role !== "illustration" && m.role !== "video").length;
+            const dialogueCount = paginated.messages.filter((m) => m.role !== "illustration").length;
             return { character: ch, portrait, messageCount: paginated.total, dialogueCount };
           } catch {
             return { character: ch, portrait, messageCount: 0, dialogueCount: 0 };
@@ -156,7 +156,7 @@ export function WorldSummary({ store, onChat, onSettings }: Props) {
         store.groupChats.map(async (gc) => {
           try {
             const page = await api.getGroupMessages(gc.group_chat_id);
-            return [gc.group_chat_id, page.messages.filter((m) => m.role !== "illustration" && m.role !== "video").length] as const;
+            return [gc.group_chat_id, page.messages.filter((m) => m.role !== "illustration").length] as const;
           } catch { return [gc.group_chat_id, 0] as const; }
         })
       );

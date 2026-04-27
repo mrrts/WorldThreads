@@ -17,7 +17,6 @@ export function ResetConfirmModal({
   onConfirm,
   characterName,
   isUserMessage,
-  isGroup,
 }: ResetConfirmModalProps) {
   return (
     <Dialog open={open} onClose={onClose} className="max-w-sm">

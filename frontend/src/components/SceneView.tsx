@@ -73,7 +73,7 @@ export function SceneView({ store, onChat, onSettings }: Props) {
       {/* Bottom info bar */}
       <div className="absolute bottom-4 left-4 bg-card/80 backdrop-blur-sm border border-border rounded-lg px-4 py-2">
         <p className="text-xs text-muted-foreground">
-          {store.activeWorld?.state?.location?.current_scene ?? "Unknown"} · Day {store.activeWorld?.state?.time?.day_index ?? 1} · {timeOfDay}
+          Day {store.activeWorld?.state?.time?.day_index ?? 1} · {timeOfDay}
         </p>
         <div className="flex gap-3 mt-1">
           {store.characters.map((ch) => {
@@ -168,7 +168,6 @@ function CharacterAvatar({
 }) {
   const groupRef = useRef<THREE.Group>(null);
   const texture = useAvatarTexture(avatarUrl);
-  const scale = active ? 1.3 : 1.0;
 
   useFrame((_, delta) => {
     if (groupRef.current) {

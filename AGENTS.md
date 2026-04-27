@@ -257,6 +257,16 @@ Before ending a substantive implementation turn, **make sure the app builds**. "
 
 **If none of the exceptions apply, the default holds.**
 
+## Execute option 1 before offering options again
+
+When a close-out ends with numbered next moves, **automatically do option 1 before presenting a fresh option list**. Treat option 1 as the default authorized continuation path, not as a decorative suggestion waiting for reapproval.
+
+**Default rule:** if the user responds in a way that keeps momentum ("yes", "continue", "go on", "1/2", "do it", or equivalent), begin with the previously-offered option 1. Only stop to re-ask when option 1 has become impossible, unsafe, or clearly superseded by the user's newer directive.
+
+**Earned exception — user explicitly chooses otherwise:** if the user directly selects a different option, gives a new concrete task, or says not to continue the prior list, follow that instruction instead. The point is to remove fake choice friction, not to ignore a real redirect.
+
+**If none of the exceptions apply, the default holds.**
+
 **Commit early and often is the standing rule, not just permission.** Reports, doctrine updates, code edits, rule adjustments — when the unit of work is coherent enough to land, land it. Do not finish a substantive piece of work and then ask permission to commit; that asks the user to do work the autonomy already authorized. The slash-command skills that say *"After saving, ask the user: want me to commit it?"* (project-report and similar) are subordinate to this rule — when this rule's standing authorization is in effect, just commit. Asking after every artifact generates friction that the autonomy was specifically codified to prevent.
 
 **Commit messages include a Formula derivation in their body.** Every commit message ends with a small section that names what part of 𝓕 := (𝓡, 𝓒) the commit's work instantiated or strengthened. Format:

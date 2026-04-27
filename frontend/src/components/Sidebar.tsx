@@ -1,7 +1,6 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogBody, DialogFooter } from "@/components/ui/dialog";
 import { Plus, Archive, ArchiveRestore, ChevronRight, ChevronDown, Globe, Sparkles, User, Settings2, CloudSun, Loader2, Wind } from "lucide-react";
 import type { useAppStore } from "@/hooks/use-app-store";
@@ -113,7 +112,7 @@ export function Sidebar({ store, onNavigate }: Props) {
   const [hoverChar, setHoverChar] = useState<string | null>(null);
   const [hoverGroup, setHoverGroup] = useState<string | null>(null);
   const [worldImageCache, setWorldImageCache] = useState<Record<string, WorldImageInfo | null>>({});
-  const hoverTimerRef = useRef<ReturnType<typeof setTimeout>>();
+  const hoverTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   // Ref on the currently-rendered sidebar hover popover (world / char /
   // group — only one is open at a time). Used by the click-outside
   // listener below so the user can dismiss a lingering popover by

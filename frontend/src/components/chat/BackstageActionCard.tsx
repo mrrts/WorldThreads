@@ -104,6 +104,12 @@ interface Props {
   ctx: BackstageActionContext;
 }
 
+type CanonEntryBlock = Extract<BackstageActionBlock, { type: "canon_entry" }>;
+type StagedMessageBlock = Extract<BackstageActionBlock, { type: "staged_message" }>;
+type PortraitRegenBlock = Extract<BackstageActionBlock, { type: "portrait_regen" }>;
+type IllustrationBlock = Extract<BackstageActionBlock, { type: "illustration" }>;
+type ProposeQuestBlock = Extract<BackstageActionBlock, { type: "propose_quest" }>;
+
 export function BackstageActionCard({ block, ctx }: Props) {
   const [state, setState] = useState<"idle" | "applying" | "applied" | "dismissed" | "error" | "previewing" | "preview-shown" | "attaching">("idle");
   const [error, setError] = useState<string | null>(null);
@@ -139,15 +145,16 @@ export function BackstageActionCard({ block, ctx }: Props) {
 
   // Canon entry card
   if (block.type === "canon_entry") {
+    const canonBlock = block as CanonEntryBlock;
     const onSave = async () => {
       setState("applying");
       setError(null);
       try {
         await api.saveKeptRecord(ctx.apiKey ?? "", {
-          subjectType: block.subject_type,
-          subjectId: block.subject_id,
-          recordType: block.record_type || "description_weave",
-          content: block.content,
+          subjectType: canonBlock.subject_type,
+          subjectId: canonBlock.subject_id,
+          recordType: canonBlock.record_type || "description_weave",
+          content: canonBlock.content,
         });
         setState("applied");
         setTimeout(() => ctx.onAppliedClose(), 600);
@@ -165,9 +172,9 @@ export function BackstageActionCard({ block, ctx }: Props) {
           </span>
         </div>
         <div className="px-4 py-3">
-          <p className="text-[11px] text-muted-foreground/80 mb-2 italic">{block.label}</p>
+          <p className="text-[11px] text-muted-foreground/80 mb-2 italic">{canonBlock.label}</p>
           <div className="text-sm leading-relaxed whitespace-pre-wrap text-foreground/90 bg-background/40 rounded-md p-3 border border-border/40 max-h-[320px] overflow-y-auto">
-            {block.content}
+            {canonBlock.content}
           </div>
           {error && <p className="text-xs text-destructive mt-2">{error}</p>}
           <div className="flex items-center gap-2 mt-3">
@@ -195,9 +202,10 @@ export function BackstageActionCard({ block, ctx }: Props) {
 
   // Staged message card
   if (block.type === "staged_message") {
+    const stagedBlock = block as StagedMessageBlock;
     const onStage = () => {
       window.dispatchEvent(new CustomEvent("backstage:stage-message", {
-        detail: { threadId: ctx.activeThreadId, text: block.content },
+        detail: { threadId: ctx.activeThreadId, text: stagedBlock.content },
       }));
       setState("applied");
       setTimeout(() => ctx.onAppliedClose(), 400);
@@ -211,9 +219,9 @@ export function BackstageActionCard({ block, ctx }: Props) {
           </span>
         </div>
         <div className="px-4 py-3">
-          <p className="text-[11px] text-muted-foreground/80 mb-2 italic">{block.label}</p>
+          <p className="text-[11px] text-muted-foreground/80 mb-2 italic">{stagedBlock.label}</p>
           <div className="text-sm leading-relaxed whitespace-pre-wrap text-foreground/90 bg-background/40 rounded-md p-3 border border-border/40 max-h-[240px] overflow-y-auto">
-            {block.content}
+            {stagedBlock.content}
           </div>
           <div className="flex items-center gap-2 mt-3">
             <button
@@ -238,12 +246,13 @@ export function BackstageActionCard({ block, ctx }: Props) {
 
   // Portrait regeneration card
   if (block.type === "portrait_regen") {
+    const portraitBlock = block as PortraitRegenBlock;
     const onApply = async () => {
       if (!ctx.apiKey) { setError("No API key configured."); setState("error"); return; }
       setState("applying");
       setError(null);
       try {
-        await api.generatePortraitWithPose(ctx.apiKey, block.subject_id, block.pose_description);
+        await api.generatePortraitWithPose(ctx.apiKey, portraitBlock.subject_id, portraitBlock.pose_description);
         setState("applied");
         // Portrait creation is slow — leave the success state visible a
         // beat longer before auto-close so the user sees what happened.
@@ -262,9 +271,9 @@ export function BackstageActionCard({ block, ctx }: Props) {
           </span>
         </div>
         <div className="px-4 py-3">
-          <p className="text-[11px] text-muted-foreground/80 mb-2 italic">{block.label}</p>
+          <p className="text-[11px] text-muted-foreground/80 mb-2 italic">{portraitBlock.label}</p>
           <div className="text-sm leading-relaxed whitespace-pre-wrap text-foreground/90 bg-background/40 rounded-md p-3 border border-border/40">
-            {block.pose_description}
+            {portraitBlock.pose_description}
           </div>
           {error && <p className="text-xs text-destructive mt-2">{error}</p>}
           <div className="flex items-center gap-2 mt-3">
@@ -303,12 +312,13 @@ export function BackstageActionCard({ block, ctx }: Props) {
   // The earlier one-step flow lost the image into the wrong thread when
   // Backstage was opened from a group chat.
   if (block.type === "illustration") {
+    const illustrationBlock = block as IllustrationBlock;
     const onPreview = async () => {
       if (!ctx.apiKey) { setError("No API key configured."); setState("error"); return; }
       setState("previewing");
       setError(null);
       try {
-        const result = await api.previewBackstageIllustration(ctx.apiKey, block.character_id, ctx.groupChatId, block.custom_instructions);
+        const result = await api.previewBackstageIllustration(ctx.apiKey, illustrationBlock.character_id, ctx.groupChatId, illustrationBlock.custom_instructions);
         setPreviewedImage({ imageId: result.image_id, dataUrl: result.data_url, aspectRatio: result.aspect_ratio });
         setState("preview-shown");
       } catch (e: any) {
@@ -358,9 +368,9 @@ export function BackstageActionCard({ block, ctx }: Props) {
           </span>
         </div>
         <div className="px-4 py-3">
-          <p className="text-[11px] text-muted-foreground/80 mb-2 italic">{block.label}</p>
+          <p className="text-[11px] text-muted-foreground/80 mb-2 italic">{illustrationBlock.label}</p>
           <div className="text-sm leading-relaxed whitespace-pre-wrap text-foreground/90 bg-background/40 rounded-md p-3 border border-border/40 max-h-[240px] overflow-y-auto">
-            {block.custom_instructions}
+            {illustrationBlock.custom_instructions}
           </div>
           {previewedImage && (
             <div className="mt-3 rounded-lg overflow-hidden border border-amber-400/30 bg-black/20">
@@ -493,6 +503,7 @@ export function BackstageActionCard({ block, ctx }: Props) {
   // with title/description the user can edit, and a reflection prompt
   // ("what are you reaching for here?") before the actual commit.
   if (block.type === "propose_quest") {
+    const questBlock = block as ProposeQuestBlock;
     const [dialogOpen, setDialogOpen] = useState(false);
     const onOpen = () => setDialogOpen(true);
     const onCommitted = () => {
@@ -509,9 +520,9 @@ export function BackstageActionCard({ block, ctx }: Props) {
             </span>
           </div>
           <div className="px-4 py-3">
-            <p className="text-sm font-medium text-foreground/95 mb-1.5">{block.title}</p>
+            <p className="text-sm font-medium text-foreground/95 mb-1.5">{questBlock.title}</p>
             <div className="text-sm leading-relaxed whitespace-pre-wrap text-foreground/85 bg-background/40 rounded-md p-3 border border-border/40">
-              {block.description}
+              {questBlock.description}
             </div>
             <p className="text-[10px] text-muted-foreground/70 italic mt-2">
               Accepting is a small vow. You can abandon it later if it stops fitting.
@@ -535,15 +546,15 @@ export function BackstageActionCard({ block, ctx }: Props) {
           </div>
         </div>
         {dialogOpen && (
-          <QuestAcceptanceDialog
-            worldId={ctx.worldId}
-            initialTitle={block.title}
-            initialDescription={block.description}
-            originKind="backstage"
-            originRef={block.origin_ref}
-            onClose={() => setDialogOpen(false)}
-            onAccepted={() => { setDialogOpen(false); onCommitted(); }}
-          />
+            <QuestAcceptanceDialog
+              worldId={ctx.worldId}
+              initialTitle={questBlock.title}
+              initialDescription={questBlock.description}
+              originKind="backstage"
+              originRef={questBlock.origin_ref}
+              onClose={() => setDialogOpen(false)}
+              onAccepted={() => { setDialogOpen(false); onCommitted(); }}
+            />
         )}
       </>
     );

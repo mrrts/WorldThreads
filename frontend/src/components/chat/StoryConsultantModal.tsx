@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import Markdown from "react-markdown";
 import { Dialog } from "@/components/ui/dialog";
-import { X, Loader2, Send, Lightbulb, Sparkles, Trash2, ChevronDown, Pencil, Plus, PanelLeftClose, PanelLeftOpen, Download, BookOpen, Drama, Eye, Feather, Wand2, RotateCcw, Sprout, Map, Hammer, ArrowRight, Users, Flame, type LucideIcon } from "lucide-react";
+import { X, Loader2, Send, Lightbulb, Sparkles, Trash2, ChevronDown, Pencil, Plus, PanelLeftClose, PanelLeftOpen, Download, BookOpen, Drama, Eye, Feather, RotateCcw, Sprout, Map, Hammer, ArrowRight, Users, Flame, type LucideIcon } from "lucide-react";
 import { formatMessage, markdownComponents, consultantMarkdownComponents, consultantStreamingMarkdownComponents, transformConsultantIcons, remarkPlugins, rehypePlugins } from "./formatMessage";
 import { listen } from "@tauri-apps/api/event";
 import { api, type ConsultantChat } from "@/lib/tauri";
@@ -35,7 +35,7 @@ interface Props {
   /** Whether to play a chime on first token */
   notifyOnMessage: boolean;
   /** Chat font size ("sm" | "md" | "lg" etc.) — shared with ChatView/GroupChatView */
-  chatFontSize: string;
+  chatFontSize: number;
   /** Active world id — required for Backstage actions that create
    *  world-scoped entities (e.g. new group chats). */
   worldId: string;
@@ -210,7 +210,6 @@ export function StoryConsultantModal({ open, onClose, apiKey, characterId, group
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [showPrompts, setShowPrompts] = useState(false);
-  const [showClearConfirm, setShowClearConfirm] = useState(false);
   const [isAtBottom, setIsAtBottom] = useState(true);
   const [editingIdx, setEditingIdx] = useState<number | null>(null);
   const [editContent, setEditContent] = useState("");
@@ -463,8 +462,6 @@ export function StoryConsultantModal({ open, onClose, apiKey, characterId, group
     }
     setDeleteChatId(null);
   };
-
-  const isBackstageMode = activeMode === "backstage";
 
   // Fade-through-solid mode-bg crossfade. When activeMode changes:
   // 1. The currently-displayed bg fades out to opacity 0 (350ms),

@@ -8,7 +8,7 @@ import { Field, FieldGroup } from "@/components/ui/field";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogBody } from "@/components/ui/dialog";
 import { Plus, X, BookTemplate, ImagePlus, Loader2, Check, Images, Shuffle, Trash2, AlertTriangle, MessageSquareX, RotateCcw, PenLine, Volume2, Square } from "lucide-react";
 import { CHARACTER_TEMPLATES, type CharacterTemplate } from "@/lib/character-templates";
-import { api, type Character, type PortraitInfo, type GalleryItem, type InventoryItem, type JournalEntry } from "@/lib/tauri";
+import { api, type Character, type CharacterState, type PortraitInfo, type GalleryItem, type InventoryItem, type JournalEntry } from "@/lib/tauri";
 import type { useAppStore } from "@/hooks/use-app-store";
 import { InventoryEditor } from "@/components/character/InventoryEditor";
 import { DerivationCard } from "@/components/DerivationCard";
@@ -690,9 +690,9 @@ export function CharacterEditor({ store }: Props) {
                             size="icon"
                             className="h-9 w-9 opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive flex-shrink-0"
                             onClick={() => {
-                              const newState = { ...(form.state as Record<string, unknown>) };
+                              const newState = { ...((form.state ?? {}) as unknown as Record<string, unknown>) };
                               delete newState[key];
-                              update({ state: newState as Character["state"] });
+                              update({ state: newState as unknown as CharacterState });
                             }}
                           >
                             <X size={14} />

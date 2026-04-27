@@ -1,5 +1,4 @@
 import { useState, useEffect, useCallback } from "react";
-import { Button } from "@/components/ui/button";
 import { api, type CharacterMood, type MoodSettings } from "@/lib/tauri";
 import { Activity, X, ChevronDown, ChevronUp } from "lucide-react";
 

@@ -46,7 +46,6 @@ export function ImaginedChapterModal({
   notifyOnMessage,
   chatFontSize,
   openChapterId,
-  onCanonize,
 }: Props) {
   const [chapters, setChapters] = useState<ImaginedChapter[]>([]);
   const [activeChapterId, setActiveChapterId] = useState<string | null>(null);
@@ -429,7 +428,7 @@ export function ImaginedChapterModal({
   };
 
   return (
-    <Dialog open={open} onOpenChange={(v) => !v && handleCloseAttempt()}>
+    <Dialog open={open} onClose={handleCloseAttempt}>
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60">
         <div
           className="w-full max-w-6xl h-[90vh] bg-card border border-border rounded-xl shadow-2xl shadow-black/40 flex overflow-hidden animate-in fade-in zoom-in-95 duration-150"

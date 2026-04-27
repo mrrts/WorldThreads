@@ -55,7 +55,6 @@ export interface AppState {
   proactiveUnreadCounts: Record<string, number>;
 }
 
-const PAGE_SIZE = 20;
 /** Initial + per-page size for chat message loading. Long histories
  *  were starting to cause noticeable render lag. */
 const CHAT_PAGE_SIZE = 100;
@@ -69,6 +68,8 @@ const defaultModelConfig: ModelConfig = {
   vision_model: "gpt-4.1",
   ai_provider: "openai",
   lmstudio_url: "http://127.0.0.1:1234",
+  lmstudio_context_tokens: 40000,
+  dialogue_model_frontier: "gpt-5",
 };
 
 export function useAppStore() {
@@ -777,6 +778,7 @@ export function useAppStore() {
         role: "user",
         content,
         tokens_estimate: 0,
+        sender_character_id: null,
         created_at: new Date().toISOString(),
         ...worldTimeFields(),
       };
@@ -817,6 +819,7 @@ export function useAppStore() {
       role: "user",
       content,
       tokens_estimate: 0,
+      sender_character_id: null,
       created_at: new Date().toISOString(),
       ...worldTimeFields(),
     };
@@ -876,7 +879,7 @@ export function useAppStore() {
     } catch (e) {
       setState((s) => ({
         ...s,
-        sending: false,
+        sending: null,
         chatError: String(e),
         lastFailedContent: s.messages.find((m) => m.message_id === optimisticMsg.message_id)?.content ?? content,
         messages: s.messages.filter((m) => m.message_id !== optimisticMsg.message_id),
@@ -951,7 +954,7 @@ export function useAppStore() {
     } catch (e) {
       setState((s) => ({
         ...s,
-        sending: false,
+        sending: null,
         chatError: String(e),
       }));
     }
@@ -1171,6 +1174,7 @@ export function useAppStore() {
     }
     return result;
   }, []);
+  void loadVideoFiles;
 
   const generateVideo = useCallback(async (illustrationMessageId: string, customPrompt?: string, durationSeconds?: number, style?: string, includeContext?: boolean) => {
     const characterId = state.activeCharacter?.character_id ?? "";

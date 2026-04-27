@@ -6,12 +6,11 @@ import { InlineQuestProposalCard } from "@/components/chat/InlineQuestProposalCa
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Dialog } from "@/components/ui/dialog";
-import { Send, Loader2, Smile, SmilePlus, X, Copy, ExternalLink, BookOpen, RotateCcw, MessageSquare, Compass, Settings, Image, Trash2, SlidersHorizontal, Pencil, Square, Play, Volume2, ChevronDown, ChevronRight, ScrollText, Moon, Package, Sparkles, MessageCircleQuestion, List, MapPin } from "lucide-react";
+import { Send, Loader2, Smile, SmilePlus, X, ExternalLink, BookOpen, MessageSquare, Settings, Image, Trash2, SlidersHorizontal, Pencil, Square, Play, Volume2, ChevronDown, ChevronRight, ScrollText, Moon, Package, Sparkles, MessageCircleQuestion, List, MapPin } from "lucide-react";
 import { invoke } from "@tauri-apps/api/core";
 import { WebviewWindow } from "@tauri-apps/api/webviewWindow";
 import type { useAppStore } from "@/hooks/use-app-store";
-import { api, type Reaction } from "@/lib/tauri";
-import { EmojiPicker } from "@/components/chat/EmojiPicker";
+import { api, type Message } from "@/lib/tauri";
 import { ReactionBubbles } from "@/components/chat/ReactionBubbles";
 import { ReactionPicker } from "@/components/chat/ReactionPicker";
 import { KeepRecordModal } from "@/components/chat/KeepRecordModal";
@@ -266,7 +265,6 @@ export function ChatView({ store, onNavigateToCharacter }: Props) {
     userAvatarUrl,
     copiedError, setCopiedError,
     resetConfirmId, setResetConfirmId,
-    showNarrationSettings, setShowNarrationSettings,
     adjustIllustrationId, setAdjustIllustrationId,
     adjustInstructions, setAdjustInstructions,
     videoModalId, setVideoModalId,
@@ -1891,6 +1889,7 @@ export function ChatView({ store, onNavigateToCharacter }: Props) {
         }}
         characterName={store.activeCharacter?.display_name}
         isUserMessage={store.messages.find((m) => m.message_id === resetConfirmId)?.role === "user" || false}
+        isGroup={false}
       />
 
       <SummaryModal

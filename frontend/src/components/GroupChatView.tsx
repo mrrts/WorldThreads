@@ -6,13 +6,13 @@ import { InlineQuestProposalCard } from "@/components/chat/InlineQuestProposalCa
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Dialog } from "@/components/ui/dialog";
-import { Send, Loader2, X, BookOpen, MessageSquare, Compass, Settings, Image, Trash2, SlidersHorizontal, Pencil, Square, Crosshair, ChevronLeft, ChevronRight, ChevronDown, Play, Pause, Volume2, ArrowRight, Smile, SmilePlus, ScrollText, Package, Sparkles, MessageCircleQuestion, List, MapPin } from "lucide-react";
+import { Send, Loader2, X, BookOpen, MessageSquare, Settings, Image, Trash2, SlidersHorizontal, Pencil, Square, ChevronRight, ChevronDown, Play, Volume2, ArrowRight, Smile, SmilePlus, ScrollText, Package, Sparkles, MessageCircleQuestion, List, MapPin } from "lucide-react";
 import { invoke } from "@tauri-apps/api/core";
 import { ReactionBubbles } from "@/components/chat/ReactionBubbles";
 import { ReactionPicker } from "@/components/chat/ReactionPicker";
 import { KeepRecordModal } from "@/components/chat/KeepRecordModal";
 import { KeepToast } from "@/components/chat/KeepToast";
-import type { KeptRecord, MeanwhileEvent } from "@/lib/tauri";
+import type { KeptRecord, MeanwhileEvent, Message } from "@/lib/tauri";
 import { MeanwhileCard } from "@/components/chat/MeanwhileCard";
 import type { useAppStore } from "@/hooks/use-app-store";
 import { api } from "@/lib/tauri";
@@ -185,7 +185,6 @@ export function GroupChatView({ store, onNavigateToCharacter }: Props) {
     userAvatarUrl,
     copiedError, setCopiedError,
     resetConfirmId, setResetConfirmId,
-    showNarrationSettings, setShowNarrationSettings,
     adjustIllustrationId, setAdjustIllustrationId,
     adjustInstructions, setAdjustInstructions,
     videoModalId, setVideoModalId,
@@ -1456,7 +1455,6 @@ export function GroupChatView({ store, onNavigateToCharacter }: Props) {
                   </span>
                 )}
                 {showGroupTalkPicker && (() => {
-                  const userName = store.userProfile?.display_name ?? "me";
                   const userAvatar = userAvatarUrl
                     ? <img src={userAvatarUrl} alt="" className="w-9 h-9 rounded-full object-cover flex-shrink-0" />
                     : <div className="w-9 h-9 rounded-full flex-shrink-0 bg-primary/30" />;

@@ -52,8 +52,8 @@ interface Props {
 export function IllustrationMessage({
   msg, isPending, isSending, isGeneratingVideo, store,
   playingVideo, setPlayingVideo, loopVideo, setLoopVideo,
-  videoFiles, setVideoFiles, videoDataUrls, playVideoFn,
-  setIllustrationModalId, setModalSelectedId, setModalPlayingVideo, setModalImageLoading, setModalIllustrations,
+  videoFiles, videoDataUrls, playVideoFn,
+  setIllustrationModalId, setModalSelectedId, setModalPlayingVideo, setModalImageLoading,
   setAdjustIllustrationId, setAdjustInstructions,
   setVideoModalId, setVideoPrompt, setVideoDuration, setVideoStyle, setVideoTab,
   setRemoveVideoConfirmId, setResetConfirmId,

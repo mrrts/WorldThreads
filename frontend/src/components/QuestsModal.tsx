@@ -2,8 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogBody, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Input } from "@/components/ui/input";
-import { Compass, Loader2, Check, X, RotateCcw, Trash2, Plus, Feather } from "lucide-react";
+import { Compass, Loader2, Check, X, RotateCcw, Trash2, Plus } from "lucide-react";
 import { api, type Quest } from "@/lib/tauri";
 import { QuestAcceptanceDialog } from "@/components/chat/QuestAcceptanceDialog";
 

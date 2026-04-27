@@ -153,7 +153,7 @@ export function KeepRecordModal({
   if (!open || !sourceMessage) return null;
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onClose={() => onOpenChange(false)}>
       <div className="fixed inset-0 z-50 flex items-start justify-center p-6 overflow-y-auto">
         <div className="w-full max-w-2xl my-8 bg-card border border-border rounded-xl shadow-2xl shadow-black/40 p-5 space-y-4 animate-in fade-in zoom-in-95 duration-150">
           <div className="flex items-center gap-2">

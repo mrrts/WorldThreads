@@ -57,7 +57,7 @@ interface WorldReveal {
 /// matches the asymmetry between accepting a pursuit and authoring
 /// a place). The answer is saved as the world's first user-authored
 /// quest, turning a model-generated world into a chosen home.
-export function GenesisModal({ open, onClose, apiKey, googleApiKey, setApiKey, setGoogleApiKey, onWorldAccepted }: Props) {
+export function GenesisModal({ open, onClose, apiKey, googleApiKey: _googleApiKey, setApiKey, setGoogleApiKey, onWorldAccepted }: Props) {
   // If no OpenAI key is stored, start in the keys phase — the user
   // must provide one before they can dream a world. Google key is
   // always optional and surfaced alongside.
@@ -208,6 +208,7 @@ export function GenesisModal({ open, onClose, apiKey, googleApiKey, setApiKey, s
           display_name: "Me",
           description: "",
           facts: [],
+          boundaries: [],
           avatar_file: "",
           updated_at: "",
         });
@@ -245,6 +246,7 @@ export function GenesisModal({ open, onClose, apiKey, googleApiKey, setApiKey, s
       display_name: selfName.trim() || "Me",
       description: composedSelfDescription(),
       facts: selfFacts.filter((f) => f.trim()),
+      boundaries: [],
       avatar_file: "",
       updated_at: "",
     });

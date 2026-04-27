@@ -159,7 +159,7 @@ interface Props {
 export function DayPageSlide({
   day, messages, portraits, characterColors, characterNames,
   userAvatarUrl, backgroundPortraits, videoFiles, videoDataUrls, playVideo,
-  playingVideo, setPlayingVideo, loopVideo, setLoopVideo, defaultCharacterId,
+  playingVideo, setPlayingVideo, loopVideo, defaultCharacterId,
   threadId, apiKey, isGroup, novelEntry, onNovelChange, notifyOnMessage,
 }: Props) {
   const [showNovelView, setShowNovelView] = useState(!!novelEntry);

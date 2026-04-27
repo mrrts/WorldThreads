@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useState } from "react";
 import Markdown from "react-markdown";
 import { BookOpen, Volume2, Loader2, Square, Play, SlidersHorizontal, Trash2, ScrollText, Package } from "lucide-react";
 import { Button } from "@/components/ui/button";

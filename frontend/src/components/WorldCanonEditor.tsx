@@ -93,14 +93,6 @@ export function WorldCanonEditor({ store }: Props) {
     setDirty(true);
   };
 
-  const updateState = (patch: Partial<WorldState>) => {
-    setForm((f) => ({
-      ...f,
-      state: { ...(f.state as WorldState), ...patch },
-    }));
-    setDirty(true);
-  };
-
   const handleSave = async () => {
     await store.updateWorld({ ...world, ...form } as World);
     if (form.state) await store.updateWorldState(form.state as WorldState);
@@ -135,8 +127,6 @@ export function WorldCanonEditor({ store }: Props) {
 
   const tags = (form.tone_tags ?? []) as string[];
   const invariants = (form.invariants ?? []) as string[];
-  const state = (form.state ?? world.state) as WorldState;
-
   return (
     <>
       <div className="flex-1 flex flex-col min-h-0">
@@ -368,8 +358,10 @@ export function WorldCanonEditor({ store }: Props) {
       <Dialog open={showDelete} onClose={() => setShowDelete(false)}>
         <DialogContent>
           <DialogHeader onClose={() => setShowDelete(false)}>
-            <DialogTitle className="flex items-center gap-2">
-              <AlertTriangle size={16} className="text-destructive" /> Delete World
+            <DialogTitle>
+              <span className="flex items-center gap-2">
+                <AlertTriangle size={16} className="text-destructive" /> Delete World
+              </span>
             </DialogTitle>
             <DialogDescription>
               This will permanently delete <strong>{world.name}</strong> and all its characters, messages, and events. This can't be undone.
