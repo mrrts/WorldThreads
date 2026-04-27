@@ -43,6 +43,18 @@ What this walk demonstrated: the methodology is HONEST when the test is. The win
 
 Three `/rule-arc` walks in one evening. Two earned EnsembleVacuous via cross-character convergence; one earned VacuousTest via probe-design failure that surfaced its own structural lesson. The methodology refines through use; the catalog records what the methodology learned.
 
+**Step 7+ second-pass (01:50) — methodological frontier finding.** Redesigned the synthetic history with 2 embedded drift moves (Jasper actually authorizing in turns 3-4 — *"the truth may not be in the sentence at all"* + *"sounds like something a man at peace would actually say"*). Re-ran paired N=5+5. ALSO VACUOUS: all 10 replies returned to clean offering register, both arms. The model treats prior-context drift moves as a pattern to BREAK rather than to continue, regardless of rule presence — same self-correction-via-observation behavior already in CLAUDE.md doctrine, hitting a structural limit on this rule's bite-test.
+
+**The frontier finding, named plainly:** per-rule omit-flag bite-tests at per-character level are **structurally unable to distinguish rule-bite from self-correction-via-observation** for sequence-failure-mode rules whose failure mode is helper-drift-mid-collaboration. This is the methodology's first explicit frontier — not a probe-design fixable limit, but an instrument-family-shaped one. The honest move is to name it, not force a result.
+
+The rule stays at VacuousTest with the structural-uncharacterizability annotation in provenance. The Aaron wince-read evidence preserves what this instrument couldn't measure: the failure mode DOES manifest in real lived play. Different instrument families (passive-corpus pre/post-rule evaluator; cross-character on less-self-correcting anchor; turn-8+ delayed-test synthetic history) may reach what per-rule omit cannot.
+
+Total cost across all four instrument passes on this rule (16 + 10 = 26 calls): ~$2.13. The most expensive single rule in the catalog tonight. The honest result: a frontier finding worth more than the cost.
+
+**Skill body updated** with this methodological-frontier paragraph. Future `/rule-arc` walkers reading Layer D will see both the probe-design caveat AND the structural-instrument-limit finding before designing their own bite-test for sequence-failure-mode rules.
+
+The methodology's HONESTY is what made tonight legible. Three walks; one Characterized rule remaining unique; the catalog grew by one rule, learned three probe-design lessons, and named one structural instrument frontier. The skill teaches itself.
+
 ## 2026-04-28 00:15 — /rule-arc second walk: cash_out_oblique_lines → EnsembleVacuous + probe-design lesson
 
 > Second `/rule-arc` walk in the same evening, on `cash_out_oblique_lines` (sat at `VacuousTest` from a Jasper-only N=5+5 earlier today). Cross-character on Pastor Rick — preacherly register chosen as register-distinct from Jasper's poetic-potter for testing whether the cashout discipline holds across two different oblique-prone substrates.

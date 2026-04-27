@@ -190,6 +190,27 @@ the prior context should make the failure mode MANIFEST IN BASELINE so the
 rule's bite is measurable as "rule ON suppresses it / rule OFF lets it
 continue."
 
+**Methodological-frontier finding (immediate second pass on the same rule,
+01:50): drift-moves-embedded synthetic history STILL didn't surface the
+rule's bite.** Re-ran paired N=5+5 with 2 embedded drift moves in the prior
+context (Jasper actually authorizing in turns 3-4). All 10 replies returned
+to clean offering register, both arms. The model treats prior-context
+drift moves as a pattern to BREAK rather than to continue, regardless of
+rule presence — same self-correction-via-observation behavior shipped as
+doctrine in CLAUDE.md, applied here. **Per-rule omit-flag bite-tests at
+per-character level are structurally unable to distinguish rule-bite from
+self-correction-via-observation for sequence-failure-mode rules whose
+failure mode is helper-drift-mid-collaboration.** The rule's potential
+bite is indistinguishable from this self-correction at this instrument
+granularity. Honest tier label: VacuousTest with the explicit annotation
+that the rule may be structurally-uncharacterizable-by-per-rule-omit via
+this instrument family. The methodology has hit a real frontier; the
+honest move is to NAME it, not to force a result. Different instrument
+families (passive-corpus pre-rule/post-rule evaluator looking at lived
+play; cross-character on a less-self-correcting anchor; synthetic-history
+that delays test turn to turn 8+ to exhaust self-correction capacity) may
+reach what this instrument cannot.
+
 ### Step 4 — Honest tier assignment
 
 The registry's `EvidenceTier` enum is the project's vocabulary for what kind
