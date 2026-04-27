@@ -193,6 +193,65 @@ gpt-4o), still well under a real-user probe's cost. Don't run a triptych
 when a single run would do; don't run a single run when the question is
 structural.
 
+## Architecture: Claude-light, OpenAI-heavy
+
+The /play skill is structured so that **all creative-spark moments live in
+ChatGPT calls** and Claude Code stays in the orchestrator-role. Claude Code
+does NOT invent personas, write persona-specific yardsticks, or render
+persona encounters. Those are ChatGPT's job — Claude Code's job is to:
+
+- Read the live app-state (factual, not creative)
+- Send the right ChatGPT calls in the right order
+- Run worldcli grounding queries (factual, not creative)
+- Assemble the report by concatenating ChatGPT's outputs + the worldcli
+  evidence (assembly, not authorship)
+- Commit and ship
+
+**Why this discipline matters:** Claude Code's training-substrate is
+particular. When Claude Code drafts a persona, the persona inherits Claude
+Code's blind spots — sympathetic-toward-the-project, articulate-in-Claude-
+Code's-register, biased toward what Claude Code finds compelling. That makes
+the persona-sim less independent and less discriminating. ChatGPT-built
+personas have a different blind-spot profile, which makes the cross-LLM
+distance itself part of the instrument's validity.
+
+It also keeps Claude Code execution **snappy and forward**. Drafting a 700-
+word persona spec consumes Claude Code's context budget that should be spent
+on orchestration. Offloading that to ChatGPT keeps Claude Code at the
+control-surface and ChatGPT at the creative-surface.
+
+**The four ChatGPT calls per persona-sim** (instead of the previous three):
+
+1. **build-persona** — Claude Code sends ChatGPT a short archetype name +
+   axis-of-difference + brief direction, asks ChatGPT to BUILD the persona
+   (register, sensitivities, what they want, what they don't want, their
+   yardstick for this app). ChatGPT returns the persona spec. Claude Code
+   uses the returned spec as the system prompt for turns 1-3.
+2. **turn-1 (cold encounter)** — uses the persona spec as system message;
+   asks ChatGPT to render the persona's first ~3-5 minutes
+3. **turn-2 (pressure-test)** — same persona spec + turn-1 history; render
+   the next ~5-7 minutes
+4. **turn-3 (discriminating verdict)** — same persona spec + turn-1 + turn-2
+   history; meta-register verdict with three numbered items
+
+For the build-persona call, Claude Code sends ChatGPT something like:
+
+> *"Build a persona for a /play persona-sim of WorldThreads (a Tauri desktop
+> LLM-app for AI characters in AI worlds). Archetype: <slug>. Axis of
+> difference from the canonical Maggie baseline (literate-skeptic / no-math /
+> no-AI-history): <one-line axis>. Brief direction: <one paragraph naming
+> what shape of reader-substrate this archetype represents, what they would
+> WANT and DON'T want, what the discriminating question is for this app's
+> readers of this shape>. Output a 200-400 word persona spec including: name,
+> age, occupation, register, sensitivities, what they want from this kind of
+> app, what would feel like betrayal vs. landing, their specific yardstick
+> for this run."*
+
+Claude Code's job is to write the archetype name + axis-line + direction
+paragraph (factual orchestration, not creative invention). ChatGPT does the
+persona-creation. Then Claude Code uses ChatGPT's output as input to the
+encounter calls.
+
 ## Method
 
 ### Step 0 — Read the live app state
@@ -212,20 +271,34 @@ persona encounters the real app, not a stale snapshot. Quick reads:
 Do NOT read every file. Read enough to render the persona's encounter accurately.
 3-5 file reads is usually plenty.
 
-### Step 1 — Draft the persona-context block
+### Step 1 — Have ChatGPT build the persona (Claude-light)
 
-Build a single shared persona-context that turns 1-3 will all reference. It must
-include:
+Per the Claude-light / OpenAI-heavy architecture above: send a build-persona
+call to ChatGPT first. Claude Code provides the archetype name + axis-of-
+difference + a one-paragraph direction; ChatGPT returns the full persona
+spec (register, sensitivities, what they want, what they don't want, their
+yardstick). The returned spec becomes the SYSTEM MESSAGE for the 3 encounter
+turns that follow.
 
-- **Persona definition** — register, frame, sensitivities, what they want, what
-  they don't want, what would feel like betrayal vs. what would feel like landing
-- **App-state snapshot** — what's shipped today, what surfaces the persona will
-  encounter, what is and isn't currently working
-- **The yardstick** — for Maggie: does the refusal moment, specific-memory anchoring,
-  earned close stay intact; does simulacrum-therapy drift stay out. For other
-  personas: name the equivalent persona-specific yardstick.
+Claude Code does NOT draft persona names, occupations, biographical detail,
+register-vocabulary, or yardsticks. Those are ChatGPT's job. Claude Code's
+job in this step is the BRIEF — naming the archetype, the axis, and the
+one-paragraph direction. Keep the brief tight (under 200 words); the longer
+the brief, the more Claude-Code-shaped the resulting persona will be (which
+is exactly what this architecture exists to prevent).
 
-Save this block as the system message for turn 1.
+The shared **app-state snapshot** is Claude Code's domain (factual). It
+should be appended to the persona spec ChatGPT returns so the encounter
+calls have both: who the persona is + what they're encountering. The
+snapshot describes WorldThreads' current ship-state — surfaces, recent
+ships, doctrine layer, key UX flows. Claude Code reads the live state in
+Step 0 and wraps it in a fixed app-state block that gets included with
+every encounter call. (An example app-state block lives at
+`/tmp/play-shared-scaffold.txt` if persisted across runs.)
+
+The build-persona call's output gets saved to
+`/tmp/play-persona-<slug>.txt` for reference; Claude Code may quote from it
+in the report's Persona section but does not author it.
 
 ### Step 2 — Run the 3 turns
 
