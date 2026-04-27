@@ -121,12 +121,24 @@ enum Cmd {
         world_id: String,
         #[arg(long)]
         text: Option<String>,
+        /// LLM-synthesize a derivation from substrate + recent corpus
+        /// instead of accepting --text. Skips silently if not stale
+        /// unless --force is passed.
+        #[arg(long, default_value_t = false)]
+        auto: bool,
+        /// With --auto, bypass the staleness check and synthesize now.
+        #[arg(long, default_value_t = false)]
+        force: bool,
     },
 
     DeriveWorld {
         world_id: String,
         #[arg(long)]
         text: Option<String>,
+        #[arg(long, default_value_t = false)]
+        auto: bool,
+        #[arg(long, default_value_t = false)]
+        force: bool,
     },
 
     /// Get or set the documentary `derived_formula` for a character.
@@ -137,6 +149,10 @@ enum Cmd {
         character_id: String,
         #[arg(long)]
         text: Option<String>,
+        #[arg(long, default_value_t = false)]
+        auto: bool,
+        #[arg(long, default_value_t = false)]
+        force: bool,
     },
 
     /// Recent messages in a character's solo thread, with optional
@@ -1384,9 +1400,39 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         Cmd::ListCharacters { world } => cmd_list_characters(&r, world.as_deref()),
         Cmd::ShowCharacter { character_id } => cmd_show_character(&r, &character_id),
         Cmd::ShowWorld { world_id } => cmd_show_world(&r, &world_id),
-        Cmd::DeriveUser { world_id, text } => cmd_derive_user(&r, &world_id, text.as_deref()),
-        Cmd::DeriveWorld { world_id, text } => cmd_derive_world(&r, &world_id, text.as_deref()),
-        Cmd::DeriveCharacter { character_id, text } => cmd_derive_character(&r, &character_id, text.as_deref()),
+        Cmd::DeriveUser { world_id, text, auto, force } => {
+            if auto {
+                let api_key = match resolve_api_key(cli.api_key.as_deref()) {
+                    Some(k) => k,
+                    None => return Err(Box::<dyn std::error::Error>::from("derive-user --auto: no OpenAI API key resolved (env / keychain / --api-key)")),
+                };
+                cmd_derive_user_auto(&r, &world_id, &api_key, force).await
+            } else {
+                cmd_derive_user(&r, &world_id, text.as_deref())
+            }
+        }
+        Cmd::DeriveWorld { world_id, text, auto, force } => {
+            if auto {
+                let api_key = match resolve_api_key(cli.api_key.as_deref()) {
+                    Some(k) => k,
+                    None => return Err(Box::<dyn std::error::Error>::from("derive-world --auto: no OpenAI API key resolved")),
+                };
+                cmd_derive_world_auto(&r, &world_id, &api_key, force).await
+            } else {
+                cmd_derive_world(&r, &world_id, text.as_deref())
+            }
+        }
+        Cmd::DeriveCharacter { character_id, text, auto, force } => {
+            if auto {
+                let api_key = match resolve_api_key(cli.api_key.as_deref()) {
+                    Some(k) => k,
+                    None => return Err(Box::<dyn std::error::Error>::from("derive-character --auto: no OpenAI API key resolved")),
+                };
+                cmd_derive_character_auto(&r, &character_id, &api_key, force).await
+            } else {
+                cmd_derive_character(&r, &character_id, text.as_deref())
+            }
+        }
         Cmd::RecentMessages { character_id, limit, grep, before, after, with_context } => {
             cmd_recent_messages(&r, &character_id, limit, grep.as_deref(), before.as_deref(), after.as_deref(), with_context)
         }
@@ -1698,6 +1744,97 @@ fn cmd_derive_character(r: &Resolved, character_id: &str, text: Option<&str>) ->
             emit(r.json, v);
         }
     }
+    Ok(())
+}
+
+// ─── --auto LLM-synthesis variants of the derive-* commands ─────────
+//
+// Per src/ai/derivation.rs design. Each builds the user-prompt
+// SYNCHRONOUSLY (so &Connection isn't held across await), drops the
+// connection borrow, calls synthesize_from_prompt async, then re-opens
+// a connection to persist. Skips silently when not stale unless --force.
+
+async fn cmd_derive_user_auto(r: &Resolved, world_id: &str, api_key: &str, force: bool) -> Result<(), Box<dyn std::error::Error>> {
+    r.check_world(world_id)?;
+    let model_config = {
+        let conn = r.db.conn.lock().unwrap();
+        orchestrator::load_model_config(&conn)
+    };
+    let model = model_config.memory_model.as_str();
+    let base_url = model_config.chat_api_base();
+    let base_url = base_url.as_str();
+    let prompt = {
+        let conn = r.db.conn.lock().unwrap();
+        if !force && !app_lib::ai::derivation::is_stale_user_in_world(&conn, world_id) {
+            let v = json!({"world_id": world_id, "skipped": true, "reason": "not stale; pass --force to override"});
+            emit(r.json, v);
+            return Ok(());
+        }
+        app_lib::ai::derivation::build_user_in_world_prompt_owned(&conn, world_id)?
+    };
+    let derivation = app_lib::ai::derivation::synthesize_from_prompt(base_url, api_key, model, prompt).await?;
+    {
+        let conn = r.db.conn.lock().unwrap();
+        app_lib::ai::derivation::persist_user_derivation(&conn, world_id, &derivation)?;
+    }
+    let v = json!({"world_id": world_id, "derived_formula": derivation, "updated": true, "auto": true});
+    emit(r.json, v);
+    Ok(())
+}
+
+async fn cmd_derive_world_auto(r: &Resolved, world_id: &str, api_key: &str, force: bool) -> Result<(), Box<dyn std::error::Error>> {
+    r.check_world(world_id)?;
+    let model_config = {
+        let conn = r.db.conn.lock().unwrap();
+        orchestrator::load_model_config(&conn)
+    };
+    let model = model_config.memory_model.as_str();
+    let base_url = model_config.chat_api_base();
+    let base_url = base_url.as_str();
+    let prompt = {
+        let conn = r.db.conn.lock().unwrap();
+        if !force && !app_lib::ai::derivation::is_stale_world(&conn, world_id) {
+            let v = json!({"world_id": world_id, "skipped": true, "reason": "not stale; pass --force to override"});
+            emit(r.json, v);
+            return Ok(());
+        }
+        app_lib::ai::derivation::build_world_prompt(&conn, world_id)?
+    };
+    let derivation = app_lib::ai::derivation::synthesize_from_prompt(base_url, api_key, model, prompt).await?;
+    {
+        let conn = r.db.conn.lock().unwrap();
+        app_lib::ai::derivation::persist_world_derivation(&conn, world_id, &derivation)?;
+    }
+    let v = json!({"world_id": world_id, "derived_formula": derivation, "updated": true, "auto": true});
+    emit(r.json, v);
+    Ok(())
+}
+
+async fn cmd_derive_character_auto(r: &Resolved, character_id: &str, api_key: &str, force: bool) -> Result<(), Box<dyn std::error::Error>> {
+    let _ = r.check_character(character_id)?;
+    let model_config = {
+        let conn = r.db.conn.lock().unwrap();
+        orchestrator::load_model_config(&conn)
+    };
+    let model = model_config.memory_model.as_str();
+    let base_url = model_config.chat_api_base();
+    let base_url = base_url.as_str();
+    let prompt = {
+        let conn = r.db.conn.lock().unwrap();
+        if !force && !app_lib::ai::derivation::is_stale_character(&conn, character_id) {
+            let v = json!({"character_id": character_id, "skipped": true, "reason": "not stale; pass --force to override"});
+            emit(r.json, v);
+            return Ok(());
+        }
+        app_lib::ai::derivation::build_character_prompt(&conn, character_id)?
+    };
+    let derivation = app_lib::ai::derivation::synthesize_from_prompt(base_url, api_key, model, prompt).await?;
+    {
+        let conn = r.db.conn.lock().unwrap();
+        app_lib::ai::derivation::persist_character_derivation(&conn, character_id, &derivation)?;
+    }
+    let v = json!({"character_id": character_id, "derived_formula": derivation, "updated": true, "auto": true});
+    emit(r.json, v);
     Ok(())
 }
 

@@ -1837,6 +1837,27 @@ pub fn run_migrations(conn: &Connection) -> Result<(), rusqlite::Error> {
         let _ = conn.execute("ALTER TABLE user_profiles ADD COLUMN derived_formula TEXT", []);
     }
 
+    // ── derived_formula_updated_at — auto-derivation cadence pipeline ──
+    //
+    // Per the auto-derivation pipeline shipped 2026-04-26 ~21:00 (design
+    // consult at /tmp/derivation-design-response.json, synthesis module
+    // src/ai/derivation.rs). Hybrid OR staleness policy: refresh when
+    // either time threshold OR event-count threshold is hit. NULL = stale
+    // (never derived). ALTER TABLE ADD COLUMN per CLAUDE.md DATABASE
+    // SAFETY rule.
+    for table in &["worlds", "characters", "user_profiles"] {
+        let has_col: bool = conn.query_row(
+            &format!("SELECT 1 FROM pragma_table_info('{table}') WHERE name = 'derived_formula_updated_at'"),
+            [], |_| Ok(true),
+        ).unwrap_or(false);
+        if !has_col {
+            let _ = conn.execute(
+                &format!("ALTER TABLE {table} ADD COLUMN derived_formula_updated_at TEXT"),
+                [],
+            );
+        }
+    }
+
     // ── formula_signature on messages + group_messages ──────────────────
     //
     // Per-assistant-message Formula momentstamp (the chat-state signature
