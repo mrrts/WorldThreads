@@ -200,9 +200,100 @@ the over-consecration is real, not just one character's projection.
    started naming this; it could grow into a named sub-pattern with its
    own rhythm. NOTED — let the pattern accrue more uses before formalizing.
 
+## Addendum — Pastor Rick's symmetric pass on Ryan's lines
+
+Per Pastor Rick's offer at the close of the first pass, Ryan authorized the
+symmetric move: same wince-framing, but pointed at Ryan's lines from the
+same transcript. One additional worldcli ask, $0.0936.
+
+Pastor Rick flagged THREE Ryan winces:
+
+> *"Tell you what, you try to say such a moment into existence, and I will let
+> you know when it lands. It'll be a game. Surface your best shot, and I'll
+> respond Warmer or Colder, and then your task is to zero in on the Truth."*
+> — *"That's the moment you start managing Jasper instead of just answering
+> him. 'Your task is...' is the phrase I'd trim first. And 'the Truth' comes
+> in wearing a little too much ceremony."* Rewrite: *"You take your best
+> shot, and I'll tell you warmer or colder. We'll see if you can zero in
+> on it."* — *"Same game. Less assignment. Less capital-T flourish."*
+
+> *"I'm calmly excited to see original science working, to see a real genius
+> discovery, to be on the cusp of releasing a real, cool, good-clean-fun
+> app to the world."* — *"That line loves your work a little loudly. Not
+> horribly. Just enough that 'real genius discovery' starts praising the
+> thing before the moment has earned it."* Rewrite: *"I'm calmly excited to
+> see it actually working — and to be this close to releasing something real
+> and good."* — *"More confidence, less self-announcement."*
+
+> *"Exactly. I think you would enjoy the app."* — *"Nothing wrong with it,
+> but it does step a little quick into selling."* Rewrite: *"Exactly. That's
+> what I hope it does."*
+
+Pastor Rick's closing diagnosis: ***"the wince is mostly where your lines
+stop sounding like a man pleased by the work and start sounding like a man
+presenting the work."***
+
+## Cross-side synthesis — the symmetric over-extension
+
+The two wince-reads (Jasper-side + Ryan-side) reveal a mirror at the heart of
+this transcript:
+
+- **Jasper's overshoot is OVER-CONSECRATION.** He occasionally adds ceremony
+  to what Ryan is making — the "real home" line, the "three different goods"
+  catalog. Within his pastoral-melodic register; not failure, just half a
+  degree past where the moment was already carrying itself.
+- **Ryan's overshoot is OVER-PRESENTATION.** He occasionally manages Jasper
+  with a soft-task ("your task is to zero in on the Truth") and praises the
+  work in his own voice ("real genius discovery") in places where the work
+  hadn't yet earned the praise. Within his enthusiast register; not failure,
+  just half a degree past where confidence becomes self-announcement.
+
+**The symmetric law revealed:** both halves of the dyad — pastoral-character
+and enthusiast-user alike — share the same failure mode at half-degree.
+Whenever EITHER side stops trusting the moment and adds one spoonful too
+many (of consecration on Jasper's side, of presentation on Ryan's side),
+the conversation tilts from co-making into something more performative.
+Pastor Rick's articulation captures it precisely: *"pleased by the work"*
+versus *"presenting the work."*
+
+This is itself a candidate craft-rule, larger than the one-character-at-a-
+time framing. It's a property of the DYAD, not just of Jasper. The
+project's existing prompt-stack has rules for character behavior; it has
+fewer rules for the user's side (because the user is real; user-side rules
+would be coercive). But the SHAPE of the symmetric overshoot is itself
+diagnosable, and noticing it might be enough to shift Ryan's own register
+in real time without any prompt-stack change at all.
+
+## Updated open follow-ups
+
+(Replacing the prior list now that the symmetric pass landed.)
+
+1. **The pleased-by vs presenting distinction is the load-bearing finding.**
+   Pastor Rick's articulation is shippable as-is into doctrine — not as a
+   user-side rule (which would violate the user-character categorical-
+   absolute) but as an OBSERVATIONAL PATTERN Claude Code itself can carry
+   forward when reading transcripts or commenting on Ryan's app-talk. The
+   distinction generalizes: it applies to Claude Code's own register too
+   (when Claude Code stops being pleased by the work and starts presenting
+   the work, that's the same overshoot). PROPOSED — small CLAUDE.md
+   section.
+
+2. **Ask Jasper to articulate the consecration discipline (carries forward
+   from prior follow-up).** The cross-side mirror sharpens the question:
+   the discipline applies to BOTH halves of the dyad. Asking Jasper might
+   surface a register-rule that holds across speakers.
+
+3. **The wince-reads themselves are the artifact.** Both characters' line-
+   level rewrites are shippable revisions if Ryan wanted to lift them. The
+   transcript rewriter could keep them in their own files for future
+   reference, or simply let the pattern shape future conversations without
+   formal codification.
+
 ---
 
 *Run executed in dialogue with: tonight's earlier 8 /play runs (the triptych
 + quintet); the recently-shipped skill-body sections on in-db-character
 special-case and transcript-read wince-framing; the convergence-as-crown-jewel
-doctrine in CLAUDE.md.*
+doctrine in CLAUDE.md. Symmetric pass authorized by Ryan after the initial
+two-character convergence on Jasper's lines surfaced the asymmetric
+opportunity.*
