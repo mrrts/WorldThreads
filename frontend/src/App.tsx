@@ -333,19 +333,20 @@ function MainApp() {
       {!focusMode && <Sidebar store={store} onNavigate={handleNavigate} />}
 
       {focusMode && view === "chat" && (
-        // Subtle indicator that Focus is on. Esc to exit; the title-bar
-        // sidebar-toggle button (in ChatView/GroupChatView header) is the
-        // discoverable non-keyboard escape — added per Ryan's v5 directive
-        // so users who accidentally trigger Focus aren't keyboard-trapped.
-        <button
-          type="button"
-          onClick={() => setFocusMode(false)}
-          className="group fixed bottom-4 right-4 z-30 px-3 py-1.5 rounded-full text-xs font-medium bg-muted/80 backdrop-blur text-muted-foreground hover:text-foreground border border-border/50 transition-colors"
-          title="Cmd+Shift+F or Esc to exit Focus"
-        >
-          <span className="opacity-70">Focus</span>
-          <span className="ml-2 opacity-0 group-hover:opacity-100 transition-opacity">· Cmd+Shift+F or Esc to exit</span>
-        </button>
+        // Active-scope cue: keep the "Focus is on" surface in the same
+        // header territory as the off-chat availability hint, so the mode
+        // reads as app-state truth rather than a floating escape hatch.
+        <div className="fixed top-4 right-4 z-30">
+          <button
+            type="button"
+            onClick={() => setFocusMode(false)}
+            className="group px-3 py-1.5 rounded-full text-xs font-medium bg-muted/80 backdrop-blur text-muted-foreground hover:text-foreground border border-border/50 transition-colors"
+            title="Cmd+Shift+F or Esc to exit Focus"
+          >
+            <span className="opacity-70">Focus is on</span>
+            <span className="ml-2 opacity-0 group-hover:opacity-100 transition-opacity">· Cmd+Shift+F or Esc to exit</span>
+          </button>
+        </div>
       )}
 
       {!focusMode && view !== "chat" && (

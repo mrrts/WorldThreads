@@ -706,11 +706,13 @@ export function GroupChatView({ store, onNavigateToCharacter, focusMode = false,
           <div className="relative group/focus flex-shrink-0">
             <button
               onClick={onToggleFocus}
+              title={focusMode ? "Leave Focus" : "Enter Focus"}
+              aria-label={focusMode ? "Leave Focus" : "Enter Focus"}
               className="flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center transition-colors cursor-pointer text-muted-foreground hover:text-foreground hover:bg-accent"
             >
               {focusMode ? <PanelLeftOpen size={15} /> : <PanelLeftClose size={15} />}
             </button>
-            <span className="absolute top-full left-0 mt-1.5 px-2 py-0.5 text-[10px] font-medium text-white bg-black rounded-md shadow-lg whitespace-nowrap opacity-0 group-hover/focus:opacity-100 pointer-events-none transition-opacity z-50">{focusMode ? "Show sidebar" : "Hide sidebar"}</span>
+            <span className="absolute top-full left-0 mt-1.5 px-2 py-0.5 text-[10px] font-medium text-white bg-black rounded-md shadow-lg whitespace-nowrap opacity-0 group-hover/focus:opacity-100 pointer-events-none transition-opacity z-50">{focusMode ? "Leave Focus" : "Enter Focus"}</span>
           </div>
         )}
         <div
