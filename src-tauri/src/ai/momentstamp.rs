@@ -127,11 +127,7 @@ pub async fn build_formula_momentstamp(
             "assistant" => "CHAR",
             other => other,
         };
-        let content_preview = if m.content.len() > 240 {
-            format!("{}...", &m.content[..240])
-        } else {
-            m.content.clone()
-        };
+        let content_preview = truncate_with_ellipsis(&m.content, 240);
         window.push_str(&format!("{}: {}\n", role, content_preview));
     }
 
@@ -208,4 +204,82 @@ pub async fn build_formula_momentstamp(
     );
 
     Ok(Some(MomentstampResult { block, signature }))
+}
+
+/// Truncate a string to at most `max_chars` characters, appending "..." if
+/// the original was longer. Char-based (not byte-based) — `&s[..n]` panics
+/// when byte index `n` lands inside a multi-byte UTF-8 character (e.g.,
+/// em-dash `—` is 3 bytes). Caught in production 2026-04-28 when a recent
+/// message containing an em-dash crossed byte 240. The same byte-slice
+/// pattern appears at four other sites in the project; each was fixed
+/// individually with the same shape. Future de-duplication could share
+/// this helper if it earns its keep.
+fn truncate_with_ellipsis(s: &str, max_chars: usize) -> String {
+    if s.chars().count() > max_chars {
+        let truncated: String = s.chars().take(max_chars).collect();
+        format!("{}...", truncated)
+    } else {
+        s.to_string()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn truncate_handles_ascii_short_string_unchanged() {
+        assert_eq!(truncate_with_ellipsis("hello", 240), "hello");
+    }
+
+    #[test]
+    fn truncate_handles_ascii_long_string_with_ellipsis() {
+        let s = "a".repeat(300);
+        let out = truncate_with_ellipsis(&s, 240);
+        assert_eq!(out.chars().filter(|c| *c == 'a').count(), 240);
+        assert!(out.ends_with("..."));
+    }
+
+    #[test]
+    fn truncate_does_not_panic_on_multibyte_char_at_cutoff() {
+        // Regression test for the production panic 2026-04-28:
+        // "byte index 240 is not a char boundary; it is inside '—' (bytes 238..241)"
+        //
+        // Construct a string where byte 240 lands inside a multi-byte UTF-8
+        // character. Em-dash '—' is 3 bytes (U+2014, encoded as E2 80 94).
+        // Place it so its bytes straddle index 240.
+        // 238 ASCII chars + em-dash (3 bytes) puts em-dash bytes at indices 238, 239, 240.
+        // Then add ascii filler to push total chars > 240 so the truncation fires.
+        let s = format!("{}—{}", "a".repeat(238), "b".repeat(50));
+        // The string is 238 + 1 (em-dash counts as 1 char) + 50 = 289 chars.
+        assert!(s.chars().count() > 240);
+        // Under the old code (`&s[..240]`), this call would panic with
+        // "byte index 240 is not a char boundary." Under the new code, it
+        // truncates to 240 chars without panicking.
+        let out = truncate_with_ellipsis(&s, 240);
+        // Verify the result is well-formed UTF-8 with the expected length.
+        assert!(out.ends_with("..."));
+        let body = out.trim_end_matches("...");
+        assert_eq!(body.chars().count(), 240);
+    }
+
+    #[test]
+    fn truncate_handles_multibyte_strings_correctly() {
+        // String of 100 em-dashes (300 bytes total, 100 chars).
+        let s = "—".repeat(100);
+        // Char-count is 100, well under any reasonable max.
+        assert_eq!(truncate_with_ellipsis(&s, 240), s);
+
+        // String of 300 em-dashes: 300 chars, 900 bytes. Truncate to 240 chars.
+        let long = "—".repeat(300);
+        let out = truncate_with_ellipsis(&long, 240);
+        let body = out.trim_end_matches("...");
+        assert_eq!(body.chars().count(), 240);
+        assert!(body.chars().all(|c| c == '—'));
+    }
+
+    #[test]
+    fn truncate_empty_string_returns_empty() {
+        assert_eq!(truncate_with_ellipsis("", 240), "");
+    }
 }

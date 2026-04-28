@@ -102,7 +102,14 @@ fn grader_user_prompt(character: &Character, user_msg: &str, draft: &str) -> Str
     // account for that when scoring truth_test.
     let identity = {
         let s = character.identity.trim();
-        if s.len() > 400 { format!("{}…", &s[..400]) } else { s.to_string() }
+        // Char-based truncation (not byte-based) — see momentstamp.rs:131
+        // for the project-wide UTF-8-safe-truncation fix shipped 2026-04-28.
+        if s.chars().count() > 400 {
+            let truncated: String = s.chars().take(400).collect();
+            format!("{}…", truncated)
+        } else {
+            s.to_string()
+        }
     };
     format!(
         "CHARACTER: {name}\nIDENTITY: {identity}\n\nUSER'S LAST MESSAGE:\n{user_msg}\n\nCHARACTER'S DRAFT REPLY (judge THIS):\n{draft}",

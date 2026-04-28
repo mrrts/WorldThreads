@@ -131,8 +131,11 @@ pub async fn generate_user_avatar_cmd(
         prompt_parts.push(format!("Name: {}", display_name));
     }
     if !description.is_empty() {
-        let desc = if description.len() > 300 {
-            format!("{}...", &description[..300])
+        // Char-based truncation (not byte-based) — see momentstamp.rs:131
+        // fix shipped 2026-04-28.
+        let desc: String = if description.chars().count() > 300 {
+            let truncated: String = description.chars().take(300).collect();
+            format!("{}...", truncated)
         } else {
             description
         };

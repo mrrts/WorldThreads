@@ -628,8 +628,14 @@ pub async fn generate_image_with_base(base_url: &str, api_key: &str, request: &I
         return Err(format!("API error ({}): {}", status, body));
     }
 
-    // Log a snippet of the response structure (not the full b64 data)
-    let preview = if body.len() > 500 { &body[..500] } else { &body };
+    // Log a snippet of the response structure (not the full b64 data).
+    // Char-based truncation (not byte-based) to avoid panics on multi-byte
+    // chars at the cutoff — see momentstamp.rs:131 fix shipped 2026-04-28.
+    let preview: String = if body.chars().count() > 500 {
+        body.chars().take(500).collect()
+    } else {
+        body.clone()
+    };
     log_debug(&format!("RESPONSE PREVIEW: {preview}"));
 
     match serde_json::from_str::<ImageResponse>(&body) {
@@ -724,7 +730,12 @@ pub async fn generate_image_edit_with_base(
         return Err(format!("API error ({}): {}", status, body));
     }
 
-    let preview = if body.len() > 500 { &body[..500] } else { &body };
+    // Char-based truncation (not byte-based) — see momentstamp.rs:131 fix.
+    let preview: String = if body.chars().count() > 500 {
+        body.chars().take(500).collect()
+    } else {
+        body.clone()
+    };
     log_debug(&format!("EDIT RESPONSE PREVIEW: {preview}"));
 
     match serde_json::from_str::<ImageResponse>(&body) {

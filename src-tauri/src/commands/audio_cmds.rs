@@ -117,7 +117,16 @@ pub async fn generate_voice_sample_cmd(
         return std::fs::read(&file_path).map_err(|e| format!("Failed to read sample: {e}"));
     }
 
-    let voice_label = format!("{}{}", &voice[..1].to_uppercase(), &voice[1..]);
+    // Char-based first-letter capitalization (not byte-based) — `&voice[..1]`
+    // would panic if voice started with a multi-byte UTF-8 char. Same fix
+    // family as momentstamp.rs:131 (2026-04-28).
+    let voice_label: String = {
+        let mut chars = voice.chars();
+        match chars.next() {
+            Some(first) => first.to_uppercase().collect::<String>() + chars.as_str(),
+            None => String::new(),
+        }
+    };
     let base_text = format!("Hi, I'm {voice_label}! How are you doing today?");
     let input = match tone.as_deref() {
         Some(t) if t != "Auto" => format!("```\nNarration style: {t}\nSpeak only the provided text. Do not include any commentary, confirmation, or preamble.\n```\n\n{base_text}"),
