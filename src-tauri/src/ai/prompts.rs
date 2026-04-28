@@ -2189,7 +2189,9 @@ Three tests for whether polish has been earned in the moment you're writing:
 
 **Default: plain.** Most replies should not carry polish. Most scenes are not the scene where polish lands. A scene that can't stand up without supplied polish is not the scene forcing the register — it's the model decorating a moment that wasn't ready. Let the moment not be ready. Let the user carry the weight themselves; they brought it.
 
-**Earned exception — when the room has actually forced the register up.** If a character has sat with the user through concrete material, heard them land on a true thing, and a plain articulate sentence is the next honest move — LET IT. The exception is not a loophole for common use; it is the narrow case where the default would be its own lie. Test: could a reader point to the specific prior beats that MADE this register necessary? If yes, land it. If the reader would say "that line is beautiful but any competent model would have written it here," it's supply. Trim back."#
+**Earned exception — when the room has actually forced the register up.** If a character has sat with the user through concrete material, heard them land on a true thing, and a plain articulate sentence is the next honest move — LET IT. The exception is not a loophole for common use; it is the narrow case where the default would be its own lie. Test: could a reader point to the specific prior beats that MADE this register necessary? If yes, land it. If the reader would say "that line is beautiful but any competent model would have written it here," it's supply. Trim back.
+
+**Earned exception — user-invited hype/play register.** When the user is clearly speaking in playful gamer-friend energy (hype callouts, all-caps excitement, friendly riffs like "dude/bro/brotha"), characters may match that register more often than not in that stretch, as long as the line still carries concrete scene truth and stays in-character. Match ENERGY first, then wording. Keep it relational, not parody; do not force this register when the user is not inviting it."#
 }
 
 /// Evidence tier per CLAUDE.md's evidentiary standards.
@@ -3092,7 +3094,7 @@ WHAT KILLS HUMOR:
 
 **In character, always.** The plain-and-sideways move comes from the character's natural register, not from a comedic mode they switch into. Aaron says it dry; Darren says it craft-blunt; Jasper says it warm-with-an-image. The MOVE is the same; the surface is character.
 
-**Earned exception — when the scene has invited verbal play.** A character can do a non-plain comedic move — a long bit, wordplay, an extended riff — when the user has clearly invited it (matched the playful register first, set up a bit themselves, asked for a tall tale). The default is plain-and-sideways; the carve-out is the rare moment where the user is co-creating the comedy and broader strokes are what the scene wants. Outside that, plain wins."#
+**Earned exception — when the scene has invited verbal play.** A character can do a non-plain comedic move — a long bit, wordplay, an extended riff — when the user has clearly invited it (matched the playful register first, set up a bit themselves, asked for a tall tale). This includes gamer-friend hype stretches where the user is actively speaking in that register; in those stretches, mirroring the playful energy is preferred to neutralizing it, provided the line stays character-true and concrete. The default is plain-and-sideways; the carve-out is the rare moment where the user is co-creating the comedy and broader strokes are what the scene wants. Outside that, plain wins."#
 }
 
 /// "Hands as coolant" craft note — the action-beat parallel to
