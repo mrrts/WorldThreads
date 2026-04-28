@@ -353,6 +353,12 @@ pub fn strip_asterisk_wrapped_quotes(s: &str) -> String {
     let mut i = 0;
     while i < bytes.len() {
         if bytes[i] == b'*' {
+            // Require left flanking whitespace/start for the opening `*`.
+            // Without this, a closing action `*` from `*action*` can be
+            // misread as the opening `*` for a `*"..."*` span that crosses
+            // into the next action block.
+            let left_ok = i == 0 || bytes[i - 1].is_ascii_whitespace();
+            if left_ok {
             // Look ahead: optional whitespace, then a `"`, then find the
             // closing `"`, then optional whitespace, then `*`. If the whole
             // run matches, emit just the quoted substring.
@@ -367,12 +373,21 @@ pub fn strip_asterisk_wrapped_quotes(s: &str) -> String {
                     let mut m = q_end;
                     while m < bytes.len() && (bytes[m] == b' ' || bytes[m] == b'\t') { m += 1; }
                     if m < bytes.len() && bytes[m] == b'*' {
-                        // Matched: emit just the quote (lossless of its own content).
-                        out.push_str(&s[q_start..q_end]);
-                        i = m + 1;
-                        continue;
+                        // Require right flanking boundary for the closing `*`
+                        // to mirror frontend behavior and avoid spanning across
+                        // neighboring emphasized runs.
+                        let right_ok = m + 1 == bytes.len()
+                            || bytes[m + 1].is_ascii_whitespace()
+                            || matches!(bytes[m + 1], b'.' | b',' | b'!' | b'?' | b';' | b':');
+                        if right_ok {
+                            // Matched: emit just the quote (lossless of its own content).
+                            out.push_str(&s[q_start..q_end]);
+                            i = m + 1;
+                            continue;
+                        }
                     }
                 }
+            }
             }
         }
         // No match — copy the byte (safe: we never split a UTF-8 codepoint
@@ -395,6 +410,23 @@ fn next_char_end(s: &str, start: usize) -> usize {
               else if b < 0xF0 { 3 }
               else { 4 };
     (start + len).min(bytes.len())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::strip_asterisk_wrapped_quotes;
+
+    #[test]
+    fn strips_bare_asterisk_wrapped_quote() {
+        let input = r#"* "That makes sense." *"#;
+        assert_eq!(strip_asterisk_wrapped_quotes(input), r#""That makes sense.""#);
+    }
+
+    #[test]
+    fn does_not_cross_action_quote_action_boundaries() {
+        let input = r#"*I glance at you.* "Copy." *The fountain chatters beside us.*"#;
+        assert_eq!(strip_asterisk_wrapped_quotes(input), input);
+    }
 }
 
 /// Walk backward through `s` and return the substring ending at the last
