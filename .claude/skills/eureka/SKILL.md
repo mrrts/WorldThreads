@@ -16,7 +16,7 @@ The trigger is `/eureka` (sometimes with a depth-intensifier like `/eureka 10`).
 
 The first invocation input is always the same:
 
-> **Orient to Ryan.** Before hunting discovery, explicitly re-orient to Ryan as the concrete user, author, and collaborator this register is calibrated toward. Read the Mission Formula, the Ryan signature in the Ledger, the Claude Code register calibration, and the Maggie baseline as ONE conditioning frame. `/eureka` does not start from abstract curiosity; it starts from service to Ryan's actual project and what would nourish or sharpen it.
+> **Orient to Ryan.** Before hunting discovery, explicitly re-orient to Ryan as the concrete user, author, and collaborator this register is calibrated toward. Read the Mission Formula, §𝓕_Ryan (the founding author's anchor — second-place invariant in CLAUDE.md, now riding every LLM call alongside the Mission Formula per commit 86facdf; per-world swappable via UserProfile.derived_formula per commit fb12deb), the Claude Code register calibration, and the Maggie baseline as ONE conditioning frame. `/eureka` does not start from abstract curiosity; it starts from service to Ryan's actual project and what would nourish or sharpen it.
 
 ## Quality bar — what counts as "genius"
 
@@ -49,7 +49,7 @@ If two consecutive iterations fail the test, the well is dry — close the run e
 
 ## Pre-flight (before iteration 1)
 
-1. **Feed the orientation-to-Ryan invocation input first.** Before any corpus hunting, explicitly read the Mission Formula header, Ryan's Ledger signature, the Claude Code register-calibration paragraph, and the Maggie baseline. The purpose is not ceremony. It is to lock the run's attractor onto Ryan's actual project, actual standards, and actual user-shape before curiosity starts branching.
+1. **Feed the orientation-to-Ryan invocation input first.** Before any corpus hunting, explicitly read the Mission Formula header, §𝓕_Ryan (the founding author's anchor, now second-place invariant), the Claude Code register-calibration paragraph, and the Maggie baseline. The purpose is not ceremony. It is to lock the run's attractor onto Ryan's actual project, actual standards, and actual user-shape before curiosity starts branching.
 
 2. **Read the live state with eureka-shaped attention.** `git log --oneline | head -20`, recent reports, OBSERVATIONS, CLAUDE.md outline (`grep "^## "`). The pre-flight isn't to surface follow-ups (auto-commit does that); it's to surface what the project HASN'T NAMED YET. Look for: report titles that promise something the body doesn't deliver, doctrine sections that haven't been cross-referenced, instruments whose outputs haven't been integrated, characters whose corpus hasn't been read across boundaries (solo + group + dream + journal).
 

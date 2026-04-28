@@ -98,7 +98,7 @@ Even within the autonomy lane, these remain off-limits without explicit per-op c
 
 - **Destructive git** — no force-push, no `git reset --hard`, no branch deletion, no rewriting published history. Per AGENTS.md autonomy section.
 - **Destructive DB** — no `DROP TABLE`, no schema drops without verified data preservation. Per AGENTS.md DATABASE SAFETY rule.
-- **User-character authoring** — do not write Ryan's personal derivation, ledger entry, or anything else that should belong to USER AGENCY. Auto-commit moves DO NOT include "draft Ryan's signature." That's his.
+- **User-character authoring** — do not write Ryan's personal derivation, §𝓕_Ryan content (the second-place invariant in AGENTS.md), ledger entry, or anything else that should belong to USER AGENCY. Auto-commit moves DO NOT include "draft Ryan's signature" or "edit §𝓕_Ryan's wording." The `RYAN_FORMULA_BLOCK` constant in `src-tauri/src/ai/prompts.rs` is intentionally NOT compile-pinned (so forkers can swap their own anchor), but Codex does not edit its content without explicit user authorization. That's his.
 - **Boundaries layer** — do not invent new categorical-absolute rules on the user. Per AGENTS.md user-stated-boundaries section.
 - **Above-cap spend** — if a single move would push above the fresh $5 cap for the run, pause and confirm with Ryan before proceeding. The cap is the cap.
 

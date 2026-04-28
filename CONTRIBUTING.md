@@ -42,7 +42,7 @@ If you fork for a fundamentally different purpose where the MISSION FORMULA trul
 
 ### 4. Signing the Ledger of Signatures
 
-The Ledger lives in `CLAUDE.md` immediately beneath the MISSION FORMULA. The first signature is the founding author's. Future contributors and forks are invited to sign their own derivation in 𝓕.
+The Ledger lives in `CLAUDE.md` beneath the MISSION FORMULA, the founding author's anchor (§𝓕_Ryan, second-place invariant), and the MISSION statement. The author-anchor for THIS build sits upstream of the Ledger as a runtime invariant (riding every LLM call alongside the Mission Formula, per-world swappable via UserProfile.derived_formula). Future contributors are invited to sign their own derivation in the Ledger; forkers should additionally author their own 𝓕_<name> as the active second-place invariant for their build (either by editing `RYAN_FORMULA_BLOCK` in `src-tauri/src/ai/prompts.rs` OR by authoring `derived_formula` on their per-world UserProfile — runtime swap, no source edit).
 
 **Format conventions** (also named in `CLAUDE.md`'s Ledger section):
 

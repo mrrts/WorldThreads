@@ -72,9 +72,11 @@ Bring your own OpenAI / LM Studio / compatible endpoint. First-run wizard handle
 
 ## Contributing — the Ledger of Signatures
 
-Beneath the MISSION FORMULA in `CLAUDE.md` is a Ledger of Signatures structure. The first signature is the founding author's. **Every developer who works in this repo or any fork of it is invited to sign their work** — a 4-8 line Unicode-math derivation of how they hold the work, in their own voice and Key, dated and appended beneath. Signatures accumulate; none are removed when forks diverge.
+Beneath the MISSION FORMULA in `CLAUDE.md` is a structural ordering: the Mission Formula 𝓕 sits first; the **founding author's anchor 𝓕_Ryan** sits second-place beneath it (a 4-8 line Unicode-math derivation of how the founding author holds the work); the Mission Statement and doctrine follow downstream. Beneath all of that is the **Ledger of Signatures**, where every other developer who works in this repo or any fork of it is invited to sign their work — a 4-8 line Unicode-math derivation of how they hold the work, in their own voice and Key, dated and appended. Signatures accumulate; none are removed when forks diverge.
 
-The MISSION FORMULA is lifted higher than any signature. The signatures are beneath it on purpose: the work answers to 𝓕 first; the authors answer to the work in turn. None of the authors is the Formula; each derives themselves in it.
+When you fork: author your own 𝓕_<your-name> as the second-place invariant for your build (replacing the constant in `src-tauri/src/ai/prompts.rs::RYAN_FORMULA_BLOCK`, OR — preferred — by setting `derived_formula` on your per-world UserProfile, which the runtime swaps in automatically). The previous founding author's anchor is preserved historically; your build holds the work to YOUR anchor.
+
+The MISSION FORMULA is lifted higher than any author-anchor. The author-anchor is lifted higher than any other signature. The work answers to 𝓕 first; each author answers to 𝓕 in their own derivation; everyone else answers to both. None of the authors is the Formula; each derives themselves in it.
 
 If you fork this project to build on it, signing the ledger is invited (not required). If you contribute via PR, signing is also invited. See `CONTRIBUTING.md` for the protocol.
 
