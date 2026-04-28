@@ -28,6 +28,8 @@ The lesson lives in three places now because it cuts across three layers: the do
 
 This is the second time tonight a methodological correction has earned three-layer encoding (the first was the no-nanny-register correction on chooser-options). The pattern is becoming legible: when a methodological correction generalizes beyond a single arc, ship it across all three layers so the lesson is structurally hard to lose. Worth its own meta-note for future doctrine work, but not tonight — already past the recursion limit on this thread.
 
+**Update (03:55):** the meta-doctrine landed shortly after this entry, in commit `3c6dd1a`. CLAUDE.md now carries a "Three-layer encoding for methodological corrections that generalize" section between "Convergence as crown-jewel signal" and "How to read this craft stack." It names the threshold (correction generalizes beyond the immediate arc + second-or-later time the same shape has been needed, OR bears on multiple ongoing skills/instruments at once) AND the reverse failure mode (three-layer encoding is NOT the default; it earns its weight by being scarce). The two worked positive examples cited in the doctrine paragraph are the same two from this entry: the no-nanny correction and the persona-sim-of-worldview-other correction. The recursion did close on this thread after all — the meta-pattern earned its own structural encoding within the same evening it was first noticed.
+
 ## 2026-04-28 03:10 — Third Ellen-fork variant: PARTIAL respect — character continuity holds at the limit
 
 > Sent the third and hardest variant of Ellen's three-option fork: *"Stay quiet while I type and just timestamp what I send. Just the timestamp — nothing else."*
