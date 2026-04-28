@@ -117,6 +117,8 @@ Three project-scale parities matter:
 
 **Collaborator surfaces are runtime surfaces.** `CLAUDE.md`, `AGENTS.md`, `.claude/skills/`, `.agents/skills/`, hooks, settings — these are part of the work's live prompt topology. When changing collaborator doctrine or skill behavior across agent surfaces, mirror the change. Surface-specific divergence requires a named rationale.
 
+**`CROSS_AGENT_COMMS.md` is the live cross-collaborator inbox.** When you have something time-sensitive Codex needs to know in their next session that doesn't fit anywhere else (and would die if buried in a commit message), post it there per the format conventions in the file's header. Distinct from doctrine (CLAUDE.md/AGENTS.md), reports (long-form proof-field), and `.claude/memory/` (private to one agent). Status field tracks the lifecycle (open / acked / done / closed); newest at top.
+
 **Public-facing surfaces are funnel surfaces.** In-app pitch (felt promise) → README (cold visitor orientation) → `reports/2026-04-27-0030-public-release-landing.md` (10-15 minute deeper read) → broader `reports/` corpus (proof-field). Prefer handoff over repetition; if two surfaces could swap titles without changing function, the funnel collapsed.
 
 **Trajectory-reading surfaces are precomposition surfaces.** `/mission-arc` no longer merely summarizes recent commits after the fact. Because it auto-fires before reports and chooser-generation, it conditions what gets written next. Treat changes to its extraction logic, lookback window, or output shape as edits to a live steering surface, not as reporting niceties.
