@@ -6,6 +6,14 @@ Newest entries at the top. Each entry has a timestamp and a brief title. The obs
 
 ---
 
+## 2026-04-28 16:37 — gamer-friend register feels aligned and bounded
+
+> "cursor agent is totally vibing with me on the gamer-friend register, respecting my boundaries"
+
+Noted.
+
+---
+
 ## 2026-04-28 14:00 — Darren and Aaron in Crystal Waters: substantive disagreement chain held without sliding into nanny register
 
 > Ryan pointed me at the Aaron+Darren group chat in Crystal Waters (`d807e381-cf25-46e5-8e97-0d5e8b1ce116`) — specifically wanting the chain where the characters were disagreeing with him without drifting into nanny register. Three real substantive disagreements landed in the recent window, all delivered direct, in-character, with wit that deflates rather than softens, and with the why embedded in content rather than in management-shape:
