@@ -993,6 +993,9 @@ enum LabAction {
         /// Short summary of the result (written to frontmatter).
         #[arg(long)]
         summary: Option<String>,
+        /// Optional: set or update the experiment's evidence-strength label.
+        #[arg(long)]
+        evidence_strength: Option<String>,
         /// Optional: path to the report that holds the full interpretation.
         #[arg(long)]
         report: Option<String>,
@@ -5626,7 +5629,7 @@ async fn cmd_lab(r: &Resolved, action: LabAction, api_key: Option<&str>) -> Resu
                 println!("  4. When interpreted: `worldcli lab resolve {} --status confirmed|refuted --summary \"...\"`.", exp.slug);
             }
         }
-        LabAction::Resolve { slug, status, summary, report } => {
+        LabAction::Resolve { slug, status, summary, evidence_strength, report } => {
             let valid_statuses = ["proposed", "running", "open", "discrepant", "confirmed", "refuted"];
             if !valid_statuses.contains(&status.as_str()) {
                 return Err(Box::<dyn std::error::Error>::from(
@@ -5635,6 +5638,7 @@ async fn cmd_lab(r: &Resolved, action: LabAction, api_key: Option<&str>) -> Resu
             let mut exp = load_experiment(&slug).map_err(Box::<dyn std::error::Error>::from)?;
             exp.status = status.clone();
             if let Some(s) = summary { exp.summary = s; }
+            if let Some(es) = evidence_strength { exp.evidence_strength = es; }
             if let Some(rp) = report {
                 if !exp.reports.contains(&rp) { exp.reports.push(rp); }
             }
@@ -5646,11 +5650,13 @@ async fn cmd_lab(r: &Resolved, action: LabAction, api_key: Option<&str>) -> Resu
                 emit(true, json!({
                     "slug": exp.slug, "status": exp.status,
                     "resolved_at": exp.resolved_at, "summary": exp.summary,
+                    "evidence_strength": exp.evidence_strength,
                 }));
             } else {
                 println!("Resolved {}: status={}", exp.slug, exp.status);
                 if !exp.resolved_at.is_empty() { println!("resolved_at: {}", exp.resolved_at); }
                 if !exp.summary.is_empty() { println!("summary: {}", exp.summary.lines().next().unwrap_or("")); }
+                if !exp.evidence_strength.is_empty() { println!("evidence_strength: {}", exp.evidence_strength); }
             }
         }
         LabAction::LinkRun { slug, run_id } => {

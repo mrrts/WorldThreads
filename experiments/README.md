@@ -36,6 +36,8 @@ Block scalars (multi-line prose):
 - `prediction`: what CONFIRMED looks like / what REFUTED looks like,
   written BEFORE any LLM call
 - `summary`: the result, added at `lab resolve` time
+  `lab resolve --evidence-strength <label>` can also update the tier label when
+  interpretation clarifies the claim's actual strength.
 
 Flat string-lists:
 
