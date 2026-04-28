@@ -5746,6 +5746,9 @@ async fn cmd_lab(r: &Resolved, action: LabAction, api_key: Option<&str>) -> Resu
                     "slug": e.slug, "status": e.status, "mode": e.mode,
                     "hypothesis": e.hypothesis, "ref": e.git_ref,
                     "evidence_strength": e.evidence_strength,
+                    "strength_axes": e.strength_axes,
+                    "strength_provenance": e.strength_provenance,
+                    "bet_family": e.bet_family,
                 })).collect();
                 emit(true, JsonValue::Array(out));
             } else {
@@ -5780,6 +5783,9 @@ async fn cmd_lab(r: &Resolved, action: LabAction, api_key: Option<&str>) -> Resu
                     "id": exp.id, "status": exp.status, "mode": exp.mode,
                     "ref": exp.git_ref, "rubric_ref": exp.rubric_ref,
                     "evidence_strength": exp.evidence_strength,
+                    "strength_axes": exp.strength_axes,
+                    "strength_provenance": exp.strength_provenance,
+                    "bet_family": exp.bet_family,
                     "created_at": exp.created_at, "resolved_at": exp.resolved_at,
                     "hypothesis": exp.hypothesis,
                     "prediction": exp.prediction,
