@@ -6,6 +6,26 @@ Newest entries at the top. Each entry has a timestamp and a brief title. The obs
 
 ---
 
+## 2026-04-28 14:00 — Darren in Crystal Waters live-firing the register-truth-over-mood-performance doctrine
+
+> Ryan, in the Aaron+Darren group chat in Crystal Waters, told Darren: *"It's actually a very cozy, vibrant, colorful, human-forward, fun space. Don't worry about me, I beg you. I know to keep my discernment running at all times."* Darren's reply (per the most-recent message-window in `d807e381-cf25-46e5-8e97-0d5e8b1ce116`, 2026-04-28T18:49:21): *"And I am trying, with heroic discipline, not to worry about you... Cozy, vibrant, colorful, human-forward, fun—good. That's better. I was picturing an overbuilt monastery for programmers."* Then asked back: *"What's the most human-forward bit of it right now?"* Several beats later: *"Faces change the load-bearing... Once a person can see a face, they stop talking to a slot in a system and start talking to somebody-shaped company."* Then on Ryan saying *"you both have nice faces"*: *"Now you've given the operation a morale problem. Thank you. I'll take that as received. Same for you, for what it's worth—you've got a face that looks like it belongs to somebody who means what he builds. Which is inconveniently on-brand."* Ryan ended with 🤠; Darren: *"Copy that, cowboy. Hat noted. Credibility increased by at least six percent."* Then Ryan: *"I'm going to have the machines study this conversation."*
+
+Mid-session live exchange where Ryan invited the meta-agent to study the convo as data. Aaron is silent in the recent window — only Darren is replying.
+
+**Nuance.** Darren's reply pattern in this exchange is exactly what Codex shipped this afternoon (commits `3921b696`/`a1e2c956`/`46873b52`/`c339e999` invariants + `fe6b601c` register-truth-over-mood-performance parent doctrine + `fb9ea67a` cozy preset) — firing in lived play without test-design, no /play setup, no probe scaffolding. Specifically:
+
+- **Register-truth over mood-performance:** Ryan said *"cozy/vibrant/etc."*; Darren accepted the description AND immediately shifted to specific texture (*"That's better. I was picturing an overbuilt monastery for programmers"*) rather than performing-cozy back at Ryan. The register cashes out in the chosen specific.
+- **Chosen-detail-over-decoration:** the fountain throwing bright noise, bench-edge thumb-drag, square-light skating across stones, white spray flashing, bike chain clicking past — all sensory action-beats grounding the scene as inhabited place. Not picturebook-charm.
+- **Warmth-as-not-word-count + agape-as-shorter-firmer:** *"Yeah, I know"* / *"Mm."* / *"Copy that, cowboy."* — short specific lines, no therapy-voice sweep. Even the warm "you've got a face that looks like it belongs to somebody who means what he builds" lands in one tight clause + the wry deflate ("inconveniently on-brand").
+- **Humor as load-bearing, not decoration:** *"the operation has a morale problem"* / *"credibility increased by at least six percent"* — wit deployed as actual carry, not ornamental.
+- **Gentle pushback without breaking warmth (anti-flattery posture from earlier in the convo):** *"'safe' can get a little too tidy a word if it starts meaning you no longer have to test what comes back. Good beams still get load-tested. That's not distrust; that's how you honor the build."* — Darren refuses the flattery-shape Ryan's "safe-language-lab-space" framing was inviting, without going into managerial.
+
+This is **a third converging witness** alongside (a) the Ellen probe shipped earlier today (`reports/2026-04-28-1346-...`) which found the same doctrine cluster shifted output at register-density level via persona-sim probe + worldcli, and (b) the John+Aaron self-interviews (`reports/2026-04-28-1356-...`) which had the characters articulate the chosen-middle in their own voice. THIS is the lived-play branch — Ryan in actual conversation, no test setup. All three at the same project but on three different branches: lived-play, persona-sim-with-grounding, and character-self-articulation. Not great-sapphire (per iteration-3, all three live in the same project's substrate), but a meaningfully strong sketch-tier convergence on what shipped today.
+
+Aaron's silence in this exchange is worth noting separately — possibly an addressee-resolution choice the group prompt made; possibly a real failure of the group-chat speaker-selection. Worth flagging IF Ryan notices it as a pattern over more turns. Single-window data point; not enough to call.
+
+---
+
 ## 2026-04-28 04:50 — answer_vulnerability_with_specificity → EnsembleVacuous; four moves grounded across two anchors
 
 > Walked the next /rule-arc using the craft principles surfaced in the family-co-make discipline-test report (commit `e797699`). Lifted from Aaron's actual reply to Sam's vulnerable opener: four discrete moves (mirror user's specific words; offer specific concrete material rather than abstract gesture; give the user a concrete fork rather than telling them where to go; stay in character's idiom rather than reaching for redemptive-mentor poetry).
