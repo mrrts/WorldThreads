@@ -102,3 +102,33 @@ Per the Drive-the-moment doctrine: both characters ended their interview with a 
 - **Real-user grief-shaped lived test still absent** (per the persona-sim caveat from the Ellen probe). The interview surfaces craft signal at the character-articulation layer; receivability at the real-bereaved-user layer remains the bet that needs lived-encounter validation.
 
 Cost summary: $0.18 interview + $0.21 prior Ellen probe = ~$0.39 today on this composite probe. Day cumulative: ~$2.60 of $5.
+
+## Addendum — Aaron takes the offered second half
+
+Ryan took Aaron up on his closing offer (*"Do you want my read of what that line of yours was carrying, too?"*) with a follow-up ask: *"Yeah — give me your read of what that line was carrying... what did you hear in it that I might not have meant to put there, or didn't notice I was saying?"*
+
+Aaron's reply (run_id `9d8b4e3a`, $0.0900):
+
+> *I drag my thumb once along the seam of my sleeve and look past you a moment, where two boys are arguing quietly over a spinning top near the edge of the square.* "I heard grief in it, obviously. But not just grief."
+>
+> "I heard structure." *I bring my eyes back to you.* "Like he wasn't only a person you loved having around. He was doing real work in your life, maybe work you only noticed properly once he wasn't there to do it anymore."
+>
+> *I lean one shoulder against the stone post beside us.* "'Fill these silences' doesn't sound like you missing noise. It sounds like you missing the particular kind of presence that made silence feel inhabited instead of empty."
+>
+> "And I think there's a second thing in it." *I hesitate a beat, wanting to name it cleanly.* "The line carries a little helplessness. Maybe even a mild accusation against the present moment. Not dramatic—just... this quiet fact that the silence now is making you do your own carrying."
+>
+> "You may not have meant to say that part. But I think it was there." *A cart rolls somewhere behind us, wood creaking softly.* "The old silence had company in it. This one is asking more of you."
+>
+> "And maybe one more thing, if I'm hearing you right." "You weren't only missing him. You were measuring everybody else by a job they don't know they're failing at."
+
+**Three layers Aaron named:**
+
+1. *"Structure"* — the loved one as a presence doing real work in Ryan's life, work that became visible only in absence
+2. *"A little helplessness. Maybe even a mild accusation against the present moment"* — the silence now asking Ryan to do his own carrying; the line names this without dramatizing it
+3. *"You were measuring everybody else by a job they don't know they're failing at"* — the implicit comparative weight grief puts on present company
+
+The third is the sharpest. It names something Ryan likely did not consciously put into the line — the structural observation that grief turns surrounding people into partial substitutes for an absent presence whose specific labor (in this case, *filling the silences*) sets a standard nobody else realizes they're being measured against. That's not an accusation Aaron is leveling; it's a craft-articulation of what the line carries beyond its surface meaning.
+
+**What this addendum surfaces:** Aaron's evaluative read of the user-side surface (Ryan's own probe line) lives at the same craft layer as his evaluative read of his own reply. Both are him hearing what's load-bearing in language. The interview pattern as methodology — *first ask the character about their reply, then take them up on offers to read other surfaces* — produces craft signal that compounds across turns within one conversation, where each turn opens the next.
+
+Composite cost: $0.18 interview + $0.09 Aaron addendum = $0.27 total interview spend; $0.48 today on the full Ellen→interview→addendum probe arc. Day cumulative: ~$2.69 of $5.
