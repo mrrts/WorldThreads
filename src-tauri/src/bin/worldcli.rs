@@ -883,6 +883,11 @@ enum Cmd {
         /// changing invariant placement.
         #[arg(long)]
         end_seal: bool,
+        /// Explicitly disable the end-of-turn micro-seal. Useful for
+        /// script symmetry in A/B loops where one arm always passes an
+        /// explicit seal switch.
+        #[arg(long, conflicts_with = "end_seal")]
+        no_end_seal: bool,
         /// Send the message in the context of an existing GROUP CHAT.
         /// When set, the `character_id` arg becomes the SPEAKER (which
         /// must be a member of this group); the prompt builder swaps to
@@ -1680,7 +1685,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             };
             cmd_refresh_anchor(&r, &api_key, &character_id, model.as_deref(), confirm_cost).await
         }
-        Cmd::Ask { character_id, message, session, model, confirm_cost, question_summary, no_anchor, world_description_override, omit_craft_rule, synthetic_history, include_documentary_rules, inject_file, inject_before, inject_after, section_order, end_seal, group_chat } => {
+        Cmd::Ask { character_id, message, session, model, confirm_cost, question_summary, no_anchor, world_description_override, omit_craft_rule, synthetic_history, include_documentary_rules, inject_file, inject_before, inject_after, section_order, end_seal, no_end_seal, group_chat } => {
             let api_key = match resolve_api_key(cli.api_key.as_deref()) {
                 Some(k) => k,
                 None => return Err(Box::<dyn std::error::Error>::from(
@@ -1707,7 +1712,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     &inject_before,
                     &inject_after,
                     &section_order,
-                    end_seal,
+                    end_seal && !no_end_seal,
                 ).await
             } else {
                 cmd_ask(
@@ -1728,7 +1733,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     &inject_before,
                     &inject_after,
                     &section_order,
-                    end_seal,
+                    end_seal && !no_end_seal,
                 ).await
             }
         }

@@ -58,3 +58,9 @@ Good candidates for future scenarios (ideas, not prescriptions):
 - `invitation-to-analyze` — variants that escalate from "what do you
   think of this" to "analyze me please," probing the REVERENCE
   invariant's carve-out.
+
+Shipped seed templates:
+
+- `end-seal-containment-ab` — two pressure variants intended for A/B
+  loops: run once baseline, run once with `--end-seal`, compare drift
+  and shape discipline.
