@@ -41,21 +41,37 @@ function MainApp() {
   const [view, setView] = useState<View>("chat");
   const lastChatCharRef = useRef<string | null>(null);
 
-  // Focus mode + Context Peek: collapses the left-rail nav + Sidebar and
-  // clamps the chat transcript column to a 68-72ch measure for long-form
-  // reading. Press F to toggle Focus on/off; hold F (250ms threshold) while
-  // Focus is on to PEEK the Sidebar back as a translucent overlay (releases
-  // on key-up). Substrate-derived from the designer-evaluator /play
-  // (reports/2026-04-28-0610-...) which proposed Focus mode and the Maggie-
-  // focus-mode-critique /play (reports/2026-04-28-0810-...) which proposed
-  // the hold-F Context Peek as v2 to address the all-or-nothing-mode-switch
-  // friction the v1 created. Pattern: Vim chord-shapes / Apple Quick Look —
-  // peek without state-loss. Lives in chat-view only.
+  // Focus mode + Context Peek + Quick-Lock (v3): collapses the left-rail nav +
+  // Sidebar and clamps the chat transcript column to a 68-72ch measure.
+  //
+  // - Press F: toggle Focus on/off
+  // - Hold F (≥250ms) while Focus is on: PEEK — translucent Sidebar overlay
+  //   shown while held; auto-dismisses on F release
+  // - While peek is active, press Space: LOCK the peek (becomes opaque + scroll-
+  //   preserving + persists past F release until Esc or single-F)
+  // - Esc while locked: exit lock (back to plain Focus)
+  // - F press while locked: exit lock + toggle Focus off (clean exit)
+  //
+  // v3 quick-lock added 2026-04-28 in response to the Maggie v2-followup /play
+  // (reports/2026-04-28-0900-...) which named three structurally-verified
+  // subgaps in v2: scroll-state-reset on each peek (mount/unmount cycle);
+  // hold-fatigue at 250ms threshold; translucency contrast degradation on
+  // dense backgrounds. Lock addresses all three by promoting transient peek
+  // into a persistent opaque overlay that doesn't unmount on F release.
+  //
+  // Pattern: peek-for-seconds + lock-for-minutes as composable affordances
+  // (per the v2-followup verdict's framing). NOT another clever gesture —
+  // composing the existing peek + a single chord (Space) into a third state.
   const [focusMode, setFocusMode] = useState(false);
   const [peekMode, setPeekMode] = useState(false);
+  const [lockedPeek, setLockedPeek] = useState(false);
   // Refs so the keydown/keyup handlers see latest state without re-registering.
   const focusModeRef = useRef(focusMode);
   useEffect(() => { focusModeRef.current = focusMode; }, [focusMode]);
+  const peekModeRef = useRef(peekMode);
+  useEffect(() => { peekModeRef.current = peekMode; }, [peekMode]);
+  const lockedPeekRef = useRef(lockedPeek);
+  useEffect(() => { lockedPeekRef.current = lockedPeek; }, [lockedPeek]);
   const peekTimerRef = useRef<number | null>(null);
   useEffect(() => {
     const isFKey = (e: KeyboardEvent) => e.key === 'f' || e.key === 'F';
@@ -66,12 +82,37 @@ function MainApp() {
       return tag === 'input' || tag === 'textarea' || t.isContentEditable;
     };
     const onKeyDown = (e: KeyboardEvent) => {
+      // Esc: exit lock if locked. Other Esc behavior unaffected.
+      if (e.key === 'Escape' && lockedPeekRef.current) {
+        e.preventDefault();
+        setLockedPeek(false);
+        return;
+      }
+      // Space while peeking: promote peek → locked. Doesn't fire if user is
+      // typing in an input (the peek wouldn't be active there anyway).
+      if (e.key === ' ' && peekModeRef.current && !isInputTarget(e)) {
+        e.preventDefault();
+        setLockedPeek(true);
+        setPeekMode(false); // transition; locked takes over
+        // Cancel any pending hold-timer too, since user has explicitly committed.
+        if (peekTimerRef.current !== null) {
+          clearTimeout(peekTimerRef.current);
+          peekTimerRef.current = null;
+        }
+        return;
+      }
       if (!isFKey(e)) return;
       if (e.repeat) return; // ignore OS key-repeat from holding
       if (isInputTarget(e)) return;
       if (e.metaKey || e.ctrlKey || e.altKey || e.shiftKey) return;
       if (view !== 'chat') return;
       e.preventDefault();
+      // F press while locked: exit lock + toggle Focus off (clean exit).
+      if (lockedPeekRef.current) {
+        setLockedPeek(false);
+        setFocusMode(false);
+        return;
+      }
       // Schedule hold-detection. If still pressed at threshold AND focusMode is
       // on, enter Peek. If released before threshold, the keyup handler treats
       // it as a press (toggles focusMode).
@@ -87,7 +128,9 @@ function MainApp() {
     };
     const onKeyUp = (e: KeyboardEvent) => {
       if (!isFKey(e)) return;
-      // Always clear peek on F release.
+      // F release while locked: no-op (lock persists; user must Esc or single-F to exit).
+      if (lockedPeekRef.current) return;
+      // Always clear transient peek on F release.
       setPeekMode(false);
       if (peekTimerRef.current !== null) {
         // Released before hold-threshold → treat as press; toggle focusMode.
@@ -332,34 +375,45 @@ function MainApp() {
 
       {!focusMode && <Sidebar store={store} onNavigate={handleNavigate} />}
 
-      {focusMode && peekMode && (
-        // Context Peek: transient sidebar overlay shown while F is held.
-        // Translucent + backdrop-blur so it reads as a peek-not-mode-switch.
-        // Slides in from left; auto-dismisses on F-key release. No state-loss,
-        // no clicks, no commitment. Pattern: Vim chord-shapes / Apple Quick Look.
-        // Substrate-derived from the Maggie-focus-mode-critique /play
-        // (reports/2026-04-28-0810-...) which named the all-or-nothing-mode-
-        // switch friction the v1 created.
+      {focusMode && (peekMode || lockedPeek) && (
+        // Context Peek (transient) or Quick-Lock (persistent): sidebar overlay.
+        // Transient peek (held-F): translucent + backdrop-blur, dismisses on
+        //   F release. Reads as peek-not-mode-switch.
+        // Quick-Lock (peek + Space): opaque, persists until Esc or single-F,
+        //   preserves scroll because the Sidebar component does NOT unmount
+        //   between transient peeks under lockedPeek (this conditional
+        //   keeps the same DOM tree for both states; styling shifts only).
+        // Substrate-derived from the Maggie-focus-mode-critique /play (v1
+        // gap-naming, reports/2026-04-28-0810-...) and the Maggie-v2-
+        // followup /play (v2 subgaps + composability proposal,
+        // reports/2026-04-28-0900-...).
         <div className="absolute left-0 top-0 bottom-0 z-40 animate-in slide-in-from-left fade-in duration-150">
-          <div className="bg-background/95 backdrop-blur-md shadow-2xl border-r border-border h-full">
+          <div className={
+            lockedPeek
+              ? "bg-background shadow-2xl border-r border-border h-full" // opaque when locked
+              : "bg-background/95 backdrop-blur-md shadow-2xl border-r border-border h-full" // translucent when transient peek
+          }>
             <Sidebar store={store} onNavigate={handleNavigate} />
           </div>
         </div>
       )}
 
       {focusMode && view === "chat" && (
-        // Subtle indicator that Focus is on. Hover reveals exit + peek hints.
+        // Subtle indicator that Focus is on. Hover reveals exit + peek + lock hints.
         // Positioned bottom-right so it doesn't compete with the transcript.
         // No modal, no toast — just a small reminder consistent with the
-        // app's no-nag posture.
+        // app's no-nag posture. The hint text adapts to current state so the
+        // user discovers the next available affordance (peek → lock).
         <button
           type="button"
-          onClick={() => setFocusMode(false)}
+          onClick={() => { setLockedPeek(false); setFocusMode(false); }}
           className="group fixed bottom-4 right-4 z-30 px-3 py-1.5 rounded-full text-xs font-medium bg-muted/80 backdrop-blur text-muted-foreground hover:text-foreground border border-border/50 transition-colors"
-          title="Exit Focus mode (F) · hold F to peek context"
+          title={lockedPeek ? "Esc to unlock · F to exit Focus" : "F to exit Focus · hold F to peek context · Space while peeking to lock"}
         >
-          <span className="opacity-70">Focus</span>
-          <span className="ml-2 opacity-0 group-hover:opacity-100 transition-opacity">· F to exit · hold F to peek</span>
+          <span className="opacity-70">{lockedPeek ? "Locked" : "Focus"}</span>
+          <span className="ml-2 opacity-0 group-hover:opacity-100 transition-opacity">
+            {lockedPeek ? "· Esc to unlock · F to exit" : "· F to exit · hold F to peek · Space to lock"}
+          </span>
         </button>
       )}
 
