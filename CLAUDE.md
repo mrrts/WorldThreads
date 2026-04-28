@@ -110,6 +110,8 @@ Three project-scale parities matter:
 
 **Public-facing surfaces are funnel surfaces.** In-app pitch (felt promise) → README (cold visitor orientation) → `reports/2026-04-27-0030-public-release-landing.md` (10-15 minute deeper read) → broader `reports/` corpus (proof-field). Prefer handoff over repetition; if two surfaces could swap titles without changing function, the funnel collapsed.
 
+**Trajectory-reading surfaces are precomposition surfaces.** `/mission-arc` no longer merely summarizes recent commits after the fact. Because it auto-fires before reports and chooser-generation, it conditions what gets written next. Treat changes to its extraction logic, lookback window, or output shape as edits to a live steering surface, not as reporting niceties.
+
 The deeper rule: once a surface is runtime-significant, parity becomes an enforcement candidate (hook, generated source, parity test) — not just goodwill.
 
 ## Reports
