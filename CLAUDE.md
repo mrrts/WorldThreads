@@ -114,6 +114,8 @@ Three project-scale parities matter:
 
 **Differential-read summaries can become precomposition surfaces.** When a `/play` or direct-witness report compresses a broad run into one named live seam and the next move is a copy edit on that exact surface, the summary is no longer just archived evidence. It becomes a steering layer for the next sentence. In those moments, treat the summary phrasing itself as load-bearing: if it drifts, the edit-path drifts with it.
 
+**Iteration-loop summaries can become interaction middleware.** In UI or control-scheme arcs, a `/play` report can compress a whole iteration into one named state/flow seam — the all-or-nothing mode switch, the missing semantic uniformity, the stopping rule that turned out too weak. When the next move is an implementation pass on that exact interaction seam, the summary is no longer just evidence about the feature. It becomes a steering layer for the next control-shape move, and sometimes for the loop's stopping rule itself.
+
 The deeper rule: once a surface is runtime-significant, parity becomes an enforcement candidate (hook, generated source, parity test) — not just goodwill.
 
 ## Reports

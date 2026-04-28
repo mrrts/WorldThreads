@@ -53,6 +53,16 @@ report is no longer just evidence stored for later; it is actively steering the
 next wording move. Treat the seam-summary sentence itself as load-bearing until
 the copy arc closes.
 
+In UI-iteration arcs, a sibling threshold matters: when a `/play` report
+compresses the run into **one named state/flow seam** and the next move is an
+implementation pass on that exact seam, the summary can become **interaction
+middleware**. At that point the report is steering the next control-scheme
+change, not just describing it after the fact. Focus-mode's loop is the worked
+example: all-or-nothing mode switch -> Context Peek -> quick-lock ->
+single-sentence stopping rule -> semantic-uniformity refinement. Treat those
+seam-summary lines and stopping-rule refinements as load-bearing until the
+interaction arc actually closes.
+
 ## When this skill does NOT fit
 
 - Persona-sim evidence is **not real-user evidence**. Per `docs/PLAIN-TRADITION.md`
