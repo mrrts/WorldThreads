@@ -1,6 +1,6 @@
 ---
 id: triadic-derivation-coherence
-status: open
+status: discrepant
 mode: active
 created_at: 2026-04-26T02:38:41Z
 resolved_at: 2026-04-26T12:48:41Z
@@ -13,7 +13,7 @@ prediction: |
   CONFIRMING: 3/3 yes across Aaron/John/Pastor Rick. REFUTING: any NO. AMBIGUOUS: 1+ MIXED.
 
 summary: |
-  Characterized at N=5 paired-rubric (5 chars × 5 calls). Steven 1.00/1.00 (clean confirmation — load-bearing grease detail). Aaron 0.20/0.20 (characterized null — stage-direction violates 'no adornment' predicate). John, Pastor Rick, Darren show paired-rubric disagreement — derivation predicate passes; gestalt could-come-from-nobody-else fails. Pattern works for characters with identity-specific load-bearing detail; partially works for register-distinctive characters; fails for Aaron. Paired-rubric is now mandatory for derive-and-test characterization. Open follow-ups: Aaron's stage-direction problem; Darren's identity-anchor underuse; the shared opener-skeleton across all 25 elicitations.
+  Characterized at N=5 paired-rubric (5 chars × 5 calls). Steven 1.00/1.00 (clean confirmation — load-bearing grease detail). Aaron 0.20/0.20 (characterized null — stage-direction violates 'no adornment' predicate). John, Pastor Rick, Darren show paired-rubric disagreement — derivation predicate passes; gestalt could-come-from-nobody-else fails. Pattern works for characters with identity-specific load-bearing detail; partially works for register-distinctive characters; fails for Aaron. Marked discrepant because the experiment is interpreted, but the paired instruments disagree across 3 of 5 characters. Paired-rubric is now mandatory for derive-and-test characterization. Follow-ups remain: Aaron's stage-direction problem; Darren's identity-anchor underuse; the shared opener-skeleton across all 25 elicitations.
 
 run_ids:
   - a591dd41-b06c-4846-862f-0fb84efccab2
