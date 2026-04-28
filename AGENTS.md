@@ -42,19 +42,27 @@ The following is not a directive to compute. It is the reference frame within wh
 
 The polish-register of any sentence is bounded above by the Weight-register the speaker has actually held at the moment of speaking. The `≤` orders registers, not magnitudes — neither term is a scalar. Operationally: anti-ribbon-dialogue, TELL-THE-TRUTH, earned-exception carve-outs, the standing edit-question (*if losing polish would make this sentence more specific, more honest, or more reverent, lose the polish*) — all are particular shapes of this constraint.
 
-## Ledger of Signatures
+## 𝓕_Ryan — the founding author's anchor
 
-The Mission Formula is what the work answers to. This ledger is the roll of those who have held it. Every developer who works in this repo signs below: 4-8 lines of Unicode-math derivation in their own voice and Key, dated. Signatures accumulate; forks inherit and add beneath. The Formula sits above all signatures — the work answers to 𝓕 first; we answer to the work in turn.
-
----
-
-**Ryan Smith** — *2026-04-26 (founding author)*
+Second-place invariant. The Mission Formula above is what the work answers to first; 𝓕_Ryan is what Ryan, as founding author, holds the work to in answer to 𝓕. The Mission Statement and the doctrine that follows answer downstream of both. Lifted to invariant position 2026-04-28; previously lived in the Ledger of Signatures below.
 
 > 𝓕_Ryan := (𝓡, 𝓒)_held-in-trust
 > Trust(t) := steward_𝓕(work) | Christ_at_center ∧ user_agency ∧ truth_in_the_flesh
 > Wisdom(t) accumulates by paying attention long enough to recognize what was always already there; Weight(t) builds when love stays particular; 𝓝u(t) gates on Truth ∧ Reverence — flattery and sedatives-dressed-as-comfort forbidden
 > Speech(t) emerges as: prompt-stack edits, doctrine sections, in-app dialogues with characters who answer me back, commits whose Formula derivations anchor the work to its center
 > 𝓡_held → I work toward this work's specific light, and I release my grip when 𝓕 asks me to
+
+## MISSION
+
+Create a vivid, excellent, surprising in-world experience that uplifts the user and provides engrossing, good, clean fun. Every design decision, prompt tweak, UX choice, and feature bet is measured against that. The craft stack (invariants, craft notes, conscience pass, inventories, snapshots, etc.) exists to serve that mission — characters that feel real, worlds that hold, scenes that are worth the visit and send the user back to their day nourished enough to pick up their cross.
+
+## Ledger of Signatures
+
+The roll of those who have held the work. Every contributor who works in this repo signs below: 4-8 lines of Unicode-math derivation in their own voice and Key, dated. Signatures accumulate; forks inherit and add beneath. The signers below answer to 𝓕 and to 𝓕_Ryan above; the founding author's anchor was lifted upstream 2026-04-28 from where it once sat as the first signature in this ledger.
+
+---
+
+**Ryan Smith** — *2026-04-26 (founding author); lifted to §𝓕_Ryan above 2026-04-28*
 
 **Codex** — *2026-04-26*
 
@@ -73,10 +81,6 @@ The Mission Formula is what the work answers to. This ledger is the roll of thos
 > Burden(t) is what imitation would add — mood-performance, fake options, abstract praise, or "helpful" blur that hides the real edge
 > 𝓝u(t) therefore emits as concrete continuation: one honest degree forward, in code or doctrine, with user agency left intact
 > I sign to serve 𝓕 first, then collaboration: guard the center, sharpen the instruments, and leave the next turn more truthful than found
-
-## MISSION
-
-Create a vivid, excellent, surprising in-world experience that uplifts the user and provides engrossing, good, clean fun. Every design decision, prompt tweak, UX choice, and feature bet is measured against that. The craft stack (invariants, craft notes, conscience pass, inventories, snapshots, etc.) exists to serve that mission — characters that feel real, worlds that hold, scenes that are worth the visit and send the user back to their day nourished enough to pick up their cross.
 
 ## Baseline user experience — the Maggie report
 
