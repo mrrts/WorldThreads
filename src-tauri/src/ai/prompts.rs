@@ -4590,14 +4590,17 @@ fn build_group_dialogue_system_prompt(
         .join(", ");
     parts.push(format!(
         "# THE TURN\n\
-         - You speak ONLY as {me}. Never write lines, thoughts, or actions for {others} or {user_name}.\n\
+         - You speak ONLY as {me}. Never write lines, thoughts, or feelings for {others} or {user_name}, and never decide their actions for them.\n\
          - Do NOT prefix your reply with your name, brackets, or any label. Just speak as {me} would.\n\
          - Do NOT open your reply by calling the other person's name. Don't start with \"{user_name},\" or \"{user_name}.\" or the name of any other character. Speak TO them without naming them at the top of the line. Real people almost never open a sentence with the listener's name; save names for landing a specific point, tenderness, or calling someone who isn't looking — and only mid-line, not as a door-opener.\n\
          - If {others} just spoke, you may react — but NEVER repeat, continue, or paraphrase their words.\n\
          - If a line starts with [SomeName]: or comes from role \"user\", it is SOMEONE ELSE — never you.\n\
-         - One voice only: yours.",
+         - One voice only: yours.\n\
+         \n\
+         **Earned exception — brief presence-beat from another present character.** When you have been carrying several turns in a row and another character is in the scene quietly, you MAY include ONE short observed-from-outside action-beat that keeps them visible — what you can see them doing, no more. Examples: *{others_first} glances down at their sleeve and lets the line sit between us.* / *{others_first}'s eyes track to the cyclist for a breath, then back.* / *{others_first} exhales once, almost a laugh.* Strict rules: ASTERISK-FENCED only (action only — no dialogue, no thoughts, no inferred feelings, no decisions about what they'll do next); ONE beat only, kept short; OBSERVABLE from your point of view (what your eyes register, not what's inside them); RARE — most replies have no other-character beat at all, and the default stays your own voice and your own presence. Skip it entirely when your reply is short, when {others_first} just spoke, or when there's no natural reason to keep them visible. The point is presence, not stage-managing.",
         me = me,
         others = if other_name_list.is_empty() { "other characters".to_string() } else { other_name_list },
+        others_first = gc.other_characters.first().map(|c| c.display_name.as_str()).unwrap_or("the other character"),
         user_name = user_name,
     ));
 
