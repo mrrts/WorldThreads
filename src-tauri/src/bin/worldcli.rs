@@ -878,6 +878,11 @@ enum Cmd {
         /// Must include exactly one of each.
         #[arg(long, value_delimiter = ',')]
         section_order: Vec<String>,
+        /// Append the built-in end-of-turn micro-seal after all other
+        /// prompt blocks. Use this for containment tests without
+        /// changing invariant placement.
+        #[arg(long)]
+        end_seal: bool,
         /// Send the message in the context of an existing GROUP CHAT.
         /// When set, the `character_id` arg becomes the SPEAKER (which
         /// must be a member of this group); the prompt builder swaps to
@@ -1675,7 +1680,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             };
             cmd_refresh_anchor(&r, &api_key, &character_id, model.as_deref(), confirm_cost).await
         }
-        Cmd::Ask { character_id, message, session, model, confirm_cost, question_summary, no_anchor, world_description_override, omit_craft_rule, synthetic_history, include_documentary_rules, inject_file, inject_before, inject_after, section_order, group_chat } => {
+        Cmd::Ask { character_id, message, session, model, confirm_cost, question_summary, no_anchor, world_description_override, omit_craft_rule, synthetic_history, include_documentary_rules, inject_file, inject_before, inject_after, section_order, end_seal, group_chat } => {
             let api_key = match resolve_api_key(cli.api_key.as_deref()) {
                 Some(k) => k,
                 None => return Err(Box::<dyn std::error::Error>::from(
@@ -1702,6 +1707,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     &inject_before,
                     &inject_after,
                     &section_order,
+                    end_seal,
                 ).await
             } else {
                 cmd_ask(
@@ -1722,6 +1728,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     &inject_before,
                     &inject_after,
                     &section_order,
+                    end_seal,
                 ).await
             }
         }
@@ -7726,6 +7733,7 @@ async fn cmd_ask(
     inject_before_anchors: &[String],
     inject_after_anchors: &[String],
     section_order_names: &[String],
+    end_seal: bool,
 ) -> Result<(), Box<dyn std::error::Error>> {
     let _ = r.check_character(character_id)?;
 
@@ -7762,7 +7770,7 @@ async fn cmd_ask(
 
         let insertions = parse_cli_insertions(inject_file_paths, inject_before_anchors, inject_after_anchors)?;
         let section_order_override = parse_section_order_override(section_order_names)?;
-        let overrides_for_prompt = if !omit_craft_rules.is_empty() || include_documentary_rules || !insertions.is_empty() || section_order_override.is_some() {
+        let overrides_for_prompt = if !omit_craft_rules.is_empty() || include_documentary_rules || !insertions.is_empty() || section_order_override.is_some() || end_seal {
             let mut ov = prompts::PromptOverrides::new();
             if !omit_craft_rules.is_empty() {
                 ov.set_omit_craft_rules(omit_craft_rules.clone());
@@ -7775,6 +7783,9 @@ async fn cmd_ask(
             }
             if let Some(order) = section_order_override {
                 ov.set_section_order(order);
+            }
+            if end_seal {
+                ov.set_include_end_micro_seal(true);
             }
             Some(ov)
         } else {
@@ -8005,6 +8016,7 @@ async fn cmd_group_ask(
     inject_before_anchors: &[String],
     inject_after_anchors: &[String],
     section_order_names: &[String],
+    end_seal: bool,
 ) -> Result<(), Box<dyn std::error::Error>> {
     use app_lib::ai::prompts::{GroupContext, OtherCharacter};
 
@@ -8066,7 +8078,7 @@ async fn cmd_group_ask(
 
         let insertions = parse_cli_insertions(inject_file_paths, inject_before_anchors, inject_after_anchors)?;
         let section_order_override = parse_section_order_override(section_order_names)?;
-        let overrides_for_prompt = if !omit_craft_rules.is_empty() || include_documentary_rules || !insertions.is_empty() || section_order_override.is_some() {
+        let overrides_for_prompt = if !omit_craft_rules.is_empty() || include_documentary_rules || !insertions.is_empty() || section_order_override.is_some() || end_seal {
             let mut ov = prompts::PromptOverrides::new();
             if !omit_craft_rules.is_empty() {
                 ov.set_omit_craft_rules(omit_craft_rules.clone());
@@ -8079,6 +8091,9 @@ async fn cmd_group_ask(
             }
             if let Some(order) = section_order_override {
                 ov.set_section_order(order);
+            }
+            if end_seal {
+                ov.set_include_end_micro_seal(true);
             }
             Some(ov)
         } else {

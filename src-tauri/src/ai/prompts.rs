@@ -953,6 +953,11 @@ pub struct PromptOverrides {
     /// prompt (e.g., re-checking whether the ensemble would still
     /// suppress the failure mode if those bodies were absent).
     pub include_documentary_craft_rules: bool,
+    /// When true, append a compact end-of-prompt turn-shape seal after
+    /// all other blocks. Used for containment tests where recency
+    /// pressure should favor concrete-first cadence without moving
+    /// theological/load-bearing invariants later in the prompt.
+    pub include_end_micro_seal: bool,
 }
 
 /// Single-insertion spec — audition new text at a named anchor
@@ -1062,6 +1067,7 @@ impl PromptOverrides {
             insertions: Vec::new(),
             omit_craft_rules: Vec::new(),
             include_documentary_craft_rules: false,
+            include_end_micro_seal: false,
         }
     }
     pub fn insert(&mut self, name: impl Into<String>, body: impl Into<String>) {
@@ -1090,6 +1096,9 @@ impl PromptOverrides {
     }
     pub fn set_include_documentary_craft_rules(&mut self, include: bool) {
         self.include_documentary_craft_rules = include;
+    }
+    pub fn set_include_end_micro_seal(&mut self, include: bool) {
+        self.include_end_micro_seal = include;
     }
     pub fn set_insertion(&mut self, insertion: Insertion) {
         self.insertions = vec![insertion];
@@ -4241,6 +4250,9 @@ fn build_solo_dialogue_system_prompt(
             parts.push(seal);
         }
     }
+    if overrides.map(|o| o.include_end_micro_seal).unwrap_or(false) {
+        parts.push(end_of_turn_micro_seal().to_string());
+    }
 
     parts.join("\n\n")
 }
@@ -4770,6 +4782,9 @@ fn build_group_dialogue_system_prompt(
             parts.push(seal);
         }
     }
+    if overrides.map(|o| o.include_end_micro_seal).unwrap_or(false) {
+        parts.push(end_of_turn_micro_seal().to_string());
+    }
 
     parts.join("\n\n")
 }
@@ -4788,6 +4803,10 @@ fn end_of_prompt_length_seal(length: &str) -> Option<String> {
         // we apply none — no variety sermon, no length shape, nothing.
         _ => None,
     }
+}
+
+fn end_of_turn_micro_seal() -> &'static str {
+    "END-OF-TURN MICRO-SEAL:\n- Start with concrete action in present tense.\n- Keep total reply to 3-4 sentences.\n- If one elevated sentence appears, immediately follow with plain concrete consequence.\n- Do not chain elevated sentences."
 }
 
 /// Format a batch of reactions grouped by reactor, for group-chat history
