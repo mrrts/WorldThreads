@@ -1,10 +1,10 @@
 # WorldThreads
 
-A desktop app for character-driven story-chats with LLMs — OpenAI BYOK-first, with your conversations stored on your own disk. Characters that feel real, worlds that hold, scenes that send you back to your day nourished enough to pick up your cross.
+A desktop app for character-driven story-chats with LLMs — OpenAI BYOK-first, with your conversations stored on your own disk. Characters with grain. Worlds that hold. Scenes that send you back to your day nourished enough to pick up your cross.
 
 Not a roleplay engine. Not an AI companion. A craft instrument for writing the kind of conversations that are worth having.
 
-If you want the deeper 10-15 minute orientation instead of the repo front door, start with [`reports/2026-04-27-0030-public-release-landing.md`](reports/2026-04-27-0030-public-release-landing.md).
+If you want the next deeper surface instead of the repo front door, start with [`reports/2026-04-27-0030-public-release-landing.md`](reports/2026-04-27-0030-public-release-landing.md).
 
 ## What it is
 
