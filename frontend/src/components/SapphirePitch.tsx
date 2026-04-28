@@ -152,7 +152,7 @@ export function SapphirePitch() {
 
                   <div className="space-y-5">
                     <p className="body-font max-w-xl text-sm uppercase tracking-[0.28em] text-[#93c8ff]">
-                      Real-feeling AI characters. Real-feeling AI worlds.
+                      Characters with grain. Worlds with weight.
                     </p>
                     <h1 className="title-font max-w-4xl text-5xl leading-[0.95] text-[#f7f6f2] sm:text-6xl lg:text-7xl">
                       Seek the
