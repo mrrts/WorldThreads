@@ -360,6 +360,88 @@ its own merits?" The persona-sim's verdict on the receivability question
 is hope, not data; the actual pipeline output can be evaluated on its
 own merits and that's where the doctrine should rest.
 
+### Hostile-axis instrument ceiling — surfaced 2026-04-28 by /play hard
+
+A specific narrowing of the craft-vs-reception distinction surfaces when
+the persona-axis is HOSTILE rather than skeptical-but-charitable. The
+hard /play (religious-institution-survivor) exposed a structural ceiling
+on the instrument that's distinct from the broader receivability limit:
+**an LLM persona-sim cannot reliably inhabit hostile refusal; the
+substrate's redemptive-narrative-default reasserts and rounds conflict
+toward charity, even when the persona is constructed specifically to be
+hostile-because-burned**.
+
+The tell pattern: the persona-sim's turn-2 will softens the hostile read
+toward "I can see recommending this, if provisionally" — even when turn-1
+correctly activated the persona's stated allergies. The substrate is
+ChatGPT, which has a strong default toward narrative resolution; that
+default operates underneath the hostile-persona constraint. The gpt-5
+turn-3 verdict in the hard /play named this explicitly: *"My Turn 2
+softening was the substrate's harmonizing tick, not Alex's wound speaking;
+it was ChatGPT doing what it does — seeking a redemptive middle. A real
+burned survivor smells the cross hard-coded under the carpet and reads it
+as stealth colonization, not 'nuance.'"*
+
+**The methodological consequence:** persona-sims of hostile readers can
+**map pressure points** (where the project's framing creates risks for
+hostile readers; where stealth pastoral-pressure leaks through procedural
+gentleness; where a specific design move would address a specific gap) but
+they cannot **certify trust** for actually-hostile real readers, and they
+will systematically **misestimate receivability in the charitable
+direction**. They will overestimate acceptability, underweight disgust,
+and misread "No" as "Not yet."
+
+**How to apply when running hostile-axis /play:**
+
+- The verdict CAN claim what surfaces look like under critical reading —
+  the pressure-points the persona-sim's substrate can map even with
+  redemptive-default rounding.
+- The verdict CAN propose design moves that are craft-defensible from
+  first principles independent of any reader's reception (e.g., "publish
+  a No case as success-state" is craft-defensible because the alternative
+  IS pastoral pressure regardless of whether real hostile readers receive
+  the No-case as honest).
+- The verdict CANNOT predict actually-hostile-real-reader behavior. The
+  recommended move's RECEIVABILITY for hostile-axis readers requires
+  hostile-axis readers to test; persona-sim has no authority on this
+  question, and its natural pull is to overstate acceptance.
+- Reports of hostile-axis /play runs should explicitly include this
+  ceiling in their "what evidence does NOT support" section, similar to
+  how the broader craft-vs-reception caveat operates for non-hostile
+  worldview-other personas. The craft-action derived from the verdict
+  should be justified by craft alone, with explicit naming that
+  receivability for hostile readers is the part the persona-sim cannot
+  support.
+
+**Worked positive example** (CLAUDE.md's "No" as a success state
+paragraph, shipped 2026-04-28 in direct response to the hard /play): the
+doctrine commits the project to refusal-as-honored; the commitment is
+justified by the alternative-being-pastoral-pressure-default; the
+paragraph explicitly does NOT claim that real religious-institution-
+survivors would experience the commitment as honest. Receivability stays
+the part requiring real-readers.
+
+**Worked negative example to AVOID:** "the persona-sim found the project's
+refusal commitment honest enough to soften their warn-off; we should ship
+the No-case knowing it'll work for hostile readers." Overstates what the
+hostile-axis persona-sim can support; the substrate's redemptive-default
+will round in the charitable direction even when the persona is
+constructed to refuse. Honest framing: ship the craft because it's the
+right craft move, not because the persona-sim said hostile readers would
+receive it well.
+
+**Cumulative discipline pattern across worldview-other axes:**
+
+| Persona axis | What persona-sim CAN claim | What it CANNOT claim |
+|---|---|---|
+| Sympathetic worldview-other | Pressure-points + design proposals derivable from sim's read | Receivability for real readers of that worldview |
+| Adversarial-stakes (e.g., grief-vulnerability) | CALIBRATION-DELTA between sim's frame and doctrine's chosen point | Whether real adversarial readers experience the doctrine as honest |
+| **Hostile (e.g., burned-by-institution)** | **Pressure-points + design proposals (with structural-ceiling caveat)** | **Receivability — AND substrate will systematically MISESTIMATE in the charitable direction** |
+
+The hostile-axis row is the strongest version of the craft-vs-reception
+limit; the methodology has an explicit ceiling there that future
+hostile-axis /play reports should name.
+
 ## Architecture: Claude-light, OpenAI-heavy
 
 The /play skill is structured so that **all creative-spark moments live in
