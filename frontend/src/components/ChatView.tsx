@@ -731,6 +731,17 @@ export function ChatView({ store, onNavigateToCharacter, focusMode = false, onTo
         <div className="absolute inset-0 bg-background/60" />
       </div>
       <div className="px-4 py-3 border-b border-border flex items-center gap-3 relative z-30 bg-background">
+        {onToggleFocus && (
+          <div className="relative group/focus flex-shrink-0">
+            <button
+              onClick={onToggleFocus}
+              className="flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center transition-colors cursor-pointer text-muted-foreground hover:text-foreground hover:bg-accent"
+            >
+              {focusMode ? <PanelLeftOpen size={15} /> : <PanelLeftClose size={15} />}
+            </button>
+            <span className="absolute top-full left-0 mt-1.5 px-2 py-0.5 text-[10px] font-medium text-white bg-black rounded-md shadow-lg whitespace-nowrap opacity-0 group-hover/focus:opacity-100 pointer-events-none transition-opacity z-50">{focusMode ? "Show sidebar" : "Hide sidebar"}</span>
+          </div>
+        )}
         <div
           className="relative flex items-center gap-3 flex-shrink-0"
           onMouseEnter={() => store.activeCharacter?.identity && setShowIdentityPopover(true)}
@@ -846,17 +857,6 @@ export function ChatView({ store, onNavigateToCharacter, focusMode = false, onTo
           </button>
           <span className="absolute top-full left-1/2 -translate-x-1/2 mt-1.5 px-2 py-0.5 text-[10px] font-medium text-white bg-black rounded-md shadow-lg whitespace-nowrap opacity-0 group-hover/consultant:opacity-100 pointer-events-none transition-opacity">Consultant</span>
         </div>
-        {onToggleFocus && (
-          <div className="relative group/focus">
-            <button
-              onClick={onToggleFocus}
-              className="flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center transition-colors cursor-pointer text-muted-foreground hover:text-foreground hover:bg-accent"
-            >
-              {focusMode ? <PanelLeftOpen size={15} /> : <PanelLeftClose size={15} />}
-            </button>
-            <span className="absolute top-full right-0 mt-1.5 px-2 py-0.5 text-[10px] font-medium text-white bg-black rounded-md shadow-lg whitespace-nowrap opacity-0 group-hover/focus:opacity-100 pointer-events-none transition-opacity">{focusMode ? "Show sidebar (Cmd+Shift+F)" : "Hide sidebar / Focus mode (Cmd+Shift+F)"}</span>
-          </div>
-        )}
       </div>
 
       <div className="flex-1 relative overflow-hidden z-10">
