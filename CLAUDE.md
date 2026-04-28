@@ -499,6 +499,8 @@ Precedence: `--api-key` flag → `OPENAI_API_KEY` env → macOS keychain. Keycha
 
 **A fully-resolved registry becomes an outcome topology.** When `lab open` drains to zero, the experiment shelf stops reading primarily as a work queue and starts reading as a map of the lab's actual bet-classes: what usually confirms, what cleanly refutes, what remains discrepant even after interpretation. At that point, the registry is not just tracking unfinished work; it is showing the project's empirical shape back to itself.
 
+**Outcome topology can reveal higher-order bet families.** Once the shelf is resolved enough to read as topology rather than queue, the statuses often start clustering by claim-shape, not just by topic. In the current lab shelf, **structural-bite bets** tend to confirm (does a rule or stack layer exert any real force at all?); **scope-and-direction bets** tend to refute (does that force generalize cleanly across characters, registers, or user-boundary readings in the exact predicted direction?); and **partial-real-but-instrument-sensitive bets** tend to land as discrepant. The value of outcome topology is not just the counts. It is that the shelf starts teaching which kinds of claims this lab is good at earning, which kinds it overstates, and which kinds demand paired instruments or narrower wording.
+
 **Sessions:** `session-show/clear/list`. Sessions persist to `dev_chat_sessions`; clear individually when stale.
 
 ### When to reach for `worldcli ask`
