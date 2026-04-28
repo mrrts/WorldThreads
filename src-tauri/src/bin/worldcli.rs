@@ -851,6 +851,21 @@ enum Cmd {
         /// suppressed by the rest of the ensemble).
         #[arg(long)]
         include_documentary_rules: bool,
+        /// Inject arbitrary prompt text from a file into the dialogue
+        /// system prompt for this call. Must be paired with exactly one
+        /// of --inject-before or --inject-after to choose anchor.
+        #[arg(long, value_name = "PATH")]
+        inject_file: Option<PathBuf>,
+        /// Anchor where injected prompt text is inserted BEFORE.
+        /// Valid forms: craft/invariant piece names (e.g., earned_register,
+        /// reverence) or section-start:<section> / section-end:<section>,
+        /// where <section> is craft-notes, invariants, or agency-and-behavior.
+        #[arg(long, value_name = "ANCHOR", conflicts_with = "inject_after")]
+        inject_before: Option<String>,
+        /// Anchor where injected prompt text is inserted AFTER.
+        /// Valid forms: same as --inject-before.
+        #[arg(long, value_name = "ANCHOR", conflicts_with = "inject_before")]
+        inject_after: Option<String>,
         /// Send the message in the context of an existing GROUP CHAT.
         /// When set, the `character_id` arg becomes the SPEAKER (which
         /// must be a member of this group); the prompt builder swaps to
@@ -1648,7 +1663,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             };
             cmd_refresh_anchor(&r, &api_key, &character_id, model.as_deref(), confirm_cost).await
         }
-        Cmd::Ask { character_id, message, session, model, confirm_cost, question_summary, no_anchor, world_description_override, omit_craft_rule, synthetic_history, include_documentary_rules, group_chat } => {
+        Cmd::Ask { character_id, message, session, model, confirm_cost, question_summary, no_anchor, world_description_override, omit_craft_rule, synthetic_history, include_documentary_rules, inject_file, inject_before, inject_after, group_chat } => {
             let api_key = match resolve_api_key(cli.api_key.as_deref()) {
                 Some(k) => k,
                 None => return Err(Box::<dyn std::error::Error>::from(
@@ -1660,9 +1675,40 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 // swaps to build_group_dialogue_system_prompt; messages
                 // come from gc.thread_id rather than the speaker's solo
                 // thread. See cmd_group_ask.
-                cmd_group_ask(&r, &api_key, &gc_id, &character_id, &message, model.as_deref(), confirm_cost, question_summary.as_deref(), omit_craft_rule, include_documentary_rules).await
+                cmd_group_ask(
+                    &r,
+                    &api_key,
+                    &gc_id,
+                    &character_id,
+                    &message,
+                    model.as_deref(),
+                    confirm_cost,
+                    question_summary.as_deref(),
+                    omit_craft_rule,
+                    include_documentary_rules,
+                    inject_file.as_deref(),
+                    inject_before.as_deref(),
+                    inject_after.as_deref(),
+                ).await
             } else {
-                cmd_ask(&r, &api_key, &character_id, &message, session.as_deref(), model.as_deref(), confirm_cost, question_summary.as_deref(), no_anchor, world_description_override.as_deref(), omit_craft_rule, synthetic_history.as_deref(), include_documentary_rules).await
+                cmd_ask(
+                    &r,
+                    &api_key,
+                    &character_id,
+                    &message,
+                    session.as_deref(),
+                    model.as_deref(),
+                    confirm_cost,
+                    question_summary.as_deref(),
+                    no_anchor,
+                    world_description_override.as_deref(),
+                    omit_craft_rule,
+                    synthetic_history.as_deref(),
+                    include_documentary_rules,
+                    inject_file.as_deref(),
+                    inject_before.as_deref(),
+                    inject_after.as_deref(),
+                ).await
             }
         }
         Cmd::RunsList { limit } => cmd_runs_list(&r, limit),
@@ -7547,6 +7593,41 @@ fn cmd_commit_context(
 
 // ─── ASK (the cost-gated one) ───────────────────────────────────────────
 
+fn parse_cli_insertion(
+    insert_file_path: Option<&std::path::Path>,
+    insert_before_anchor: Option<&str>,
+    insert_after_anchor: Option<&str>,
+) -> Result<Option<app_lib::ai::prompts::Insertion>, Box<dyn std::error::Error>> {
+    match (insert_file_path, insert_before_anchor, insert_after_anchor) {
+        (None, None, None) => Ok(None),
+        (Some(path), before, after) => {
+            let (anchor_str, position) = match (before, after) {
+                (Some(a), None) => (a, app_lib::ai::prompts::InsertPosition::Before),
+                (None, Some(a)) => (a, app_lib::ai::prompts::InsertPosition::After),
+                (Some(_), Some(_)) => {
+                    return Err(Box::<dyn std::error::Error>::from(
+                        "--inject-before and --inject-after are mutually exclusive".to_string()));
+                }
+                (None, None) => {
+                    return Err(Box::<dyn std::error::Error>::from(
+                        "--inject-file requires exactly one of --inject-before or --inject-after".to_string()));
+                }
+            };
+            let anchor = app_lib::ai::prompts::InsertionAnchor::from_cli_name(anchor_str)
+                .ok_or_else(|| Box::<dyn std::error::Error>::from(format!(
+                    "unknown injection anchor '{}'. Valid forms: piece name (e.g., 'earned_register', 'reverence') or 'section-start:<section>' / 'section-end:<section>' where section is one of craft-notes, invariants, agency-and-behavior.",
+                    anchor_str
+                )))?;
+            let text = std::fs::read_to_string(path).map_err(|e| Box::<dyn std::error::Error>::from(format!(
+                "reading --inject-file {}: {}", path.display(), e
+            )))?;
+            Ok(Some(app_lib::ai::prompts::Insertion { anchor, position, text }))
+        }
+        (None, Some(_), _) | (None, _, Some(_)) => Err(Box::<dyn std::error::Error>::from(
+            "--inject-before / --inject-after requires --inject-file".to_string())),
+    }
+}
+
 async fn cmd_ask(
     r: &Resolved,
     api_key: &str,
@@ -7561,6 +7642,9 @@ async fn cmd_ask(
     omit_craft_rules: Vec<String>,
     synthetic_history: Option<&std::path::Path>,
     include_documentary_rules: bool,
+    inject_file_path: Option<&std::path::Path>,
+    inject_before_anchor: Option<&str>,
+    inject_after_anchor: Option<&str>,
 ) -> Result<(), Box<dyn std::error::Error>> {
     let _ = r.check_character(character_id)?;
 
@@ -7595,13 +7679,17 @@ async fn cmd_ask(
             combined_axes_block(&conn, character_id)
         };
 
-        let overrides_for_prompt = if !omit_craft_rules.is_empty() || include_documentary_rules {
+        let insertion = parse_cli_insertion(inject_file_path, inject_before_anchor, inject_after_anchor)?;
+        let overrides_for_prompt = if !omit_craft_rules.is_empty() || include_documentary_rules || insertion.is_some() {
             let mut ov = prompts::PromptOverrides::new();
             if !omit_craft_rules.is_empty() {
                 ov.set_omit_craft_rules(omit_craft_rules.clone());
             }
             if include_documentary_rules {
                 ov.set_include_documentary_craft_rules(true);
+            }
+            if let Some(ins) = insertion {
+                ov.set_insertion(ins);
             }
             Some(ov)
         } else {
@@ -7828,6 +7916,9 @@ async fn cmd_group_ask(
     question_summary: Option<&str>,
     omit_craft_rules: Vec<String>,
     include_documentary_rules: bool,
+    inject_file_path: Option<&std::path::Path>,
+    inject_before_anchor: Option<&str>,
+    inject_after_anchor: Option<&str>,
 ) -> Result<(), Box<dyn std::error::Error>> {
     use app_lib::ai::prompts::{GroupContext, OtherCharacter};
 
@@ -7887,13 +7978,17 @@ async fn cmd_group_ask(
         let stance_text: Option<String> = latest_stance.as_ref().map(|s| s.stance_text.clone());
         let anchor_text: Option<String> = combined_axes_block(&conn, speaker_id);
 
-        let overrides_for_prompt = if !omit_craft_rules.is_empty() || include_documentary_rules {
+        let insertion = parse_cli_insertion(inject_file_path, inject_before_anchor, inject_after_anchor)?;
+        let overrides_for_prompt = if !omit_craft_rules.is_empty() || include_documentary_rules || insertion.is_some() {
             let mut ov = prompts::PromptOverrides::new();
             if !omit_craft_rules.is_empty() {
                 ov.set_omit_craft_rules(omit_craft_rules.clone());
             }
             if include_documentary_rules {
                 ov.set_include_documentary_craft_rules(true);
+            }
+            if let Some(ins) = insertion {
+                ov.set_insertion(ins);
             }
             Some(ov)
         } else {
