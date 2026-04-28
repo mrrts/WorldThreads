@@ -221,7 +221,7 @@ Output: raw JSON array of character ids, e.g. ["char_abc"] or ["char_abc","char_
     } else {
         match consecutive_run_by_recent_speaker(recent_context, characters) {
             Some((name, n)) if n >= 2 => format!(
-                "\n\nThread continuity: {name} has been the only character to respond for the last {n} consecutive character turns (the silent peer has not spoken in that stretch). Use this as one signal among others — sometimes the silent peer naturally has nothing to add; sometimes their absence has begun to be felt and a brief second voice would land truer than another solo turn from {name}."
+                "\n\nThread continuity: {name} has carried the last {n} character turns alone (the silent peer hasn't spoken in that stretch). Apply the criteria above to this specific message."
             ),
             _ => String::new(),
         }
