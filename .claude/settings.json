@@ -21,6 +21,11 @@
             "type": "command",
             "command": "python3 .claude/hooks/derive-session-arc.py",
             "timeout": 25
+          },
+          {
+            "type": "command",
+            "command": "python3 .claude/hooks/inject-mission-arc.py",
+            "timeout": 10
           }
         ]
       }
