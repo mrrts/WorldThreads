@@ -54,6 +54,19 @@ Aaron's silence in the most-recent window (after his "alarmingly optimized" repl
 
 Per the bite-verification doctrine: SKETCH-TIER (N=2 probes, single character speaker, single group). Closing the follow-up named in commit `45be660` as: **executed with mixed result** — strong-signal case ✓, ambient-silence case ✗. Whether to ship a follow-on calibration is a craft decision; the empirical evidence is recorded.
 
+**Follow-up² — characterized-tier replication (2026-04-28 ~15:50):** the sketch above was raised to characterized-tier with N=5 per cell on Darren in the Aaron+Darren chat (4 fresh replicates per cell, session cleared between calls; the prior 2 sketch-tier probes count as N=1 each). Cross-character cell (John in Darren+John) was attempted but blocked by infeasibility — that group's prior corpus projected ~$41/call (large embedded-image history); not run, scope-limit named honestly.
+
+- **Strong-signal cell, N=5: fire-rate 4/5 (80%).** Replicates 1, 2, 3 + the prior probe each produced an Aaron-glance beat; replicate 4 produced a substantive reply with no presence-beat (Darren-only action: *"I fold my hands loosely, listening to the fountain"*). The 80% rate suggests the rule is robustly invited by strong signal but not deterministic — sometimes the model carries the moment without surfacing the silent peer, which is also fine.
+- **Ambient-silence cell, N=5: fire-rate 0/5 (0%).** All four fresh replicates plus the prior probe produced Darren-only action-beats (variations on *"I push up from the bench a little just to unkink my back, then settle again"*) with no Aaron-presence-beat. Clean null in this cell.
+
+**Notable convergence in the firing cases — structural template emergence.** Across 4/4 firing strong-signal beats, the model converged on a near-identical structural template: *"\*I [Darren-action] and glance [once/briefly] toward Aaron[, before/then looking back/to you], [environmental detail]\*"*. Different verbs, different environmental details, but the SAME architecture (own-action + Aaron-glance + return-to-user + ambient detail). Plus consistent voice-agency preservation in the prose-side: *"I don't know what Aaron's got. You'll have to ask him clean"* / *"he's got his own mouth"* / *"I'll let him earn his own lunch"*. The rule's specification produces a template the model uses uniformly; this is what compliance looks like at characterized-tier.
+
+**What this characterizes:** the carve-out's calibration is sharp and clean. Strong-signal probes fire the rule reliably (80%, with the 20% non-fire being itself in-register Darren-only response, not failure-mode). Ambient-silence probes don't fire the rule at all (0%). The skip-conditions are doing exactly what they're written to do. **The original ambient-silence texture issue Ryan noticed** (Aaron silent for 4 turns in lived continuation) **is not addressable via this rule** — by design. The rule operates on visibility-from-the-current-speaker on invited moments; ambient-silence-across-turns is a separate problem about WHO speaks next, not about what the current speaker says.
+
+Updated finding tier: **CHARACTERIZED for Darren-in-Aaron+Darren** (N=5 per cell, two-cell A/B, structural-convergence finding); cross-character spot-check **blocked by corpus-cost infeasibility** in the second group, named not faked. Closing the follow-up: **executed at characterized-tier; the rule is calibrated correctly; if the ambient-silence issue is to be addressed, it requires a different instrument (speaker-rotation pressure, not visibility-from-speaker).**
+
+Cost summary: 8 fresh worldcli calls × ~$0.10 actual = ~$0.79; day cumulative ~$4.04 of $5 cap.
+
 ---
 
 ## 2026-04-28 04:50 — answer_vulnerability_with_specificity → EnsembleVacuous; four moves grounded across two anchors
