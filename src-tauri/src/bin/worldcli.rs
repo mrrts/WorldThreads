@@ -851,6 +851,20 @@ enum Cmd {
         /// suppressed by the rest of the ensemble).
         #[arg(long)]
         include_documentary_rules: bool,
+        /// Send the message in the context of an existing GROUP CHAT.
+        /// When set, the `character_id` arg becomes the SPEAKER (which
+        /// must be a member of this group); the prompt builder swaps to
+        /// `build_group_dialogue_system_prompt` so the speaker sees the
+        /// other group members in their GroupContext, addresses-resolution
+        /// directives fire, and prior messages come from the group thread
+        /// rather than the speaker's solo thread. Read-only against the
+        /// real chat — does NOT write the new exchange to the group
+        /// thread; only logs to ~/.worldcli/runs/. Used for bite-tests
+        /// of group-chat prompt changes (e.g., the presence-beat
+        /// earned-exception in `build_group_dialogue_system_prompt`'s
+        /// THE TURN section).
+        #[arg(long)]
+        group_chat: Option<String>,
     },
 
     // ── runs (read your own prior investigations) ──
@@ -1634,14 +1648,22 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             };
             cmd_refresh_anchor(&r, &api_key, &character_id, model.as_deref(), confirm_cost).await
         }
-        Cmd::Ask { character_id, message, session, model, confirm_cost, question_summary, no_anchor, world_description_override, omit_craft_rule, synthetic_history, include_documentary_rules } => {
+        Cmd::Ask { character_id, message, session, model, confirm_cost, question_summary, no_anchor, world_description_override, omit_craft_rule, synthetic_history, include_documentary_rules, group_chat } => {
             let api_key = match resolve_api_key(cli.api_key.as_deref()) {
                 Some(k) => k,
                 None => return Err(Box::<dyn std::error::Error>::from(
                     "No API key. Set OPENAI_API_KEY, pass --api-key, or add to keychain via:\n  security add-generic-password -s WorldThreadsCLI -a openai -w \"<sk-...>\"".to_string()
                 )),
             };
-            cmd_ask(&r, &api_key, &character_id, &message, session.as_deref(), model.as_deref(), confirm_cost, question_summary.as_deref(), no_anchor, world_description_override.as_deref(), omit_craft_rule, synthetic_history.as_deref(), include_documentary_rules).await
+            if let Some(gc_id) = group_chat {
+                // Group-chat send path: speaker = character_id; prompt
+                // swaps to build_group_dialogue_system_prompt; messages
+                // come from gc.thread_id rather than the speaker's solo
+                // thread. See cmd_group_ask.
+                cmd_group_ask(&r, &api_key, &gc_id, &character_id, &message, model.as_deref(), confirm_cost, question_summary.as_deref(), omit_craft_rule, include_documentary_rules).await
+            } else {
+                cmd_ask(&r, &api_key, &character_id, &message, session.as_deref(), model.as_deref(), confirm_cost, question_summary.as_deref(), no_anchor, world_description_override.as_deref(), omit_craft_rule, synthetic_history.as_deref(), include_documentary_rules).await
+            }
         }
         Cmd::RunsList { limit } => cmd_runs_list(&r, limit),
         Cmd::RunsShow { id } => cmd_runs_show(&r, &id),
@@ -7764,6 +7786,254 @@ async fn cmd_ask(
             "run_id": run_id,
             "character_id": character_id,
             "character_name": character.display_name,
+            "model": model_config.dialogue_model,
+            "reply": reply,
+            "prompt_tokens": actual_in,
+            "completion_tokens": actual_out,
+            "actual_usd": actual_usd,
+            "rolling_24h_usd": daily_so_far + actual_usd,
+        }));
+    } else {
+        println!("{}", reply);
+        eprintln!("[worldcli] actual cost ${:.4} ({} in / {} out tok); 24h total now ${:.4}; run_id={}",
+            actual_usd, actual_in, actual_out, daily_so_far + actual_usd, run_id);
+    }
+    Ok(())
+}
+
+// ─── Group-chat ask (--group-chat <id> on the Ask command) ──────────────
+//
+// Mirrors cmd_ask but builds the group dialogue prompt (with the speaker's
+// peers as OtherCharacter list, the group thread's recent messages as
+// history, and group-scoped settings for response_length / narration_tone /
+// leader). Read-only against the real chat — does NOT persist the new
+// exchange to the group thread; only logs the run to ~/.worldcli/runs/.
+// Used for bite-tests of group-chat prompt changes (e.g., the presence-
+// beat earned-exception in build_group_dialogue_system_prompt's THE TURN).
+//
+// Limitations vs the in-app group-chat path: skips reactions_mode, mood
+// chains beyond what build_group_dialogue_system_prompt naturally pulls,
+// daily reading / meanwhile / proactive scheduling. The probe is "what
+// would the speaker say to this message in the context of this group's
+// recent history under the prompt-stack at HEAD" — sufficient for prompt-
+// stack bite-tests; not a full replica of the in-app conversational engine.
+async fn cmd_group_ask(
+    r: &Resolved,
+    api_key: &str,
+    group_chat_id: &str,
+    speaker_id: &str,
+    message: &str,
+    model_override: Option<&str>,
+    confirm_cost: Option<f64>,
+    question_summary: Option<&str>,
+    omit_craft_rules: Vec<String>,
+    include_documentary_rules: bool,
+) -> Result<(), Box<dyn std::error::Error>> {
+    use app_lib::ai::prompts::{GroupContext, OtherCharacter};
+
+    let _ = r.check_character(speaker_id)?;
+
+    let (system_prompt, model_config, prior_messages, speaker, world_id, gc_thread_id) = {
+        let conn = r.db.conn.lock().unwrap();
+        let gc = get_group_chat(&conn, group_chat_id)
+            .map_err(|e| format!("group_chat '{}' not found: {}", group_chat_id, e))?;
+
+        // Parse member ids from the group's character_ids JSON array.
+        let member_ids: Vec<String> = gc.character_ids.as_array()
+            .map(|a| a.iter().filter_map(|v| v.as_str().map(|s| s.to_string())).collect())
+            .unwrap_or_default();
+        if !member_ids.iter().any(|id| id == speaker_id) {
+            return Err(Box::<dyn std::error::Error>::from(format!(
+                "speaker '{}' is not a member of group_chat '{}'. Members: [{}]",
+                speaker_id, group_chat_id, member_ids.join(", ")
+            )));
+        }
+        let members: Vec<Character> = member_ids.iter()
+            .filter_map(|id| get_character(&conn, id).ok())
+            .collect();
+        let speaker = members.iter().find(|c| c.character_id == speaker_id)
+            .cloned()
+            .ok_or_else(|| format!("speaker character '{}' could not be loaded", speaker_id))?;
+        let world = get_world(&conn, &gc.world_id)?;
+        let user_profile = get_user_profile(&conn, &gc.world_id).ok();
+
+        let other_chars: Vec<OtherCharacter> = members.iter()
+            .filter(|c| c.character_id != speaker_id)
+            .map(|c| OtherCharacter {
+                character_id: c.character_id.clone(),
+                display_name: c.display_name.clone(),
+                identity_summary: c.identity.clone(),
+                sex: c.sex.clone(),
+                voice_rules: prompts::json_array_to_strings(&c.voice_rules),
+                visual_description: c.visual_description.clone(),
+                inventory_block: prompts::render_inventory_block(&c.display_name, &c.inventory),
+                derived_formula: c.derived_formula.clone(),
+            })
+            .collect();
+        let group_context = GroupContext { other_characters: other_chars };
+
+        // Group-scoped settings (mirror in-app defaults).
+        let response_length = get_setting(&conn, &format!("response_length.{}", gc.group_chat_id))
+            .ok().flatten()
+            .or_else(|| Some("Short".to_string()));
+        let narration_tone = get_setting(&conn, &format!("narration_tone.{}", gc.group_chat_id))
+            .ok().flatten()
+            .or_else(|| Some("Auto".to_string()));
+        let leader = get_setting(&conn, &format!("leader.{}", gc.group_chat_id)).ok().flatten();
+
+        let recent_journals = list_journal_entries(&conn, speaker_id, 1).unwrap_or_default();
+        let active_quests = list_active_quests(&conn, &gc.world_id).unwrap_or_default();
+        let latest_stance = latest_relational_stance(&conn, speaker_id).unwrap_or(None);
+        let stance_text: Option<String> = latest_stance.as_ref().map(|s| s.stance_text.clone());
+        let anchor_text: Option<String> = combined_axes_block(&conn, speaker_id);
+
+        let overrides_for_prompt = if !omit_craft_rules.is_empty() || include_documentary_rules {
+            let mut ov = prompts::PromptOverrides::new();
+            if !omit_craft_rules.is_empty() {
+                ov.set_omit_craft_rules(omit_craft_rules.clone());
+            }
+            if include_documentary_rules {
+                ov.set_include_documentary_craft_rules(true);
+            }
+            Some(ov)
+        } else {
+            None
+        };
+
+        let system_prompt = prompts::build_dialogue_system_prompt_with_overrides(
+            &world, &speaker, user_profile.as_ref(),
+            None,
+            response_length.as_deref(),
+            Some(&group_context),
+            narration_tone.as_deref(),
+            false, &[],
+            leader.as_deref(),
+            &recent_journals, None, &[], None, &active_quests,
+            stance_text.as_deref(),
+            anchor_text.as_deref(),
+            overrides_for_prompt.as_ref(),
+        );
+        let mut model_config = orchestrator::load_model_config(&conn);
+        if let Some(m) = model_override { model_config.dialogue_model = m.to_string(); }
+
+        // Pull recent group-thread messages as conversation history.
+        let recent = list_group_messages(&conn, &gc.thread_id, 30).unwrap_or_default();
+        let prior_messages: Vec<(String, String)> = recent.iter()
+            .map(|m| {
+                let role = if m.role == "user" { "user".to_string() } else { "assistant".to_string() };
+                let content = if m.role == "assistant" {
+                    let speaker_name = m.sender_character_id.as_deref()
+                        .and_then(|sid| members.iter().find(|c| c.character_id == sid))
+                        .map(|c| c.display_name.as_str())
+                        .unwrap_or("?");
+                    format!("[{}]: {}", speaker_name, m.content)
+                } else {
+                    m.content.clone()
+                };
+                (role, content)
+            })
+            .collect();
+
+        let world_id = gc.world_id.clone();
+        let gc_thread_id = gc.thread_id.clone();
+        (system_prompt, model_config, prior_messages, speaker, world_id, gc_thread_id)
+    };
+
+    let mut messages = vec![openai::ChatMessage { role: "system".to_string(), content: system_prompt }];
+    for (role, content) in prior_messages.iter() {
+        messages.push(openai::ChatMessage { role: role.clone(), content: content.clone() });
+    }
+    messages.push(openai::ChatMessage { role: "user".to_string(), content: message.to_string() });
+
+    let prompt_text_total: String = messages.iter().map(|m| m.content.as_str()).collect::<Vec<_>>().join("\n");
+    let projected_in = estimate_tokens(&prompt_text_total);
+    let projected_out: i64 = 600;
+    let projected_usd = project_cost(&model_config.dialogue_model, projected_in, projected_out, &r.cfg.model_pricing);
+
+    let daily_so_far = rolling_24h_total_usd();
+    let daily_after = daily_so_far + projected_usd;
+    let per_call_cap = r.cfg.budget.per_call_usd;
+    let daily_cap = r.cfg.budget.daily_usd;
+
+    let confirm = confirm_cost.unwrap_or(0.0);
+    if projected_usd > per_call_cap && confirm < projected_usd {
+        return Err(Box::new(CliError::Budget {
+            kind: "per_call".to_string(),
+            projected_usd,
+            cap_usd: per_call_cap,
+            confirm_at_least: (projected_usd * 1.05).max(0.01),
+        }));
+    }
+    if daily_after > daily_cap && confirm < projected_usd {
+        return Err(Box::new(CliError::Budget {
+            kind: "daily".to_string(),
+            projected_usd: daily_after,
+            cap_usd: daily_cap,
+            confirm_at_least: (projected_usd * 1.05).max(0.01),
+        }));
+    }
+
+    if !r.json {
+        eprintln!("[worldcli] group_chat={} speaker={} model={} projected≈${:.4} (~{} in / {} out tok); 24h spent=${:.4} of ${:.2}",
+            &group_chat_id[..8.min(group_chat_id.len())], speaker.display_name, model_config.dialogue_model,
+            projected_usd, projected_in, projected_out, daily_so_far, daily_cap);
+    }
+
+    let request = openai::ChatRequest {
+        model: model_config.dialogue_model.clone(),
+        messages,
+        temperature: Some(0.95),
+        max_completion_tokens: None,
+        response_format: None,
+    };
+    let response = openai::chat_completion_with_base(
+        &model_config.chat_api_base(), api_key, &request,
+    ).await?;
+
+    let reply = response.choices.first()
+        .map(|c| c.message.content.trim().to_string())
+        .unwrap_or_default();
+    let usage = response.usage.unwrap_or(openai::Usage {
+        prompt_tokens: projected_in as u32,
+        completion_tokens: 0,
+        total_tokens: projected_in as u32,
+    });
+    let actual_in = usage.prompt_tokens as i64;
+    let actual_out = usage.completion_tokens as i64;
+    let actual_usd = actual_cost(&model_config.dialogue_model, actual_in, actual_out, &r.cfg.model_pricing);
+
+    append_cost_log(&CostEntry {
+        timestamp: chrono::Utc::now().to_rfc3339(),
+        model: model_config.dialogue_model.clone(),
+        prompt_tokens: actual_in,
+        completion_tokens: actual_out,
+        usd: actual_usd,
+    });
+
+    let run_id = uuid::Uuid::new_v4().to_string();
+    let record = RunRecord {
+        id: run_id.clone(),
+        timestamp: chrono::Utc::now().to_rfc3339(),
+        character_id: speaker.character_id.clone(),
+        character_name: speaker.display_name.clone(),
+        world_id: world_id.clone(),
+        model: model_config.dialogue_model.clone(),
+        session: Some(format!("group:{}", &gc_thread_id[..8.min(gc_thread_id.len())])),
+        question_summary: question_summary.map(|s| s.to_string()),
+        prompt: format!("[group_chat={}] {}", group_chat_id, message),
+        reply: reply.clone(),
+        prompt_tokens: actual_in,
+        completion_tokens: actual_out,
+        usd: actual_usd,
+    };
+    write_run(&record);
+
+    if r.json {
+        emit(true, json!({
+            "run_id": run_id,
+            "group_chat_id": group_chat_id,
+            "speaker_id": speaker.character_id,
+            "speaker_name": speaker.display_name,
             "model": model_config.dialogue_model,
             "reply": reply,
             "prompt_tokens": actual_in,
