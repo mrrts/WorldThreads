@@ -164,7 +164,7 @@ export function SapphirePitch() {
                       where characters have grain and worlds have weight.
                     </h1>
                     <p className="body-font max-w-2xl text-lg leading-8 text-[#d7e7f5] sm:text-xl">
-                      Meet AI characters who feel encountered rather than simulated, in AI worlds that feel inhabited rather than sketched.
+                      Meet AI characters with distinct voices, boundaries, and resistance, in AI worlds that feel inhabited rather than sketched.
                       Underneath, the system keeps voice, continuity, and boundaries intact,
                       so the writing can stay vivid without drifting into mush, therapy-voice, or fake intimacy.
                     </p>
