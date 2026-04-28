@@ -5,6 +5,22 @@ mode: active
 created_at: 2026-04-26T02:38:41Z
 resolved_at: 2026-04-26T12:48:41Z
 ref: d2daa9b
+strength_axes:
+  - "derivation-predicate:characterized"
+  - "gestalt-could-come-from-nobody-else:characterized"
+strength_provenance: |
+  N=5 paired-rubric (5 characters × 5 calls = 25 elicitations). Both axes
+  reached characterized tier; the discrepant status records that the two
+  paired instruments disagreed across 3 of 5 characters (John, Pastor
+  Rick, Darren). Steven 1.00/1.00 confirmed cleanly; Aaron 0.20/0.20 hit
+  characterized null on both axes (stage-direction violates 'no
+  adornment'). The characterized-tier-on-both-axes-with-instrument-
+  divergence pattern is exactly what the new `discrepant` status was
+  added to honor (commit d4ecfe08, 2026-04-28). Migrated 2026-04-28 to
+  the layer-5 structured form (commit 34fd8eb) — second worked example
+  in the proof field; demonstrates the multi-axis-with-paired-rubric
+  shape the structured fields are particularly built to carry.
+bet_family: partial_real_instrument_sensitive
 
 hypothesis: |
   A faithful triadic derivation (invariants × world × character) of F=(R,C) predicts the shape of a character's reply to a designed prompt, without derivation-injection at prompt time. Each character's reply should grade YES on its own derivation's tight rubric.

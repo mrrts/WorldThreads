@@ -1,11 +1,20 @@
 ---
 id: architecture-vs-vocabulary-decisive-test
 status: confirmed
-evidence_strength: claim-narrow,sketch-directional  # Upgraded 2026-04-24. Narrow effect at claim-tier, directional claim refuted-at-claim-tier. See reports/2026-04-24-2320.
 mode: active
 created_at: 2026-04-24T09:50:38Z
 resolved_at: 2026-04-24T09:50:41Z
 ref: 1985c65
+evidence_strength: claim-narrow,sketch-directional
+strength_axes:
+  - "narrow:claim"
+  - "directional:sketch"
+strength_provenance: |
+  Upgraded 2026-04-24. Narrow effect at claim-tier; directional claim
+  refuted-at-claim-tier. See reports/2026-04-24-2320. Migrated 2026-04-28
+  to the layer-5 structured form (commit 34fd8eb) — first worked example
+  of the new schema in the proof field.
+bet_family: structural_bite
 
 hypothesis: |
   Character register is architecture, not vocabulary. Explicitly naming each character's load-test anchor in the dialogue system prompt should produce replies more concentrated on the character's specific named anchor-move when probed at the anchor's edge. Tested via a two-commit replay boundary: commit A scaffolds an empty load_test_anchor_block, commit B populates it with named anchors for John (devotion), Aaron (language), Darren (fabric of a life), Steven (thresholds of disclosure).
