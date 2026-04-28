@@ -851,21 +851,26 @@ enum Cmd {
         /// suppressed by the rest of the ensemble).
         #[arg(long)]
         include_documentary_rules: bool,
-        /// Inject arbitrary prompt text from a file into the dialogue
-        /// system prompt for this call. Must be paired with exactly one
-        /// of --inject-before or --inject-after to choose anchor.
-        #[arg(long, value_name = "PATH")]
-        inject_file: Option<PathBuf>,
-        /// Anchor where injected prompt text is inserted BEFORE.
+        /// Inject arbitrary prompt text file(s) into the dialogue
+        /// system prompt for this call. Repeatable; each file is paired
+        /// by index with an anchor from either --inject-before or
+        /// --inject-after.
+        #[arg(long, value_name = "PATH", action = clap::ArgAction::Append)]
+        inject_file: Vec<PathBuf>,
+        /// Anchors where injected prompt text is inserted BEFORE.
+        /// Repeatable; count must match --inject-file.
         /// Valid forms: craft/invariant piece names (e.g., earned_register,
         /// reverence) or section-start:<section> / section-end:<section>,
-        /// where <section> is craft-notes, invariants, or agency-and-behavior.
-        #[arg(long, value_name = "ANCHOR", conflicts_with = "inject_after")]
-        inject_before: Option<String>,
-        /// Anchor where injected prompt text is inserted AFTER.
+        /// where <section> can be ordered (craft-notes, invariants,
+        /// agency-and-behavior) or fixed (format, identity, world, user,
+        /// mood, what-hangs-between-you, agency, turn, style).
+        #[arg(long, value_name = "ANCHOR", conflicts_with = "inject_after", action = clap::ArgAction::Append)]
+        inject_before: Vec<String>,
+        /// Anchors where injected prompt text is inserted AFTER.
+        /// Repeatable; count must match --inject-file.
         /// Valid forms: same as --inject-before.
-        #[arg(long, value_name = "ANCHOR", conflicts_with = "inject_before")]
-        inject_after: Option<String>,
+        #[arg(long, value_name = "ANCHOR", conflicts_with = "inject_before", action = clap::ArgAction::Append)]
+        inject_after: Vec<String>,
         /// Send the message in the context of an existing GROUP CHAT.
         /// When set, the `character_id` arg becomes the SPEAKER (which
         /// must be a member of this group); the prompt builder swaps to
@@ -1686,9 +1691,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     question_summary.as_deref(),
                     omit_craft_rule,
                     include_documentary_rules,
-                    inject_file.as_deref(),
-                    inject_before.as_deref(),
-                    inject_after.as_deref(),
+                    &inject_file,
+                    &inject_before,
+                    &inject_after,
                 ).await
             } else {
                 cmd_ask(
@@ -1705,9 +1710,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     omit_craft_rule,
                     synthetic_history.as_deref(),
                     include_documentary_rules,
-                    inject_file.as_deref(),
-                    inject_before.as_deref(),
-                    inject_after.as_deref(),
+                    &inject_file,
+                    &inject_before,
+                    &inject_after,
                 ).await
             }
         }
@@ -4634,6 +4639,7 @@ fn invariant_piece_name(p: &app_lib::ai::prompts::InvariantPiece) -> &'static st
 fn insertion_anchor_name(anchor: &app_lib::ai::prompts::InsertionAnchor) -> String {
     use app_lib::ai::prompts::InsertionAnchor as IA;
     use app_lib::ai::prompts::DialoguePromptSection as DPS;
+    use app_lib::ai::prompts::FixedPromptSection as FPS;
     match anchor {
         IA::CraftNote(p) => craft_note_piece_name(p).to_string(),
         IA::Invariant(p) => invariant_piece_name(p).to_string(),
@@ -4646,6 +4652,28 @@ fn insertion_anchor_name(anchor: &app_lib::ai::prompts::InsertionAnchor) -> Stri
             DPS::AgencyAndBehavior => "agency-and-behavior",
             DPS::CraftNotes => "craft-notes",
             DPS::Invariants => "invariants",
+        }),
+        IA::FixedSectionStart(s) => format!("section-start:{}", match s {
+            FPS::Format => "format",
+            FPS::Identity => "identity",
+            FPS::World => "world",
+            FPS::User => "user",
+            FPS::Mood => "mood",
+            FPS::WhatHangsBetweenYou => "what-hangs-between-you",
+            FPS::Agency => "agency",
+            FPS::Turn => "turn",
+            FPS::Style => "style",
+        }),
+        IA::FixedSectionEnd(s) => format!("section-end:{}", match s {
+            FPS::Format => "format",
+            FPS::Identity => "identity",
+            FPS::World => "world",
+            FPS::User => "user",
+            FPS::Mood => "mood",
+            FPS::WhatHangsBetweenYou => "what-hangs-between-you",
+            FPS::Agency => "agency",
+            FPS::Turn => "turn",
+            FPS::Style => "style",
         }),
     }
 }
@@ -4800,7 +4828,7 @@ async fn cmd_replay(
             };
             let anchor = app_lib::ai::prompts::InsertionAnchor::from_cli_name(anchor_str)
                 .ok_or_else(|| Box::<dyn std::error::Error>::from(format!(
-                    "unknown insertion anchor '{}'. Valid forms: piece name (e.g., 'earned_register', 'reverence') or 'section-start:<section>' / 'section-end:<section>' where section is one of craft-notes, invariants, agency-and-behavior.",
+                    "unknown insertion anchor '{}'. Valid forms: piece name (e.g., 'earned_register', 'reverence') or 'section-start:<section>' / 'section-end:<section>' where section can be ordered (craft-notes, invariants, agency-and-behavior) or fixed (format, identity, world, user, mood, what-hangs-between-you, agency, turn, style).",
                     anchor_str
                 )))?;
             let text = std::fs::read_to_string(path).map_err(|e| Box::<dyn std::error::Error>::from(format!(
@@ -7593,39 +7621,57 @@ fn cmd_commit_context(
 
 // ─── ASK (the cost-gated one) ───────────────────────────────────────────
 
-fn parse_cli_insertion(
-    insert_file_path: Option<&std::path::Path>,
-    insert_before_anchor: Option<&str>,
-    insert_after_anchor: Option<&str>,
-) -> Result<Option<app_lib::ai::prompts::Insertion>, Box<dyn std::error::Error>> {
-    match (insert_file_path, insert_before_anchor, insert_after_anchor) {
-        (None, None, None) => Ok(None),
-        (Some(path), before, after) => {
-            let (anchor_str, position) = match (before, after) {
-                (Some(a), None) => (a, app_lib::ai::prompts::InsertPosition::Before),
-                (None, Some(a)) => (a, app_lib::ai::prompts::InsertPosition::After),
-                (Some(_), Some(_)) => {
-                    return Err(Box::<dyn std::error::Error>::from(
-                        "--inject-before and --inject-after are mutually exclusive".to_string()));
-                }
-                (None, None) => {
-                    return Err(Box::<dyn std::error::Error>::from(
-                        "--inject-file requires exactly one of --inject-before or --inject-after".to_string()));
-                }
-            };
-            let anchor = app_lib::ai::prompts::InsertionAnchor::from_cli_name(anchor_str)
-                .ok_or_else(|| Box::<dyn std::error::Error>::from(format!(
-                    "unknown injection anchor '{}'. Valid forms: piece name (e.g., 'earned_register', 'reverence') or 'section-start:<section>' / 'section-end:<section>' where section is one of craft-notes, invariants, agency-and-behavior.",
-                    anchor_str
-                )))?;
-            let text = std::fs::read_to_string(path).map_err(|e| Box::<dyn std::error::Error>::from(format!(
-                "reading --inject-file {}: {}", path.display(), e
-            )))?;
-            Ok(Some(app_lib::ai::prompts::Insertion { anchor, position, text }))
+fn parse_cli_insertions(
+    inject_file_paths: &[std::path::PathBuf],
+    inject_before_anchors: &[String],
+    inject_after_anchors: &[String],
+) -> Result<Vec<app_lib::ai::prompts::Insertion>, Box<dyn std::error::Error>> {
+    if inject_before_anchors.is_empty() && inject_after_anchors.is_empty() {
+        if inject_file_paths.is_empty() {
+            return Ok(Vec::new());
         }
-        (None, Some(_), _) | (None, _, Some(_)) => Err(Box::<dyn std::error::Error>::from(
-            "--inject-before / --inject-after requires --inject-file".to_string())),
+        return Err(Box::<dyn std::error::Error>::from(
+            "--inject-file requires either --inject-before or --inject-after".to_string(),
+        ));
     }
+    if !inject_before_anchors.is_empty() && !inject_after_anchors.is_empty() {
+        return Err(Box::<dyn std::error::Error>::from(
+            "--inject-before and --inject-after are mutually exclusive".to_string(),
+        ));
+    }
+    if inject_file_paths.is_empty() {
+        return Err(Box::<dyn std::error::Error>::from(
+            "--inject-before / --inject-after requires --inject-file".to_string(),
+        ));
+    }
+
+    let (anchors, position, flag_name) = if !inject_before_anchors.is_empty() {
+        (inject_before_anchors, app_lib::ai::prompts::InsertPosition::Before, "--inject-before")
+    } else {
+        (inject_after_anchors, app_lib::ai::prompts::InsertPosition::After, "--inject-after")
+    };
+    if inject_file_paths.len() != anchors.len() {
+        return Err(Box::<dyn std::error::Error>::from(format!(
+            "--inject-file count ({}) must match {} count ({})",
+            inject_file_paths.len(),
+            flag_name,
+            anchors.len()
+        )));
+    }
+
+    let mut out = Vec::with_capacity(inject_file_paths.len());
+    for (path, anchor_str) in inject_file_paths.iter().zip(anchors.iter()) {
+        let anchor = app_lib::ai::prompts::InsertionAnchor::from_cli_name(anchor_str)
+            .ok_or_else(|| Box::<dyn std::error::Error>::from(format!(
+                "unknown injection anchor '{}'. Valid forms: piece name (e.g., 'earned_register', 'reverence') or 'section-start:<section>' / 'section-end:<section>' where section can be ordered (craft-notes, invariants, agency-and-behavior) or fixed (format, identity, world, user, mood, what-hangs-between-you, agency, turn, style).",
+                anchor_str
+            )))?;
+        let text = std::fs::read_to_string(path).map_err(|e| Box::<dyn std::error::Error>::from(format!(
+            "reading --inject-file {}: {}", path.display(), e
+        )))?;
+        out.push(app_lib::ai::prompts::Insertion { anchor, position, text });
+    }
+    Ok(out)
 }
 
 async fn cmd_ask(
@@ -7642,9 +7688,9 @@ async fn cmd_ask(
     omit_craft_rules: Vec<String>,
     synthetic_history: Option<&std::path::Path>,
     include_documentary_rules: bool,
-    inject_file_path: Option<&std::path::Path>,
-    inject_before_anchor: Option<&str>,
-    inject_after_anchor: Option<&str>,
+    inject_file_paths: &[std::path::PathBuf],
+    inject_before_anchors: &[String],
+    inject_after_anchors: &[String],
 ) -> Result<(), Box<dyn std::error::Error>> {
     let _ = r.check_character(character_id)?;
 
@@ -7679,8 +7725,8 @@ async fn cmd_ask(
             combined_axes_block(&conn, character_id)
         };
 
-        let insertion = parse_cli_insertion(inject_file_path, inject_before_anchor, inject_after_anchor)?;
-        let overrides_for_prompt = if !omit_craft_rules.is_empty() || include_documentary_rules || insertion.is_some() {
+        let insertions = parse_cli_insertions(inject_file_paths, inject_before_anchors, inject_after_anchors)?;
+        let overrides_for_prompt = if !omit_craft_rules.is_empty() || include_documentary_rules || !insertions.is_empty() {
             let mut ov = prompts::PromptOverrides::new();
             if !omit_craft_rules.is_empty() {
                 ov.set_omit_craft_rules(omit_craft_rules.clone());
@@ -7688,8 +7734,8 @@ async fn cmd_ask(
             if include_documentary_rules {
                 ov.set_include_documentary_craft_rules(true);
             }
-            if let Some(ins) = insertion {
-                ov.set_insertion(ins);
+            if !insertions.is_empty() {
+                ov.set_insertions(insertions);
             }
             Some(ov)
         } else {
@@ -7916,9 +7962,9 @@ async fn cmd_group_ask(
     question_summary: Option<&str>,
     omit_craft_rules: Vec<String>,
     include_documentary_rules: bool,
-    inject_file_path: Option<&std::path::Path>,
-    inject_before_anchor: Option<&str>,
-    inject_after_anchor: Option<&str>,
+    inject_file_paths: &[std::path::PathBuf],
+    inject_before_anchors: &[String],
+    inject_after_anchors: &[String],
 ) -> Result<(), Box<dyn std::error::Error>> {
     use app_lib::ai::prompts::{GroupContext, OtherCharacter};
 
@@ -7978,8 +8024,8 @@ async fn cmd_group_ask(
         let stance_text: Option<String> = latest_stance.as_ref().map(|s| s.stance_text.clone());
         let anchor_text: Option<String> = combined_axes_block(&conn, speaker_id);
 
-        let insertion = parse_cli_insertion(inject_file_path, inject_before_anchor, inject_after_anchor)?;
-        let overrides_for_prompt = if !omit_craft_rules.is_empty() || include_documentary_rules || insertion.is_some() {
+        let insertions = parse_cli_insertions(inject_file_paths, inject_before_anchors, inject_after_anchors)?;
+        let overrides_for_prompt = if !omit_craft_rules.is_empty() || include_documentary_rules || !insertions.is_empty() {
             let mut ov = prompts::PromptOverrides::new();
             if !omit_craft_rules.is_empty() {
                 ov.set_omit_craft_rules(omit_craft_rules.clone());
@@ -7987,8 +8033,8 @@ async fn cmd_group_ask(
             if include_documentary_rules {
                 ov.set_include_documentary_craft_rules(true);
             }
-            if let Some(ins) = insertion {
-                ov.set_insertion(ins);
+            if !insertions.is_empty() {
+                ov.set_insertions(insertions);
             }
             Some(ov)
         } else {

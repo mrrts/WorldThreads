@@ -930,14 +930,11 @@ pub struct PromptOverrides {
     /// — use only for targeted experimental runs, not for production
     /// paths. Empty = no omissions.
     pub omit_invariants: Vec<InvariantPiece>,
-    /// Optional single-insertion: a block of text to splice into the
-    /// prompt at a specific anchor position. Used to audition new
-    /// craft notes or invariants BEFORE shipping them. The text is
-    /// inserted verbatim at the specified position during assembly.
-    /// Multi-insertion isn't yet supported — if a second insertion is
-    /// needed, either ship the first one to prompts.rs or extend this
-    /// field to a Vec.
-    pub insertion: Option<Insertion>,
+    /// Optional insertion set: one or more blocks of text to splice
+    /// into the prompt at specific anchor positions. Used to audition
+    /// new craft notes/invariants or compose transient test harnesses
+    /// without shipping source edits.
+    pub insertions: Vec<Insertion>,
     /// Per-rule omit list for the dialogue craft-rules registry
     /// (`CRAFT_RULES_DIALOGUE`). Names listed here are filtered out of
     /// the registry-rendered append at the end of `craft_notes_dialogue()`.
@@ -978,6 +975,39 @@ pub enum InsertionAnchor {
     Invariant(InvariantPiece),
     SectionStart(DialoguePromptSection),
     SectionEnd(DialoguePromptSection),
+    FixedSectionStart(FixedPromptSection),
+    FixedSectionEnd(FixedPromptSection),
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum FixedPromptSection {
+    Format,
+    Identity,
+    World,
+    User,
+    Mood,
+    WhatHangsBetweenYou,
+    Agency,
+    Turn,
+    Style,
+}
+
+impl FixedPromptSection {
+    pub fn from_cli_name(name: &str) -> Option<Self> {
+        let n = name.trim().to_ascii_lowercase().replace('-', "_");
+        match n.as_str() {
+            "format" => Some(Self::Format),
+            "identity" => Some(Self::Identity),
+            "world" => Some(Self::World),
+            "user" | "the_user" => Some(Self::User),
+            "mood" => Some(Self::Mood),
+            "what_hangs_between_you" | "what_hangs" => Some(Self::WhatHangsBetweenYou),
+            "agency" => Some(Self::Agency),
+            "turn" | "the_turn" => Some(Self::Turn),
+            "style" => Some(Self::Style),
+            _ => None,
+        }
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -990,17 +1020,24 @@ impl InsertionAnchor {
     /// Parse a CLI-style anchor string.
     /// Piece names (e.g., "earned_register", "reverence") resolve to
     /// the corresponding CraftNote or Invariant anchor.
-    /// "section-start:<section>" and "section-end:<section>" (where
-    /// section is one of: craft-notes, invariants, agency-and-behavior)
-    /// resolve to the section-level anchors.
+    /// "section-start:<section>" and "section-end:<section>" resolve to
+    /// either ordered sections (craft-notes, invariants,
+    /// agency-and-behavior) or fixed sections (format, identity, world,
+    /// user, mood, what-hangs-between-you, agency, turn, style).
     pub fn from_cli_name(name: &str) -> Option<Self> {
         let normalized = name.trim().to_ascii_lowercase().replace('-', "_");
         // Section-level anchor?
         if let Some(rest) = normalized.strip_prefix("section_start:") {
-            return DialoguePromptSection::from_cli_name(rest).map(Self::SectionStart);
+            if let Some(sec) = DialoguePromptSection::from_cli_name(rest) {
+                return Some(Self::SectionStart(sec));
+            }
+            return FixedPromptSection::from_cli_name(rest).map(Self::FixedSectionStart);
         }
         if let Some(rest) = normalized.strip_prefix("section_end:") {
-            return DialoguePromptSection::from_cli_name(rest).map(Self::SectionEnd);
+            if let Some(sec) = DialoguePromptSection::from_cli_name(rest) {
+                return Some(Self::SectionEnd(sec));
+            }
+            return FixedPromptSection::from_cli_name(rest).map(Self::FixedSectionEnd);
         }
         // Piece-level anchor — try craft note first, then invariant.
         if let Some(cn) = CraftNotePiece::from_cli_name(&normalized) {
@@ -1022,7 +1059,7 @@ impl PromptOverrides {
             invariants_order: None,
             omit_craft_notes: Vec::new(),
             omit_invariants: Vec::new(),
-            insertion: None,
+            insertions: Vec::new(),
             omit_craft_rules: Vec::new(),
             include_documentary_craft_rules: false,
         }
@@ -1055,7 +1092,10 @@ impl PromptOverrides {
         self.include_documentary_craft_rules = include;
     }
     pub fn set_insertion(&mut self, insertion: Insertion) {
-        self.insertion = Some(insertion);
+        self.insertions = vec![insertion];
+    }
+    pub fn set_insertions(&mut self, insertions: Vec<Insertion>) {
+        self.insertions = insertions;
     }
     /// Returns the effective section order: the override if it's a
     /// valid permutation of all three sections, otherwise DEFAULT_ORDER.
@@ -1090,16 +1130,14 @@ impl PromptOverrides {
     pub fn should_omit_invariant(&self, piece: &InvariantPiece) -> bool {
         self.omit_invariants.contains(piece)
     }
-    /// If the configured insertion targets the given anchor+position,
-    /// return its text. Used during dispatch to emit the insertion at
-    /// the right spot.
-    pub fn insertion_text_at(&self, anchor: &InsertionAnchor, position: InsertPosition) -> Option<&str> {
-        let ins = self.insertion.as_ref()?;
-        if &ins.anchor == anchor && ins.position == position {
-            Some(&ins.text)
-        } else {
-            None
-        }
+    /// Return all configured insertion texts targeting this
+    /// anchor+position, preserving CLI order.
+    pub fn insertion_texts_at(&self, anchor: &InsertionAnchor, position: InsertPosition) -> Vec<&str> {
+        self.insertions
+            .iter()
+            .filter(|ins| &ins.anchor == anchor && ins.position == position)
+            .map(|ins| ins.text.as_str())
+            .collect()
     }
 }
 
@@ -3857,7 +3895,11 @@ fn build_solo_dialogue_system_prompt(
 
     // FORMAT block goes early — teaches the asterisk action convention
     // before the model starts absorbing identity and world info.
+    maybe_push_insertion(&mut parts, overrides, &InsertionAnchor::FixedSectionStart(FixedPromptSection::Format), InsertPosition::Before);
+    maybe_push_insertion(&mut parts, overrides, &InsertionAnchor::FixedSectionStart(FixedPromptSection::Format), InsertPosition::After);
     parts.push(FORMAT_SECTION.to_string());
+    maybe_push_insertion(&mut parts, overrides, &InsertionAnchor::FixedSectionEnd(FixedPromptSection::Format), InsertPosition::Before);
+    maybe_push_insertion(&mut parts, overrides, &InsertionAnchor::FixedSectionEnd(FixedPromptSection::Format), InsertPosition::After);
 
     if !character.identity.is_empty() {
         let sex_prefix = if character.sex == "female" { "A woman." } else { "A man." };
@@ -3886,7 +3928,11 @@ fn build_solo_dialogue_system_prompt(
         } else {
             format!("IDENTITY:\n{sex_prefix} {}", character.identity)
         };
+        maybe_push_insertion(&mut parts, overrides, &InsertionAnchor::FixedSectionStart(FixedPromptSection::Identity), InsertPosition::Before);
+        maybe_push_insertion(&mut parts, overrides, &InsertionAnchor::FixedSectionStart(FixedPromptSection::Identity), InsertPosition::After);
         parts.push(identity_block);
+        maybe_push_insertion(&mut parts, overrides, &InsertionAnchor::FixedSectionEnd(FixedPromptSection::Identity), InsertPosition::Before);
+        maybe_push_insertion(&mut parts, overrides, &InsertionAnchor::FixedSectionEnd(FixedPromptSection::Identity), InsertPosition::After);
     }
 
     // Load-test anchor — names the architecture-level dimension this
@@ -4026,7 +4072,11 @@ fn build_solo_dialogue_system_prompt(
         } else {
             format!("WORLD:\n{}", world.description)
         };
+        maybe_push_insertion(&mut parts, overrides, &InsertionAnchor::FixedSectionStart(FixedPromptSection::World), InsertPosition::Before);
+        maybe_push_insertion(&mut parts, overrides, &InsertionAnchor::FixedSectionStart(FixedPromptSection::World), InsertPosition::After);
         parts.push(world_block);
+        maybe_push_insertion(&mut parts, overrides, &InsertionAnchor::FixedSectionEnd(FixedPromptSection::World), InsertPosition::Before);
+        maybe_push_insertion(&mut parts, overrides, &InsertionAnchor::FixedSectionEnd(FixedPromptSection::World), InsertPosition::After);
     }
 
     parts.push(cosmology_block().to_string());
@@ -4097,12 +4147,20 @@ fn build_solo_dialogue_system_prompt(
             "\n⚠️ ANCHOR: Anywhere else in this prompt — in your journal pages, in meanwhile events, in canon notes, in summaries, in cross-thread history — when you see the name \"{name}\", that refers to THIS person, the human you are talking to in this very conversation. Not a third party. Not someone they're telling you about. Them, sitting across from you right now. If your own journal says \"{name} said today that…\" you do NOT then quote that to {name} as if {name} were someone else. You speak to them as you, to them.",
             name = profile.display_name,
         ));
+        maybe_push_insertion(&mut parts, overrides, &InsertionAnchor::FixedSectionStart(FixedPromptSection::User), InsertPosition::Before);
+        maybe_push_insertion(&mut parts, overrides, &InsertionAnchor::FixedSectionStart(FixedPromptSection::User), InsertPosition::After);
         parts.push(format!("THE USER:\n{}", user_parts.join("\n")));
+        maybe_push_insertion(&mut parts, overrides, &InsertionAnchor::FixedSectionEnd(FixedPromptSection::User), InsertPosition::Before);
+        maybe_push_insertion(&mut parts, overrides, &InsertionAnchor::FixedSectionEnd(FixedPromptSection::User), InsertPosition::After);
     }
 
     if let Some(directive) = mood_directive {
         if !directive.is_empty() {
+            maybe_push_insertion(&mut parts, overrides, &InsertionAnchor::FixedSectionStart(FixedPromptSection::Mood), InsertPosition::Before);
+            maybe_push_insertion(&mut parts, overrides, &InsertionAnchor::FixedSectionStart(FixedPromptSection::Mood), InsertPosition::After);
             parts.push(format!("MOOD:\n{directive}"));
+            maybe_push_insertion(&mut parts, overrides, &InsertionAnchor::FixedSectionEnd(FixedPromptSection::Mood), InsertPosition::Before);
+            maybe_push_insertion(&mut parts, overrides, &InsertionAnchor::FixedSectionEnd(FixedPromptSection::Mood), InsertPosition::After);
         }
     }
 
@@ -4251,8 +4309,10 @@ fn maybe_push_insertion(
     anchor: &InsertionAnchor,
     position: InsertPosition,
 ) {
-    if let Some(text) = overrides.and_then(|o| o.insertion_text_at(anchor, position)) {
-        parts.push(text.to_string());
+    if let Some(ov) = overrides {
+        for text in ov.insertion_texts_at(anchor, position) {
+            parts.push(text.to_string());
+        }
     }
 }
 
@@ -4572,14 +4632,22 @@ fn build_group_dialogue_system_prompt(
     // unfinished business — is what makes the scene feel lived-in rather
     // than polite. The identity/voice blocks above cover who each person
     // IS; this block names that something ALREADY EXISTS between them.
+    maybe_push_insertion(&mut parts, overrides, &InsertionAnchor::FixedSectionStart(FixedPromptSection::WhatHangsBetweenYou), InsertPosition::Before);
+    maybe_push_insertion(&mut parts, overrides, &InsertionAnchor::FixedSectionStart(FixedPromptSection::WhatHangsBetweenYou), InsertPosition::After);
     parts.push(
         "# WHAT HANGS BETWEEN YOU\nThere is already something between you and the other characters in this room — an affection, a wariness, an unfinished thing, a loyalty, a fresh hurt, a long trust. You don't need to name it. You carry it into how you angle toward or away from each of them. Every gesture is colored by it. The scene is the shape of that history breathing.".to_string()
     );
+    maybe_push_insertion(&mut parts, overrides, &InsertionAnchor::FixedSectionEnd(FixedPromptSection::WhatHangsBetweenYou), InsertPosition::Before);
+    maybe_push_insertion(&mut parts, overrides, &InsertionAnchor::FixedSectionEnd(FixedPromptSection::WhatHangsBetweenYou), InsertPosition::After);
 
     // ── # AGENCY ────────────────────────────────────────────────────────
     // Counter sycophancy and mechanical go-along replies. Ends with one
     // randomly-chosen per-turn directive so the texture varies turn to turn.
+    maybe_push_insertion(&mut parts, overrides, &InsertionAnchor::FixedSectionStart(FixedPromptSection::Agency), InsertPosition::Before);
+    maybe_push_insertion(&mut parts, overrides, &InsertionAnchor::FixedSectionStart(FixedPromptSection::Agency), InsertPosition::After);
     parts.push(agency_section(mood_chain));
+    maybe_push_insertion(&mut parts, overrides, &InsertionAnchor::FixedSectionEnd(FixedPromptSection::Agency), InsertPosition::Before);
+    maybe_push_insertion(&mut parts, overrides, &InsertionAnchor::FixedSectionEnd(FixedPromptSection::Agency), InsertPosition::After);
 
     // ── # THE TURN ──────────────────────────────────────────────────────
     // Short, declarative, last — local models attend most strongly to the
@@ -4588,6 +4656,8 @@ fn build_group_dialogue_system_prompt(
         .map(|c| c.display_name.as_str())
         .collect::<Vec<_>>()
         .join(", ");
+    maybe_push_insertion(&mut parts, overrides, &InsertionAnchor::FixedSectionStart(FixedPromptSection::Turn), InsertPosition::Before);
+    maybe_push_insertion(&mut parts, overrides, &InsertionAnchor::FixedSectionStart(FixedPromptSection::Turn), InsertPosition::After);
     parts.push(format!(
         "# THE TURN\n\
          - You speak ONLY as {me}. Never write lines, thoughts, or feelings for {others} or {user_name}, and never decide their actions for them.\n\
@@ -4608,6 +4678,8 @@ fn build_group_dialogue_system_prompt(
         others_first = gc.other_characters.first().map(|c| c.display_name.as_str()).unwrap_or("the other character"),
         user_name = user_name,
     ));
+    maybe_push_insertion(&mut parts, overrides, &InsertionAnchor::FixedSectionEnd(FixedPromptSection::Turn), InsertPosition::Before);
+    maybe_push_insertion(&mut parts, overrides, &InsertionAnchor::FixedSectionEnd(FixedPromptSection::Turn), InsertPosition::After);
 
     // ── # STYLE ─────────────────────────────────────────────────────────
     let mut style_items: Vec<String> = Vec::new();
@@ -4622,7 +4694,11 @@ fn build_group_dialogue_system_prompt(
         }
     }
     if !style_items.is_empty() {
+        maybe_push_insertion(&mut parts, overrides, &InsertionAnchor::FixedSectionStart(FixedPromptSection::Style), InsertPosition::Before);
+        maybe_push_insertion(&mut parts, overrides, &InsertionAnchor::FixedSectionStart(FixedPromptSection::Style), InsertPosition::After);
         parts.push(format!("# STYLE\n\n{}", style_items.join("\n\n")));
+        maybe_push_insertion(&mut parts, overrides, &InsertionAnchor::FixedSectionEnd(FixedPromptSection::Style), InsertPosition::Before);
+        maybe_push_insertion(&mut parts, overrides, &InsertionAnchor::FixedSectionEnd(FixedPromptSection::Style), InsertPosition::After);
     }
 
     // Dispatch the three main dialogue sections in the order specified
