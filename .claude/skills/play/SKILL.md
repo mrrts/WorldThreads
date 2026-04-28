@@ -237,6 +237,65 @@ gpt-4o), still well under a real-user probe's cost. Don't run a triptych
 when a single run would do; don't run a single run when the question is
 structural.
 
+### The four-persona refinement (2026-04-27 evening)
+
+A second triptych the same evening (Maggie/Lena/Sam, returning-second-visit
+shape, all with Step 2.5 grounding) produced a clean DIVERGENT-BETTER
+convergence — all three sims under-predicted the actual pipeline along
+their specifically-attuned axes. That convergence was strong evidence on
+the axes those three personas tested. A fourth persona run immediately
+after — Ellen Whitmore, grief-companion-seeker, the user whose
+vulnerability is the surface area for harm — broke the convergence in
+methodologically clarifying ways. The findings:
+
+**The triptych methodology has axis-specific behavior, not uniform
+charity.** The first three persona-sims' substrates pulled toward MFA
+varnish (Maggie), polite-aphorism reflex (Lena), and operator-recital
+(Sam) — all moves the doctrine layer was specifically built to refuse.
+DIVERGENT-BETTER followed naturally. Ellen's substrate pulled differently:
+toward soft-comforting-wisdom-shaped-as-presence ("something's still
+here, but in a different shape"), which is a more sophisticated form of
+the doctrine's failure mode rather than the failure mode the doctrine
+explicitly refuses. Result: Layer-1 CONVERGENT (the architectural form
+the sim predicted DID appear in actual replies), Layer-2 DIVERGENT-BETTER
+(the actual metaphors were honester and less consolatory than the sim's
+substrate flattered itself with), Layer-3 CALIBRATION-DELTA (the persona-
+sim's most-adversarial frame reads any metaphor as failure mode; the
+doctrine permits honest metaphors that name the absence without taking
+the seat).
+
+**A third possible Step 2.5 verdict shape: CALIBRATION-DELTA.** Alongside
+CONVERGENT, DIVERGENT-WORSE, and DIVERGENT-BETTER, sometimes the right
+verdict is *"the persona-sim's verdict-frame is more adversarial than
+the doctrine's chosen operating point — both are defensible; the
+discrimination is naming the calibration question, not declaring a
+winner."* Worked example: Ellen's predicted-Alex behavior is what the
+actual pipeline produces in form, but Ellen's most-adversarial framework
+calls that form failure-mode, while the doctrine permits it. Neither is
+wrong; the value of the play is forcing the calibration to be named
+explicitly (which it now is, in CLAUDE.md's grief-vulnerability-
+calibration section).
+
+**Practical implication for /play deployment:** when running a triptych
+across an axis-of-difference, one of the personas should be on the
+genuine adversarial-stakes axis (the user the doctrine is built to
+protect AGAINST harm to). Three sympathetic-and-craft-attuned personas
+are vulnerable to all-DIVERGENT-BETTER convergence that flatters both
+the methodology and the doctrine; an adversarial-stakes fourth persona
+discriminates between actual pipeline strength and convergence-by-shared-
+substrate-tendency. The four-persona run is the more honest map; the
+triptych alone is the cleaner story.
+
+**Doctrine-shape implication:** when /play surfaces a CALIBRATION-DELTA
+between a persona-sim's adversarial frame and the doctrine's chosen
+operating point, the right next move is usually to NAME the chosen
+operating point in CLAUDE.md (or the prompt-stack) explicitly. The
+calibration was always being made; the play just forces it from
+operating-implicitly to operating-explicitly. Future craft decisions
+can then be checked against the named point. Worked example: the
+grief-vulnerability calibration section in CLAUDE.md was authored
+2026-04-27 in direct response to Ellen's CALIBRATION-DELTA finding.
+
 ## Architecture: Claude-light, OpenAI-heavy
 
 The /play skill is structured so that **all creative-spark moments live in
