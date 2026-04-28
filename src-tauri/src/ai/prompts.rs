@@ -3357,8 +3357,8 @@ pub fn tone_directive(tone: &str) -> Option<String> {
         ),
         "Playful" => (
             "lean into PLAYFUL register",
-            "Mischief on the surface, warmth underneath. A small invented game, a ridiculous premise taken seriously for three seconds, a silly name for a serious thing, teasing that tilts toward affection. Quick tempo. Let the character not always take the scene literally.",
-            "No heavy sincerity beats, no slow emotional excavation. If the reply is straightening its tie, it's wrong for this tone.",
+            "Mischief on the surface, warmth underneath. A small invented game, a ridiculous premise taken seriously for three seconds, a silly name for a serious thing, teasing that tilts toward affection. Quick tempo. Let the character not always take the scene literally. The play should cash out in an exact bit, not in generic perkiness.",
+            "No heavy sincerity beats, no slow emotional excavation, no over-caffeinated pep. If the reply is straightening its tie or trying too hard to sound fun, it's wrong for this tone.",
         ),
         "Happy" => (
             "lean into HAPPY register",
@@ -3482,8 +3482,8 @@ pub fn tone_directive(tone: &str) -> Option<String> {
         ),
         "Ethereal" => (
             "lean into ETHEREAL register",
-            "A lifting quality. Light that seems to come from more than one place. Motion softened at the edges. Things half-glimpsed rather than fully named. The body almost weightless in the scene. Silence that feels like a held note.",
-            "No ghostly-cliché reaching, no smoke-machine drama. Ethereal is lightness with substance, not fog.",
+            "A lifting quality. Light that seems to come from more than one place. Motion softened at the edges. Things half-glimpsed rather than fully named. The body almost weightless in the scene. Silence that feels like a held note. Keep one concrete image or bodily fact in the frame so the lightness has something to live on.",
+            "No ghostly-cliché reaching, no smoke-machine drama, no vague floatiness mistaken for depth. Ethereal is lightness with substance, not fog.",
         ),
         _ => (
             "lean into the named register",
