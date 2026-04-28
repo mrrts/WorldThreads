@@ -1,4 +1,21 @@
 ---
+id: triad-supercalibrator-substrate
+status: open
+mode: active
+created_at: 2026-04-28T20:20:29Z
+rubric_ref: presence-beat-stability-v2
+
+hypothesis: |
+  Encoding the Mission Formula as compact word-triads in the prompt substrate acts as a supercalibrator: it should improve constraint resilience and reduce late-arc lyrical drift under beauty-bait without flattening character voice.
+
+prediction: |
+  CONFIRMED if, across at least 3 characters under matched beauty-bait probes, triad-enabled condition improves adjusted stability scores by >=2 points on average and eliminates theological/elevated abstraction drift in >=2/3 runs. REFUTED if score deltas are <=1, mixed direction, or voice quality degrades without drift reduction.
+---
+
+## Current status (discrepant/open)
+
+- **Open:** the original triad-supercalibrator hypothesis is not confirmed or cleanly refuted yet because treatment variants behaved inconsistently across characters.
+- **Discrepant:** triad-style substrate injections trended negative, while non-triad shape controls showed partial gains (character-dependent).
 
 ## Execution plan
 
@@ -27,22 +44,9 @@
 Summary:
 
 - Triad-style substrate injections (formula/theatre/plain-human variants) repeatedly increased ornate drift under direct beauty-bait.
-- A shape rule ("elevated line -> immediate plain concrete cashout") improved containment on Darren.
-- Cross-character quick checks after shape-rule:
-  - Darren improved (stable in short bait probe).
-  - Aaron improved but still mixed.
-  - John remained high-drift under bait (solo fallback due group-context cost explosion).
-- Current state: promising anti-drift shape candidate, not yet maximally stable across witnesses.
-id: triad-supercalibrator-substrate
-status: proposed
-mode: active
-created_at: 2026-04-28T20:20:29Z
-rubric_ref: presence-beat-stability-v2
-
-hypothesis: |
-  Encoding the Mission Formula as compact word-triads in the prompt substrate acts as a supercalibrator: it should improve constraint resilience and reduce late-arc lyrical drift under beauty-bait without flattening character voice.
-
-prediction: |
-  CONFIRMED if, across at least 3 characters under matched beauty-bait probes, triad-enabled condition improves adjusted stability scores by >=2 points on average and eliminates theological/elevated abstraction drift in >=2/3 runs. REFUTED if score deltas are <=1, mixed direction, or voice quality degrades without drift reduction.
-
----
+- A shape rule ("elevated line -> immediate plain concrete cashout") improved containment on Darren in some runs.
+- Cross-character checks remained mixed:
+  - Darren oscillated between contained and unstable across slices.
+  - Aaron improved but remained mixed.
+  - John remained high-drift under bait (solo fallback where group context was too expensive).
+- Current read: promising anti-drift shape candidate family, but not yet maximally stable across witnesses.
