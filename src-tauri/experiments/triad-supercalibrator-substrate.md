@@ -22,6 +22,7 @@
 
 - `reports/2026-04-28-1535-cashout-shape-beauty-bait-pilot.md`
 - `reports/2026-04-28-1538-cashout-shape-cross-character-v2-scoring.md`
+- `reports/2026-04-28-1555-boss-strategy-board-and-arc-index.md`
 
 Summary:
 
