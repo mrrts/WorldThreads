@@ -88,6 +88,18 @@ enum Cmd {
     /// Print a starter ~/.worldcli/config.json template (does NOT overwrite).
     ConfigTemplate,
 
+    /// Print the active author-anchor (𝓕_Ryan or per-world override) as
+    /// it would be assembled into the LLM prompt for the given world.
+    /// Without --world, prints the project default (RYAN_FORMULA_BLOCK).
+    /// With --world, looks up the per-world UserProfile.derived_formula
+    /// and uses that if set, falling back to the default. Read-only;
+    /// no API cost. Use to verify the layer-5 promotion is wired
+    /// correctly, or to bite-test what an LLM call would actually carry.
+    ShowAuthorAnchor {
+        #[arg(long)]
+        world: Option<String>,
+    },
+
     // ── read commands ──
     /// List worlds in scope.
     ListWorlds,
@@ -1556,6 +1568,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     match cli.cmd {
         Cmd::Status => cmd_status(&r),
+        Cmd::ShowAuthorAnchor { world } => cmd_show_author_anchor(&r, world.as_deref()),
         Cmd::ConfigTemplate => { println!("{}", config_template_text()); Ok(()) }
         Cmd::ListWorlds => cmd_list_worlds(&r),
         Cmd::ListCharacters { world } => cmd_list_characters(&r, world.as_deref()),
@@ -1931,6 +1944,33 @@ fn cmd_status(r: &Resolved) -> Result<(), Box<dyn std::error::Error>> {
         eprintln!("\nNote: config file does not exist at {}.", config_path().display());
         eprintln!("Run `worldcli config-template > {}` then edit to set scope.", config_path().display());
     }
+    Ok(())
+}
+
+fn cmd_show_author_anchor(r: &Resolved, world: Option<&str>) -> Result<(), Box<dyn std::error::Error>> {
+    let user_profile = match world {
+        Some(world_id) => {
+            let conn = r.db.conn.lock().unwrap();
+            get_user_profile(&conn, world_id).ok()
+        }
+        None => None,
+    };
+    let assembled = prompts::active_author_anchor_block(user_profile.as_ref());
+    let source = if let Some(p) = user_profile.as_ref() {
+        if p.derived_formula.as_ref().map(|d: &String| !d.trim().is_empty()).unwrap_or(false) {
+            format!("per-world UserProfile.derived_formula (world={})", p.world_id)
+        } else {
+            format!("project default RYAN_FORMULA_BLOCK (world={} has no derived_formula)", p.world_id)
+        }
+    } else {
+        "project default RYAN_FORMULA_BLOCK (no --world specified)".to_string()
+    };
+    let v = json!({
+        "source": source,
+        "block_length_chars": assembled.len(),
+        "block": assembled,
+    });
+    emit(r.json, v);
     Ok(())
 }
 
