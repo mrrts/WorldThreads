@@ -6,6 +6,32 @@ Newest entries at the top. Each entry has a timestamp and a brief title. The obs
 
 ---
 
+## 2026-04-28 18:35 — speaker-rotation calibration arc converged in 3 tries
+
+> Earlier today: *"In the earlier take-note observation, which you corrected to be about no-nanny disagreement... Do you have ideas for how to fix the who-speaks-next in group chats? It's fine now, I don't hate it, but I know it could be a little bit better/more natural"*
+
+The original noticing (entry above on disagreement-without-nanny chain) had a quiet sub-noticing: Aaron silent for 4 turns in the Aaron+Darren chat, while Darren kept getting picked. The fix landed today as `consecutive_run_by_recent_speaker` + a continuity-note injection into `llm_pick_responders`'s user prompt. What's worth noting isn't the fix itself — it's the **calibration arc shape**:
+
+- **v1** (`b13fa26`, "absence has begun to be felt"): 100% Aaron-inclusion across all message types — over-aggressive directive disguised as data.
+- **v2** ("Only invite the silent peer if THIS message specifically opens a door"): 0% Aaron-inclusion across all types — over-restrictive. The high-bar phrasing ("specifically opens a door") read as restriction.
+- **v3** (`25b9458`, pure data + pointer to existing criteria): 0% on pure continuation, 100% on group-stake "you both", 100% on explicit Aaron-mention. Picker discriminates by message content, not by rotation count alone.
+
+**Methodology pattern worth carrying forward (Mode 2 — propose action):** cheap A/B bite-testing at the picker layer (memory_model, ~$0.0005/call via the new `worldcli pick-responders` subcommand) let the calibration converge in 3 tries for ~$0.01 total. By contrast, a full-message-bite-test of the same hypothesis space would have cost ~$0.30+ per cell × 3 cells = ~$1.00, AND been confounded by character-generation noise that's downstream of the picker decision.
+
+**The pattern generalizes:** when shipping prompt-stack changes whose effect is visible at an early decision-layer (picker, classifier, addressee resolver, etc.), build a worldcli affordance to test that layer in isolation BEFORE bite-testing the full pipeline. Three concrete candidates for similar isolated-layer affordances:
+
+1. `worldcli pick-addressee` — for testing changes to `llm_pick_addressee` (who is the user talking to)
+2. `worldcli classify-canonization` — for testing changes to the canonization classifier's kind-routing
+3. `worldcli pick-reaction` — for testing changes to the character-reaction emoji picker
+
+Each would cost ~$0.0005-0.003/call vs the ~$0.10/call full-pipeline cost. The 30-200× cost differential is what makes calibration arcs like today's affordable.
+
+**Specific takeaway for prompt-stack work:** "pure data + pointer to existing criteria" is a recurring pattern that beats both "directive" and "high-bar restriction" when the surrounding system (system prompt, existing rules) is already well-calibrated. The signal's job is to make data available; let the existing rules do the weighing.
+
+**[Mode 2 — Propose action.]** Filing the methodology pattern (isolated-layer worldcli affordances for cheap A/B) as worth applying when next prompt-stack change touches a similarly-decoupled decision-layer.
+
+---
+
 ## 2026-04-28 17:50 — in-app turns landed clean and strong
 
 > "Ok had some good turns in-app"
