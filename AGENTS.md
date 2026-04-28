@@ -484,6 +484,8 @@ Precedence: `--api-key` flag → `OPENAI_API_KEY` env → macOS keychain. Keycha
 
 **Lab registry surfaces can become hypothesis middleware.** Once a question is carried as a hypothesis slug with explicit proposal, attached run evidence, and resolution summary, the lab surface stops being mere storage. The `propose -> link-run -> resolve` path begins enforcing what a disciplined experiment loop must minimally include: a named hypothesis, evidence attachments, and an interpreted outcome tied back to the same durable question-carrier.
 
+**A fully-resolved registry becomes an outcome topology.** When `lab open` drains to zero, the experiment shelf stops reading primarily as a work queue and starts reading as a map of the lab's actual bet-classes: what usually confirms, what cleanly refutes, what remains discrepant even after interpretation. At that point, the registry is not just tracking unfinished work; it is showing the project's empirical shape back to itself.
+
 **Sessions:** `session-show/clear/list`. Sessions persist to `dev_chat_sessions`; clear individually when stale.
 
 ### When to reach for `worldcli ask`
