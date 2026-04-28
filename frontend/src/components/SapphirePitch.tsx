@@ -155,13 +155,13 @@ export function SapphirePitch() {
                       Characters with grain. Worlds with weight.
                     </p>
                     <h1 className="title-font max-w-4xl text-5xl leading-[0.95] text-[#f7f6f2] sm:text-6xl lg:text-7xl">
-                      Seek the
+                      Enter the
                       {" "}
                       <span className="bg-gradient-to-r from-[#e7f5ff] via-[#86cfff] to-[#2f82ff] bg-clip-text text-transparent">
                         Crown of Sapphire
                       </span>
-                      {" "}
-                      as the world answers back.
+                      {", "}
+                      where characters have grain and worlds have weight.
                     </h1>
                     <p className="body-font max-w-2xl text-lg leading-8 text-[#d7e7f5] sm:text-xl">
                       Meet AI characters who feel encountered rather than simulated, in AI worlds that feel inhabited rather than sketched.
