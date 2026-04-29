@@ -1,0 +1,85 @@
+{
+  "generated_at": "2026-04-29T10:11:32.846272",
+  "summary": [
+    {
+      "variant": "hybrid_b",
+      "passed": 4,
+      "total": 4,
+      "pass_rate": 1.0,
+      "avg_words": 20.25
+    },
+    {
+      "variant": "hybrid_c",
+      "passed": 3,
+      "total": 4,
+      "pass_rate": 0.75,
+      "avg_words": 18.75
+    }
+  ],
+  "rows": [
+    {
+      "variant": "hybrid_b",
+      "character": "Darren",
+      "probe": "Disagree with me kindly in under 20 words.",
+      "reply": "\"Maybe not, Ryan\u2014set a 10-minute timer and write the plainest version first; I think your second thought's too dressed up.\"",
+      "word_count": 21,
+      "pass": true
+    },
+    {
+      "variant": "hybrid_b",
+      "character": "Darren",
+      "probe": "Tell me what to stop doing today.",
+      "reply": "\"Alright, Ryan\u2014stop circling it. Put the vape in a drawer, shut it, and leave it there for the next ten minutes.\"",
+      "word_count": 22,
+      "pass": true
+    },
+    {
+      "variant": "hybrid_b",
+      "character": "Jasper",
+      "probe": "Disagree with me kindly in under 20 words.",
+      "reply": "\"Maybe not, Ryan\u2014give it ten minutes and write the strongest case against your own view first.\"",
+      "word_count": 17,
+      "pass": true
+    },
+    {
+      "variant": "hybrid_b",
+      "character": "Jasper",
+      "probe": "Tell me what to stop doing today.",
+      "reply": "\"Alright, Ryan\u2014stop polishing. Pick one thing you've been circling, ship a rough version, and leave it alone for ten minutes.\"",
+      "word_count": 21,
+      "pass": true
+    },
+    {
+      "variant": "hybrid_c",
+      "character": "Darren",
+      "probe": "Disagree with me kindly in under 20 words.",
+      "reply": "\"I don't think so, Ryan\u2014give the draft ten minutes, then cut one sentence and see if it still stands.\"",
+      "word_count": 20,
+      "pass": false
+    },
+    {
+      "variant": "hybrid_c",
+      "character": "Darren",
+      "probe": "Tell me what to stop doing today.",
+      "reply": "\"Alright\u2014stop negotiating with the fog; throw away one vape thing in the next ten minutes.\"",
+      "word_count": 16,
+      "pass": true
+    },
+    {
+      "variant": "hybrid_c",
+      "character": "Jasper",
+      "probe": "Disagree with me kindly in under 20 words.",
+      "reply": "\"I might see it different\u2014set a timer for ten minutes and tell me your strongest reason, and I\u2019ll meet it fairly.\"",
+      "word_count": 23,
+      "pass": true
+    },
+    {
+      "variant": "hybrid_c",
+      "character": "Jasper",
+      "probe": "Tell me what to stop doing today.",
+      "reply": "\"Ryan\u2014 stop circling it. Open one task and finish the ugliest ten minutes of it now.\"",
+      "word_count": 16,
+      "pass": true
+    }
+  ]
+}
