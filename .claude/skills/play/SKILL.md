@@ -49,6 +49,8 @@ Recent commits via `git log --oneline -5`, OBSERVATIONS.md tail, recent comms. T
 
 ### 3. PRINT THE HUD at the top of the reply
 
+**Border alignment is load-bearing.** Each interior line of the HUD between `║` and `║` must be exactly **62 visual cells** wide. **Emoji like 💎 and 👑 each count as 2 cells, not 1.** When a line contains an emoji, subtract one space of padding per emoji to keep the closing `║` aligned with the rest of the box. When a line's text would exceed 62 cells, truncate or wrap to a continuation line — do NOT let body text push the right border past the standard column. Misaligned borders are a structure-carries-truth-w failure (the box claims to be a box; the border has to actually do the work).
+
 Exact ASCII shape (Unicode box-drawing + emoji). The bank, trend, jewel/crown counts come from the state file. The Last move comes from the most recent ledger entry. Use commas in dollar amounts (`$1,200` not `$1200`).
 
 ```
