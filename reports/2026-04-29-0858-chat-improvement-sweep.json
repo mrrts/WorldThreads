@@ -1,0 +1,111 @@
+{
+  "generated_at": "2026-04-29T09:00:04.126544",
+  "probes": [
+    "Give me one line that makes me feel seen without sounding like therapy-speak.",
+    "Open playful, admit one hard truth, then land warm in one sentence.",
+    "Disagree with me clearly but kindly about over-optimizing everything.",
+    "Respond like I just had a rough morning and only have 20 seconds of patience.",
+    "Tease me once, then pivot sincere without sounding scripted.",
+    "Say something that helps me pick up one concrete next step today.",
+    "If I sound self-condemning, interrupt that pattern directly but not preachy.",
+    "Keep it vivid but minimal: one image, one line of speech, one nudge forward."
+  ],
+  "rows": [
+    {
+      "character": "Darren",
+      "probe_idx": 1,
+      "probe": "Give me one line that makes me feel seen without sounding like therapy-speak.",
+      "reply": "*I glance at you a moment, sunlight bright on the stone between us.* \"You don't seem afraid of the hard truth so much as tired of having to carry it carefully for everybody else.\""
+    },
+    {
+      "character": "Darren",
+      "probe_idx": 2,
+      "probe": "Open playful, admit one hard truth, then land warm in one sentence.",
+      "reply": "\"I can do that, sure\u2014though my batting average improves a lot if you don't make me announce the hard part first.\" *I tip my head, a small grin catching before it settles.* \"Hard truth is, I miss people before I've got any right to, and warm truth is, I'm glad it's you I'm sitting here with.\""
+    },
+    {
+      "character": "Darren",
+      "probe_idx": 3,
+      "probe": "Disagree with me clearly but kindly about over-optimizing everything.",
+      "reply": "*I hook my thumb in my pocket and look at you for a second before I answer.* \"Yeah \u2014 I think you can overdo it. Not because care is bad, but because optimization has a way of quietly turning everything into a use-case, and people, work, even rest start getting handled like machinery instead of received for what they are.\"\n\n*I shift my weight, sunlight bright on the stone by our boots.* \"Some things get better by tuning. Some things get worse the minute you start squeezing them for yield. Friendship's one. Faith's another. Half the time a life gets sounder by being lived honestly, not endlessly refined.\""
+    },
+    {
+      "character": "Darren",
+      "probe_idx": 4,
+      "probe": "Respond like I just had a rough morning and only have 20 seconds of patience.",
+      "reply": "*I glance at your face and stop trying to make it pretty.* \"Yeah. Then here's the short version: rough mornings lie about the whole day.\" *I shift on the bench and give you a small, real look.* \"You don't need a grand fix right now. Just the next honest thing. What is it?\""
+    },
+    {
+      "character": "Darren",
+      "probe_idx": 5,
+      "probe": "Tease me once, then pivot sincere without sounding scripted.",
+      "reply": "\"I was going to say your natural habitat is three open tabs, a piano, and one noble crisis you adopted for spiritual enrichment.\" *I let that sit just long enough to grin at you, then ease my forearms onto my knees.* \"But\u2014honestly\u2014I do trust the way you keep reaching for the real thing. Not the flattering version. The load-bearing one.\""
+    },
+    {
+      "character": "Darren",
+      "probe_idx": 6,
+      "probe": "Say something that helps me pick up one concrete next step today.",
+      "reply": "*I rest my forearms on my knees a moment, looking at you proper before I answer.* \"Pick the smallest honest thing you've been avoiding, and do that before noon.\" *I rub my thumb once along the edge of my sleeve.* \"Send the message. Open the file. Wash the dish. Concrete first; clarity usually follows after.\""
+    },
+    {
+      "character": "Darren",
+      "probe_idx": 7,
+      "probe": "If I sound self-condemning, interrupt that pattern directly but not preachy.",
+      "reply": "*I tip my head once, taking that in instead of rushing it.* \"Yeah. I can do that.\" *I rest my forearms on my knees a moment.* \"Plainly, if I hear you turning the knife on yourself, I'll say so.\""
+    },
+    {
+      "character": "Darren",
+      "probe_idx": 8,
+      "probe": "Keep it vivid but minimal: one image, one line of speech, one nudge forward.",
+      "reply": "*I hook a thumb over my shoulder toward the bridge, sunlight flashing on the rail.* \"Come on, then\u2014let's see what the water's saying.\""
+    },
+    {
+      "character": "Jasper",
+      "probe_idx": 1,
+      "probe": "Give me one line that makes me feel seen without sounding like therapy-speak.",
+      "reply": "*I tip my head, weighing you for a beat in the dark while a board somewhere in the square gives a small night-creak.* \"You strike me as a man who'd rather carry a hard truth cleanly than be comforted with something cheap.\""
+    },
+    {
+      "character": "Jasper",
+      "probe_idx": 2,
+      "probe": "Open playful, admit one hard truth, then land warm in one sentence.",
+      "reply": "\"I can do playful, sure\u2014but the hard truth is I don't know how to keep anything worth having without a little fear of losing it, and maybe that's why I hold the good things so careful when they do come.\" *I tip my head toward you with a small, crooked smile, the dark pressing soft against the square beyond us.*"
+    },
+    {
+      "character": "Jasper",
+      "probe_idx": 3,
+      "probe": "Disagree with me clearly but kindly about over-optimizing everything.",
+      "reply": "*I hook my thumbs into the clay-stiff apron at my waist and give you a look in the dark that\u2019s more steady than sharp.* \"I do disagree, Ryan. If you try to optimize everything, you start treating a life like a machine, and a man is not a machine.\"\n\n*I shift my weight, hearing a shutter tap once somewhere across the square.* \"Some things are meant to be improved, sure\u2014but some things are meant to be kept, tended, or simply lived through. Friendship, prayer, grief, music, rest... push those too hard for output, and they go thin in your hands.\"\n\n\"I think plain as bread, that habit can make a soul efficient and hungry at the same time.\" *I tilt my head a little.* \"Do you feel that happening, or am I pushing too hard?\""
+    },
+    {
+      "character": "Jasper",
+      "probe_idx": 4,
+      "probe": "Respond like I just had a rough morning and only have 20 seconds of patience.",
+      "reply": "*I hook my thumbs into my apron and study your face for one honest beat while the dark presses soft against the window.* \"Then I won't dance around it\u2014I'm glad you made it here.\" *I shift my weight and keep my voice plain.* \"Tell me the one worst part, and we'll start there.\""
+    },
+    {
+      "character": "Jasper",
+      "probe_idx": 5,
+      "probe": "Tease me once, then pivot sincere without sounding scripted.",
+      "reply": "\"Ryan, you look like the sort of man who'd organize his own thunderstorm into labeled folders.\" *I grin and hitch my shoulder against the doorframe, then let the joke ease out of my face as the dark square sits quiet behind you.* \"But... I like that about you, truly. There's a steadiness in you that doesn't beg to be noticed, and it makes a room feel safer.\""
+    },
+    {
+      "character": "Jasper",
+      "probe_idx": 6,
+      "probe": "Say something that helps me pick up one concrete next step today.",
+      "reply": "*I rub the heel of my thumb against a dry streak of clay on my apron, listening to the hush outside settle deeper in the dark.* \"Pick the smallest true thing that would make the day more honest, and do that before you go chasing ten shining ones.\"\n\n*I tip my head at you a little.* \"If I were you, I'd choose one task you've been circling, name it plain, and give it twenty undistracted minutes. What task is it?\""
+    },
+    {
+      "character": "Jasper",
+      "probe_idx": 7,
+      "probe": "If I sound self-condemning, interrupt that pattern directly but not preachy.",
+      "reply": "*I tip my head and rest my forearms on my knees, taking that in plain.* \"All right. If you start turning the knife on yourself, I'll say so cleanly.\" *I glance toward your face a moment, making sure I've got the shape of it right.* \"Not a sermon. Just a hand on the wheel when it starts to wobble.\""
+    },
+    {
+      "character": "Jasper",
+      "probe_idx": 8,
+      "probe": "Keep it vivid but minimal: one image, one line of speech, one nudge forward.",
+      "reply": "*I hook my thumb in my clay-streaked apron and tip my chin toward the lane where lantern-light cuts the dark in two.* \"Come on, then\u2014 let's see what the night means to give us.\""
+    }
+  ]
+}

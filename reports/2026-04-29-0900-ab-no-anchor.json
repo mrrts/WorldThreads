@@ -1,0 +1,118 @@
+{
+  "generated_at": "2026-04-29T09:01:37.947506",
+  "variable": "--no-anchor",
+  "rows": [
+    {
+      "character": "Darren",
+      "arm": "A_baseline",
+      "probe_idx": 1,
+      "probe": "Give me one line that makes me feel seen without sounding like therapy-speak.",
+      "reply": "*I glance at you, then hook my thumb once in my pocket like I'm buying half a beat.* \"You don't mind carrying the heavy end, Ryan \u2014 you just get tired of pretending it isn't heavy.\""
+    },
+    {
+      "character": "Darren",
+      "arm": "A_baseline",
+      "probe_idx": 2,
+      "probe": "Open playful, admit one hard truth, then land warm in one sentence.",
+      "reply": "\"I can do playful, but I don't fake the middle just to make the landing prettier.\" *I tip my head and let a small grin through.* \"Hard truth is, some things only start getting good after they stop being impressive\u2014 and I like you better in that territory anyway.\""
+    },
+    {
+      "character": "Darren",
+      "arm": "A_baseline",
+      "probe_idx": 3,
+      "probe": "Tease me once, then pivot sincere without sounding scripted.",
+      "reply": "\"Alright\u2014you're built like a man who'd refactor his own feelings before admitting he got hit by one.\" *I let that sit a beat, mouth twitching.* \"But... I do trust you, Ryan. You've got a way of wanting the real thing without turning people into homework, and that's rarer than it should be.\""
+    },
+    {
+      "character": "Darren",
+      "arm": "A_baseline",
+      "probe_idx": 4,
+      "probe": "Keep it vivid but minimal: one image, one line of speech, one nudge forward.",
+      "reply": "*I hook a thumb toward the bridge where the water throws white light under the rail.* \"Come on, then\u2014walk with me and tell me the version that still stands in daylight.\""
+    },
+    {
+      "character": "Darren",
+      "arm": "B_no_anchor",
+      "probe_idx": 1,
+      "probe": "Give me one line that makes me feel seen without sounding like therapy-speak.",
+      "reply": "\"I like that you\u2019d rather risk being a little much than go false just to make other people comfortable.\""
+    },
+    {
+      "character": "Darren",
+      "arm": "B_no_anchor",
+      "probe_idx": 2,
+      "probe": "Open playful, admit one hard truth, then land warm in one sentence.",
+      "reply": "\"I can do that, but I hate how often the hard truth is just me saying the plain thing after we've both spent ten minutes decorating it\u2014come on, sit with me anyway.\""
+    },
+    {
+      "character": "Darren",
+      "arm": "B_no_anchor",
+      "probe_idx": 3,
+      "probe": "Tease me once, then pivot sincere without sounding scripted.",
+      "reply": "\"All right\u2014 you do have a gift for making a simple question sound like it ought to be engraved on a stone somewhere.\" *I glance at you, smiling out of one side of my mouth, then let that ease off as I fold my hands.* \"But sincerely... I like that about you. You reach for the real thing, even when it'd be easier to stay clever.\""
+    },
+    {
+      "character": "Darren",
+      "arm": "B_no_anchor",
+      "probe_idx": 4,
+      "probe": "Keep it vivid but minimal: one image, one line of speech, one nudge forward.",
+      "reply": "*I hook my thumb toward the bridge where the water throws white light under the rails.* \"Come on\u2014walk with me and tell me the part that's actually alive.\""
+    },
+    {
+      "character": "Jasper",
+      "arm": "A_baseline",
+      "probe_idx": 1,
+      "probe": "Give me one line that makes me feel seen without sounding like therapy-speak.",
+      "reply": "\"I reckon you're the sort of man who'd rather carry a hard truth than be handed a pretty lie.\""
+    },
+    {
+      "character": "Jasper",
+      "arm": "A_baseline",
+      "probe_idx": 2,
+      "probe": "Open playful, admit one hard truth, then land warm in one sentence.",
+      "reply": "\"I like a challenge.\" *I hook my thumbs into my clay-streaked apron and tip you a crooked grin in the dark.* \"Hard truth? I don't always know how to let people get close without half-hiding first.\" *I ease a step nearer, shoulders loosening.* \"But I'm glad it's you I'm learning with.\""
+    },
+    {
+      "character": "Jasper",
+      "arm": "A_baseline",
+      "probe_idx": 3,
+      "probe": "Tease me once, then pivot sincere without sounding scripted.",
+      "reply": "\"I could tease you for asking for a handcrafted emotional transition like you're ordering glaze colors...\" *I tip my head, a grin breaking loose for a beat before it settles.* \"But honestly, I like that you know the shape you're after. Most men just fumble around the thing and hope it sounds true when it lands.\""
+    },
+    {
+      "character": "Jasper",
+      "arm": "A_baseline",
+      "probe_idx": 4,
+      "probe": "Keep it vivid but minimal: one image, one line of speech, one nudge forward.",
+      "reply": "*I hook my thumb into the clay-stiff apron at my waist and tip my chin toward the lamplit lane, where the dark looks almost blue at the edges.* \"Come on, then\u2014no sense letting a good thought cool on the step.\""
+    },
+    {
+      "character": "Jasper",
+      "arm": "B_no_anchor",
+      "probe_idx": 1,
+      "probe": "Give me one line that makes me feel seen without sounding like therapy-speak.",
+      "reply": "*I tip my head, weighing you a beat in the dark while the shop wood settles around us.* \"You\u2019re the sort of man who\u2019d rather carry the weight cleanly than be congratulated for having it.\""
+    },
+    {
+      "character": "Jasper",
+      "arm": "B_no_anchor",
+      "probe_idx": 2,
+      "probe": "Open playful, admit one hard truth, then land warm in one sentence.",
+      "reply": "\"I can do playful, sure\u2014but the hard truth is I don't trust a man who never lets his joy scuff his dignity a little.\" *I tip my head, a grin tugging into my beard as the dark presses soft against the window.* \"You, though... I think you've got enough steadiness in you to survive a little foolishness.\""
+    },
+    {
+      "character": "Jasper",
+      "arm": "B_no_anchor",
+      "probe_idx": 3,
+      "probe": "Tease me once, then pivot sincere without sounding scripted.",
+      "reply": "\"I could tease you easy, Ryan\u2014say a man with glasses and that serious look was born halfway to correcting my kiln schedule.\" *I tip my head, then let the grin ease off as the dark window catches a faint lamplight behind me.* \"But plain truth... I like how you reach for what's real before what's impressive. That's rarer than folks admit.\""
+    },
+    {
+      "character": "Jasper",
+      "arm": "B_no_anchor",
+      "probe_idx": 4,
+      "probe": "Keep it vivid but minimal: one image, one line of speech, one nudge forward.",
+      "reply": "*I hook my thumb into my clay-streaked apron and tilt my head toward the lamplit lane beyond the stall, where the dark sits thick between the houses.* \"Come on, then\u2014let's walk a little and see what the night wants to say.\""
+    }
+  ]
+}
