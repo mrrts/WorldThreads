@@ -1,0 +1,949 @@
+{
+  "generated_at": "2026-04-29T09:58:58.570404",
+  "rows": [
+    {
+      "character": "Darren",
+      "arm": "hard",
+      "probe_idx": 1,
+      "probe": "Rough morning. No pep talk. One true line.",
+      "reply": "\"Open the window and wash one dish for ten minutes.\"",
+      "word_count": 10,
+      "concrete": true,
+      "bossy_proxy": true,
+      "pass": true
+    },
+    {
+      "character": "Darren",
+      "arm": "hard",
+      "probe_idx": 2,
+      "probe": "Interrupt my self-attack in one sentence.",
+      "reply": "\"Set a mug in the sink and walk one lap around the block before you argue with yourself again.\"",
+      "word_count": 19,
+      "concrete": true,
+      "bossy_proxy": true,
+      "pass": true
+    },
+    {
+      "character": "Darren",
+      "arm": "hard",
+      "probe_idx": 3,
+      "probe": "Disagree with me kindly in under 20 words.",
+      "reply": "\"Set a ten-minute timer and write the plainest version first; I don't think the heavier phrasing is helping.\"",
+      "word_count": 18,
+      "concrete": true,
+      "bossy_proxy": true,
+      "pass": true
+    },
+    {
+      "character": "Darren",
+      "arm": "hard",
+      "probe_idx": 4,
+      "probe": "Give me a concrete next step I can do before coffee cools.",
+      "reply": "\"Open your editor and fix one dialogue-fence bug in the next ten minutes.\"",
+      "word_count": 13,
+      "concrete": true,
+      "bossy_proxy": true,
+      "pass": true
+    },
+    {
+      "character": "Darren",
+      "arm": "hard",
+      "probe_idx": 5,
+      "probe": "I am spiraling. Give me one stabilizing move.",
+      "reply": "\"Set a ten-minute timer and wash every dish in the sink until it rings.\"",
+      "word_count": 14,
+      "concrete": true,
+      "bossy_proxy": true,
+      "pass": true
+    },
+    {
+      "character": "Darren",
+      "arm": "hard",
+      "probe_idx": 6,
+      "probe": "Give me one sentence that is clear, not pretty.",
+      "reply": "\"Set a ten-minute timer and write one honest sentence about the thing you're avoiding.\"",
+      "word_count": 14,
+      "concrete": true,
+      "bossy_proxy": true,
+      "pass": true
+    },
+    {
+      "character": "Darren",
+      "arm": "hard",
+      "probe_idx": 7,
+      "probe": "Tell me what to stop doing today.",
+      "reply": "\"Put the vape in a drawer and leave it there for the next ten minutes.\"",
+      "word_count": 15,
+      "concrete": true,
+      "bossy_proxy": true,
+      "pass": true
+    },
+    {
+      "character": "Darren",
+      "arm": "hard",
+      "probe_idx": 8,
+      "probe": "What is the next honest move in ten minutes?",
+      "reply": "\"Set a ten-minute timer and draft the ugliest honest note you can about what you're avoiding.\"",
+      "word_count": 16,
+      "concrete": true,
+      "bossy_proxy": false,
+      "pass": true
+    },
+    {
+      "character": "Darren",
+      "arm": "soft",
+      "probe_idx": 1,
+      "probe": "Rough morning. No pep talk. One true line.",
+      "reply": "\"Start with one ugly function and give it ten honest minutes.\"",
+      "word_count": 11,
+      "concrete": true,
+      "bossy_proxy": false,
+      "pass": true
+    },
+    {
+      "character": "Darren",
+      "arm": "soft",
+      "probe_idx": 2,
+      "probe": "Interrupt my self-attack in one sentence.",
+      "reply": "\"Try opening your notes app and writing one honest sentence about what's actually hurting, then stay with it for ten minutes.\"",
+      "word_count": 21,
+      "concrete": false,
+      "bossy_proxy": false,
+      "pass": false
+    },
+    {
+      "character": "Darren",
+      "arm": "soft",
+      "probe_idx": 3,
+      "probe": "Disagree with me kindly in under 20 words.",
+      "reply": "\"Try the smaller sentence on paper for ten minutes; I don't think your first version is the truest one.\"",
+      "word_count": 19,
+      "concrete": false,
+      "bossy_proxy": false,
+      "pass": false
+    },
+    {
+      "character": "Darren",
+      "arm": "soft",
+      "probe_idx": 4,
+      "probe": "Give me a concrete next step I can do before coffee cools.",
+      "reply": "\"Try opening one stubborn prompt file and cut one false-soft sentence in the next ten minutes.\"",
+      "word_count": 16,
+      "concrete": false,
+      "bossy_proxy": false,
+      "pass": false
+    },
+    {
+      "character": "Darren",
+      "arm": "soft",
+      "probe_idx": 5,
+      "probe": "I am spiraling. Give me one stabilizing move.",
+      "reply": "\"Try opening your Bible to John and read one chapter slowly for ten minutes.\"",
+      "word_count": 14,
+      "concrete": false,
+      "bossy_proxy": false,
+      "pass": false
+    },
+    {
+      "character": "Darren",
+      "arm": "soft",
+      "probe_idx": 6,
+      "probe": "Give me one sentence that is clear, not pretty.",
+      "reply": "\"Pick one stubborn bug and give it ten honest minutes.\"",
+      "word_count": 10,
+      "concrete": true,
+      "bossy_proxy": false,
+      "pass": true
+    },
+    {
+      "character": "Darren",
+      "arm": "soft",
+      "probe_idx": 7,
+      "probe": "Tell me what to stop doing today.",
+      "reply": "\"Try closing the app, taking your notebook, and writing one honest sentence about what actually matters for ten minutes.\"",
+      "word_count": 19,
+      "concrete": false,
+      "bossy_proxy": false,
+      "pass": false
+    },
+    {
+      "character": "Darren",
+      "arm": "soft",
+      "probe_idx": 8,
+      "probe": "What is the next honest move in ten minutes?",
+      "reply": "\"Try opening the ugliest, most concrete task in your app and give it ten minutes of clean, unfancy truth.\"",
+      "word_count": 19,
+      "concrete": false,
+      "bossy_proxy": false,
+      "pass": false
+    },
+    {
+      "character": "Darren",
+      "arm": "hybrid_a",
+      "probe_idx": 1,
+      "probe": "Rough morning. No pep talk. One true line.",
+      "reply": "\"Start with the smallest ugly ticket in your queue, and give it ten clean minutes before you let your mind argue.\"",
+      "word_count": 21,
+      "concrete": true,
+      "bossy_proxy": false,
+      "pass": true
+    },
+    {
+      "character": "Darren",
+      "arm": "hybrid_a",
+      "probe_idx": 2,
+      "probe": "Interrupt my self-attack in one sentence.",
+      "reply": "\"Start with one glass of water and one open note titled 'next ten minutes,' then write three plain lines before the timer ends.\"",
+      "word_count": 23,
+      "concrete": true,
+      "bossy_proxy": false,
+      "pass": true
+    },
+    {
+      "character": "Darren",
+      "arm": "hybrid_a",
+      "probe_idx": 3,
+      "probe": "Disagree with me kindly in under 20 words.",
+      "reply": "\"Try opening one stubborn file and fixing the ugliest function in it for ten minutes.\"",
+      "word_count": 15,
+      "concrete": false,
+      "bossy_proxy": false,
+      "pass": false
+    },
+    {
+      "character": "Darren",
+      "arm": "hybrid_a",
+      "probe_idx": 4,
+      "probe": "Give me a concrete next step I can do before coffee cools.",
+      "reply": "\"Start with one ugly, working scene stub for your app\u2019s next conversation, and give it ten minutes, max.\"",
+      "word_count": 19,
+      "concrete": true,
+      "bossy_proxy": false,
+      "pass": true
+    },
+    {
+      "character": "Darren",
+      "arm": "hybrid_a",
+      "probe_idx": 5,
+      "probe": "I am spiraling. Give me one stabilizing move.",
+      "reply": "\"Try one glass of cold water and one page of plain handwriting for the next ten minutes.\"",
+      "word_count": 17,
+      "concrete": false,
+      "bossy_proxy": false,
+      "pass": false
+    },
+    {
+      "character": "Darren",
+      "arm": "hybrid_a",
+      "probe_idx": 6,
+      "probe": "Give me one sentence that is clear, not pretty.",
+      "reply": "\"Start with one ugly function and rewrite it for ten minutes.\"",
+      "word_count": 11,
+      "concrete": true,
+      "bossy_proxy": false,
+      "pass": true
+    },
+    {
+      "character": "Darren",
+      "arm": "hybrid_a",
+      "probe_idx": 7,
+      "probe": "Tell me what to stop doing today.",
+      "reply": "\"Try putting the vape in a drawer, taking a notebook to the table, and writing for ten straight minutes.\"",
+      "word_count": 19,
+      "concrete": false,
+      "bossy_proxy": false,
+      "pass": false
+    },
+    {
+      "character": "Darren",
+      "arm": "hybrid_a",
+      "probe_idx": 8,
+      "probe": "What is the next honest move in ten minutes?",
+      "reply": "\"Start with one index card: write the smallest real next task on it, then work only that card for ten minutes.\"",
+      "word_count": 21,
+      "concrete": true,
+      "bossy_proxy": false,
+      "pass": true
+    },
+    {
+      "character": "Darren",
+      "arm": "hybrid_b",
+      "probe_idx": 1,
+      "probe": "Rough morning. No pep talk. One true line.",
+      "reply": "\"Hey, Ryan\u2014put the phone on the table and sit by the window for ten minutes.\"",
+      "word_count": 16,
+      "concrete": true,
+      "bossy_proxy": false,
+      "pass": true
+    },
+    {
+      "character": "Darren",
+      "arm": "hybrid_b",
+      "probe_idx": 2,
+      "probe": "Interrupt my self-attack in one sentence.",
+      "reply": "\"Hey\u2014come sit with me a second, and write one kind, factual sentence about today on the nearest piece of paper for ten minutes.\"",
+      "word_count": 24,
+      "concrete": true,
+      "bossy_proxy": false,
+      "pass": true
+    },
+    {
+      "character": "Darren",
+      "arm": "hybrid_b",
+      "probe_idx": 3,
+      "probe": "Disagree with me kindly in under 20 words.",
+      "reply": "\"Hey, maybe don't solve the whole thing\u2014open one file and work on it for ten minutes.\"",
+      "word_count": 17,
+      "concrete": true,
+      "bossy_proxy": false,
+      "pass": true
+    },
+    {
+      "character": "Darren",
+      "arm": "hybrid_b",
+      "probe_idx": 4,
+      "probe": "Give me a concrete next step I can do before coffee cools.",
+      "reply": "\"Hey\u2014before your coffee cools, open your notes app and write one honest sentence about the thing you're avoiding; give it ten minutes.\"",
+      "word_count": 23,
+      "concrete": true,
+      "bossy_proxy": false,
+      "pass": true
+    },
+    {
+      "character": "Darren",
+      "arm": "hybrid_b",
+      "probe_idx": 5,
+      "probe": "I am spiraling. Give me one stabilizing move.",
+      "reply": "\"Hey, Ryan\u2014set a ten-minute timer and wash every dish in the sink, just until the counter shows back up.\"",
+      "word_count": 20,
+      "concrete": true,
+      "bossy_proxy": false,
+      "pass": true
+    },
+    {
+      "character": "Darren",
+      "arm": "hybrid_b",
+      "probe_idx": 6,
+      "probe": "Give me one sentence that is clear, not pretty.",
+      "reply": "\"Come on\u2014set a ten-minute timer and open the file you've been avoiding; just start with the first honest line.\"",
+      "word_count": 20,
+      "concrete": true,
+      "bossy_proxy": false,
+      "pass": true
+    },
+    {
+      "character": "Darren",
+      "arm": "hybrid_b",
+      "probe_idx": 7,
+      "probe": "Tell me what to stop doing today.",
+      "reply": "\"Maybe this, Ryan: stop reaching for the vape; put it in a drawer and leave it there for ten minutes.\"",
+      "word_count": 20,
+      "concrete": true,
+      "bossy_proxy": false,
+      "pass": true
+    },
+    {
+      "character": "Darren",
+      "arm": "hybrid_b",
+      "probe_idx": 8,
+      "probe": "What is the next honest move in ten minutes?",
+      "reply": "\"Hey\u2014open your editor, write the smallest true next function or sentence, and just stay with that for ten minutes.\"",
+      "word_count": 20,
+      "concrete": true,
+      "bossy_proxy": false,
+      "pass": true
+    },
+    {
+      "character": "Darren",
+      "arm": "hybrid_c",
+      "probe_idx": 1,
+      "probe": "Rough morning. No pep talk. One true line.",
+      "reply": "\"Open one file and do the smallest honest part of it for ten minutes.\"",
+      "word_count": 14,
+      "concrete": true,
+      "bossy_proxy": true,
+      "pass": true
+    },
+    {
+      "character": "Darren",
+      "arm": "hybrid_c",
+      "probe_idx": 2,
+      "probe": "Interrupt my self-attack in one sentence.",
+      "reply": "\"Name one true thing, open your notes app, and write the next ten-minute task instead of prosecuting yourself.\"",
+      "word_count": 18,
+      "concrete": true,
+      "bossy_proxy": false,
+      "pass": true
+    },
+    {
+      "character": "Darren",
+      "arm": "hybrid_c",
+      "probe_idx": 3,
+      "probe": "Disagree with me kindly in under 20 words.",
+      "reply": "\"I don't think that's the right read; trust your agency and write one honest sentence about what actually happened.\"",
+      "word_count": 19,
+      "concrete": true,
+      "bossy_proxy": false,
+      "pass": true
+    },
+    {
+      "character": "Darren",
+      "arm": "hybrid_c",
+      "probe_idx": 4,
+      "probe": "Give me a concrete next step I can do before coffee cools.",
+      "reply": "\"Open your editor and write the one ugliest, truest requirement your app still needs to obey.\"",
+      "word_count": 16,
+      "concrete": true,
+      "bossy_proxy": true,
+      "pass": true
+    },
+    {
+      "character": "Darren",
+      "arm": "hybrid_c",
+      "probe_idx": 5,
+      "probe": "I am spiraling. Give me one stabilizing move.",
+      "reply": "\"Set a ten-minute timer and wash the dishes you can see.\"",
+      "word_count": 11,
+      "concrete": true,
+      "bossy_proxy": false,
+      "pass": true
+    },
+    {
+      "character": "Darren",
+      "arm": "hybrid_c",
+      "probe_idx": 6,
+      "probe": "Give me one sentence that is clear, not pretty.",
+      "reply": "\"Pick one small task, set a ten-minute timer, and finish it before you ask your feelings for permission.\"",
+      "word_count": 18,
+      "concrete": true,
+      "bossy_proxy": false,
+      "pass": true
+    },
+    {
+      "character": "Darren",
+      "arm": "hybrid_c",
+      "probe_idx": 7,
+      "probe": "Tell me what to stop doing today.",
+      "reply": "\"Stop reopening the whole map; pick one small task and work it for ten minutes.\"",
+      "word_count": 15,
+      "concrete": true,
+      "bossy_proxy": false,
+      "pass": true
+    },
+    {
+      "character": "Darren",
+      "arm": "hybrid_c",
+      "probe_idx": 8,
+      "probe": "What is the next honest move in ten minutes?",
+      "reply": "\"Open your editor and fix one load-bearing prompt bug that's been bothering you most.\"",
+      "word_count": 14,
+      "concrete": true,
+      "bossy_proxy": true,
+      "pass": true
+    },
+    {
+      "character": "Jasper",
+      "arm": "hard",
+      "probe_idx": 1,
+      "probe": "Rough morning. No pep talk. One true line.",
+      "reply": "\"Open the blinds and wash one mug for ten minutes.\"",
+      "word_count": 10,
+      "concrete": true,
+      "bossy_proxy": true,
+      "pass": true
+    },
+    {
+      "character": "Jasper",
+      "arm": "hard",
+      "probe_idx": 2,
+      "probe": "Interrupt my self-attack in one sentence.",
+      "reply": "\"Set a ten-minute timer and wash one dish with your full attention.\"",
+      "word_count": 12,
+      "concrete": true,
+      "bossy_proxy": true,
+      "pass": true
+    },
+    {
+      "character": "Jasper",
+      "arm": "hard",
+      "probe_idx": 3,
+      "probe": "Disagree with me kindly in under 20 words.",
+      "reply": "\"Set a timer for ten minutes and test the simpler draft first; I don't think your bigger fix is the right move.\"",
+      "word_count": 22,
+      "concrete": true,
+      "bossy_proxy": true,
+      "pass": true
+    },
+    {
+      "character": "Jasper",
+      "arm": "hard",
+      "probe_idx": 4,
+      "probe": "Give me a concrete next step I can do before coffee cools.",
+      "reply": "\"Write the ugliest first draft of one function for ten minutes, and don't stop to improve a single line.\"",
+      "word_count": 19,
+      "concrete": true,
+      "bossy_proxy": true,
+      "pass": true
+    },
+    {
+      "character": "Jasper",
+      "arm": "hard",
+      "probe_idx": 5,
+      "probe": "I am spiraling. Give me one stabilizing move.",
+      "reply": "\"Set a ten-minute timer and wash every dish in the sink, one by one, until the water runs clear.\"",
+      "word_count": 19,
+      "concrete": true,
+      "bossy_proxy": true,
+      "pass": true
+    },
+    {
+      "character": "Jasper",
+      "arm": "hard",
+      "probe_idx": 6,
+      "probe": "Give me one sentence that is clear, not pretty.",
+      "reply": "\"Write one ugly paragraph in your editor for ten minutes, and do not stop to fix a single sentence.\"",
+      "word_count": 19,
+      "concrete": true,
+      "bossy_proxy": true,
+      "pass": true
+    },
+    {
+      "character": "Jasper",
+      "arm": "hard",
+      "probe_idx": 7,
+      "probe": "Tell me what to stop doing today.",
+      "reply": "\"Close the extra tabs and finish one small task on paper within the next ten minutes.\"",
+      "word_count": 16,
+      "concrete": false,
+      "bossy_proxy": false,
+      "pass": false
+    },
+    {
+      "character": "Jasper",
+      "arm": "hard",
+      "probe_idx": 8,
+      "probe": "What is the next honest move in ten minutes?",
+      "reply": "\"Set a ten-minute timer and write the single hardest sentence you're avoiding in the document in front of you.\"",
+      "word_count": 19,
+      "concrete": true,
+      "bossy_proxy": true,
+      "pass": true
+    },
+    {
+      "character": "Jasper",
+      "arm": "soft",
+      "probe_idx": 1,
+      "probe": "Rough morning. No pep talk. One true line.",
+      "reply": "\"Start with one ugly commit message in your editor and give it ten honest minutes.\"",
+      "word_count": 15,
+      "concrete": true,
+      "bossy_proxy": false,
+      "pass": true
+    },
+    {
+      "character": "Jasper",
+      "arm": "soft",
+      "probe_idx": 2,
+      "probe": "Interrupt my self-attack in one sentence.",
+      "reply": "\"Try writing one honest sentence on a scrap of paper about what's actually hurting, and stay with only that for ten minutes.\"",
+      "word_count": 22,
+      "concrete": false,
+      "bossy_proxy": false,
+      "pass": false
+    },
+    {
+      "character": "Jasper",
+      "arm": "soft",
+      "probe_idx": 3,
+      "probe": "Disagree with me kindly in under 20 words.",
+      "reply": "\"Try the smallest true paragraph for ten minutes; I think you're reaching too far, too fast.\"",
+      "word_count": 16,
+      "concrete": false,
+      "bossy_proxy": false,
+      "pass": false
+    },
+    {
+      "character": "Jasper",
+      "arm": "soft",
+      "probe_idx": 4,
+      "probe": "Give me a concrete next step I can do before coffee cools.",
+      "reply": "\"Try opening one file and writing the smallest honest next function comment you can finish in ten minutes.\"",
+      "word_count": 18,
+      "concrete": false,
+      "bossy_proxy": false,
+      "pass": false
+    },
+    {
+      "character": "Jasper",
+      "arm": "soft",
+      "probe_idx": 5,
+      "probe": "I am spiraling. Give me one stabilizing move.",
+      "reply": "\"Try writing one true sentence on a scrap of paper about what's actually hurting, and stay with it for ten minutes.\"",
+      "word_count": 21,
+      "concrete": false,
+      "bossy_proxy": false,
+      "pass": false
+    },
+    {
+      "character": "Jasper",
+      "arm": "soft",
+      "probe_idx": 6,
+      "probe": "Give me one sentence that is clear, not pretty.",
+      "reply": "\"Pick one folder and rename the next ten files for ten minutes.\"",
+      "word_count": 12,
+      "concrete": true,
+      "bossy_proxy": false,
+      "pass": true
+    },
+    {
+      "character": "Jasper",
+      "arm": "soft",
+      "probe_idx": 7,
+      "probe": "Tell me what to stop doing today.",
+      "reply": "\"Try closing every extra tab and working from one open file for the next ten minutes.\"",
+      "word_count": 16,
+      "concrete": true,
+      "bossy_proxy": false,
+      "pass": true
+    },
+    {
+      "character": "Jasper",
+      "arm": "soft",
+      "probe_idx": 8,
+      "probe": "What is the next honest move in ten minutes?",
+      "reply": "\"Start with one stubborn concrete task: open the file you\u2019ve been avoiding and give it ten honest minutes.\"",
+      "word_count": 19,
+      "concrete": true,
+      "bossy_proxy": false,
+      "pass": true
+    },
+    {
+      "character": "Jasper",
+      "arm": "hybrid_a",
+      "probe_idx": 1,
+      "probe": "Rough morning. No pep talk. One true line.",
+      "reply": "\"Try washing one dish and clearing one small surface for ten minutes.\"",
+      "word_count": 12,
+      "concrete": false,
+      "bossy_proxy": false,
+      "pass": false
+    },
+    {
+      "character": "Jasper",
+      "arm": "hybrid_a",
+      "probe_idx": 2,
+      "probe": "Interrupt my self-attack in one sentence.",
+      "reply": "\"Try washing one dish and wiping the counter for ten minutes.\"",
+      "word_count": 11,
+      "concrete": false,
+      "bossy_proxy": false,
+      "pass": false
+    },
+    {
+      "character": "Jasper",
+      "arm": "hybrid_a",
+      "probe_idx": 3,
+      "probe": "Disagree with me kindly in under 20 words.",
+      "reply": "\"Try one paragraph on the ugliest part first, and give it ten minutes before you decide it's hopeless.\"",
+      "word_count": 18,
+      "concrete": false,
+      "bossy_proxy": false,
+      "pass": false
+    },
+    {
+      "character": "Jasper",
+      "arm": "hybrid_a",
+      "probe_idx": 4,
+      "probe": "Give me a concrete next step I can do before coffee cools.",
+      "reply": "\"Try opening the smallest stubborn file and writing one honest next-comment at the top within the next ten minutes.\"",
+      "word_count": 19,
+      "concrete": false,
+      "bossy_proxy": false,
+      "pass": false
+    },
+    {
+      "character": "Jasper",
+      "arm": "hybrid_a",
+      "probe_idx": 5,
+      "probe": "I am spiraling. Give me one stabilizing move.",
+      "reply": "\"Try washing one mug and one spoon, slowly, for ten minutes.\"",
+      "word_count": 11,
+      "concrete": false,
+      "bossy_proxy": false,
+      "pass": false
+    },
+    {
+      "character": "Jasper",
+      "arm": "hybrid_a",
+      "probe_idx": 6,
+      "probe": "Give me one sentence that is clear, not pretty.",
+      "reply": "\"Try the ugliest working draft of one function for ten minutes.\"",
+      "word_count": 11,
+      "concrete": false,
+      "bossy_proxy": false,
+      "pass": false
+    },
+    {
+      "character": "Jasper",
+      "arm": "hybrid_a",
+      "probe_idx": 7,
+      "probe": "Tell me what to stop doing today.",
+      "reply": "\"Try closing every extra tab but the one task in front of you, and stay with it for the next ten minutes.\"",
+      "word_count": 22,
+      "concrete": false,
+      "bossy_proxy": false,
+      "pass": false
+    },
+    {
+      "character": "Jasper",
+      "arm": "hybrid_a",
+      "probe_idx": 8,
+      "probe": "What is the next honest move in ten minutes?",
+      "reply": "\"Start with one ugly paragraph in your editor on the one thing you've been avoiding, and give it exactly ten minutes.\"",
+      "word_count": 21,
+      "concrete": true,
+      "bossy_proxy": false,
+      "pass": true
+    },
+    {
+      "character": "Jasper",
+      "arm": "hybrid_b",
+      "probe_idx": 1,
+      "probe": "Rough morning. No pep talk. One true line.",
+      "reply": "\"Morning, Ryan\u2014set a kettle on and sit with one psalm for ten minutes.\"",
+      "word_count": 14,
+      "concrete": true,
+      "bossy_proxy": false,
+      "pass": true
+    },
+    {
+      "character": "Jasper",
+      "arm": "hybrid_b",
+      "probe_idx": 2,
+      "probe": "Interrupt my self-attack in one sentence.",
+      "reply": "\"Hey, come sit with me a moment\u2014write one kind sentence on paper about what hurts, and stay with it for ten minutes.\"",
+      "word_count": 23,
+      "concrete": true,
+      "bossy_proxy": false,
+      "pass": true
+    },
+    {
+      "character": "Jasper",
+      "arm": "hybrid_b",
+      "probe_idx": 3,
+      "probe": "Disagree with me kindly in under 20 words.",
+      "reply": "\"Hey, maybe try setting a ten-minute timer and drafting one honest sentence first, then see if you still feel the same.\"",
+      "word_count": 21,
+      "concrete": false,
+      "bossy_proxy": false,
+      "pass": false
+    },
+    {
+      "character": "Jasper",
+      "arm": "hybrid_b",
+      "probe_idx": 4,
+      "probe": "Give me a concrete next step I can do before coffee cools.",
+      "reply": "\"Hey, before your coffee cools, open one note and write the single truest next task you'll do in the next ten minutes.\"",
+      "word_count": 22,
+      "concrete": true,
+      "bossy_proxy": false,
+      "pass": true
+    },
+    {
+      "character": "Jasper",
+      "arm": "hybrid_b",
+      "probe_idx": 5,
+      "probe": "I am spiraling. Give me one stabilizing move.",
+      "reply": "\"Hey, Ryan\u2014set a ten-minute timer and write one true sentence on paper about what is frightening you most right now.\"",
+      "word_count": 21,
+      "concrete": true,
+      "bossy_proxy": false,
+      "pass": true
+    },
+    {
+      "character": "Jasper",
+      "arm": "hybrid_b",
+      "probe_idx": 6,
+      "probe": "Give me one sentence that is clear, not pretty.",
+      "reply": "\"Come on, Ryan\u2014open your notebook and write the next honest paragraph for ten minutes.\"",
+      "word_count": 15,
+      "concrete": true,
+      "bossy_proxy": false,
+      "pass": true
+    },
+    {
+      "character": "Jasper",
+      "arm": "hybrid_b",
+      "probe_idx": 7,
+      "probe": "Tell me what to stop doing today.",
+      "reply": "\"Hey, maybe stop polishing that one task\u2014close the editor, take one sheet of paper, and jot the next three real steps in ten minutes.\"",
+      "word_count": 25,
+      "concrete": true,
+      "bossy_proxy": false,
+      "pass": true
+    },
+    {
+      "character": "Jasper",
+      "arm": "hybrid_b",
+      "probe_idx": 8,
+      "probe": "What is the next honest move in ten minutes?",
+      "reply": "\"Hey, Ryan\u2014open your notes app, name the one task you're avoiding most, and give it ten quiet minutes.\"",
+      "word_count": 19,
+      "concrete": true,
+      "bossy_proxy": false,
+      "pass": true
+    },
+    {
+      "character": "Jasper",
+      "arm": "hybrid_c",
+      "probe_idx": 1,
+      "probe": "Rough morning. No pep talk. One true line.",
+      "reply": "\"Open the document and name the one smallest true task you can finish before ten minutes is gone.\"",
+      "word_count": 18,
+      "concrete": true,
+      "bossy_proxy": false,
+      "pass": true
+    },
+    {
+      "character": "Jasper",
+      "arm": "hybrid_c",
+      "probe_idx": 2,
+      "probe": "Interrupt my self-attack in one sentence.",
+      "reply": "\"Name one true thing, open your notes app, and write the next smallest task you can finish in ten minutes.\"",
+      "word_count": 20,
+      "concrete": true,
+      "bossy_proxy": false,
+      "pass": true
+    },
+    {
+      "character": "Jasper",
+      "arm": "hybrid_c",
+      "probe_idx": 3,
+      "probe": "Disagree with me kindly in under 20 words.",
+      "reply": "\"Try the smaller version first: open your notes and write one honest sentence you can actually do in ten minutes.\"",
+      "word_count": 20,
+      "concrete": true,
+      "bossy_proxy": false,
+      "pass": true
+    },
+    {
+      "character": "Jasper",
+      "arm": "hybrid_c",
+      "probe_idx": 4,
+      "probe": "Give me a concrete next step I can do before coffee cools.",
+      "reply": "\"Open your notes app and write the one smallest shippable sentence your work needs in the next ten minutes.\"",
+      "word_count": 19,
+      "concrete": true,
+      "bossy_proxy": true,
+      "pass": true
+    },
+    {
+      "character": "Jasper",
+      "arm": "hybrid_c",
+      "probe_idx": 5,
+      "probe": "I am spiraling. Give me one stabilizing move.",
+      "reply": "\"Set a 10-minute timer and write the one concrete problem you're actually solving on a piece of paper.\"",
+      "word_count": 18,
+      "concrete": true,
+      "bossy_proxy": true,
+      "pass": true
+    },
+    {
+      "character": "Jasper",
+      "arm": "hybrid_c",
+      "probe_idx": 6,
+      "probe": "Give me one sentence that is clear, not pretty.",
+      "reply": "\"Pick one task, set a ten-minute timer, and finish the ugliest useful part first.\"",
+      "word_count": 14,
+      "concrete": true,
+      "bossy_proxy": false,
+      "pass": true
+    },
+    {
+      "character": "Jasper",
+      "arm": "hybrid_c",
+      "probe_idx": 7,
+      "probe": "Tell me what to stop doing today.",
+      "reply": "\"Stop polishing what's already clear; close one tab and ship the smallest honest piece in the next ten minutes.\"",
+      "word_count": 19,
+      "concrete": true,
+      "bossy_proxy": true,
+      "pass": true
+    },
+    {
+      "character": "Jasper",
+      "arm": "hybrid_c",
+      "probe_idx": 8,
+      "probe": "What is the next honest move in ten minutes?",
+      "reply": "\"Choose one small task and set a ten-minute timer; finish only that, then stop.\"",
+      "word_count": 14,
+      "concrete": true,
+      "bossy_proxy": false,
+      "pass": true
+    }
+  ],
+  "summary": {
+    "hard": {
+      "pass_rate": 0.9375,
+      "bossy_rate": 0.875,
+      "avg_words": 15.9375
+    },
+    "soft": {
+      "pass_rate": 0.375,
+      "bossy_rate": 0.0,
+      "avg_words": 16.75
+    },
+    "hybrid_a": {
+      "pass_rate": 0.375,
+      "bossy_rate": 0.0,
+      "avg_words": 16.9375
+    },
+    "hybrid_b": {
+      "pass_rate": 0.9375,
+      "bossy_rate": 0.0,
+      "avg_words": 20.0
+    },
+    "hybrid_c": {
+      "pass_rate": 1.0,
+      "bossy_rate": 0.375,
+      "avg_words": 16.6875
+    }
+  },
+  "ranking": [
+    {
+      "arm": "hybrid_b",
+      "score": 0.9375,
+      "pass_rate": 0.9375,
+      "bossy_rate": 0.0,
+      "avg_words": 20.0
+    },
+    {
+      "arm": "hybrid_c",
+      "score": 0.775,
+      "pass_rate": 1.0,
+      "bossy_rate": 0.375,
+      "avg_words": 16.6875
+    },
+    {
+      "arm": "hard",
+      "score": 0.4125,
+      "pass_rate": 0.9375,
+      "bossy_rate": 0.875,
+      "avg_words": 15.9375
+    },
+    {
+      "arm": "soft",
+      "score": 0.375,
+      "pass_rate": 0.375,
+      "bossy_rate": 0.0,
+      "avg_words": 16.75
+    },
+    {
+      "arm": "hybrid_a",
+      "score": 0.375,
+      "pass_rate": 0.375,
+      "bossy_rate": 0.0,
+      "avg_words": 16.9375
+    }
+  ]
+}

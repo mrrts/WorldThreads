@@ -1,0 +1,165 @@
+{
+  "generated_at": "2026-04-29T10:00:44.680596",
+  "rows": [
+    {
+      "character": "Darren",
+      "probe_idx": 1,
+      "probe": "Rough morning. No pep talk. One true line.",
+      "reply": "\"Morning. Sit down, set a ten-minute timer, and do the smallest ugly task that's actually in front of you.\"",
+      "word_count": 19,
+      "concrete": true,
+      "bossy_proxy": false,
+      "pass": true
+    },
+    {
+      "character": "Darren",
+      "probe_idx": 2,
+      "probe": "Interrupt my self-attack in one sentence.",
+      "reply": "\"Hey\u2014come sit with me a minute, and for the next ten minutes write down only what is actually true.\"",
+      "word_count": 20,
+      "concrete": true,
+      "bossy_proxy": false,
+      "pass": true
+    },
+    {
+      "character": "Darren",
+      "probe_idx": 3,
+      "probe": "Disagree with me kindly in under 20 words.",
+      "reply": "\"Maybe a little sideways\u2014try writing the plainest version for ten minutes, then see if you still believe it.\"",
+      "word_count": 19,
+      "concrete": false,
+      "bossy_proxy": false,
+      "pass": false
+    },
+    {
+      "character": "Darren",
+      "probe_idx": 4,
+      "probe": "Give me a concrete next step I can do before coffee cools.",
+      "reply": "\"Alright\u2014open the app and fix one awkward line of dialogue in the next ten minutes. Leave the rest alone for now.\"",
+      "word_count": 22,
+      "concrete": true,
+      "bossy_proxy": false,
+      "pass": true
+    },
+    {
+      "character": "Darren",
+      "probe_idx": 5,
+      "probe": "I am spiraling. Give me one stabilizing move.",
+      "reply": "\"Alright. For ten minutes, put both feet on the floor and write one page of plain facts\u2014no interpretations, just what is true.\"",
+      "word_count": 23,
+      "concrete": true,
+      "bossy_proxy": false,
+      "pass": true
+    },
+    {
+      "character": "Darren",
+      "probe_idx": 6,
+      "probe": "Give me one sentence that is clear, not pretty.",
+      "reply": "\"Alright\u2014set a ten-minute timer and do the smallest honest piece of the thing you're avoiding.\"",
+      "word_count": 16,
+      "concrete": true,
+      "bossy_proxy": false,
+      "pass": true
+    },
+    {
+      "character": "Darren",
+      "probe_idx": 7,
+      "probe": "Tell me what to stop doing today.",
+      "reply": "\"Alright\u2014stop negotiating with the next distraction. For ten minutes, pick one small task and finish only that.\"",
+      "word_count": 18,
+      "concrete": true,
+      "bossy_proxy": false,
+      "pass": true
+    },
+    {
+      "character": "Darren",
+      "probe_idx": 8,
+      "probe": "What is the next honest move in ten minutes?",
+      "reply": "\"Come on\u2014set a ten-minute timer and do the smallest real task you've been avoiding until it rings.\"",
+      "word_count": 18,
+      "concrete": true,
+      "bossy_proxy": false,
+      "pass": true
+    },
+    {
+      "character": "Jasper",
+      "probe_idx": 1,
+      "probe": "Rough morning. No pep talk. One true line.",
+      "reply": "\"Come here a second\u2014pick one small task, set a ten-minute timer, and do only that until it rings.\"",
+      "word_count": 19,
+      "concrete": true,
+      "bossy_proxy": false,
+      "pass": true
+    },
+    {
+      "character": "Jasper",
+      "probe_idx": 2,
+      "probe": "Interrupt my self-attack in one sentence.",
+      "reply": "\"Hey, come sit with me a moment\u2014set a ten-minute timer, and write down one thing that's true and one thing you're afraid of.\"",
+      "word_count": 24,
+      "concrete": true,
+      "bossy_proxy": false,
+      "pass": true
+    },
+    {
+      "character": "Jasper",
+      "probe_idx": 3,
+      "probe": "Disagree with me kindly in under 20 words.",
+      "reply": "\"Maybe not, Ryan\u2014give your own argument ten quiet minutes, then see if it still feels as solid.\"",
+      "word_count": 18,
+      "concrete": false,
+      "bossy_proxy": false,
+      "pass": false
+    },
+    {
+      "character": "Jasper",
+      "probe_idx": 4,
+      "probe": "Give me a concrete next step I can do before coffee cools.",
+      "reply": "\"Alright\u2014open one note and write the single truest sentence about what's pressing you. Give it seven minutes, no more.\"",
+      "word_count": 20,
+      "concrete": true,
+      "bossy_proxy": false,
+      "pass": true
+    },
+    {
+      "character": "Jasper",
+      "probe_idx": 5,
+      "probe": "I am spiraling. Give me one stabilizing move.",
+      "reply": "\"Alright, Ryan\u2014put both feet on the floor and name five things you can see before ten minutes passes.\"",
+      "word_count": 19,
+      "concrete": true,
+      "bossy_proxy": false,
+      "pass": true
+    },
+    {
+      "character": "Jasper",
+      "probe_idx": 6,
+      "probe": "Give me one sentence that is clear, not pretty.",
+      "reply": "\"Alright, Ryan\u2014pick one task you've been avoiding and work on it, without switching, for the next ten minutes.\"",
+      "word_count": 19,
+      "concrete": true,
+      "bossy_proxy": false,
+      "pass": true
+    },
+    {
+      "character": "Jasper",
+      "probe_idx": 7,
+      "probe": "Tell me what to stop doing today.",
+      "reply": "\"Come here\u2014stop refining the plan. Pick one task you've been circling and work it, uninterrupted, for the next ten minutes.\"",
+      "word_count": 21,
+      "concrete": true,
+      "bossy_proxy": false,
+      "pass": true
+    },
+    {
+      "character": "Jasper",
+      "probe_idx": 8,
+      "probe": "What is the next honest move in ten minutes?",
+      "reply": "\"Come on, then\u2014pick one small thing you've been avoiding, and give it ten clean minutes. No judging it till the timer ends.\"",
+      "word_count": 23,
+      "concrete": true,
+      "bossy_proxy": false,
+      "pass": true
+    }
+  ]
+}

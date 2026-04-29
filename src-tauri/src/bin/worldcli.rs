@@ -1169,8 +1169,8 @@ enum Cmd {
         group_chat: Option<String>,
         /// Force explicit short-mode behavior for this call. Appends a
         /// hard output contract to the user message for testing:
-        /// imperative verb + concrete object, <=30 words, no stage
-        /// business unless physically required.
+        /// warm invitational opener + concrete action + 10-minute bound,
+        /// <=20 words, no stage business unless physically required.
         #[arg(long, default_value_t = false)]
         short_mode: bool,
     },
@@ -2060,7 +2060,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             if let Some(gc_id) = group_chat {
                 let effective_message = if short_mode {
                     format!(
-                        "{}\n\n[SHORT-MODE CONTRACT: reply in <=30 words; use imperative verb + concrete object; no stage business unless physically required.]",
+                        "{}\n\n[SHORT-MODE CONTRACT: reply in <=20 words; use a warm invitational opener, then explicit concrete action with a 10-minute bound; no stage business unless physically required.]",
                         message
                     )
                 } else {
@@ -2095,7 +2095,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     &character_id,
                     &if short_mode {
                         format!(
-                            "{}\n\n[SHORT-MODE CONTRACT: reply in <=30 words; use imperative verb + concrete object; no stage business unless physically required.]",
+                            "{}\n\n[SHORT-MODE CONTRACT: reply in <=20 words; use a warm invitational opener, then explicit concrete action with a 10-minute bound; no stage business unless physically required.]",
                             message
                         )
                     } else {
