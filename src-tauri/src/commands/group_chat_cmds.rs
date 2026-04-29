@@ -1193,6 +1193,10 @@ pub async fn send_group_message_cmd(
             (None, None)
         };
 
+        let current_loc = {
+            let conn = db.conn.lock().map_err(|e| e.to_string())?;
+            get_group_chat_location(&conn, &gc.group_chat_id).ok().flatten()
+        };
         let (raw_reply, usage) = orchestrator::run_dialogue_with_base(
             &model_config.chat_api_base(), &api_key, &model_config.dialogue_model,
             if !model_config.is_local() { Some(&model_config.memory_model) } else { None },
@@ -1217,7 +1221,7 @@ pub async fn send_group_message_cmd(
             active_quests.as_slice(),
             stance_text.as_deref(),
             anchor_text.as_deref(),
-        None,
+        current_loc.as_deref(),
         formula_momentstamp_text.as_deref(),
         ).await?;
 
@@ -1279,7 +1283,7 @@ pub async fn send_group_message_cmd(
                                 active_quests.as_slice(),
                                 stance_text.as_deref(),
                                 anchor_text.as_deref(),
-                            None,
+                            current_loc.as_deref(),
                             formula_momentstamp_text.as_deref(),
                             ).await {
                                 Ok((corrected_raw, corrected_usage)) => {
@@ -1638,6 +1642,10 @@ pub async fn prompt_group_character_cmd(
         (None, None)
     };
 
+    let current_loc = {
+        let conn = db.conn.lock().map_err(|e| e.to_string())?;
+        get_group_chat_location(&conn, &group_chat_id).ok().flatten()
+    };
     let dialogue_fut = orchestrator::run_dialogue_with_base(
         &base, &api_key, &model_config.dialogue_model,
         if !model_config.is_local() { Some(&model_config.memory_model) } else { None },
@@ -1662,7 +1670,7 @@ pub async fn prompt_group_character_cmd(
         active_quests.as_slice(),
         stance_text.as_deref(),
         anchor_text.as_deref(),
-    None,
+    current_loc.as_deref(),
     formula_momentstamp_text2.as_deref(),
     );
     let (dialogue_res, reaction_res) = if reactions_mode != "off" {
@@ -1727,7 +1735,7 @@ pub async fn prompt_group_character_cmd(
                             active_quests.as_slice(),
                             stance_text.as_deref(),
                             anchor_text.as_deref(),
-                        None,
+                        current_loc.as_deref(),
                         formula_momentstamp_text2.as_deref(),
                         ).await {
                             Ok((corrected_raw, corrected_usage)) => {

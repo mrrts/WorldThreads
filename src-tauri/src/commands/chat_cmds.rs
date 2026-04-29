@@ -667,6 +667,10 @@ pub async fn send_message_cmd(
         (None, None)
     };
 
+    let current_loc = {
+        let conn = db.conn.lock().map_err(|e| e.to_string())?;
+        get_thread_location(&conn, &thread.thread_id).ok().flatten()
+    };
     let dialogue_fut = orchestrator::run_dialogue_with_base(
         &base, &api_key, &model_config.dialogue_model,
         if !model_config.is_local() { Some(&model_config.memory_model) } else { None },
@@ -689,7 +693,7 @@ pub async fn send_message_cmd(
     active_quests.as_slice(),
     stance_text.as_deref(),
     anchor_text.as_deref(),
-    None,
+    current_loc.as_deref(),
     formula_momentstamp_text.as_deref(),
     );
     // Context for the reaction-emoji pick: the recent messages EXCLUDING
@@ -1208,6 +1212,10 @@ pub async fn prompt_character_cmd(
             "first_message_new_day".to_string(),
         );
     }
+    let current_loc = {
+        let conn = db.conn.lock().map_err(|e| e.to_string())?;
+        get_thread_location(&conn, &thread.thread_id).ok().flatten()
+    };
     let (mut reply_text, mut dialogue_usage) = orchestrator::run_dialogue_with_base(
         &model_config.chat_api_base(), &api_key, &model_config.dialogue_model,
         if !model_config.is_local() { Some(&model_config.memory_model) } else { None },
@@ -1230,7 +1238,7 @@ pub async fn prompt_character_cmd(
         active_quests.as_slice(),
         stance_text.as_deref(),
         anchor_text.as_deref(),
-    None,
+    current_loc.as_deref(),
     None, // formula_momentstamp
     ).await?;
 
@@ -2386,6 +2394,19 @@ pub async fn reset_to_message_cmd(
                 "first_message_new_day".to_string(),
             );
         }
+        let current_loc = {
+            let conn = db.conn.lock().map_err(|e| e.to_string())?;
+            if is_group {
+                // Group threads carry location on the group_chats row, not threads.
+                conn.query_row(
+                    "SELECT current_location FROM group_chats WHERE thread_id = ?1",
+                    params![thread_id],
+                    |r| r.get::<_, Option<String>>(0),
+                ).ok().flatten()
+            } else {
+                get_thread_location(&conn, &thread_id).ok().flatten()
+            }
+        };
         let dialogue_fut = orchestrator::run_dialogue_with_base(
             &base, &api_key, &model_config.dialogue_model,
             if !model_config.is_local() { Some(&model_config.memory_model) } else { None },
@@ -2408,7 +2429,7 @@ pub async fn reset_to_message_cmd(
         active_quests.as_slice(),
         stance_text.as_deref(),
         anchor_text.as_deref(),
-        None,
+        current_loc.as_deref(),
         None, // formula_momentstamp
         );
         let reaction_context: Vec<Message> = recent_msgs.iter()
