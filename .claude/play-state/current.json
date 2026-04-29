@@ -1,9 +1,28 @@
 {
-  "turn": 1,
-  "bank": 0,
-  "jewels": [],
+  "turn": 3,
+  "bank": 2150,
+  "jewels": [
+    {"turn": 2, "name": "First Thousand", "earned_at": "2026-04-29T22:05:00-05:00"},
+    {"turn": 2, "name": "Big Bounty", "earned_at": "2026-04-29T22:05:00-05:00"},
+    {"turn": 2, "name": "Lifted From the Character", "earned_at": "2026-04-29T22:05:00-05:00"}
+  ],
   "crowns": [],
-  "ledger": [],
+  "ledger": [
+    {
+      "turn": 1,
+      "move": "Run daily loop manually — first LLM-rubric STRESS_POLICY artifact under d161df0 (interrupted by mode 2 pivot)",
+      "bounty": 650,
+      "alignment": "+",
+      "earned_at": "2026-04-29T21:36:00-05:00"
+    },
+    {
+      "turn": 2,
+      "move": "Lift trust_user_named_continuation craft-rule from N=5 Darren corpus characterization (81cf721)",
+      "bounty": 1500,
+      "alignment": "+",
+      "earned_at": "2026-04-29T22:05:00-05:00"
+    }
+  ],
   "started_at": "2026-04-29T21:35:00-05:00",
-  "last_move_at": null
+  "last_move_at": "2026-04-29T22:05:00-05:00"
 }
