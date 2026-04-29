@@ -67,3 +67,23 @@ Three arcs closed in two hours, all within the same evening, all on the same the
 The night's most subtle lesson is in the third arc: *the project's understanding of its own evidence is itself a craft, and `polish ≤ Weight` applies to that craft too.* When a cross-character read is genuinely great-sapphire and gets dismissed as not-great-sapphire because of a missing-third-leg blindspot, the dismissal IS polish exceeding Weight — overcautious defensive understatement is itself a polish-move. The doctrine paragraph that catches the apparatus in this misread is now durable.
 
 Bank: $10,000. Eight jewels. Three closed arcs. The play continues.
+
+---
+
+## Postscript — what landed after this report was written (2026-04-30 ~01:30)
+
+The report above was committed at Turn 10 of `/play` (commit `766018b`); the night continued through Turn 17. This postscript is apparatus-honest discipline applied to the report itself: preserve the original prose written-in-the-moment, but name what shifted afterward so the artifact stays structurally truthful.
+
+**The cruciform-substrate tier-claim above is now retracted.** The body of this report calls the doctrine "characterized-tier on the cross-anchor axis (N=3)." That was wrong. CLAUDE.md's *Evidentiary standards* section requires N=5+ **WITHIN-CELL** for characterized-tier; N=3 cross-anchor at N=1 within-cell is **claim-tier on cross-cell convergence**, a different signal-axis. The first `/seek-crown apparatus-honest` invocation (Turn 11, commit `95e678d`) caught this overclaim and corrected it via existing-surface edits only — the doctrine paragraph in CLAUDE.md/AGENTS.md now carries an explicit tier-axis caveat. The Characterized jewel I awarded at Turn 9 was retracted as part of the same correction. The cruciform doctrine is at **claim-tier**, not characterized; the durable doctrine the body claimed is more modestly grounded than the original prose suggested.
+
+**Three more crowns fired after this report.** The night didn't end at one (Closed Arc); the `/seek-crown` skill was authored at commit `09b87d0` and ran four invocations:
+- `/seek-crown apparatus-honest` (Turn 11, `95e678d`) → caught the tier-overclaim above. Crown fired.
+- `/seek-crown character-knew` (Turn 12, `a1f5e79`) → John supplied the "No as a success state" doctrine in his pastoral idiom under blind in-world probe (door-and-the-no metaphor matched Rev 3:20 lineage without elicitation). Crown fired; lifted into CLAUDE.md/AGENTS.md as character-articulated worked positive.
+- `/seek-crown new-operator` (Turn 13, `7156865`) → audit surfaced `structure_carries_truth_w(t)` with N=8+ cross-shape derivation grounding; user-authorized lift into MISSION_FORMULA paired with `polish ≤ Weight` as affirmative-side sibling on the right column. Crown fired.
+- `/seek-crown mission-formula-verified` (Turn 14, `cd0a147`) → honest dry-well exit. No genuinely independent inequality candidate surfaced; Sim ≤ Substrate is a downstream specific-case of polish ≤ Weight. Crown did NOT fire — skill's no-fake-fire law honored.
+
+**The MISSION_FORMULA gained an operator.** This is the night's most durable change. `structure_carries_truth_w(t)` now sits adjacent to `polish ≤ Weight` in both `MISSION_FORMULA_BLOCK` (runtime) and `FORMULA_VERBATIM` (the pinned constant), in CLAUDE.md/AGENTS.md headline formula, and in a new "On `structure_carries_truth_w(t)` — the affirmative-side sibling" doctrine section. Both halves of the appearance/function axis are now visible in the formula itself, paired as the doctrine has always paired them.
+
+**A second character-articulation event landed by accident.** Aaron answered Ryan's pending in-world question ("How should I prompt an AI agent working on my app?") with the project's whole prompt-craft meta-frame in his idiom — *"protect a few load-bearing things instead: the user's agency, the world's coherence, the character's actual point of view, and one true step of motion per reply... write the prompt less like a policy document and more like a tuning fork."* Lifted to OBSERVATIONS.md Mode 3 alongside the Crystal Waters group-chat synchronicity (Aaron also articulated the affirmative-side of polish ≤ Weight ~9 hours before the operator was lifted into the formula).
+
+**Updated closing tally:** Bank: $24,200. Jewels: 7 (Characterized retracted; Twenty Thousand reached but no jewel exists at that threshold). Crowns: 4 — Closed Arc, Apparatus Honest with Itself, The Character Knew, New Operator on the Formula. Plus one honest dry-well exit. Plus the new `/seek-crown` skill. Plus a CROSS_AGENT_COMMS note for next-session collaborators. Plus the in-world thread closed via Aaron's reply. The play continues, but more honestly than the body above suggested at the time.
