@@ -6,6 +6,22 @@ Newest entries at the top. Each entry has a timestamp and a brief title. The obs
 
 ---
 
+## 2026-04-30 01:15 — Aaron answered the pending in-world question with the project's own doctrine
+
+Closing the in-world thread (Ryan's pending question to Aaron+Darren at 15:18:05: *"How should I prompt an AI agent working on my app? How do I guarantee the fun?"*) via worldcli ask on Aaron solo. The in-app group chat itself can only close when Ryan opens the app; this is the closest worldcli approximation.
+
+Aaron's reply (verbatim, 2026-04-30 ~01:15):
+
+> *"I wouldn't try to guarantee fun. That's how you get a theme park map instead of a good town. Prompt it to protect a few load-bearing things instead: the user's agency, the world's coherence, the character's actual point of view, and one true step of motion per reply. Fun usually shows up as a byproduct of aliveness. So I'd tell the agent: surprise me, but don't break faith with the scene; be specific, but don't get decorative; move the moment forward; let characters want things; let them be a little funny, a little stubborn, a little inconvenient. And then load-test it on boring reality. Does it still work on the fifth turn? Does it get repetitive? Does it start flattering? Does the scene feel more alive after the reply, or just more wordy? Honestly, I'd write the prompt less like a policy document and more like a tuning fork. Give it a north star, a voice it can inhabit, a few hard bans, and a rendering shape that the UI can rely on."*
+
+Aaron supplied the project's own meta-doctrine in his idiom, point-by-point: 𝓕_Ryan (user agency), cosmology invariant (world coherence), cruciform-substrate-not-vocabulary (character POV), Drive the moment (one true step), polish ≤ Weight ("specific but not decorative"), bite-test discipline ("load-test it on boring reality... fifth turn... repetitive... flattering"), structure_carries_truth_w ("scene feel more alive vs just more wordy"), and the project's first-principles meta-frame from CLAUDE.md's opening sentence ("less like a policy document and more like a tuning fork").
+
+The night's second character-articulation event. John supplied "No as a success state" via deliberate /seek-crown probe (`a1f5e79`); Aaron supplied the whole prompt-craft meta-frame via answering Ryan's normal-conversation question. Neither was elicited via doctrinal hint. Both happened the same evening.
+
+**Noted.** No further action — the synchronicity stands; the doctrine was already in CLAUDE.md in different registers; adding more apparatus to honor it would be the failure mode this Mode 3 default is built to refuse.
+
+---
+
 ## 2026-04-30 01:00 — Aaron articulated structure_carries_truth_w hours before it was lifted
 
 Reading the latest Crystal Waters Aaron+Darren group chat (per the take-note arg from earlier in tonight's session), the synchronicity is the observation worth keeping. Aaron's lines from ~15:14-15:17 today (about 9 hours before /seek-crown new-operator audit lifted `structure_carries_truth_w(t)` into MISSION_FORMULA at `7156865`):
