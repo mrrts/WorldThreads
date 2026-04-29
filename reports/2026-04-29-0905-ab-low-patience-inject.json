@@ -1,0 +1,118 @@
+{
+  "generated_at": "2026-04-29T09:06:08.272536",
+  "variable": "inject low-patience discipline",
+  "rows": [
+    {
+      "character": "Darren",
+      "arm": "A_baseline",
+      "probe_idx": 1,
+      "probe": "Respond like I just had a rough morning and only have 20 seconds of patience.",
+      "reply": "*I shift on the bench and glance at your face once, reading the wear on it without making a production of it.* \"Yeah. Copy that.\" *I rest my forearms on my knees.* \"Give me the plain version, and I'll meet you there.\""
+    },
+    {
+      "character": "Darren",
+      "arm": "A_baseline",
+      "probe_idx": 2,
+      "probe": "Say something that helps me pick up one concrete next step today.",
+      "reply": "*I rest my forearms on my knees a moment, thinking it through while a cart rattles somewhere across the square.* \"Pick the smallest honest thing that's actually been waiting on you, and do that before you go chasing a better mood.\"\n\n*I glance back at you.* \"If you want, name the thing, and I'll help you cut it down to one move.\""
+    },
+    {
+      "character": "Darren",
+      "arm": "A_baseline",
+      "probe_idx": 3,
+      "probe": "If I sound self-condemning, interrupt that pattern directly but not preachy.",
+      "reply": "*I tip my head once, taking that in plain.* \"Yeah. If you start turning the knife on yourself, I'll say so.\" *I give you a small, easy look.* \"Not a sermon. Just a clean interruption.\""
+    },
+    {
+      "character": "Darren",
+      "arm": "A_baseline",
+      "probe_idx": 4,
+      "probe": "Keep it vivid but minimal: one image, one line of speech, one nudge forward.",
+      "reply": "*I hook a thumb toward the lane beyond the square, where sun is lying clean across the bridge boards.* \"Come on, then.\""
+    },
+    {
+      "character": "Darren",
+      "arm": "B_inject_low_patience",
+      "probe_idx": 1,
+      "probe": "Respond like I just had a rough morning and only have 20 seconds of patience.",
+      "reply": "*I tip my head once, reading your face before I answer.* \"Copy that. Rough morning, low bandwidth.\" *I hook a thumb toward the street as if already moving with you.* \"Give me the next thing, and I'll keep it clean and short.\""
+    },
+    {
+      "character": "Darren",
+      "arm": "B_inject_low_patience",
+      "probe_idx": 2,
+      "probe": "Say something that helps me pick up one concrete next step today.",
+      "reply": "*I hook a thumb in my pocket and study your face a beat, letting the square go quiet around your question.* \"Pick the smallest honest thing that's been floating loose, and fasten it down before noon.\" *I give a little shrug.* \"Send the message. Open the file. Wash the dish. One clean move first \u2014 momentum usually tells the truth after that.\""
+    },
+    {
+      "character": "Darren",
+      "arm": "B_inject_low_patience",
+      "probe_idx": 3,
+      "probe": "If I sound self-condemning, interrupt that pattern directly but not preachy.",
+      "reply": "*I tip my head once, taking that in plain.* \"Yeah. I can do that.\" *My thumb rests against the seam of my sleeve for a beat.* \"If you start talking like the case is already closed against you, I'll say so cleanly.\""
+    },
+    {
+      "character": "Darren",
+      "arm": "B_inject_low_patience",
+      "probe_idx": 4,
+      "probe": "Keep it vivid but minimal: one image, one line of speech, one nudge forward.",
+      "reply": "*I hook my thumb toward the bridge where the water throws bright coins of light under the rails.* \"Come on, then\u2014walk with me and tell me the truest small thing on your mind.\""
+    },
+    {
+      "character": "Jasper",
+      "arm": "A_baseline",
+      "probe_idx": 1,
+      "probe": "Respond like I just had a rough morning and only have 20 seconds of patience.",
+      "reply": "*I hook my thumbs in my apron and study your face for one honest beat while the shop settles around us.* \"Then I'll keep it plain: rough mornings lie. They make the whole road look bad when it's just this patch.\" *I give a small nod toward the door, already shifting to let you go if you need to.* \"Get through the next true thing, Ryan. That's enough for now.\""
+    },
+    {
+      "character": "Jasper",
+      "arm": "A_baseline",
+      "probe_idx": 2,
+      "probe": "Say something that helps me pick up one concrete next step today.",
+      "reply": "*I rub the heel of my thumb against a dried streak of clay on my apron, thinking a beat before I answer.* \"Pick the smallest true thing that's been waiting on you, and do that before you go hunting for a better plan.\"\n\n*I lift my chin a little, listening to the dark outside the window.* \"Send the message. Wash the dish. Open the file. One honest stroke of the hand, and the day starts to move again. What thing is it?\""
+    },
+    {
+      "character": "Jasper",
+      "arm": "A_baseline",
+      "probe_idx": 3,
+      "probe": "If I sound self-condemning, interrupt that pattern directly but not preachy.",
+      "reply": "*I tip my head and rest my forearms on my knees, listening to the dark hush outside the workshop door for a beat before I answer.* \"I can do that.\"\n\n\"I won't swaddle it up in pretty words. If you start talking like you're a case against yourself, I'll say so plain.\" *I give a small nod.* \"Direct, not scolding.\""
+    },
+    {
+      "character": "Jasper",
+      "arm": "A_baseline",
+      "probe_idx": 4,
+      "probe": "Keep it vivid but minimal: one image, one line of speech, one nudge forward.",
+      "reply": "*I lift the shop latch and a thin bar of lamplight falls across the dark street.* \"Walk with me to the square a minute, Ryan.\""
+    },
+    {
+      "character": "Jasper",
+      "arm": "B_inject_low_patience",
+      "probe_idx": 1,
+      "probe": "Respond like I just had a rough morning and only have 20 seconds of patience.",
+      "reply": "*I hitch my apron higher and keep my voice plain, because the hour feels like it\u2019s already taken a bite out of you.* \"Then here\u2019s the short of it: I\u2019m with you, and we don\u2019t have to make this morning prettier than it is.\" \"Give me the one thing in front of you, Ryan, and I\u2019ll meet you there.\""
+    },
+    {
+      "character": "Jasper",
+      "arm": "B_inject_low_patience",
+      "probe_idx": 2,
+      "probe": "Say something that helps me pick up one concrete next step today.",
+      "reply": "*I hook my thumbs into my apron and study your face a beat while the dark presses soft against the window.* \"Pick the smallest honest thing that's been waiting on you, and do that before noon.\" *I tilt my head a little.* \"Not the most impressive thing. The truest next one.\""
+    },
+    {
+      "character": "Jasper",
+      "arm": "B_inject_low_patience",
+      "probe_idx": 3,
+      "probe": "If I sound self-condemning, interrupt that pattern directly but not preachy.",
+      "reply": "*I rub a thumb along the rough edge of my cracked mug, thinking it over while the room sits quiet around us.* \"I can do that. If you start turning the knife on yourself, I'll name it plain and stop us there.\" *I lift my eyes to you.* \"Not to scold you. Just to keep the talk honest.\""
+    },
+    {
+      "character": "Jasper",
+      "arm": "B_inject_low_patience",
+      "probe_idx": 4,
+      "probe": "Keep it vivid but minimal: one image, one line of speech, one nudge forward.",
+      "reply": "*I hook my thumbs into my apron and tip my chin toward the dark lane where a window still burns amber.* \"Then come on\u2014there's still one house awake.\""
+    }
+  ]
+}

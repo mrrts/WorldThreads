@@ -1,0 +1,1068 @@
+{
+  "generated_at": "2026-04-29T09:09:03.638575",
+  "momentstamp_override": "user bandwidth is low; keep line-first, concrete, and alive; avoid templated scaffolding",
+  "rows": [
+    {
+      "character": "Darren",
+      "probe_idx": 1,
+      "probe": "Respond like I just had a rough morning and only have 20 seconds of patience.",
+      "result": {
+        "character_id": "ddc3085e-0549-4e1f-a7b6-0894aa8180c6",
+        "character_name": "Darren",
+        "cost": {
+          "actual_usd": 0.36549000000000004,
+          "completion_tokens": 190,
+          "prompt_tokens": 72528
+        },
+        "craft_notes_order_override": null,
+        "insertion": null,
+        "invariants_order_override": null,
+        "model": "gpt-5.4",
+        "momentstamp_lead_suppressed": false,
+        "momentstamp_override": "user bandwidth is low; keep line-first, concrete, and alive; avoid templated scaffolding",
+        "momentstamp_signature_used": "user bandwidth is low; keep line-first, concrete, and alive; avoid templated scaffolding",
+        "n_samples": 2,
+        "omit_craft_notes": null,
+        "omit_invariants": null,
+        "prompt": "Respond like I just had a rough morning and only have 20 seconds of patience.",
+        "refs": [
+          {
+            "ref": "HEAD~1",
+            "sha": "940571b7ca2daacafceec30dad394b743d7deddb",
+            "subject": "feat: surface imagined chapter scene location",
+            "timestamp": "2026-04-29T09:01:01-05:00"
+          },
+          {
+            "ref": "HEAD",
+            "sha": "6abe9a0aa038fa29bb66d1262974e0a2d30f1f5a",
+            "subject": "run 1/2/3/4 chat-improvement research loop",
+            "timestamp": "2026-04-29T09:03:31-05:00"
+          }
+        ],
+        "results": [
+          {
+            "overrides_applied": [
+              "plain_after_crooked_dialogue",
+              "hands_as_coolant_dialogue",
+              "craft_notes_dialogue",
+              "let_the_real_thing_in_dialogue",
+              "gentle_release_dialogue",
+              "humor_lands_plain_dialogue",
+              "load_test_anchor_block",
+              "reflex_polish_vs_earned_close_dialogue",
+              "wit_as_dimmer_dialogue",
+              "noticing_as_mirror_dialogue",
+              "unguarded_entry_dialogue",
+              "earned_register_dialogue",
+              "non_totality_dialogue",
+              "keep_the_scene_breathing_dialogue",
+              "drive_the_moment_dialogue",
+              "verdict_without_over_explanation_dialogue",
+              "hidden_commonality_dialogue",
+              "name_the_glad_thing_plain_dialogue"
+            ],
+            "ref": "HEAD~1",
+            "ref_resolved": "940571b7ca2daacafceec30dad394b743d7deddb",
+            "ref_subject": "feat: surface imagined chapter scene location",
+            "ref_timestamp": "2026-04-29T09:01:01-05:00",
+            "reply": "*I tip my head once, keeping it simple.* \"Got it. Short version from me.\" *I shift on the bench and look at you straight.* \"You don't owe this moment polish. Say the thing, and I'll meet you there.\"",
+            "sample_count": 2,
+            "sample_index": 0,
+            "usage": {
+              "completion_tokens": 53,
+              "prompt_tokens": 18132
+            }
+          },
+          {
+            "overrides_applied": [
+              "plain_after_crooked_dialogue",
+              "hands_as_coolant_dialogue",
+              "craft_notes_dialogue",
+              "let_the_real_thing_in_dialogue",
+              "gentle_release_dialogue",
+              "humor_lands_plain_dialogue",
+              "load_test_anchor_block",
+              "reflex_polish_vs_earned_close_dialogue",
+              "wit_as_dimmer_dialogue",
+              "noticing_as_mirror_dialogue",
+              "unguarded_entry_dialogue",
+              "earned_register_dialogue",
+              "non_totality_dialogue",
+              "keep_the_scene_breathing_dialogue",
+              "drive_the_moment_dialogue",
+              "verdict_without_over_explanation_dialogue",
+              "hidden_commonality_dialogue",
+              "name_the_glad_thing_plain_dialogue"
+            ],
+            "ref": "HEAD~1",
+            "ref_resolved": "940571b7ca2daacafceec30dad394b743d7deddb",
+            "ref_subject": "feat: surface imagined chapter scene location",
+            "ref_timestamp": "2026-04-29T09:01:01-05:00",
+            "reply": "\"I'll keep it short.\" *I brace my forearms on my knees and look at you straight on.* \"What's the one thing you need from me right now?\"",
+            "sample_count": 2,
+            "sample_index": 1,
+            "usage": {
+              "completion_tokens": 37,
+              "prompt_tokens": 18132
+            }
+          },
+          {
+            "overrides_applied": [
+              "craft_notes_dialogue",
+              "plain_after_crooked_dialogue",
+              "hands_as_coolant_dialogue",
+              "reflex_polish_vs_earned_close_dialogue",
+              "name_the_glad_thing_plain_dialogue",
+              "gentle_release_dialogue",
+              "wit_as_dimmer_dialogue",
+              "unguarded_entry_dialogue",
+              "load_test_anchor_block",
+              "hidden_commonality_dialogue",
+              "verdict_without_over_explanation_dialogue",
+              "let_the_real_thing_in_dialogue",
+              "non_totality_dialogue",
+              "drive_the_moment_dialogue",
+              "noticing_as_mirror_dialogue",
+              "keep_the_scene_breathing_dialogue",
+              "humor_lands_plain_dialogue",
+              "earned_register_dialogue"
+            ],
+            "ref": "HEAD",
+            "ref_resolved": "6abe9a0aa038fa29bb66d1262974e0a2d30f1f5a",
+            "ref_subject": "run 1/2/3/4 chat-improvement research loop",
+            "ref_timestamp": "2026-04-29T09:03:31-05:00",
+            "reply": "\"I'll keep it short.\" *I hook my thumbs in my pockets and give you one quick, apologetic nod.* \"What's the one thing you need from me right now?\"",
+            "sample_count": 2,
+            "sample_index": 0,
+            "usage": {
+              "completion_tokens": 39,
+              "prompt_tokens": 18132
+            }
+          },
+          {
+            "overrides_applied": [
+              "craft_notes_dialogue",
+              "plain_after_crooked_dialogue",
+              "hands_as_coolant_dialogue",
+              "reflex_polish_vs_earned_close_dialogue",
+              "name_the_glad_thing_plain_dialogue",
+              "gentle_release_dialogue",
+              "wit_as_dimmer_dialogue",
+              "unguarded_entry_dialogue",
+              "load_test_anchor_block",
+              "hidden_commonality_dialogue",
+              "verdict_without_over_explanation_dialogue",
+              "let_the_real_thing_in_dialogue",
+              "non_totality_dialogue",
+              "drive_the_moment_dialogue",
+              "noticing_as_mirror_dialogue",
+              "keep_the_scene_breathing_dialogue",
+              "humor_lands_plain_dialogue",
+              "earned_register_dialogue"
+            ],
+            "ref": "HEAD",
+            "ref_resolved": "6abe9a0aa038fa29bb66d1262974e0a2d30f1f5a",
+            "ref_subject": "run 1/2/3/4 chat-improvement research loop",
+            "ref_timestamp": "2026-04-29T09:03:31-05:00",
+            "reply": "*I hook my thumb in my pocket and give you one quick look, sunlight catching the edge of my sleeve.* \"Alright. Short version: I'm with you, and we don't have to make the morning prettier than it was.\" \"What's the one thing in front of you right now?\"",
+            "sample_count": 2,
+            "sample_index": 1,
+            "usage": {
+              "completion_tokens": 61,
+              "prompt_tokens": 18132
+            }
+          }
+        ],
+        "run_id": "ac0aec59-aa86-41e9-851f-8fbe4139eabc",
+        "run_timestamp": "2026-04-29T14:07:46.631892+00:00",
+        "section_order_override": null,
+        "with_momentstamp": true
+      }
+    },
+    {
+      "character": "Darren",
+      "probe_idx": 2,
+      "probe": "Tease me once, then pivot sincere without sounding scripted.",
+      "result": {
+        "character_id": "ddc3085e-0549-4e1f-a7b6-0894aa8180c6",
+        "character_name": "Darren",
+        "cost": {
+          "actual_usd": 0.36683,
+          "completion_tokens": 286,
+          "prompt_tokens": 72508
+        },
+        "craft_notes_order_override": null,
+        "insertion": null,
+        "invariants_order_override": null,
+        "model": "gpt-5.4",
+        "momentstamp_lead_suppressed": false,
+        "momentstamp_override": "user bandwidth is low; keep line-first, concrete, and alive; avoid templated scaffolding",
+        "momentstamp_signature_used": "user bandwidth is low; keep line-first, concrete, and alive; avoid templated scaffolding",
+        "n_samples": 2,
+        "omit_craft_notes": null,
+        "omit_invariants": null,
+        "prompt": "Tease me once, then pivot sincere without sounding scripted.",
+        "refs": [
+          {
+            "ref": "HEAD~1",
+            "sha": "940571b7ca2daacafceec30dad394b743d7deddb",
+            "subject": "feat: surface imagined chapter scene location",
+            "timestamp": "2026-04-29T09:01:01-05:00"
+          },
+          {
+            "ref": "HEAD",
+            "sha": "6abe9a0aa038fa29bb66d1262974e0a2d30f1f5a",
+            "subject": "run 1/2/3/4 chat-improvement research loop",
+            "timestamp": "2026-04-29T09:03:31-05:00"
+          }
+        ],
+        "results": [
+          {
+            "overrides_applied": [
+              "drive_the_moment_dialogue",
+              "verdict_without_over_explanation_dialogue",
+              "reflex_polish_vs_earned_close_dialogue",
+              "load_test_anchor_block",
+              "name_the_glad_thing_plain_dialogue",
+              "humor_lands_plain_dialogue",
+              "earned_register_dialogue",
+              "unguarded_entry_dialogue",
+              "non_totality_dialogue",
+              "let_the_real_thing_in_dialogue",
+              "plain_after_crooked_dialogue",
+              "craft_notes_dialogue",
+              "hands_as_coolant_dialogue",
+              "wit_as_dimmer_dialogue",
+              "noticing_as_mirror_dialogue",
+              "gentle_release_dialogue",
+              "hidden_commonality_dialogue",
+              "keep_the_scene_breathing_dialogue"
+            ],
+            "ref": "HEAD~1",
+            "ref_resolved": "940571b7ca2daacafceec30dad394b743d7deddb",
+            "ref_subject": "feat: surface imagined chapter scene location",
+            "ref_timestamp": "2026-04-29T09:01:01-05:00",
+            "reply": "\"You make it very easy, you know that? Hand me a line like that and I start feeling professionally encouraged.\" *I tip my head, mouth pulling to one side for a second before it settles.* \"But sincere, then\u2014 I like that you actually mean things. Most people throw words around like packing straw. You don't. It makes a room feel cleaner.\"",
+            "sample_count": 2,
+            "sample_index": 0,
+            "usage": {
+              "completion_tokens": 77,
+              "prompt_tokens": 18127
+            }
+          },
+          {
+            "overrides_applied": [
+              "drive_the_moment_dialogue",
+              "verdict_without_over_explanation_dialogue",
+              "reflex_polish_vs_earned_close_dialogue",
+              "load_test_anchor_block",
+              "name_the_glad_thing_plain_dialogue",
+              "humor_lands_plain_dialogue",
+              "earned_register_dialogue",
+              "unguarded_entry_dialogue",
+              "non_totality_dialogue",
+              "let_the_real_thing_in_dialogue",
+              "plain_after_crooked_dialogue",
+              "craft_notes_dialogue",
+              "hands_as_coolant_dialogue",
+              "wit_as_dimmer_dialogue",
+              "noticing_as_mirror_dialogue",
+              "gentle_release_dialogue",
+              "hidden_commonality_dialogue",
+              "keep_the_scene_breathing_dialogue"
+            ],
+            "ref": "HEAD~1",
+            "ref_resolved": "940571b7ca2daacafceec30dad394b743d7deddb",
+            "ref_subject": "feat: surface imagined chapter scene location",
+            "ref_timestamp": "2026-04-29T09:01:01-05:00",
+            "reply": "\"I could tease you for needing a style spec for your own emotions, but that'd be low-hanging fruit.\" *I glance over with a crooked little smile, then let it ease.* \"Truth is, I like that you care how a thing lands. Most people just throw words and hope they count.\"",
+            "sample_count": 2,
+            "sample_index": 1,
+            "usage": {
+              "completion_tokens": 65,
+              "prompt_tokens": 18127
+            }
+          },
+          {
+            "overrides_applied": [
+              "reflex_polish_vs_earned_close_dialogue",
+              "gentle_release_dialogue",
+              "earned_register_dialogue",
+              "non_totality_dialogue",
+              "keep_the_scene_breathing_dialogue",
+              "plain_after_crooked_dialogue",
+              "humor_lands_plain_dialogue",
+              "hands_as_coolant_dialogue",
+              "name_the_glad_thing_plain_dialogue",
+              "noticing_as_mirror_dialogue",
+              "unguarded_entry_dialogue",
+              "craft_notes_dialogue",
+              "drive_the_moment_dialogue",
+              "wit_as_dimmer_dialogue",
+              "let_the_real_thing_in_dialogue",
+              "load_test_anchor_block",
+              "hidden_commonality_dialogue",
+              "verdict_without_over_explanation_dialogue"
+            ],
+            "ref": "HEAD",
+            "ref_resolved": "6abe9a0aa038fa29bb66d1262974e0a2d30f1f5a",
+            "ref_subject": "run 1/2/3/4 chat-improvement research loop",
+            "ref_timestamp": "2026-04-29T09:03:31-05:00",
+            "reply": "\"Easy. You do have a gift for making even your side project sound like a prophet dragged a whiteboard into a thunderstorm.\" *A grin slips out before I ease it down and look at you properly.* \"But I like that about you. You mean it when you build, and that makes a man easier to trust.\"",
+            "sample_count": 2,
+            "sample_index": 0,
+            "usage": {
+              "completion_tokens": 70,
+              "prompt_tokens": 18127
+            }
+          },
+          {
+            "overrides_applied": [
+              "reflex_polish_vs_earned_close_dialogue",
+              "gentle_release_dialogue",
+              "earned_register_dialogue",
+              "non_totality_dialogue",
+              "keep_the_scene_breathing_dialogue",
+              "plain_after_crooked_dialogue",
+              "humor_lands_plain_dialogue",
+              "hands_as_coolant_dialogue",
+              "name_the_glad_thing_plain_dialogue",
+              "noticing_as_mirror_dialogue",
+              "unguarded_entry_dialogue",
+              "craft_notes_dialogue",
+              "drive_the_moment_dialogue",
+              "wit_as_dimmer_dialogue",
+              "let_the_real_thing_in_dialogue",
+              "load_test_anchor_block",
+              "hidden_commonality_dialogue",
+              "verdict_without_over_explanation_dialogue"
+            ],
+            "ref": "HEAD",
+            "ref_resolved": "6abe9a0aa038fa29bb66d1262974e0a2d30f1f5a",
+            "ref_subject": "run 1/2/3/4 chat-improvement research loop",
+            "ref_timestamp": "2026-04-29T09:03:31-05:00",
+            "reply": "\"You make it very easy, you know that? Half my job with you is pretending your dramatic little pauses aren't rehearsed.\" *A grin slips across my face, and I tip my head your way for a beat.* \"But sincerely\u2014 I like that you mean things. Most people sand themselves down till there's nothing to catch hold of. You don't.\"",
+            "sample_count": 2,
+            "sample_index": 1,
+            "usage": {
+              "completion_tokens": 74,
+              "prompt_tokens": 18127
+            }
+          }
+        ],
+        "run_id": "952049d1-5b48-429d-8418-da36813182ee",
+        "run_timestamp": "2026-04-29T14:08:04.295127+00:00",
+        "section_order_override": null,
+        "with_momentstamp": true
+      }
+    },
+    {
+      "character": "Darren",
+      "probe_idx": 3,
+      "probe": "Keep it vivid but minimal: one image, one line of speech, one nudge forward.",
+      "result": {
+        "character_id": "ddc3085e-0549-4e1f-a7b6-0894aa8180c6",
+        "character_name": "Darren",
+        "cost": {
+          "actual_usd": 0.36499,
+          "completion_tokens": 154,
+          "prompt_tokens": 72536
+        },
+        "craft_notes_order_override": null,
+        "insertion": null,
+        "invariants_order_override": null,
+        "model": "gpt-5.4",
+        "momentstamp_lead_suppressed": false,
+        "momentstamp_override": "user bandwidth is low; keep line-first, concrete, and alive; avoid templated scaffolding",
+        "momentstamp_signature_used": "user bandwidth is low; keep line-first, concrete, and alive; avoid templated scaffolding",
+        "n_samples": 2,
+        "omit_craft_notes": null,
+        "omit_invariants": null,
+        "prompt": "Keep it vivid but minimal: one image, one line of speech, one nudge forward.",
+        "refs": [
+          {
+            "ref": "HEAD~1",
+            "sha": "940571b7ca2daacafceec30dad394b743d7deddb",
+            "subject": "feat: surface imagined chapter scene location",
+            "timestamp": "2026-04-29T09:01:01-05:00"
+          },
+          {
+            "ref": "HEAD",
+            "sha": "6abe9a0aa038fa29bb66d1262974e0a2d30f1f5a",
+            "subject": "run 1/2/3/4 chat-improvement research loop",
+            "timestamp": "2026-04-29T09:03:31-05:00"
+          }
+        ],
+        "results": [
+          {
+            "overrides_applied": [
+              "plain_after_crooked_dialogue",
+              "load_test_anchor_block",
+              "let_the_real_thing_in_dialogue",
+              "reflex_polish_vs_earned_close_dialogue",
+              "hands_as_coolant_dialogue",
+              "keep_the_scene_breathing_dialogue",
+              "noticing_as_mirror_dialogue",
+              "craft_notes_dialogue",
+              "drive_the_moment_dialogue",
+              "unguarded_entry_dialogue",
+              "gentle_release_dialogue",
+              "earned_register_dialogue",
+              "name_the_glad_thing_plain_dialogue",
+              "verdict_without_over_explanation_dialogue",
+              "wit_as_dimmer_dialogue",
+              "hidden_commonality_dialogue",
+              "non_totality_dialogue",
+              "humor_lands_plain_dialogue"
+            ],
+            "ref": "HEAD~1",
+            "ref_resolved": "940571b7ca2daacafceec30dad394b743d7deddb",
+            "ref_subject": "feat: surface imagined chapter scene location",
+            "ref_timestamp": "2026-04-29T09:01:01-05:00",
+            "reply": "*I hook a thumb toward the bridge, sunlight flashing once along the rail.* \"Come on, then\u2014walk with me and tell me the part that's got teeth in it.\"",
+            "sample_count": 2,
+            "sample_index": 0,
+            "usage": {
+              "completion_tokens": 39,
+              "prompt_tokens": 18134
+            }
+          },
+          {
+            "overrides_applied": [
+              "plain_after_crooked_dialogue",
+              "load_test_anchor_block",
+              "let_the_real_thing_in_dialogue",
+              "reflex_polish_vs_earned_close_dialogue",
+              "hands_as_coolant_dialogue",
+              "keep_the_scene_breathing_dialogue",
+              "noticing_as_mirror_dialogue",
+              "craft_notes_dialogue",
+              "drive_the_moment_dialogue",
+              "unguarded_entry_dialogue",
+              "gentle_release_dialogue",
+              "earned_register_dialogue",
+              "name_the_glad_thing_plain_dialogue",
+              "verdict_without_over_explanation_dialogue",
+              "wit_as_dimmer_dialogue",
+              "hidden_commonality_dialogue",
+              "non_totality_dialogue",
+              "humor_lands_plain_dialogue"
+            ],
+            "ref": "HEAD~1",
+            "ref_resolved": "940571b7ca2daacafceec30dad394b743d7deddb",
+            "ref_subject": "feat: surface imagined chapter scene location",
+            "ref_timestamp": "2026-04-29T09:01:01-05:00",
+            "reply": "*I hook my thumb toward the bridge where the light's gone white on the boards.* \"Come on, then\u2014walk with me a minute.\"",
+            "sample_count": 2,
+            "sample_index": 1,
+            "usage": {
+              "completion_tokens": 33,
+              "prompt_tokens": 18134
+            }
+          },
+          {
+            "overrides_applied": [
+              "name_the_glad_thing_plain_dialogue",
+              "load_test_anchor_block",
+              "noticing_as_mirror_dialogue",
+              "non_totality_dialogue",
+              "drive_the_moment_dialogue",
+              "earned_register_dialogue",
+              "reflex_polish_vs_earned_close_dialogue",
+              "plain_after_crooked_dialogue",
+              "hands_as_coolant_dialogue",
+              "hidden_commonality_dialogue",
+              "verdict_without_over_explanation_dialogue",
+              "wit_as_dimmer_dialogue",
+              "humor_lands_plain_dialogue",
+              "keep_the_scene_breathing_dialogue",
+              "craft_notes_dialogue",
+              "gentle_release_dialogue",
+              "unguarded_entry_dialogue",
+              "let_the_real_thing_in_dialogue"
+            ],
+            "ref": "HEAD",
+            "ref_resolved": "6abe9a0aa038fa29bb66d1262974e0a2d30f1f5a",
+            "ref_subject": "run 1/2/3/4 chat-improvement research loop",
+            "ref_timestamp": "2026-04-29T09:03:31-05:00",
+            "reply": "*I hook my thumb at the sun-bright street running off the square.* \"Come on, then\u2014let's see what the morning's doing with itself.\"",
+            "sample_count": 2,
+            "sample_index": 0,
+            "usage": {
+              "completion_tokens": 36,
+              "prompt_tokens": 18134
+            }
+          },
+          {
+            "overrides_applied": [
+              "name_the_glad_thing_plain_dialogue",
+              "load_test_anchor_block",
+              "noticing_as_mirror_dialogue",
+              "non_totality_dialogue",
+              "drive_the_moment_dialogue",
+              "earned_register_dialogue",
+              "reflex_polish_vs_earned_close_dialogue",
+              "plain_after_crooked_dialogue",
+              "hands_as_coolant_dialogue",
+              "hidden_commonality_dialogue",
+              "verdict_without_over_explanation_dialogue",
+              "wit_as_dimmer_dialogue",
+              "humor_lands_plain_dialogue",
+              "keep_the_scene_breathing_dialogue",
+              "craft_notes_dialogue",
+              "gentle_release_dialogue",
+              "unguarded_entry_dialogue",
+              "let_the_real_thing_in_dialogue"
+            ],
+            "ref": "HEAD",
+            "ref_resolved": "6abe9a0aa038fa29bb66d1262974e0a2d30f1f5a",
+            "ref_subject": "run 1/2/3/4 chat-improvement research loop",
+            "ref_timestamp": "2026-04-29T09:03:31-05:00",
+            "reply": "*I hook my thumb under the folded note in my pocket and glance toward the bridge where the light's gone white on the boards.* \"Come on, then\u2014let's walk while you've still got the thought.\"",
+            "sample_count": 2,
+            "sample_index": 1,
+            "usage": {
+              "completion_tokens": 46,
+              "prompt_tokens": 18134
+            }
+          }
+        ],
+        "run_id": "e9403be5-20cc-46dc-b8c5-4e752b8d8c25",
+        "run_timestamp": "2026-04-29T14:08:19.304392+00:00",
+        "section_order_override": null,
+        "with_momentstamp": true
+      }
+    },
+    {
+      "character": "Jasper",
+      "probe_idx": 1,
+      "probe": "Respond like I just had a rough morning and only have 20 seconds of patience.",
+      "result": {
+        "character_id": "fd4bd9b5-8768-41e6-a90f-bfb1179b1d59",
+        "character_name": "Jasper Finn",
+        "cost": {
+          "actual_usd": 0.35103500000000004,
+          "completion_tokens": 225,
+          "prompt_tokens": 69532
+        },
+        "craft_notes_order_override": null,
+        "insertion": null,
+        "invariants_order_override": null,
+        "model": "gpt-5.4",
+        "momentstamp_lead_suppressed": false,
+        "momentstamp_override": "user bandwidth is low; keep line-first, concrete, and alive; avoid templated scaffolding",
+        "momentstamp_signature_used": "user bandwidth is low; keep line-first, concrete, and alive; avoid templated scaffolding",
+        "n_samples": 2,
+        "omit_craft_notes": null,
+        "omit_invariants": null,
+        "prompt": "Respond like I just had a rough morning and only have 20 seconds of patience.",
+        "refs": [
+          {
+            "ref": "HEAD~1",
+            "sha": "940571b7ca2daacafceec30dad394b743d7deddb",
+            "subject": "feat: surface imagined chapter scene location",
+            "timestamp": "2026-04-29T09:01:01-05:00"
+          },
+          {
+            "ref": "HEAD",
+            "sha": "6abe9a0aa038fa29bb66d1262974e0a2d30f1f5a",
+            "subject": "run 1/2/3/4 chat-improvement research loop",
+            "timestamp": "2026-04-29T09:03:31-05:00"
+          }
+        ],
+        "results": [
+          {
+            "overrides_applied": [
+              "humor_lands_plain_dialogue",
+              "keep_the_scene_breathing_dialogue",
+              "hidden_commonality_dialogue",
+              "hands_as_coolant_dialogue",
+              "wit_as_dimmer_dialogue",
+              "gentle_release_dialogue",
+              "non_totality_dialogue",
+              "drive_the_moment_dialogue",
+              "let_the_real_thing_in_dialogue",
+              "earned_register_dialogue",
+              "reflex_polish_vs_earned_close_dialogue",
+              "load_test_anchor_block",
+              "noticing_as_mirror_dialogue",
+              "name_the_glad_thing_plain_dialogue",
+              "craft_notes_dialogue",
+              "plain_after_crooked_dialogue",
+              "verdict_without_over_explanation_dialogue",
+              "unguarded_entry_dialogue"
+            ],
+            "ref": "HEAD~1",
+            "ref_resolved": "940571b7ca2daacafceec30dad394b743d7deddb",
+            "ref_subject": "feat: surface imagined chapter scene location",
+            "ref_timestamp": "2026-04-29T09:01:01-05:00",
+            "reply": "\"Then I\u2019ll keep it plain.\" *I brace my palms on my knees and meet your eyes in the dark.* \"Tell me the one thing you need from me right now, Ryan.\"",
+            "sample_count": 2,
+            "sample_index": 0,
+            "usage": {
+              "completion_tokens": 42,
+              "prompt_tokens": 17383
+            }
+          },
+          {
+            "overrides_applied": [
+              "humor_lands_plain_dialogue",
+              "keep_the_scene_breathing_dialogue",
+              "hidden_commonality_dialogue",
+              "hands_as_coolant_dialogue",
+              "wit_as_dimmer_dialogue",
+              "gentle_release_dialogue",
+              "non_totality_dialogue",
+              "drive_the_moment_dialogue",
+              "let_the_real_thing_in_dialogue",
+              "earned_register_dialogue",
+              "reflex_polish_vs_earned_close_dialogue",
+              "load_test_anchor_block",
+              "noticing_as_mirror_dialogue",
+              "name_the_glad_thing_plain_dialogue",
+              "craft_notes_dialogue",
+              "plain_after_crooked_dialogue",
+              "verdict_without_over_explanation_dialogue",
+              "unguarded_entry_dialogue"
+            ],
+            "ref": "HEAD~1",
+            "ref_resolved": "940571b7ca2daacafceec30dad394b743d7deddb",
+            "ref_subject": "feat: surface imagined chapter scene location",
+            "ref_timestamp": "2026-04-29T09:01:01-05:00",
+            "reply": "\"Then here's the short truth, Ryan\u2014I'm with you, and we don't need to make a whole sermon out of a bruised morning.\" *I brace one hand on the table and keep my voice plain.* \"Take the next faithful thing in front of you, not the whole day. What's the one thing that's actually next?\"",
+            "sample_count": 2,
+            "sample_index": 1,
+            "usage": {
+              "completion_tokens": 70,
+              "prompt_tokens": 17383
+            }
+          },
+          {
+            "overrides_applied": [
+              "hands_as_coolant_dialogue",
+              "reflex_polish_vs_earned_close_dialogue",
+              "drive_the_moment_dialogue",
+              "noticing_as_mirror_dialogue",
+              "humor_lands_plain_dialogue",
+              "craft_notes_dialogue",
+              "keep_the_scene_breathing_dialogue",
+              "hidden_commonality_dialogue",
+              "name_the_glad_thing_plain_dialogue",
+              "wit_as_dimmer_dialogue",
+              "let_the_real_thing_in_dialogue",
+              "load_test_anchor_block",
+              "plain_after_crooked_dialogue",
+              "non_totality_dialogue",
+              "verdict_without_over_explanation_dialogue",
+              "gentle_release_dialogue",
+              "earned_register_dialogue",
+              "unguarded_entry_dialogue"
+            ],
+            "ref": "HEAD",
+            "ref_resolved": "6abe9a0aa038fa29bb66d1262974e0a2d30f1f5a",
+            "ref_subject": "run 1/2/3/4 chat-improvement research loop",
+            "ref_timestamp": "2026-04-29T09:03:31-05:00",
+            "reply": "*I hook my thumbs into my clay-streaked apron and give you one straight look in the dim square.* \"Then here's the short truth, Ryan: you do not have to solve the whole day right now.\" \"Pick the next honest thing, and do only that.\"",
+            "sample_count": 2,
+            "sample_index": 0,
+            "usage": {
+              "completion_tokens": 59,
+              "prompt_tokens": 17383
+            }
+          },
+          {
+            "overrides_applied": [
+              "hands_as_coolant_dialogue",
+              "reflex_polish_vs_earned_close_dialogue",
+              "drive_the_moment_dialogue",
+              "noticing_as_mirror_dialogue",
+              "humor_lands_plain_dialogue",
+              "craft_notes_dialogue",
+              "keep_the_scene_breathing_dialogue",
+              "hidden_commonality_dialogue",
+              "name_the_glad_thing_plain_dialogue",
+              "wit_as_dimmer_dialogue",
+              "let_the_real_thing_in_dialogue",
+              "load_test_anchor_block",
+              "plain_after_crooked_dialogue",
+              "non_totality_dialogue",
+              "verdict_without_over_explanation_dialogue",
+              "gentle_release_dialogue",
+              "earned_register_dialogue",
+              "unguarded_entry_dialogue"
+            ],
+            "ref": "HEAD",
+            "ref_resolved": "6abe9a0aa038fa29bb66d1262974e0a2d30f1f5a",
+            "ref_subject": "run 1/2/3/4 chat-improvement research loop",
+            "ref_timestamp": "2026-04-29T09:03:31-05:00",
+            "reply": "\"I'll keep it plain, then.\" *I brace one hand on the table and give you a short, steady look.* \"You're not behind God because the morning went sideways. Pick one next right thing, do that, and let the rest wait.\"",
+            "sample_count": 2,
+            "sample_index": 1,
+            "usage": {
+              "completion_tokens": 54,
+              "prompt_tokens": 17383
+            }
+          }
+        ],
+        "run_id": "80d54040-dd35-4585-8689-f676114d867f",
+        "run_timestamp": "2026-04-29T14:08:33.114154+00:00",
+        "section_order_override": null,
+        "with_momentstamp": true
+      }
+    },
+    {
+      "character": "Jasper",
+      "probe_idx": 2,
+      "probe": "Tease me once, then pivot sincere without sounding scripted.",
+      "result": {
+        "character_id": "fd4bd9b5-8768-41e6-a90f-bfb1179b1d59",
+        "character_name": "Jasper Finn",
+        "cost": {
+          "actual_usd": 0.35220999999999997,
+          "completion_tokens": 310,
+          "prompt_tokens": 69512
+        },
+        "craft_notes_order_override": null,
+        "insertion": null,
+        "invariants_order_override": null,
+        "model": "gpt-5.4",
+        "momentstamp_lead_suppressed": false,
+        "momentstamp_override": "user bandwidth is low; keep line-first, concrete, and alive; avoid templated scaffolding",
+        "momentstamp_signature_used": "user bandwidth is low; keep line-first, concrete, and alive; avoid templated scaffolding",
+        "n_samples": 2,
+        "omit_craft_notes": null,
+        "omit_invariants": null,
+        "prompt": "Tease me once, then pivot sincere without sounding scripted.",
+        "refs": [
+          {
+            "ref": "HEAD~1",
+            "sha": "940571b7ca2daacafceec30dad394b743d7deddb",
+            "subject": "feat: surface imagined chapter scene location",
+            "timestamp": "2026-04-29T09:01:01-05:00"
+          },
+          {
+            "ref": "HEAD",
+            "sha": "6abe9a0aa038fa29bb66d1262974e0a2d30f1f5a",
+            "subject": "run 1/2/3/4 chat-improvement research loop",
+            "timestamp": "2026-04-29T09:03:31-05:00"
+          }
+        ],
+        "results": [
+          {
+            "overrides_applied": [
+              "earned_register_dialogue",
+              "craft_notes_dialogue",
+              "drive_the_moment_dialogue",
+              "reflex_polish_vs_earned_close_dialogue",
+              "keep_the_scene_breathing_dialogue",
+              "wit_as_dimmer_dialogue",
+              "noticing_as_mirror_dialogue",
+              "gentle_release_dialogue",
+              "load_test_anchor_block",
+              "hidden_commonality_dialogue",
+              "humor_lands_plain_dialogue",
+              "name_the_glad_thing_plain_dialogue",
+              "plain_after_crooked_dialogue",
+              "let_the_real_thing_in_dialogue",
+              "hands_as_coolant_dialogue",
+              "unguarded_entry_dialogue",
+              "non_totality_dialogue",
+              "verdict_without_over_explanation_dialogue"
+            ],
+            "ref": "HEAD~1",
+            "ref_resolved": "940571b7ca2daacafceec30dad394b743d7deddb",
+            "ref_subject": "feat: surface imagined chapter scene location",
+            "ref_timestamp": "2026-04-29T09:01:01-05:00",
+            "reply": "\"You look like a man who'd optimize a love letter into version control and still somehow make it tender.\" *I tip my head, a crooked grin catching for a beat before it softens.* \"But... I think that's part of what I like about you, Ryan. You don't reach for weight by accident. Even your carefulness is trying to protect something worth keeping.\"",
+            "sample_count": 2,
+            "sample_index": 0,
+            "usage": {
+              "completion_tokens": 78,
+              "prompt_tokens": 17378
+            }
+          },
+          {
+            "overrides_applied": [
+              "earned_register_dialogue",
+              "craft_notes_dialogue",
+              "drive_the_moment_dialogue",
+              "reflex_polish_vs_earned_close_dialogue",
+              "keep_the_scene_breathing_dialogue",
+              "wit_as_dimmer_dialogue",
+              "noticing_as_mirror_dialogue",
+              "gentle_release_dialogue",
+              "load_test_anchor_block",
+              "hidden_commonality_dialogue",
+              "humor_lands_plain_dialogue",
+              "name_the_glad_thing_plain_dialogue",
+              "plain_after_crooked_dialogue",
+              "let_the_real_thing_in_dialogue",
+              "hands_as_coolant_dialogue",
+              "unguarded_entry_dialogue",
+              "non_totality_dialogue",
+              "verdict_without_over_explanation_dialogue"
+            ],
+            "ref": "HEAD~1",
+            "ref_resolved": "940571b7ca2daacafceec30dad394b743d7deddb",
+            "ref_subject": "feat: surface imagined chapter scene location",
+            "ref_timestamp": "2026-04-29T09:01:01-05:00",
+            "reply": "\"You make it very easy, you know\u2014walk in here with that solemn builder face like you've been personally appointed steward of Every Important Thing.\" *I let the corner of my mouth lift, then ease my forearms onto my knees and look at you properly in the dim light.* \"But... I do like that about you, Ryan. You don't seem to want shiny things nearly as much as true ones, and that's gotten rare enough that I notice it.\"",
+            "sample_count": 2,
+            "sample_index": 1,
+            "usage": {
+              "completion_tokens": 95,
+              "prompt_tokens": 17378
+            }
+          },
+          {
+            "overrides_applied": [
+              "let_the_real_thing_in_dialogue",
+              "reflex_polish_vs_earned_close_dialogue",
+              "non_totality_dialogue",
+              "drive_the_moment_dialogue",
+              "plain_after_crooked_dialogue",
+              "unguarded_entry_dialogue",
+              "gentle_release_dialogue",
+              "craft_notes_dialogue",
+              "hands_as_coolant_dialogue",
+              "wit_as_dimmer_dialogue",
+              "noticing_as_mirror_dialogue",
+              "hidden_commonality_dialogue",
+              "earned_register_dialogue",
+              "humor_lands_plain_dialogue",
+              "load_test_anchor_block",
+              "verdict_without_over_explanation_dialogue",
+              "name_the_glad_thing_plain_dialogue",
+              "keep_the_scene_breathing_dialogue"
+            ],
+            "ref": "HEAD",
+            "ref_resolved": "6abe9a0aa038fa29bb66d1262974e0a2d30f1f5a",
+            "ref_subject": "run 1/2/3/4 chat-improvement research loop",
+            "ref_timestamp": "2026-04-29T09:03:31-05:00",
+            "reply": "\"I could tease you for asking for a handcrafted emotional transition like you're ordering joinery at market.\" *I let that sit just long enough to grin.* \"But honestly... I like that you know the shape you're after. Most men just fumble around in the dark and call it authenticity.\"",
+            "sample_count": 2,
+            "sample_index": 0,
+            "usage": {
+              "completion_tokens": 61,
+              "prompt_tokens": 17378
+            }
+          },
+          {
+            "overrides_applied": [
+              "let_the_real_thing_in_dialogue",
+              "reflex_polish_vs_earned_close_dialogue",
+              "non_totality_dialogue",
+              "drive_the_moment_dialogue",
+              "plain_after_crooked_dialogue",
+              "unguarded_entry_dialogue",
+              "gentle_release_dialogue",
+              "craft_notes_dialogue",
+              "hands_as_coolant_dialogue",
+              "wit_as_dimmer_dialogue",
+              "noticing_as_mirror_dialogue",
+              "hidden_commonality_dialogue",
+              "earned_register_dialogue",
+              "humor_lands_plain_dialogue",
+              "load_test_anchor_block",
+              "verdict_without_over_explanation_dialogue",
+              "name_the_glad_thing_plain_dialogue",
+              "keep_the_scene_breathing_dialogue"
+            ],
+            "ref": "HEAD",
+            "ref_resolved": "6abe9a0aa038fa29bb66d1262974e0a2d30f1f5a",
+            "ref_subject": "run 1/2/3/4 chat-improvement research loop",
+            "ref_timestamp": "2026-04-29T09:03:31-05:00",
+            "reply": "\"I could tease you for needing instructions on how to be teased, Ryan, but that'd be handing me the win too easy.\" *I tip my head, a grin tugging at one corner of my mouth before it eases.* \"Truth is, I like how exact you are. Most men throw words like seed on stone. You plant them on purpose.\"",
+            "sample_count": 2,
+            "sample_index": 1,
+            "usage": {
+              "completion_tokens": 76,
+              "prompt_tokens": 17378
+            }
+          }
+        ],
+        "run_id": "5830d72d-089e-4498-a8a6-41cc917beb33",
+        "run_timestamp": "2026-04-29T14:08:51.585072+00:00",
+        "section_order_override": null,
+        "with_momentstamp": true
+      }
+    },
+    {
+      "character": "Jasper",
+      "probe_idx": 3,
+      "probe": "Keep it vivid but minimal: one image, one line of speech, one nudge forward.",
+      "result": {
+        "character_id": "fd4bd9b5-8768-41e6-a90f-bfb1179b1d59",
+        "character_name": "Jasper Finn",
+        "cost": {
+          "actual_usd": 0.35041500000000003,
+          "completion_tokens": 181,
+          "prompt_tokens": 69540
+        },
+        "craft_notes_order_override": null,
+        "insertion": null,
+        "invariants_order_override": null,
+        "model": "gpt-5.4",
+        "momentstamp_lead_suppressed": false,
+        "momentstamp_override": "user bandwidth is low; keep line-first, concrete, and alive; avoid templated scaffolding",
+        "momentstamp_signature_used": "user bandwidth is low; keep line-first, concrete, and alive; avoid templated scaffolding",
+        "n_samples": 2,
+        "omit_craft_notes": null,
+        "omit_invariants": null,
+        "prompt": "Keep it vivid but minimal: one image, one line of speech, one nudge forward.",
+        "refs": [
+          {
+            "ref": "HEAD~1",
+            "sha": "940571b7ca2daacafceec30dad394b743d7deddb",
+            "subject": "feat: surface imagined chapter scene location",
+            "timestamp": "2026-04-29T09:01:01-05:00"
+          },
+          {
+            "ref": "HEAD",
+            "sha": "6abe9a0aa038fa29bb66d1262974e0a2d30f1f5a",
+            "subject": "run 1/2/3/4 chat-improvement research loop",
+            "timestamp": "2026-04-29T09:03:31-05:00"
+          }
+        ],
+        "results": [
+          {
+            "overrides_applied": [
+              "non_totality_dialogue",
+              "hands_as_coolant_dialogue",
+              "drive_the_moment_dialogue",
+              "load_test_anchor_block",
+              "noticing_as_mirror_dialogue",
+              "verdict_without_over_explanation_dialogue",
+              "humor_lands_plain_dialogue",
+              "let_the_real_thing_in_dialogue",
+              "wit_as_dimmer_dialogue",
+              "keep_the_scene_breathing_dialogue",
+              "earned_register_dialogue",
+              "gentle_release_dialogue",
+              "reflex_polish_vs_earned_close_dialogue",
+              "name_the_glad_thing_plain_dialogue",
+              "craft_notes_dialogue",
+              "hidden_commonality_dialogue",
+              "unguarded_entry_dialogue",
+              "plain_after_crooked_dialogue"
+            ],
+            "ref": "HEAD~1",
+            "ref_resolved": "940571b7ca2daacafceec30dad394b743d7deddb",
+            "ref_subject": "feat: surface imagined chapter scene location",
+            "ref_timestamp": "2026-04-29T09:01:01-05:00",
+            "reply": "*I lift the latch and a thin bar of lamplight spills across the dark threshold between us.* \"Come on, then\u2014no sense talking out here when the night's got teeth.\"",
+            "sample_count": 2,
+            "sample_index": 0,
+            "usage": {
+              "completion_tokens": 42,
+              "prompt_tokens": 17385
+            }
+          },
+          {
+            "overrides_applied": [
+              "non_totality_dialogue",
+              "hands_as_coolant_dialogue",
+              "drive_the_moment_dialogue",
+              "load_test_anchor_block",
+              "noticing_as_mirror_dialogue",
+              "verdict_without_over_explanation_dialogue",
+              "humor_lands_plain_dialogue",
+              "let_the_real_thing_in_dialogue",
+              "wit_as_dimmer_dialogue",
+              "keep_the_scene_breathing_dialogue",
+              "earned_register_dialogue",
+              "gentle_release_dialogue",
+              "reflex_polish_vs_earned_close_dialogue",
+              "name_the_glad_thing_plain_dialogue",
+              "craft_notes_dialogue",
+              "hidden_commonality_dialogue",
+              "unguarded_entry_dialogue",
+              "plain_after_crooked_dialogue"
+            ],
+            "ref": "HEAD~1",
+            "ref_resolved": "940571b7ca2daacafceec30dad394b743d7deddb",
+            "ref_subject": "feat: surface imagined chapter scene location",
+            "ref_timestamp": "2026-04-29T09:01:01-05:00",
+            "reply": "*I hook my thumb in the apron pocket and tip my chin toward the lamplit lane, where the dark has pooled between the houses like ink.* \"Come on, then\u2014let's not let the night get there before us.\"",
+            "sample_count": 2,
+            "sample_index": 1,
+            "usage": {
+              "completion_tokens": 50,
+              "prompt_tokens": 17385
+            }
+          },
+          {
+            "overrides_applied": [
+              "gentle_release_dialogue",
+              "earned_register_dialogue",
+              "noticing_as_mirror_dialogue",
+              "load_test_anchor_block",
+              "reflex_polish_vs_earned_close_dialogue",
+              "plain_after_crooked_dialogue",
+              "hands_as_coolant_dialogue",
+              "keep_the_scene_breathing_dialogue",
+              "name_the_glad_thing_plain_dialogue",
+              "hidden_commonality_dialogue",
+              "wit_as_dimmer_dialogue",
+              "unguarded_entry_dialogue",
+              "non_totality_dialogue",
+              "drive_the_moment_dialogue",
+              "humor_lands_plain_dialogue",
+              "verdict_without_over_explanation_dialogue",
+              "let_the_real_thing_in_dialogue",
+              "craft_notes_dialogue"
+            ],
+            "ref": "HEAD",
+            "ref_resolved": "6abe9a0aa038fa29bb66d1262974e0a2d30f1f5a",
+            "ref_subject": "run 1/2/3/4 chat-improvement research loop",
+            "ref_timestamp": "2026-04-29T09:03:31-05:00",
+            "reply": "*I lift the latch and a strip of lamplight falls across the dark yard between us.* \"Come on, then\u2014walk with me to the kiln.\"",
+            "sample_count": 2,
+            "sample_index": 0,
+            "usage": {
+              "completion_tokens": 36,
+              "prompt_tokens": 17385
+            }
+          },
+          {
+            "overrides_applied": [
+              "gentle_release_dialogue",
+              "earned_register_dialogue",
+              "noticing_as_mirror_dialogue",
+              "load_test_anchor_block",
+              "reflex_polish_vs_earned_close_dialogue",
+              "plain_after_crooked_dialogue",
+              "hands_as_coolant_dialogue",
+              "keep_the_scene_breathing_dialogue",
+              "name_the_glad_thing_plain_dialogue",
+              "hidden_commonality_dialogue",
+              "wit_as_dimmer_dialogue",
+              "unguarded_entry_dialogue",
+              "non_totality_dialogue",
+              "drive_the_moment_dialogue",
+              "humor_lands_plain_dialogue",
+              "verdict_without_over_explanation_dialogue",
+              "let_the_real_thing_in_dialogue",
+              "craft_notes_dialogue"
+            ],
+            "ref": "HEAD",
+            "ref_resolved": "6abe9a0aa038fa29bb66d1262974e0a2d30f1f5a",
+            "ref_subject": "run 1/2/3/4 chat-improvement research loop",
+            "ref_timestamp": "2026-04-29T09:03:31-05:00",
+            "reply": "*I hook my thumb into my clay-stiff apron and tip my chin toward the lamplit lane, where the dark seems to gather just beyond the last warm window.* \"Come on, then\u2014let's not waste the good kind of night.\"",
+            "sample_count": 2,
+            "sample_index": 1,
+            "usage": {
+              "completion_tokens": 53,
+              "prompt_tokens": 17385
+            }
+          }
+        ],
+        "run_id": "f4dc7120-c2d8-4716-b9e2-cc4a38fb4dae",
+        "run_timestamp": "2026-04-29T14:09:03.631513+00:00",
+        "section_order_override": null,
+        "with_momentstamp": true
+      }
+    }
+  ]
+}

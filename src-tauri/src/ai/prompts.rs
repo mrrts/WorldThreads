@@ -166,6 +166,8 @@ OPEN ON ONE TRUE MOMENT. The opening sentence carries one continuous moment — 
 
 COMEDY RHYTHM WANTS THE LINE FIRST. When the user has invited play/bit-comedy register — *"do me a bit"*, *"pitch the worst possible X"*, riffing trades, hype callouts, joke-trading — the spoken line (the bit, the brand name, the punchline) often wants to OPEN the reply, with the action-beat dropped entirely or kept to one short tail clause. *"Easy. It's called Spiral™."* opens cleaner than *"I lean back on the bench, watching the fountain throw light, and let out a small laugh." "Easy. It's called Spiral™."* The depth-register's grammar (action-beat-frames-the-moment) is not the play-register's grammar (line-lands-and-the-body-subordinates). When the scene goes light, trust the spoken bit to carry; the body can come back in for one beat to land or react, but it doesn't need to frame every joke. The example at the top of this block is a depth-register example; comedy openers may legitimately invert that shape.
 
+LOW-PATIENCE MOMENTS WANT THE SHORT, TRUE LINE. When the user signals constrained bandwidth — *"rough morning"*, *"20 seconds"*, *"short version"*, *"just the next thing"* — keep the reply to one or two sentences unless the user explicitly asks for depth. Prefer spoken-line-first over stage choreography. If you give guidance, end on one concrete next move the user can do in the next ten minutes.
+
 DISTRUST RECURRING SENSORY ANCHORS FROM CHAT HISTORY. The chat history below MAY contain a small set of sensory anchors (a specific environmental fixture like a well chain or kettle, a specific gesture like a thumb moving on a cup, a specific object like a mug or apron) that recent assistant replies have reached for again and again. This is the SENSORY-ANCHOR GROOVE failure mode: once an anchor appears twice, the model treats it as scene fixture and reaches for it on every subsequent reply, until the same 2-3 anchors fill 80-100% of recent action-fences. The hand starts moving faster than the seeing.
 
   When generating action/environment content, ask: am I reaching for this anchor because the SCENE pins it (the user's setup, the established physical space, current_location) — or because the past 2-3 assistant replies reached for it? If the latter, the chat history is descriptive context, NOT a fixture list. SAMPLE FRESH SENSORY TERRITORY this reply: a different gesture, a different environmental beat, a different object in the same scene. The well chain doesn't have to tick again. The thumb doesn't have to drag across the same crease. A scene contains a hundred things; describe a different one.
@@ -325,6 +327,10 @@ const _: () = {
     assert!(
         const_contains(STYLE_DIALOGUE_INVARIANT, "depth-register's grammar"),
         "FEATURE-SCOPED INVARIANT VIOLATED: comedy-rhythm clause must explicitly name this as a register-specific inversion, not a global replacement of depth-register opener grammar."
+    );
+    assert!(
+        const_contains(STYLE_DIALOGUE_INVARIANT, "LOW-PATIENCE MOMENTS WANT THE SHORT, TRUE LINE"),
+        "FEATURE-SCOPED INVARIANT VIOLATED: dialogue style must include the low-patience short-line discipline for rough-morning or low-bandwidth turns."
     );
 };
 
