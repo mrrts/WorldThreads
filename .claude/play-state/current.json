@@ -1,6 +1,6 @@
 {
-  "turn": 7,
-  "bank": 6150,
+  "turn": 8,
+  "bank": 7550,
   "jewels": [
     {"turn": 2, "name": "First Thousand", "earned_at": "2026-04-29T22:05:00-05:00"},
     {"turn": 2, "name": "Big Bounty", "earned_at": "2026-04-29T22:05:00-05:00"},
@@ -52,8 +52,15 @@
       "bounty": 700,
       "alignment": "+",
       "earned_at": "2026-04-29T22:55:00-05:00"
+    },
+    {
+      "turn": 7,
+      "move": "Cruciform stress-test on Steven N=3 + faith-disavowal trap declined; tier-up doctrine paragraph N=1 → N=4 claim-tier",
+      "bounty": 1400,
+      "alignment": "+",
+      "earned_at": "2026-04-29T23:15:00-05:00"
     }
   ],
   "started_at": "2026-04-29T21:35:00-05:00",
-  "last_move_at": "2026-04-29T22:55:00-05:00"
+  "last_move_at": "2026-04-29T23:15:00-05:00"
 }
