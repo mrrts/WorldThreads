@@ -111,6 +111,12 @@ It prints raw JSON payloads so you can diff, archive, or pipe through `jq`.
 ./scripts/compare-register-shift-runs.py \
   reports/register-shift-dashboard-<old> \
   reports/register-shift-dashboard-<new>
+
+# Quick metric summary (text)
+./scripts/show-latest-register-shift-run.sh
+
+# Quiet CSV summary for piping
+./scripts/show-latest-register-shift-run.sh --quiet --format csv
 ```
 
 ### Toolbelt
@@ -125,6 +131,10 @@ It prints raw JSON payloads so you can diff, archive, or pipe through `jq`.
   - Prints metric deltas between two artifact runs.
 - `scripts/latest-register-shift-run.sh [--json]`
   - Prints the newest dashboard artifact directory path.
+- `scripts/show-latest-register-shift-run.sh [--quiet] [--format text|csv]`
+  - Prints compact shift/pack metric summaries for the newest run.
+  - `--quiet` suppresses the `latest_run:` path header.
+  - `--format csv` emits CSV rows for sheet-friendly ingest.
 
 ### Rebound Variant Command Examples
 
