@@ -7377,6 +7377,25 @@ mod hidden_motive_guard_tests {
 #[cfg(test)]
 mod fence_shape_detection_tests {
     use super::*;
+    use std::collections::HashMap;
+
+    fn minimal_message(role: &str, content: &str) -> Message {
+        Message {
+            message_id: "m1".into(),
+            thread_id: "t1".into(),
+            role: role.into(),
+            content: content.into(),
+            tokens_estimate: 0,
+            sender_character_id: None,
+            created_at: "2026-04-29T12:00:00Z".into(),
+            world_day: None,
+            world_time: None,
+            address_to: None,
+            mood_chain: None,
+            is_proactive: false,
+            formula_signature: None,
+        }
+    }
 
     #[test]
     fn detects_opening_quote_on_action_shape() {
@@ -7399,6 +7418,56 @@ mod fence_shape_detection_tests {
         assert!(
             !is_opening_quote_on_action_shape("*I look at the steam thinning.* \"Funny thing...\""),
             "proper action-first openings should not be flagged"
+        );
+    }
+
+    #[test]
+    fn build_dialogue_messages_emits_fence_shape_correction_when_history_contains_cascade_shape() {
+        let recent_messages = vec![
+            minimal_message("user", "What do you make of that?"),
+            minimal_message("assistant", "\"I tap the cup lid once with a fingernail.*"),
+        ];
+        let msgs = build_dialogue_messages(
+            "SYSTEM",
+            &recent_messages,
+            &[],
+            None,
+            &[],
+            &HashMap::new(),
+            &HashMap::new(),
+            None,
+            None,
+        );
+        assert!(
+            msgs.iter().any(|m| {
+                m.role == "system"
+                    && m.content.contains("[FENCE SHAPE CORRECTION — AUTHORITATIVE")
+                    && m.content.contains("previous-model formatting mistake")
+            }),
+            "malformed quoted-action history should trigger the late authoritative correction note"
+        );
+    }
+
+    #[test]
+    fn build_dialogue_messages_skips_fence_shape_correction_for_clean_history() {
+        let recent_messages = vec![
+            minimal_message("user", "What do you make of that?"),
+            minimal_message("assistant", "*I tap the cup lid once with a fingernail.* \"Funny thing...\""),
+        ];
+        let msgs = build_dialogue_messages(
+            "SYSTEM",
+            &recent_messages,
+            &[],
+            None,
+            &[],
+            &HashMap::new(),
+            &HashMap::new(),
+            None,
+            None,
+        );
+        assert!(
+            !msgs.iter().any(|m| m.content.contains("[FENCE SHAPE CORRECTION — AUTHORITATIVE")),
+            "clean history should not get the late fence-shape correction note"
         );
     }
 }
