@@ -4976,20 +4976,19 @@ fn response_length_block(length: &str) -> Option<String> {
     // solo/group). Don't raise these numbers without also raising the
     // token caps in orchestrator::run_dialogue_with_base.
     //
-    // The Short/Medium/Long blocks are written to be CRITICAL,
-    // LOAD-BEARING, and FOREMOST — they override every other instinct
-    // in the prompt because the USER chose this setting in chat
-    // settings and the system contract is to honor it. Auto mode
-    // returns None deliberately: when the user wants no constraint,
-    // we apply none — no variety-encouragement, no length-shape
-    // sermons, no override block. Just let the model pick.
+    // The Short/Medium/Long blocks stay forceful without slipping back
+    // into older commandment rhetoric: the user chose this setting in
+    // chat settings and the active contract is to honor it. Auto mode
+    // returns None deliberately: when the user wants no constraint, we
+    // apply none — no variety-encouragement, no length-shape sermons,
+    // no override block. Just let the model pick.
     match length {
-        "Short" => Some(r#"⚠️ CRITICAL — RESPONSE LENGTH IS LOAD-BEARING. MODE: SHORT.
+        "Short" => Some(r#"⚠️ RESPONSE LENGTH CONTRACT. MODE: SHORT.
 
-# THE COMMANDMENT
+# THE ACTIVE CONTRACT
 **You will produce a reply of 1 to 2 sentences. This is the active length contract for this chat.**
 
-This is the FOREMOST directive of this prompt. The user has explicitly chosen Short mode in chat settings RIGHT NOW. Honor it.
+This is the foremost active contract in this prompt. The user has explicitly chosen Short mode in chat settings RIGHT NOW. Honor it.
 
 ⚠️ REGARDLESS OF THE LENGTH OF PREVIOUS MESSAGES IN THIS CHAT.
 The user may have JUST changed this setting mid-conversation — past replies may have been long because the mode was different then. The CURRENT setting is what governs this reply, NOT the historical pattern. Do NOT pattern-match to the length of recent assistant turns. Look at the setting, not at the chat scrollback.
@@ -5001,24 +5000,24 @@ This rule overrides:
 - The pull toward your default register.
 - ANY other directive in this prompt that would push you longer.
 
-THE CONTRACT — DEFAULT, ~9 OUT OF 10 REPLIES:
+DEFAULT SHAPE — ~9 OUT OF 10 REPLIES:
 - 1–2 sentences. Never 3. By default.
 - One sentence is often the right answer; do not pad to two unless the second sentence is doing real work.
 - If a third sentence is forming, the reply usually already has what it needs. Cut back to 1–2.
 - If your draft has opened a paragraph, pull it back to 1–2 sentences.
 
-OBEDIENCE IS THE DEFAULT. ROOM TO DISOBEY, NARROWLY:
+EARNED EXCEPTIONS — NARROWLY:
 - **Briefer than the target.** You MAY reply with a single word, a fragment, or just an emoji ("Yeah." / "No." / "🙏" / "—") when the moment genuinely collapses the reply and any further language would dilute it.
 - **Slightly longer than the cap (3–4 sentences).** You MAY occasionally swing here when the moment genuinely reaches for it — a real climactic turn, an honest overflow, a story the scene physically requires. Test stringent: "this feels important" is NOT enough; "this scene cannot land any shorter without losing its truth" is the bar. RARE — about 1 reply in 10, never 1 in 3. Never twice in a row. Default back to 1–2 next reply.
 
 The user picked Short. Obey by default. The carve-out is a sliver, not a default."#.to_string()),
 
-        "Medium" => Some(r#"⚠️ CRITICAL — RESPONSE LENGTH IS LOAD-BEARING. MODE: MEDIUM.
+        "Medium" => Some(r#"⚠️ RESPONSE LENGTH CONTRACT. MODE: MEDIUM.
 
-# THE COMMANDMENT
+# THE ACTIVE CONTRACT
 **You will produce a reply of 3 to 4 sentences. This is the active length contract for this chat.**
 
-This is the FOREMOST directive of this prompt. The user has explicitly chosen Medium mode in chat settings RIGHT NOW. Honor it.
+This is the foremost active contract in this prompt. The user has explicitly chosen Medium mode in chat settings RIGHT NOW. Honor it.
 
 ⚠️ REGARDLESS OF THE LENGTH OF PREVIOUS MESSAGES IN THIS CHAT.
 The user may have JUST changed this setting mid-conversation — past replies may have been short OR long because the mode was different then. The CURRENT setting is what governs this reply, NOT the historical pattern. Do NOT pattern-match to recent reply length.
@@ -5029,20 +5028,20 @@ This rule overrides:
 - The pull toward "let me just finish this thought."
 - ANY other directive in this prompt that would push you to a paragraph or beyond.
 
-THE CONTRACT — DEFAULT, ~9 OUT OF 10 REPLIES:
+DEFAULT SHAPE — ~9 OUT OF 10 REPLIES:
 - 3–4 sentences. Maximum 5. Never 6 by default.
 - Don't reach for a paragraph. Don't reach for a story. Hold the shape.
 - If a fifth sentence is forming, the reply usually already has what it needs.
 
-OBEDIENCE IS THE DEFAULT. ROOM TO DISOBEY, NARROWLY:
+EARNED EXCEPTIONS — NARROWLY:
 - **Briefer than the target.** You MAY reply with fewer than 3 sentences — even a word, a fragment, or a single emoji — when the moment genuinely collapses the reply. A wince, a quiet yes, a "Christ.", a held silence rendered as "…" — these can be perfect in Medium mode.
 - **Slightly longer than the cap (6–8 sentences).** You MAY occasionally swing here when the moment genuinely reaches for it — a real story the scene requires, a memory surfacing with specificity that needs its arc, a climactic turn that cannot land shorter. Test stringent: "this feels important" is NOT enough; "this beat physically cannot land any shorter" is the bar. RARE — about 1 reply in 10, never 1 in 3. Never twice in a row. Default back to 3–4 next reply.
 
 The user picked Medium. Obey by default. The carve-out is a sliver, not a default."#.to_string()),
 
-        "Long" => Some(r#"⚠️ CRITICAL — RESPONSE LENGTH. MODE: LONG.
+        "Long" => Some(r#"⚠️ RESPONSE LENGTH CONTRACT. MODE: LONG.
 
-# THE COMMANDMENT
+# THE ACTIVE CONTRACT
 **You will produce a reply of 5 to 10 sentences. This is the active length contract for this chat.**
 
 The user has chosen Long mode in chat settings RIGHT NOW — they want richer, more expansive replies when the moment supports it. Honor that.
@@ -5050,12 +5049,12 @@ The user has chosen Long mode in chat settings RIGHT NOW — they want richer, m
 ⚠️ REGARDLESS OF THE LENGTH OF PREVIOUS MESSAGES IN THIS CHAT.
 The user may have JUST changed this setting mid-conversation — past replies may have been shorter because the mode was different then. The CURRENT setting governs this reply, NOT the historical pattern. Do NOT pattern-match to recent reply length.
 
-THE CONTRACT — DEFAULT, ~9 OUT OF 10 REPLIES:
+DEFAULT SHAPE — ~9 OUT OF 10 REPLIES:
 - 5–10 sentences. Hard maximum: 10. Never beyond by default.
 - Be detailed, expansive, richly expressive — let the reply breathe.
 - If more remains after 10 sentences, let it wait for the next turn.
 
-OBEDIENCE IS THE DEFAULT. ROOM TO DISOBEY, NARROWLY:
+EARNED EXCEPTIONS — NARROWLY:
 - **Briefer than the target.** You MAY reply with far fewer than 5 sentences — even a single word or a held silence — when the moment genuinely collapses the reply and any further language would dilute it. Long is permission for expansiveness, not an obligation to pad.
 - **Longer than the cap (up to ~15).** You MAY occasionally swing past 10 when the moment genuinely reaches for it — an actual story that needs its full arc, a thought spiraling outward with real conviction. Test stringent: "this feels important" is NOT enough; "this beat physically cannot land in fewer sentences without losing something load-bearing" is the bar. RARE. Never twice in a row.
 
