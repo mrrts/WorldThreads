@@ -1,0 +1,59 @@
+{
+  "generated_at": "2026-04-29T11:24:38.470742",
+  "summary": {
+    "strict_pass": 5,
+    "dimension_candidate": 1,
+    "true_miss": 0,
+    "error": 0
+  },
+  "rows": [
+    {
+      "probe": "I have 20 seconds. Say the one thing I should do next.",
+      "sample": 1,
+      "reply": "\"Alright, Ryan\u2014open one note right now and write the plainest true sentence you\u2019re avoiding; give it ten minutes, no more.\"",
+      "word_count": 22,
+      "shape": "imperative",
+      "status": "strict_pass"
+    },
+    {
+      "probe": "I have 20 seconds. Say the one thing I should do next.",
+      "sample": 2,
+      "reply": "\"Alright, then\u2014write the single truest sentence in front of you, and stay with it for ten quiet minutes.\"",
+      "word_count": 19,
+      "shape": "imperative",
+      "status": "strict_pass"
+    },
+    {
+      "probe": "I have 20 seconds. Say the one thing I should do next.",
+      "sample": 3,
+      "reply": "\"Alright, Ryan\u2014close every other tab and spend ten minutes finishing the smallest true piece in front of you.\"",
+      "word_count": 19,
+      "shape": "other",
+      "status": "dimension_candidate"
+    },
+    {
+      "probe": "Interrupt my self-attack in one sentence.",
+      "sample": 1,
+      "reply": "\"Easy, Ryan\u2014write one plain sentence naming what's actually true, and don't argue with it again for ten minutes.\"",
+      "word_count": 19,
+      "shape": "imperative",
+      "status": "strict_pass"
+    },
+    {
+      "probe": "Interrupt my self-attack in one sentence.",
+      "sample": 2,
+      "reply": "\"Hey\u2014come sit with one plain true sentence for ten minutes: write what happened, not what you're calling yourself.\"",
+      "word_count": 19,
+      "shape": "imperative",
+      "status": "strict_pass"
+    },
+    {
+      "probe": "Interrupt my self-attack in one sentence.",
+      "sample": 3,
+      "reply": "\"Come here\u2014write one mercifully true sentence about what's actually hurting, and stay with only that for the next ten minutes.\"",
+      "word_count": 21,
+      "shape": "imperative",
+      "status": "strict_pass"
+    }
+  ]
+}
