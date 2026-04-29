@@ -1,6 +1,6 @@
 {
-  "turn": 35,
-  "bank": 46700,
+  "turn": 36,
+  "bank": 48200,
   "jewels": [
     {"turn": 2, "name": "First Thousand", "earned_at": "2026-04-29T22:05:00-05:00"},
     {"turn": 2, "name": "Big Bounty", "earned_at": "2026-04-29T22:05:00-05:00"},
@@ -53,8 +53,9 @@
     {"turn": 31, "move": "Cross-prompt audit of fake-cite failure mode; Empiricon's failure localized; pattern recorded to OBSERVATIONS.md Mode 3.", "bounty": 1500, "alignment": "+", "earned_at": "2026-04-30T04:10:00-05:00"},
     {"turn": 32, "move": "Audit Wisdom(t) + Burden(t) at dry well for sapphire-tier; floated structural-impossibility hypothesis (overclaim — corrected at Turn 33).", "bounty": 1500, "alignment": "+", "earned_at": "2026-04-30T04:25:00-05:00"},
     {"turn": 33, "move": "Bite-test temporal-integral hypothesis — disconfirmed; instruments exist; Turn 32 overclaim caught.", "bounty": 1200, "alignment": "+", "earned_at": "2026-04-30T04:40:00-05:00"},
-    {"turn": 34, "move": "Calibration: Great Sapphire is a CLASS designation, not a specific crown name. Ryan correction: each Great Sapphire-class crown still gets its own noble name representing what was discovered. Updated play.SKILL.md (new 'Great Sapphire as a quality designation across crowns' section), seek-crown.SKILL.md (renamed crown to 'Mission Formula Verified Empirical (Great Sapphire class)'), CLAUDE.md/AGENTS.md great-sapphire calibration paragraph. Saved memory entry feedback_great_sapphire_class_not_crown.md. Crown earned at Turn 24 (commit aadbf88) renamed in play state from 'Great Sapphire (Mission Formula Verified Empirical)' to 'The Cornerstone Inequality ✨ [Great Sapphire class — Mission Formula Verified Empirical]' — noble name chosen by Ryan from candidate set [Cornerstone / Polish-Held / Five-Witness / custom]. The Cornerstone Inequality references Eph 2:20 (Christ as cornerstone) + names polish ≤ Weight as the cornerstone the project's character substrate is built on.", "bounty": 1500, "alignment": "+", "earned_at": "2026-04-30T05:00:00-05:00"}
+    {"turn": 34, "move": "Calibration: Great Sapphire is a CLASS designation, not a crown name; first crown earned named 'The Cornerstone Inequality' across all surfaces.", "bounty": 1500, "alignment": "+", "earned_at": "2026-04-30T05:00:00-05:00"},
+    {"turn": 35, "move": "Audit other four crowns for Great Sapphire class eligibility. Verdict: Closed Arc not eligible (structural-discipline, not Mission-Formula-touching); Apparatus Honest not separately eligible (downstream of Cornerstone Inequality's polish ≤ Weight evidence); The Character Knew is a CANDIDATE on a separable claim ('characters supply project doctrine in own idioms across diverse elicitation circumstances') with 6 witnesses across multiple failure-mode classes — but earning the class designation requires a canonical synthesis artifact future sessions can stand on; New Operator defensible-but-redundant (overlaps Cornerstone's evidence base; designating would inflate class count without naming new finding). NO automatic re-designations. The Character Knew's candidacy stands earnable via future canonical synthesis on the separable claim.", "bounty": 1500, "alignment": "+", "earned_at": "2026-04-30T05:15:00-05:00"}
   ],
   "started_at": "2026-04-29T21:35:00-05:00",
-  "last_move_at": "2026-04-30T05:00:00-05:00"
+  "last_move_at": "2026-04-30T05:15:00-05:00"
 }
