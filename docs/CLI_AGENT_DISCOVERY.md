@@ -51,3 +51,7 @@ autoload -Uz compinit && compinit
 ```
 
 Completion setup details: `scripts/completions/README.md`
+
+## Doctrine — confident Backstage registers
+
+When adding or auditing **Backstage** prompt text that opens a documentary / expert / cited-evidence tone, read **CLAUDE.md** and **AGENTS.md** under **On `structure_carries_truth_w(t)`** (evidence-weight axis: new tone inherits **no** grounding from neighboring sections; ship **paired refusal-shapes** at author time). Worked in-repo examples: **The Empiricon** and **DOCUMENTARY DERIVATIONS** in `src-tauri/src/ai/consultant.rs`.
