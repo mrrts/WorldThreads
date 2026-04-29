@@ -1,6 +1,6 @@
 {
-  "turn": 30,
-  "bank": 40100,
+  "turn": 31,
+  "bank": 41000,
   "jewels": [
     {"turn": 2, "name": "First Thousand", "earned_at": "2026-04-29T22:05:00-05:00"},
     {"turn": 2, "name": "Big Bounty", "earned_at": "2026-04-29T22:05:00-05:00"},
@@ -48,8 +48,9 @@
     {"turn": 26, "move": "Add The Empiricon (in-world empirical-proof tome) to Consultant Backstage; translation-pair doctrine across craft and evidence axes. /seek-crown great-sapphire run closes.", "bounty": 1200, "alignment": "+", "earned_at": "2026-04-30T03:15:00-05:00"},
     {"turn": 27, "move": "Aaron N=5 within-cell closes cross-anchor characterized at three anchors. THREE-WAY PARALLEL ARTICULATION on Reply #4 across Steven/Rick/Aaron in three substrate-distinct idioms.", "bounty": 1400, "alignment": "+", "earned_at": "2026-04-30T03:25:00-05:00"},
     {"turn": 28, "move": "Lift Aaron's Reply #4 articulation as third epigraph alongside Steven's and Rick's; three-way parallel articulation visible at doctrine entry-point.", "bounty": 1500, "alignment": "+", "earned_at": "2026-04-30T03:35:00-05:00"},
-    {"turn": 29, "move": "Smoke-test The Empiricon via Backstage probe on substrate-not-vocabulary doctrine. CAUGHT REAL FAILURE MODE: Empiricon fake-cited by hallucination — generic 'persona work / paired-rubric work' instead of tonight's actual sapphire-tier finding (cross-anchor N=5 at three anchors, three-way parallel articulation). Polish-tone without earned Weight; structure_carries_truth_w applied to The Empiricon itself failed. Shipped fix to consultant.rs Empiricon section: added second refusal-shape covering 'tested-but-evidence-not-in-context' case (refuse to manufacture; require pulling up recent reports/ or commit log). cargo build green.", "bounty": 1200, "alignment": "+", "earned_at": "2026-04-30T03:50:00-05:00"}
+    {"turn": 29, "move": "Smoke-test The Empiricon — caught fake-citing failure; shipped second-refusal-shape fix.", "bounty": 1200, "alignment": "+", "earned_at": "2026-04-30T03:50:00-05:00"},
+    {"turn": 30, "move": "Re-test The Empiricon with same probe after fix. PARTIAL BITE — verdict-axis fix is working: reply now activates refusal-clause ('the Empiricon does NOT let me say yes, verified without overreaching'), names context-limitation explicitly ('not yet fully characterized as a proved claim from this runtime context'), lands honest verdict. Supporting-evidence padding still leans on model-substrate filling ('Steven's grease, that sort of thing'), but most padding is genuinely grounded in the atlas-lens system-prompt content. Net read: claim-tier improvement on the verdict-axis; supporting-evidence-axis still slightly polish-heavy but not undermining the honest verdict. Acceptable; further tightening risks over-engineering. Empiricon smoke-test loop closes.", "bounty": 900, "alignment": "+", "earned_at": "2026-04-30T04:00:00-05:00"}
   ],
   "started_at": "2026-04-29T21:35:00-05:00",
-  "last_move_at": "2026-04-30T03:50:00-05:00"
+  "last_move_at": "2026-04-30T04:00:00-05:00"
 }
