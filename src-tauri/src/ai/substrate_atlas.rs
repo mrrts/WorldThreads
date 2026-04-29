@@ -1,11 +1,11 @@
 //! Substrate atlas — single registry of every `pub fn build_*` entry point
-//! under `src/ai/` that participates in LLM-shaped work (v1), plus a
-//! discovery audit so new public builders cannot land without updating the
-//! registry (v2).
+//! in the **atlas scan roots** (`src/ai/*.rs` + selected `src/commands/*.rs`
+//! that ship prompt-shaped or context-pack builders), plus a discovery audit
+//! so new public builders cannot land without updating the registry (v2).
 //!
 //! **v1:** `worldcli substrates` prints a markdown table (or `--json`).
 //! **v2:** `cargo test` + `worldcli substrates --audit` compare this registry
-//! to `include_str!` scans of the four AI source files; any drift fails.
+//! to `include_str!` scans of those roots; any drift fails.
 
 use serde::Serialize;
 use std::collections::BTreeSet;
@@ -14,10 +14,12 @@ use std::collections::BTreeSet;
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum BuildSubstrate {
     AnimationPrompt,
+    CanonizationInputs,
     ChapterFromImageSystemPrompt,
     CharacterDerivePrompt,
     ConsultantSystemPrompt,
     CorrectionNote,
+    CrossThreadSnippet,
     DialogueMessages,
     DialogueSystemPrompt,
     DialogueSystemPromptWithOverrides,
@@ -37,10 +39,12 @@ pub enum BuildSubstrate {
 impl BuildSubstrate {
     pub const ALL: &'static [BuildSubstrate] = &[
         BuildSubstrate::AnimationPrompt,
+        BuildSubstrate::CanonizationInputs,
         BuildSubstrate::ChapterFromImageSystemPrompt,
         BuildSubstrate::CharacterDerivePrompt,
         BuildSubstrate::ConsultantSystemPrompt,
         BuildSubstrate::CorrectionNote,
+        BuildSubstrate::CrossThreadSnippet,
         BuildSubstrate::DialogueMessages,
         BuildSubstrate::DialogueSystemPrompt,
         BuildSubstrate::DialogueSystemPromptWithOverrides,
@@ -60,10 +64,12 @@ impl BuildSubstrate {
     pub fn rust_fn(self) -> &'static str {
         match self {
             BuildSubstrate::AnimationPrompt => "build_animation_prompt",
+            BuildSubstrate::CanonizationInputs => "build_canonization_inputs",
             BuildSubstrate::ChapterFromImageSystemPrompt => "build_chapter_from_image_system_prompt",
             BuildSubstrate::CharacterDerivePrompt => "build_character_prompt",
             BuildSubstrate::ConsultantSystemPrompt => "build_consultant_system_prompt",
             BuildSubstrate::CorrectionNote => "build_correction_note",
+            BuildSubstrate::CrossThreadSnippet => "build_cross_thread_snippet",
             BuildSubstrate::DialogueMessages => "build_dialogue_messages",
             BuildSubstrate::DialogueSystemPrompt => "build_dialogue_system_prompt",
             BuildSubstrate::DialogueSystemPromptWithOverrides => "build_dialogue_system_prompt_with_overrides",
@@ -89,12 +95,16 @@ impl BuildSubstrate {
             | BuildSubstrate::UserInWorldDerivePromptWithChoices => "derivation.rs",
             BuildSubstrate::ConsultantSystemPrompt => "consultant.rs",
             BuildSubstrate::CorrectionNote => "conscience.rs",
+            BuildSubstrate::CanonizationInputs => "canon_cmds.rs",
+            BuildSubstrate::CrossThreadSnippet => "chat_cmds.rs",
             _ => "prompts.rs",
         }
     }
 
     fn family(self) -> &'static str {
         match self {
+            BuildSubstrate::CanonizationInputs => "canonization (classifier / propose pipeline)",
+            BuildSubstrate::CrossThreadSnippet => "cross-thread continuity (dialogue context pack)",
             BuildSubstrate::DialogueSystemPrompt | BuildSubstrate::DialogueSystemPromptWithOverrides => {
                 "dialogue system (solo/group dispatch)"
             }
@@ -121,6 +131,12 @@ impl BuildSubstrate {
 
     fn voice_pov(self) -> &'static str {
         match self {
+            BuildSubstrate::CanonizationInputs => {
+                "subject + context assembly (pre-classifier; not character voice)"
+            }
+            BuildSubstrate::CrossThreadSnippet => {
+                "retrieved continuity text (injected upstream of character reply)"
+            }
             BuildSubstrate::DialogueSystemPrompt
             | BuildSubstrate::DialogueSystemPromptWithOverrides
             | BuildSubstrate::ProactivePingSystemPrompt => "in-character reply",
@@ -145,6 +161,12 @@ impl BuildSubstrate {
 
     fn user_shape(self) -> &'static str {
         match self {
+            BuildSubstrate::CanonizationInputs => {
+                "source message + speaker label + context window + canon subjects"
+            }
+            BuildSubstrate::CrossThreadSnippet => {
+                "other-thread message blocks; optional UserProfile for display name"
+            }
             BuildSubstrate::DialogueSystemPrompt
             | BuildSubstrate::DialogueSystemPromptWithOverrides
             | BuildSubstrate::ProactivePingSystemPrompt
@@ -170,6 +192,12 @@ impl BuildSubstrate {
 
     fn parity(self) -> &'static str {
         match self {
+            BuildSubstrate::CanonizationInputs => {
+                "worldcli classify-canonization ↔ Tauri propose path (`canon_internals`)"
+            }
+            BuildSubstrate::CrossThreadSnippet => {
+                "same retrieval shape wherever cross-thread continuity is injected"
+            }
             BuildSubstrate::DialogueSystemPrompt | BuildSubstrate::DialogueSystemPromptWithOverrides => {
                 "solo ↔ group via overrides; ChatView ↔ GroupChatView app parity"
             }
@@ -183,6 +211,12 @@ impl BuildSubstrate {
 
     fn craft_anchor(self) -> &'static str {
         match self {
+            BuildSubstrate::CanonizationInputs => {
+                "find_message + surrounding_messages + CanonizationSubject list"
+            }
+            BuildSubstrate::CrossThreadSnippet => {
+                "list_cross_thread_recent_for_character + PICKING UP WHERE YOU LEFT OFF header"
+            }
             BuildSubstrate::DialogueSystemPrompt | BuildSubstrate::DialogueSystemPromptWithOverrides => {
                 "FUNDAMENTAL_SYSTEM_PREAMBLE + FORMAT_SECTION + fence stack"
             }
@@ -208,6 +242,12 @@ impl BuildSubstrate {
 
     fn enforcement(self) -> &'static str {
         match self {
+            BuildSubstrate::CanonizationInputs => {
+                "worldcli classify-canonization + manual path tests when classifier changes"
+            }
+            BuildSubstrate::CrossThreadSnippet => {
+                "manual / retrieval bite-tests when cross-thread window changes"
+            }
             BuildSubstrate::DialogueSystemPrompt | BuildSubstrate::DialogueSystemPromptWithOverrides => {
                 "const_contains invariants + craft registry tests + hidden_motive guards"
             }
@@ -223,6 +263,8 @@ const PROMPTS_RS: &str = include_str!("prompts.rs");
 const DERIVATION_RS: &str = include_str!("derivation.rs");
 const CONSULTANT_RS: &str = include_str!("consultant.rs");
 const CONSCIENCE_RS: &str = include_str!("conscience.rs");
+const CANON_CMDS_RS: &str = include_str!("../commands/canon_cmds.rs");
+const CHAT_CMDS_RS: &str = include_str!("../commands/chat_cmds.rs");
 
 /// Extract `build_*` function names after `pub fn ` … `(` (single-line or
 /// split signature — handles `pub fn foo(\n` by scanning until `(`).
@@ -249,12 +291,14 @@ pub fn discover_build_fns_in_source(src: &str) -> BTreeSet<String> {
     out
 }
 
-pub fn discovered_all_ai_builders() -> BTreeSet<String> {
+pub fn discovered_atlas_scope_builders() -> BTreeSet<String> {
     let mut u = BTreeSet::new();
     u.extend(discover_build_fns_in_source(PROMPTS_RS));
     u.extend(discover_build_fns_in_source(DERIVATION_RS));
     u.extend(discover_build_fns_in_source(CONSULTANT_RS));
     u.extend(discover_build_fns_in_source(CONSCIENCE_RS));
+    u.extend(discover_build_fns_in_source(CANON_CMDS_RS));
+    u.extend(discover_build_fns_in_source(CHAT_CMDS_RS));
     u
 }
 
@@ -266,9 +310,9 @@ pub fn registered_rust_fns() -> BTreeSet<String> {
 }
 
 /// **v2 audit:** registry must exactly match discovered `pub fn build_*` in
-/// the four scanned AI files.
+/// the atlas scan roots (`include_str!` sources above).
 pub fn audit_registry_matches_discovered() -> Result<(), String> {
-    let disc = discovered_all_ai_builders();
+    let disc = discovered_atlas_scope_builders();
     let reg = registered_rust_fns();
     let missing: Vec<_> = disc.difference(&reg).cloned().collect();
     let orphan: Vec<_> = reg.difference(&disc).cloned().collect();
@@ -282,12 +326,12 @@ pub fn audit_registry_matches_discovered() -> Result<(), String> {
 
 pub fn format_atlas_markdown() -> String {
     let mut s = String::new();
-    s.push_str("<!-- Do not edit this file by hand. Regenerate after changing any `pub fn build_*` in `src-tauri/src/ai/` or the registry in `substrate_atlas.rs`. -->\n\n");
+    s.push_str("<!-- Do not edit this file by hand. Regenerate after changing any `pub fn build_*` in the atlas scan roots (`src-tauri/src/ai/`, `canon_cmds.rs`, `chat_cmds.rs` for registered builders) or the registry in `substrate_atlas.rs`. -->\n\n");
     s.push_str("# Substrate atlas (generated contract)\n\n");
-    s.push_str("**Regenerate:** from repo root, with a local app DB available to worldcli (default path):\n\n");
+    s.push_str("**Regenerate:** from repo root (no DB required for this command):\n\n");
     s.push_str("```bash\ncd src-tauri && cargo run --bin worldcli -- substrates --emit-markdown ../docs/SUBSTRATE_ATLAS.md\n```\n\n");
     s.push_str("Print to stdout instead: `cargo run --bin worldcli -- substrates` · JSON: add `--json` · CI drift check: add `--audit`.\n\n");
-    s.push_str("Auto-generated field guide for `pub fn build_*` under `src-tauri/src/ai/`. ");
+    s.push_str("Auto-generated field guide for `pub fn build_*` in the atlas scan roots (see module doc on `substrate_atlas`). ");
     s.push_str("Registry lives in `substrate_atlas::BuildSubstrate`; drift fails `substrate_atlas::audit_registry_matches_discovered`.\n\n");
     s.push_str("| Substrate | `rust fn` | file | family | voice / POV | user / payload | parity | craft anchor | enforcement |\n");
     s.push_str("|---|---|---|---|---|---|---|---|---|\n");
@@ -345,7 +389,7 @@ mod tests {
 
     #[test]
     fn registry_count_matches_all_variant_const() {
-        assert_eq!(BuildSubstrate::ALL.len(), 19);
+        assert_eq!(BuildSubstrate::ALL.len(), 21);
     }
 
     #[test]

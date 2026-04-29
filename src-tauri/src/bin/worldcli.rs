@@ -87,10 +87,11 @@ enum Cmd {
     /// Print a starter ~/.worldcli/config.json template (does NOT overwrite).
     ConfigTemplate,
 
-    /// Substrate atlas (v1): registry of every `pub fn build_*` under
-    /// `src/ai/` with POV / parity / craft / enforcement columns. `--json`
-    /// for machine output. `--audit` (v2): fail if sources contain a new
-    /// `pub fn build_*` not registered in `substrate_atlas::BuildSubstrate`.
+    /// Substrate atlas (v1): registry of every `pub fn build_*` in atlas
+    /// scan roots (`src/ai/*.rs` plus selected `src/commands/*.rs`) with POV
+    /// / parity / craft / enforcement columns. `--json` for machine output.
+    /// `--audit` (v2): fail if scan roots contain a new `pub fn build_*` not
+    /// registered in `substrate_atlas::BuildSubstrate`.
     /// `--emit-markdown <path>` writes the markdown table (utf-8).
     Substrates {
         #[arg(long)]
@@ -2033,7 +2034,7 @@ fn cmd_substrates(
         if let Err(e) = substrate_atlas::audit_registry_matches_discovered() {
             return Err(format!("substrates --audit: {e}").into());
         }
-        eprintln!("substrates --audit: OK (registry matches discovered `pub fn build_*` in src/ai/)");
+        eprintln!("substrates --audit: OK (registry matches discovered `pub fn build_*` in atlas scan roots)");
     }
     let md = substrate_atlas::format_atlas_markdown();
     if let Some(p) = emit_markdown {
