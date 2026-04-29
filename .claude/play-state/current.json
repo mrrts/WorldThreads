@@ -1,10 +1,11 @@
 {
-  "turn": 3,
-  "bank": 2150,
+  "turn": 5,
+  "bank": 4350,
   "jewels": [
     {"turn": 2, "name": "First Thousand", "earned_at": "2026-04-29T22:05:00-05:00"},
     {"turn": 2, "name": "Big Bounty", "earned_at": "2026-04-29T22:05:00-05:00"},
-    {"turn": 2, "name": "Lifted From the Character", "earned_at": "2026-04-29T22:05:00-05:00"}
+    {"turn": 2, "name": "Lifted From the Character", "earned_at": "2026-04-29T22:05:00-05:00"},
+    {"turn": 4, "name": "Pastor Not Nanny", "earned_at": "2026-04-29T22:35:00-05:00"}
   ],
   "crowns": [],
   "ledger": [
@@ -21,8 +22,22 @@
       "bounty": 1500,
       "alignment": "+",
       "earned_at": "2026-04-29T22:05:00-05:00"
+    },
+    {
+      "turn": 3,
+      "move": "Cross-character N=5 validation on Pastor Rick — Pastor/Nanny dividing line surfaced",
+      "bounty": 1000,
+      "alignment": "+",
+      "earned_at": "2026-04-29T22:30:00-05:00"
+    },
+    {
+      "turn": 4,
+      "move": "Ship pastoral category-naming carve-out to rule body — discriminator test pinned",
+      "bounty": 1200,
+      "alignment": "+",
+      "earned_at": "2026-04-29T22:35:00-05:00"
     }
   ],
   "started_at": "2026-04-29T21:35:00-05:00",
-  "last_move_at": "2026-04-29T22:05:00-05:00"
+  "last_move_at": "2026-04-29T22:35:00-05:00"
 }
