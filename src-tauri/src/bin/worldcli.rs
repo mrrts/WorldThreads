@@ -122,6 +122,12 @@ enum Cmd {
         /// Min token length to keep (default 3).
         #[arg(long, default_value_t = 3)]
         min_len: usize,
+        /// Include per-signature classification rows in output.
+        #[arg(long, default_value_t = false)]
+        show_signatures: bool,
+        /// Max per-signature rows returned when --show-signatures is set.
+        #[arg(long, default_value_t = 20)]
+        show_limit: usize,
         /// Minimum acceptable signature-level neutral rate (0.0-1.0).
         #[arg(long)]
         gate_min_neutral_rate: Option<f64>,
@@ -1773,13 +1779,15 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         Cmd::MomentstampVocab { world, character, role, min_len, top } => {
             cmd_momentstamp_vocab(&r, world.as_deref(), character.as_deref(), &role, min_len, top)
         }
-        Cmd::MomentstampCorridor { world, character, role, min_len, gate_min_neutral_rate, gate_min_ache_rate, gate_max_warm_rate, gate_min_humor_rate } => {
+        Cmd::MomentstampCorridor { world, character, role, min_len, show_signatures, show_limit, gate_min_neutral_rate, gate_min_ache_rate, gate_max_warm_rate, gate_min_humor_rate } => {
             cmd_momentstamp_corridor(
                 &r,
                 world.as_deref(),
                 character.as_deref(),
                 &role,
                 min_len,
+                show_signatures,
+                show_limit,
                 gate_min_neutral_rate,
                 gate_min_ache_rate,
                 gate_max_warm_rate,
@@ -3448,6 +3456,8 @@ fn cmd_momentstamp_corridor(
     character: Option<&str>,
     role: &str,
     min_len: usize,
+    show_signatures: bool,
+    show_limit: usize,
     gate_min_neutral_rate: Option<f64>,
     gate_min_ache_rate: Option<f64>,
     gate_max_warm_rate: Option<f64>,
@@ -3525,7 +3535,7 @@ fn cmd_momentstamp_corridor(
 
     let conn = r.db.conn.lock().unwrap();
     let mut stmt = conn.prepare(
-        "SELECT m.formula_signature, c.character_id, c.display_name, t.world_id
+        "SELECT m.message_id, m.formula_signature, c.character_id, c.display_name, t.world_id
          FROM messages m
          JOIN threads t ON t.thread_id = m.thread_id
          JOIN characters c ON c.character_id = t.character_id
@@ -3539,6 +3549,7 @@ fn cmd_momentstamp_corridor(
             row.get::<_, String>(1)?,
             row.get::<_, String>(2)?,
             row.get::<_, String>(3)?,
+            row.get::<_, String>(4)?,
         ))
     })?;
 
@@ -3552,9 +3563,10 @@ fn cmd_momentstamp_corridor(
     let mut sig_neutral: usize = 0;
     let mut sig_ache: usize = 0;
     let mut sig_humor: usize = 0;
+    let mut signature_rows: Vec<JsonValue> = Vec::new();
 
     for row in rows {
-        let (sig, character_id, _display_name, world_id) = row?;
+        let (message_id, sig, character_id, display_name, world_id) = row?;
         if let Some(w) = world {
             if world_id != w {
                 continue;
@@ -3604,6 +3616,18 @@ fn cmd_momentstamp_corridor(
         if this_humor {
             sig_humor += 1;
         }
+        if show_signatures && signature_rows.len() < show_limit {
+            signature_rows.push(json!({
+                "message_id": message_id,
+                "character_id": character_id,
+                "character_name": display_name,
+                "signature": sig,
+                "warm": this_warm,
+                "neutral": this_neutral,
+                "ache": this_ache,
+                "humor": this_humor,
+            }));
+        }
     }
 
     let warm_rate = if total_signatures > 0 { sig_warm as f64 / total_signatures as f64 } else { 0.0 };
@@ -3651,6 +3675,8 @@ fn cmd_momentstamp_corridor(
             "character": character,
             "role": role,
             "min_len": min_len,
+            "show_signatures": show_signatures,
+            "show_limit": show_limit,
             "gates": {
                 "min_neutral_rate": gate_min_neutral_rate,
                 "min_ache_rate": gate_min_ache_rate,
@@ -3690,6 +3716,7 @@ fn cmd_momentstamp_corridor(
             "passed": gate_failures.is_empty(),
             "failures": gate_failures,
         },
+        "signatures": signature_rows,
     });
     let gate_passed = payload["gate"]["passed"].as_bool().unwrap_or(true);
 
@@ -3709,6 +3736,23 @@ fn cmd_momentstamp_corridor(
             rates["ache_rate"].as_f64().unwrap_or(0.0) * 100.0,
             rates["humor_rate"].as_f64().unwrap_or(0.0) * 100.0,
         );
+        if show_signatures {
+            println!("sample signatures ({} max):", show_limit);
+            if let Some(items) = payload["signatures"].as_array() {
+                for item in items {
+                    let sig = item["signature"].as_str().unwrap_or("");
+                    println!(
+                        "- {} warm={} neutral={} ache={} humor={} :: {}",
+                        item["message_id"].as_str().unwrap_or(""),
+                        item["warm"].as_bool().unwrap_or(false),
+                        item["neutral"].as_bool().unwrap_or(false),
+                        item["ache"].as_bool().unwrap_or(false),
+                        item["humor"].as_bool().unwrap_or(false),
+                        sig
+                    );
+                }
+            }
+        }
         if gate_requested {
             println!("gates: {}", if gate_passed { "PASS" } else { "FAIL" });
             if !gate_passed {
