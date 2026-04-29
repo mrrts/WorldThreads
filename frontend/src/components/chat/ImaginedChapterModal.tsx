@@ -53,6 +53,7 @@ export function ImaginedChapterModal({
 
   // Compose state for a NEW chapter
   const [seedHint, setSeedHint] = useState("");
+  const [sceneLocation, setSceneLocation] = useState("");
   const [continueFromPrevious, setContinueFromPrevious] = useState(false);
   const [imageTier, setImageTier] = useState<"low" | "medium" | "high">("medium");
   // Profundity dial — Glimpse / Opening / Deep / Sacred. Default
@@ -128,6 +129,7 @@ export function ImaginedChapterModal({
   useEffect(() => {
     if (!open) {
       setSeedHint("");
+      setSceneLocation("");
       setContinueFromPrevious(false);
       setActiveChapterId(null);
       setActiveChapterData(null);
@@ -333,6 +335,7 @@ export function ImaginedChapterModal({
       const res = await api.generateImaginedChapter(apiKey, {
         threadId,
         seedHint: seedHint.trim() || undefined,
+        sceneLocation: sceneLocation.trim() || undefined,
         continueFromPrevious,
         imageTier,
         depth,
@@ -406,6 +409,7 @@ export function ImaginedChapterModal({
     setStreamImage("");
     setStreamContent("");
     setStreamChapterId(null);
+    setSceneLocation("");
     setError(null);
   }
 
@@ -573,6 +577,8 @@ export function ImaginedChapterModal({
                 <ComposeView
                   seedHint={seedHint}
                   setSeedHint={setSeedHint}
+                  sceneLocation={sceneLocation}
+                  setSceneLocation={setSceneLocation}
                   continueFromPrevious={continueFromPrevious}
                   setContinueFromPrevious={setContinueFromPrevious}
                   hasPrior={hasPrior}
@@ -591,6 +597,7 @@ export function ImaginedChapterModal({
                   <ChapterView
                     title={streamTitle}
                     imageUrl={streamImage}
+                    sceneLocation={sceneLocation.trim() || undefined}
                     content={streamContent}
                     phase={phase}
                     fontPx={chatFontPx(chapterFontSize)}
@@ -613,6 +620,7 @@ export function ImaginedChapterModal({
                   <ChapterView
                     title={activeChapterData.title}
                     imageUrl={activeImageUrl}
+                    sceneLocation={activeChapterData.scene_location || undefined}
                     content={activeChapterData.content}
                     phase="done"
                     fontPx={chatFontPx(chapterFontSize)}
@@ -711,6 +719,7 @@ export function ImaginedChapterModal({
 
 function ComposeView({
   seedHint, setSeedHint,
+  sceneLocation, setSceneLocation,
   continueFromPrevious, setContinueFromPrevious, hasPrior,
   imageTier, setImageTier,
   depth, setDepth,
@@ -720,6 +729,8 @@ function ComposeView({
 }: {
   seedHint: string;
   setSeedHint: (s: string) => void;
+  sceneLocation: string;
+  setSceneLocation: (s: string) => void;
   continueFromPrevious: boolean;
   setContinueFromPrevious: (v: boolean) => void;
   hasPrior: boolean;
@@ -802,6 +813,20 @@ function ComposeView({
           className="w-full rounded-lg border border-amber-200 bg-white/60 px-3 py-2 text-sm text-amber-950 placeholder:text-amber-900/40 focus:outline-none focus:ring-1 focus:ring-amber-400 resize-y"
         />
       </div>
+      <div>
+        <label className="text-xs font-medium text-amber-900/70 block mb-1.5">
+          Set it somewhere specific? <span className="text-amber-900/40">(optional)</span>
+        </label>
+        <input
+          value={sceneLocation}
+          onChange={(e) => setSceneLocation(e.target.value)}
+          placeholder='e.g. "Garden Patio" or "the bakery before dawn"'
+          className="w-full rounded-lg border border-amber-200 bg-white/60 px-3 py-2 text-sm text-amber-950 placeholder:text-amber-900/40 focus:outline-none focus:ring-1 focus:ring-amber-400"
+        />
+        <p className="mt-1.5 text-[11px] leading-relaxed text-amber-900/50">
+          Leave blank if you want the place to be part of the surprise.
+        </p>
+      </div>
       {hasPrior && (
         <label className="flex items-start gap-2 cursor-pointer text-sm text-amber-900/80">
           <input
@@ -879,6 +904,7 @@ function ComposeView({
 function ChapterView({
   title: _title,
   imageUrl,
+  sceneLocation,
   content,
   phase,
   fontPx,
@@ -887,6 +913,7 @@ function ChapterView({
 }: {
   title: string;
   imageUrl: string;
+  sceneLocation?: string;
   content: string;
   phase: "idle" | "inventing" | "rendering" | "writing" | "done";
   fontPx: number;
@@ -932,7 +959,14 @@ function ChapterView({
       {/* Font-size adjuster — shown above the prose so the reader can dial
           the chapter to a comfortable size. Right-aligned, unobtrusive. */}
       {content.length > 0 && (
-        <div className="flex justify-end mb-3">
+        <div className="flex items-center justify-between gap-3 mb-3">
+          <div className="min-h-[1rem]">
+            {sceneLocation && (
+              <div className="text-[10px] uppercase tracking-[0.18em] text-amber-900/55 font-medium">
+                Set in {sceneLocation}
+              </div>
+            )}
+          </div>
           <FontSizeAdjuster value={fontSizeLevel} onChange={onChangeFontSize} />
         </div>
       )}

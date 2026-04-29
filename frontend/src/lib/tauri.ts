@@ -986,6 +986,7 @@ export interface ImaginedChapter {
   world_day: number | null;
   title: string;
   seed_hint: string;
+  scene_location: string | null;
   scene_description: string;
   image_id: string | null;
   content: string;
@@ -1002,6 +1003,7 @@ export interface ImaginedChapter {
 export interface GenerateImaginedChapterRequest {
   threadId: string;
   seedHint?: string;
+  sceneLocation?: string;
   continueFromPrevious: boolean;
   imageTier?: "low" | "medium" | "high";
   /** Profundity dial. "Glimpse" = quiet daily moment, no excavation.

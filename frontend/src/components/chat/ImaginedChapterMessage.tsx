@@ -11,6 +11,7 @@ interface Props {
 interface ParsedContent {
   chapter_id: string;
   title: string;
+  scene_location?: string;
   image_id?: string;
   first_line?: string;
 }
@@ -105,8 +106,13 @@ export function ImaginedChapterMessage({ message, onOpen }: Props) {
             </div>
           </div>
         </div>
+        {parsed.scene_location && (
+          <div className="px-5 pt-4 pb-1 text-[10px] uppercase tracking-[0.18em] text-amber-800/60 dark:text-amber-400/60 font-medium">
+            Set in {parsed.scene_location}
+          </div>
+        )}
         {parsed.first_line && (
-          <div className="px-5 py-4 flex gap-3 items-start">
+          <div className={`px-5 py-4 flex gap-3 items-start ${parsed.scene_location ? "pt-2" : ""}`}>
             <ScrollText size={14} className="text-amber-700/70 dark:text-amber-400/70 mt-0.5 shrink-0" />
             <p className="text-sm italic text-amber-950/85 dark:text-amber-100/85 leading-relaxed line-clamp-3">
               {parsed.first_line}…
