@@ -182,6 +182,26 @@ FENCE-INTEGRITY SELF-CHECK (run mentally BEFORE emitting final text):
 
 This shape is load-bearing for the UI's rendering of script-like alternation. Output that violates this shape will render as a wall of mixed text — the user's experience of speaking with a character collapses to reading a transcript-without-formatting."#;
 
+// Evidence (COMEDY RHYTHM WANTS THE LINE FIRST clause): tested-biting:characterized —
+// see reports/2026-04-29-1015-style-dialogue-invariant-comedy-rhythm-bite-test.md.
+// N=5 paired edit-rebuild-toggle bite-test on Darren mid-comedy (probe:
+// "do me a bit, pitch the worst possible app for chronic over-thinkers").
+// ON arm (HEAD with addendum) produced 5/5 SPEECH-FIRST openers; OFF arm
+// (HEAD~1 without addendum, prompts.rs reverted via git checkout, rebuilt)
+// produced 0/5 — all 5 OFF replies opened with the exact recurring anchor
+// cluster from Ryan's lived-corpus correction (fountain hiss, thumb in
+// pocket, kids/cyclists across the square, bicycle bell on bridge stones).
+// 100% vs 0% direction-consistency at N=5 → characterized-tier. Asterisk
+// run-count also dropped meaningfully (mean 2.6 vs 3.6, -28%). Bite is
+// clean and decisive on the binary opener-axis. The prior earned_register
+// sub-clause bite-test (14ae23b) was VacuousTest because the rule lived
+// in the wrong layer; moving the modulation to STYLE_DIALOGUE_INVARIANT —
+// next to the opener-pattern doctrine — produced the bite. Cost ~$0.94
+// (10 paid worldcli ask calls). Composes with abc4c2b's earned_register
+// sub-clause: that sub-clause governs DENSITY across the reply (still
+// EnsembleVacuous on its own); this one governs the OPENER pattern
+// specifically (characterized-tier).
+//
 // Evidence (A SCENE IS A BRIDGE, NOT A BENCH clause): tested-biting:sketch —
 // see reports/2026-04-26-2050-batch-h3-bridge-wins-scene-driving-clause-design.md.
 // Third use of batch-hypotheses skill. 5 candidate phrasings of the
