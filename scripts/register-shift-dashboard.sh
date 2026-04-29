@@ -146,6 +146,11 @@ limit: $LIMIT
 confirm_cost: $CONFIRM_COST
 pack_min_speech_first: $PACK_MIN_SPEECH_FIRST
 pack_min_shift_run: $PACK_MIN_SHIFT_RUN
+run_rebound_pack: $RUN_REBOUND_PACK
+shift_min_rate: ${SHIFT_MIN_RATE:-none}
+shift_min_rebound_rate: ${SHIFT_MIN_REBOUND_RATE:-none}
+pack_standard_variant: standard
+pack_rebound_variant: rebound (only when run_rebound_pack=true)
 
 files:
 - darren-register-shift.json
