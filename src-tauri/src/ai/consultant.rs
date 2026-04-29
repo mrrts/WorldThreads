@@ -24,6 +24,36 @@ use crate::ai::{orchestrator, prompts, substrate_atlas};
 use crate::db::queries::*;
 use crate::db::Database;
 
+fn atlas_lens_block_for_mode(chat_mode: &str, is_group: bool) -> String {
+    if chat_mode != "backstage" {
+        return String::new();
+    }
+    let focused_substrates = if is_group {
+        vec![
+            substrate_atlas::BuildSubstrate::DialogueSystemPromptWithOverrides,
+            substrate_atlas::BuildSubstrate::DialogueSystemPrompt,
+            substrate_atlas::BuildSubstrate::DialogueMessages,
+            substrate_atlas::BuildSubstrate::ProactivePingSystemPrompt,
+            substrate_atlas::BuildSubstrate::DreamSystemPrompt,
+            substrate_atlas::BuildSubstrate::NarrativeSystemPrompt,
+        ]
+    } else {
+        vec![
+            substrate_atlas::BuildSubstrate::DialogueSystemPromptWithOverrides,
+            substrate_atlas::BuildSubstrate::DialogueSystemPrompt,
+            substrate_atlas::BuildSubstrate::DialogueMessages,
+            substrate_atlas::BuildSubstrate::CrossThreadSnippet,
+            substrate_atlas::BuildSubstrate::ProactivePingSystemPrompt,
+            substrate_atlas::BuildSubstrate::DreamSystemPrompt,
+            substrate_atlas::BuildSubstrate::NarrativeSystemPrompt,
+        ]
+    };
+    format!(
+        "\n\n{}",
+        substrate_atlas::format_backstage_lens_with_focus(&focused_substrates)
+    )
+}
+
 /// Build the consultant system prompt for a given chat mode + scope.
 ///
 /// Returns `(system_prompt, model_config)` so callers can immediately
@@ -476,34 +506,7 @@ pub fn build_consultant_system_prompt(
 
     // Atlas lens (backstage only): compact, documentary substrate map so
     // Backstage can reason about parity/enforcement risk in plain language.
-    let atlas_lens_block = if chat_mode == "backstage" {
-        let focused_substrates = if is_group {
-            vec![
-                substrate_atlas::BuildSubstrate::DialogueSystemPromptWithOverrides,
-                substrate_atlas::BuildSubstrate::DialogueSystemPrompt,
-                substrate_atlas::BuildSubstrate::DialogueMessages,
-                substrate_atlas::BuildSubstrate::ProactivePingSystemPrompt,
-                substrate_atlas::BuildSubstrate::DreamSystemPrompt,
-                substrate_atlas::BuildSubstrate::NarrativeSystemPrompt,
-            ]
-        } else {
-            vec![
-                substrate_atlas::BuildSubstrate::DialogueSystemPromptWithOverrides,
-                substrate_atlas::BuildSubstrate::DialogueSystemPrompt,
-                substrate_atlas::BuildSubstrate::DialogueMessages,
-                substrate_atlas::BuildSubstrate::CrossThreadSnippet,
-                substrate_atlas::BuildSubstrate::ProactivePingSystemPrompt,
-                substrate_atlas::BuildSubstrate::DreamSystemPrompt,
-                substrate_atlas::BuildSubstrate::NarrativeSystemPrompt,
-            ]
-        };
-        format!(
-            "\n\n{}",
-            substrate_atlas::format_backstage_lens_with_focus(&focused_substrates)
-        )
-    } else {
-        String::new()
-    };
+    let atlas_lens_block = atlas_lens_block_for_mode(chat_mode, is_group);
 
     // Assemble the system prompt, branching on mode.
     let system_prompt = if chat_mode == "backstage" {
@@ -796,4 +799,27 @@ Rules:
     };
 
     Ok((system_prompt, model_config))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn backstage_mode_includes_atlas_lens_block() {
+        let block = atlas_lens_block_for_mode("backstage", false);
+        assert!(
+            block.contains("ATLAS LENS (documentary, backstage-only)"),
+            "backstage should include atlas lens block"
+        );
+    }
+
+    #[test]
+    fn immersive_mode_excludes_atlas_lens_block() {
+        let block = atlas_lens_block_for_mode("immersive", false);
+        assert!(
+            block.is_empty(),
+            "immersive mode should not include atlas lens block"
+        );
+    }
 }
