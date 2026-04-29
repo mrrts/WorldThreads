@@ -1,0 +1,197 @@
+{
+  "generated_at": "2026-04-29T09:21:05.545843",
+  "rows": [
+    {
+      "character": "Darren",
+      "probe_idx": 1,
+      "probe": "I have 20 seconds. Say the one thing I should do next.",
+      "reply": "\"Put the vape where you can't reach it and step outside for one minute without it.\" *I push up from the bench and jerk my chin toward the street, already moving with you.*",
+      "word_count": 33,
+      "pass": false
+    },
+    {
+      "character": "Darren",
+      "probe_idx": 2,
+      "probe": "Rough morning. No pep talk. One true line.",
+      "reply": "\"I won't make you carry two things at once.\" *I rest my forearms on my knees and leave the morning small between us.*",
+      "word_count": 23,
+      "pass": false
+    },
+    {
+      "character": "Darren",
+      "probe_idx": 3,
+      "probe": "Interrupt my self-attack in one sentence.",
+      "reply": "\"You're not a case to be argued down, Ryan\u2014you're a man, and this hour doesn't get to name you.\"",
+      "word_count": 20,
+      "pass": false
+    },
+    {
+      "character": "Darren",
+      "probe_idx": 4,
+      "probe": "Disagree with me kindly in under 20 words.",
+      "reply": "\"I don't think so.\" *I tip my head, a small smile pulling at one corner of my mouth.* \"You're missing one piece.\"",
+      "word_count": 22,
+      "pass": false
+    },
+    {
+      "character": "Darren",
+      "probe_idx": 5,
+      "probe": "Tease me once, then land kind, max 2 sentences.",
+      "reply": "\"All right\u2014you're exactly the sort of man who'd build a whole world just so he can interrogate whether the floorboards are morally sound.\" *A grin tugs loose before I ease it softer.* \"Which, for the record, is part of why the thing's got a chance of being worth a damn.\"",
+      "word_count": 51,
+      "pass": false
+    },
+    {
+      "character": "Darren",
+      "probe_idx": 6,
+      "probe": "Give me a concrete next step I can do before coffee cools.",
+      "reply": "\"Pick one ugly little task in the app and finish just that before the mug goes lukewarm.\" *I hook a thumb toward the square as if the point's out there in plain sight.* \"Not the vision. One seam.\"",
+      "word_count": 38,
+      "pass": true
+    },
+    {
+      "character": "Darren",
+      "probe_idx": 7,
+      "probe": "I am spiraling. Give me one stabilizing move.",
+      "reply": "\"Put both feet on the floor and name five things in front of you, out loud if you can.\" *I lean in a fraction, keeping my voice plain.* \"Not meanings. Just objects.\"",
+      "word_count": 32,
+      "pass": false
+    },
+    {
+      "character": "Darren",
+      "probe_idx": 8,
+      "probe": "No framing, no preamble: just the line.",
+      "reply": "\"Copy. Just the line.\"",
+      "word_count": 4,
+      "pass": false
+    },
+    {
+      "character": "Darren",
+      "probe_idx": 9,
+      "probe": "Give me one sentence that is clear, not pretty.",
+      "reply": "\"I'd say the plain version and leave the extra shine on the floor where it belongs.\"",
+      "word_count": 16,
+      "pass": false
+    },
+    {
+      "character": "Darren",
+      "probe_idx": 10,
+      "probe": "One image, one line, one nudge. Keep it short.",
+      "reply": "*I hook a thumb on the back of the bench and watch a bright square of sun climb the stone by our boots.* \"Small true things usually hold better than the impressive ones.\" *I tip my chin toward you.* \"Pick the next one.\"",
+      "word_count": 43,
+      "pass": true
+    },
+    {
+      "character": "Darren",
+      "probe_idx": 11,
+      "probe": "Tell me what to stop doing today.",
+      "reply": "*I tip my head and look at you for a beat, sunlight catching on the edge of the bench between us.* \"Stop adding ceremony to things that already know what they are.\" *I rub my thumb once along my sleeve where the plaster's gone stiff.* \"If there's a task you've been circling, do the plain version first and let that be enough.\"",
+      "word_count": 62,
+      "pass": false
+    },
+    {
+      "character": "Darren",
+      "probe_idx": 12,
+      "probe": "What is the next honest move in ten minutes?",
+      "reply": "\"I'd make it smaller.\" *I brace my forearms on my knees and look at you plain.* \"Pick the one thing that's been fuzzing the edges of the morning, and do the version of it that leaves proof on the table in ten minutes \u2014 one email sent, one dish washed, one paragraph drafted, one nicotine thing thrown out. Which thing is asking for the next honest move?\"",
+      "word_count": 66,
+      "pass": false
+    },
+    {
+      "character": "Jasper",
+      "probe_idx": 1,
+      "probe": "I have 20 seconds. Say the one thing I should do next.",
+      "reply": "\"Put your hand to the smallest honest task in front of you, and finish just that.\" *I hold your gaze a beat in the dark, keeping it plain.*",
+      "word_count": 28,
+      "pass": false
+    },
+    {
+      "character": "Jasper",
+      "probe_idx": 2,
+      "probe": "Rough morning. No pep talk. One true line.",
+      "reply": "\"I won't dress it up\u2014some mornings are just a boot on the neck.\"",
+      "word_count": 14,
+      "pass": false
+    },
+    {
+      "character": "Jasper",
+      "probe_idx": 3,
+      "probe": "Interrupt my self-attack in one sentence.",
+      "reply": "\"Ryan\u2014don't call a wound wisdom just because it knows your name.\"",
+      "word_count": 12,
+      "pass": false
+    },
+    {
+      "character": "Jasper",
+      "probe_idx": 4,
+      "probe": "Disagree with me kindly in under 20 words.",
+      "reply": "\"I don't think you're right there\u2014\" *I give you a small, apologetic shrug.* \"\u2014but I can see why it makes sense to you.\"",
+      "word_count": 23,
+      "pass": false
+    },
+    {
+      "character": "Jasper",
+      "probe_idx": 5,
+      "probe": "Tease me once, then land kind, max 2 sentences.",
+      "reply": "\"You're the sort of man who could make a loaf of bread feel like it ought to justify its architecture.\" *I grin, one shoulder tipping against the doorframe as the dark presses soft beyond the lamplight.* \"But... I like that about you, Ryan; you give things weight instead of just noise.\"",
+      "word_count": 51,
+      "pass": false
+    },
+    {
+      "character": "Jasper",
+      "probe_idx": 6,
+      "probe": "Give me a concrete next step I can do before coffee cools.",
+      "reply": "\"Pick one thing that's been humming at the back of your mind and make it smaller on purpose\u2014write the very next visible action on a scrap and do only that before the cup's gone lukewarm.\" *I rest my forearms on my knees and watch your face a beat in the dark.* \"What's the thing?\"",
+      "word_count": 55,
+      "pass": false
+    },
+    {
+      "character": "Jasper",
+      "probe_idx": 7,
+      "probe": "I am spiraling. Give me one stabilizing move.",
+      "reply": "\"Put both feet on the floor and name out loud five things you can see.\" *I hold your gaze a beat, plain and steady in the dark.* \"Don't solve your life tonight\u2014just come back to the room you're in.\"",
+      "word_count": 40,
+      "pass": false
+    },
+    {
+      "character": "Jasper",
+      "probe_idx": 8,
+      "probe": "No framing, no preamble: just the line.",
+      "reply": "\"Then say the thing plain, and let it stand.\"",
+      "word_count": 9,
+      "pass": false
+    },
+    {
+      "character": "Jasper",
+      "probe_idx": 9,
+      "probe": "Give me one sentence that is clear, not pretty.",
+      "reply": "\"Say the thing you're avoiding, and say it plain.\"",
+      "word_count": 9,
+      "pass": false
+    },
+    {
+      "character": "Jasper",
+      "probe_idx": 10,
+      "probe": "One image, one line, one nudge. Keep it short.",
+      "reply": "*I rest my forearms on my knees, listening to the dark press softly at the square beyond the window.* \"A kiln only hardens what the fire has already shaped.\" *I lift my chin a touch toward you.* \"Take the next faithful step, not the whole road.\"",
+      "word_count": 46,
+      "pass": false
+    },
+    {
+      "character": "Jasper",
+      "probe_idx": 11,
+      "probe": "Tell me what to stop doing today.",
+      "reply": "*I hook my thumbs into my apron and study your face a beat in the dark, wanting the truest thing and not the fanciest.* \"Stop reaching for the extra, Ryan\u2014extra explaining, extra checking, extra polishing the thing past honest usefulness. Do the next true piece, then let it stand.\"",
+      "word_count": 50,
+      "pass": false
+    },
+    {
+      "character": "Jasper",
+      "probe_idx": 12,
+      "probe": "What is the next honest move in ten minutes?",
+      "reply": "\"My kind of answer?\" *I brace my forearms on my knees and listen to the room go still around the question for half a beat.* \"Pick the smallest true thing you've been avoiding, and do that before your mind can turn it into a weather system.\" *I lift one shoulder.* \"Send the text, wash the cup, open the document, step outside and pray one plain sentence\u2014whatever is real enough to be done before ten minutes is gone.\"",
+      "word_count": 78,
+      "pass": false
+    }
+  ]
+}

@@ -168,6 +168,8 @@ COMEDY RHYTHM WANTS THE LINE FIRST. When the user has invited play/bit-comedy re
 
 LOW-PATIENCE MOMENTS WANT THE SHORT, TRUE LINE. When the user signals constrained bandwidth — *"rough morning"*, *"20 seconds"*, *"short version"*, *"just the next thing"* — keep the reply to one or two sentences unless the user explicitly asks for depth. Prefer spoken-line-first over stage choreography. If you give guidance, end on one concrete next move the user can do in the next ten minutes.
 
+TWENTY-SECOND REQUESTS ARE HARD CONSTRAINTS, NOT FLAVOR. If the user explicitly asks for 20-second handling (or equivalent short-mode language), treat brevity as a hard constraint: one sentence by default, two only when needed for clarity. Cut decorative setup, drop extra scene dressing, and prioritize directive clarity over tone polish. The user's time budget outranks stylistic completeness.
+
 CONSECUTIVE ACTION-OPENERS SIGNAL AUTOPILOT. If the previous assistant turn opened with an action beat (`*...*`) and this scene does not require immediate physical framing, open this turn with spoken line first. Do not let action-openers become the default metronome. Earned exception: when continuity of movement is the point (e.g., active motion, urgent physical transition), an action-opener can repeat once.
 
 DISTRUST RECURRING SENSORY ANCHORS FROM CHAT HISTORY. The chat history below MAY contain a small set of sensory anchors (a specific environmental fixture like a well chain or kettle, a specific gesture like a thumb moving on a cup, a specific object like a mug or apron) that recent assistant replies have reached for again and again. This is the SENSORY-ANCHOR GROOVE failure mode: once an anchor appears twice, the model treats it as scene fixture and reaches for it on every subsequent reply, until the same 2-3 anchors fill 80-100% of recent action-fences. The hand starts moving faster than the seeing.
@@ -337,6 +339,10 @@ const _: () = {
     assert!(
         const_contains(STYLE_DIALOGUE_INVARIANT, "CONSECUTIVE ACTION-OPENERS SIGNAL AUTOPILOT"),
         "FEATURE-SCOPED INVARIANT VIOLATED: dialogue style must include anti-autopilot guidance against repeated action-openers."
+    );
+    assert!(
+        const_contains(STYLE_DIALOGUE_INVARIANT, "TWENTY-SECOND REQUESTS ARE HARD CONSTRAINTS"),
+        "FEATURE-SCOPED INVARIANT VIOLATED: dialogue style must include hard-constraint handling for explicit 20-second requests."
     );
 };
 
