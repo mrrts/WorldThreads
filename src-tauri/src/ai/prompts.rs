@@ -4910,8 +4910,8 @@ fn end_of_turn_micro_seal(response_length: Option<&str>) -> String {
         Some("Short") => "Honor SHORT mode: **1–2 sentences total** (action + speech). Match the final length seal above if present.",
         Some("Medium") => "Honor MEDIUM mode: **3–4 sentences total** (action + speech). Match the final length seal above if present.",
         Some("Long") => "Honor LONG mode: **about 5–10 sentences** typical span (action + speech). Match the final length seal above if present.",
-        Some("Auto") | None => "**Default lean:** aim about **2–3 short sentences** total (action + speech). Cut ornament before substance.",
-        _ => "**Default lean:** aim about **2–3 short sentences** total unless the final length seal above names a different mode.",
+        Some("Auto") | None => "**Default lean:** often **2–3 short sentences** total (action + speech) is enough. Cut ornament before substance.",
+        _ => "**Default lean:** often **2–3 short sentences** total is enough unless the final length seal above names a different mode.",
     };
     format!(
         "END-OF-TURN MICRO-SEAL:\n- Start with concrete action in present tense.\n- {cap}\n- If one elevated sentence appears, immediately follow with plain concrete consequence.\n- Do not chain elevated sentences."
