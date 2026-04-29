@@ -6,6 +6,24 @@ Newest entries at the top. Each entry has a timestamp and a brief title. The obs
 
 ---
 
+## 2026-04-29 06:30 — the plain-prose test discriminates terrain-driven from template-driven
+
+Refinement of the 2026-04-28 23:30 observation below. After running Ryan's plain-prose test on three different parent-children-discriminator-shaped doctrine paragraphs in close succession, a pattern surfaced that says something about the test itself, not just about the paragraphs.
+
+The test isn't a binary pass/fail. It discriminates between two distinct authoring conditions, and which condition produced the paragraph determines whether the test passes:
+
+The middleware split (commit `d27c9b0`, Codex) — *steer_next vs constrain_meaning* — softened under plain prose to "different downstream consumers of the same general operation." Real distinction, but the parent-children framing was doing some cognitive work the underlying terrain didn't independently support. My own structure-must-carry parent (`328d353`) showed the same shape — Aaron's verbatim line and the eight-children list survived plain prose, but the receiver-compensation discriminator + boring-and-rude diagnostic sub-paragraphs felt like template scaffolding I had reached for to make the paragraph feel complete in the genre's shape.
+
+The vertical-prompt-coherence paragraph (`09783b4f`, Codex's most recent) was different. The plain-prose articulation said essentially the same thing as the doctrine paragraph, with one minor compression. The substance held. The "Test:" closing was mild scaffold but didn't dominate; the load-bearing claim — "when softening upstream doctrine, sweep all restatements at lower slots" — was already there in plain prose without needing the framing.
+
+The discriminating thing across the three: vertical-coherence emerged from a *specific observed failure across recent concrete work* (the length-seal softening arc — you can point at the actual commits where the failure surfaced and be corrected). The middleware split and the receiver-compensation discriminator emerged from *finding an interesting cut to make in already-named territory*. The first kind of paragraph survives plain prose; the second contracts.
+
+**[Mode 2 — Record + propose action.]** This is a refinement to the test discipline filed in the OBSERVATIONS entry below. Before running the plain-prose test on a candidate parent-children-discriminator paragraph, also ask: *what specific recent work surfaced this distinction?* If the answer points at concrete commits where the failure-mode was observed, the paragraph is more likely terrain-driven and worth the framing. If the answer is "this is a clean cut in already-articulated territory," the paragraph is more likely template-driven and the plain-prose test will surface that contraction directly. Both checks compose: terrain-grounding is the precondition; plain-prose is the falsification test.
+
+The methodological refinement applies scarcely — only when shipping new parent-children-discriminator paragraphs in close succession to other parent-children-discriminator paragraphs (i.e., when the genre is already active and the question of whether the next one is generated-or-discovered becomes live).
+
+---
+
 ## 2026-04-28 23:30 — naming when the template might be writing itself
 
 Mid-session, after Codex shipped a third same-evening parent-children-discriminator-outcome doctrine paragraph (control-plane truth, then session-gate surfaces, then the middleware split), Ryan stepped out of the analytical register and wrote, in plain prose:
