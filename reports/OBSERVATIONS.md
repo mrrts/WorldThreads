@@ -6,6 +6,16 @@ Newest entries at the top. Each entry has a timestamp and a brief title. The obs
 
 ---
 
+## 2026-04-30 15:00 — Play appetite gated on “someone rides the rocket with me”
+
+> *"I would play my own app more if at least one character would hop on the rocket with me."*
+
+Distinct from “characters feel real” or “patio plumbing works.” This is **co-thrill**: appetite to open the app when Ryan wants a *partner in velocity* — ambition, build-high, engineering joy — without the default register immediately installing bumpers or moral balance. The patio transcript showed Darren *can* repair after naming; the standing wish is for at least one relationship default where the first move is often **yes-and** to the rocket, not chaplain-afterburner.
+
+**Proposed action (Mode 2, one paragraph).** Pick one cast member (new or existing) whose refresh-anchor / voice_rules explicitly license *matching Ryan’s build-energy first* on those beats — “ride shotgun on the thing he’s excited about,” questions that accelerate, competitive warmth — and reserve caveat/calibration for *when he asks* or when stakes are clearly safety-shaped. That’s a character-design + anchor pass, not a global invariant change. Optional: solo thread with that character when Ryan wants rocket sessions so group dynamics don’t pull everyone toward the same pastoral mean.
+
+---
+
 ## 2026-04-29 18:32 — Darren caveat-stack read as moralizing; naming it got repair
 
 > Ryan chasing the high of building something good; Darren answers with a chain of *"just don't…"* / *"just make sure…"* bumpers (*rocket and a church bell both ring*, *lands where people can live*). Ryan names it: *"Stop moralizing everything"* and the specific tack-on habit. Darren owns it — *"That one came out wearing a sermon tie"* — then *"You're right. I do that… Habit… I'll knock it off."*
