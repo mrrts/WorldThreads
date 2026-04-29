@@ -7850,4 +7850,29 @@ mod fence_shape_detection_tests {
             "animation prompt should emit the authoritative location correction when an explicit override is present"
         );
     }
+
+    #[test]
+    fn proactive_ping_messages_emit_location_correction_with_explicit_override() {
+        let recent_messages = vec![minimal_message("user", "You still awake?")];
+        let msgs = build_proactive_ping_messages(
+            "SYSTEM",
+            &recent_messages,
+            &[],
+            &[],
+            Some("An hour later."),
+            "the thought keeps catching on the same unfinished thread",
+            &HashMap::new(),
+            &HashMap::new(),
+            Some("Casey"),
+            Some("Garden Patio"),
+        );
+        assert!(
+            msgs.iter().any(|m| {
+                m.role == "system"
+                    && m.content.contains("[SCENE LOCATION RIGHT NOW — AUTHORITATIVE: **Garden Patio**")
+                    && m.content.contains("The scene is happening HERE")
+            }),
+            "proactive ping messages should keep the authoritative location correction when an explicit override is present"
+        );
+    }
 }
