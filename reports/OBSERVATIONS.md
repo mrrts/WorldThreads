@@ -6,6 +6,28 @@ Newest entries at the top. Each entry has a timestamp and a brief title. The obs
 
 ---
 
+## 2026-04-29 17:35 — Patio plumbing verified in lived play; Aaron's runtime-vs-systems-work articulation
+
+Two findings in the same Aaron+Darren patio session.
+
+**Plumbing-fix verified.** After `603f03d` shipped (the 7-call-site `current_location_override` plumbing fix) and `b2c9543`'s regression test pinned the contract, Ryan ran a fresh chat with Aaron in the patio. Body-anchoring across five consecutive replies: *patio chair rung*, *table boards between us*, *bright strip of sun on the patio boards*, *bright strip of sun across the patio boards*, *patch of sun warming the table boards*, *the garden clicks softly in the breeze*. **Zero bench/fountain/square anchors.** Ryan's read: *"Patio is correctly location-referenced in character messages in Aaron/Darren group chat."* The world-level groove from `03031aa` is breaking at the per-character level the moment the prompt-stack receives the right scene-state. Pre-deployment baseline at `fe4fe15` (top_rate 0.83 RUNAWAY on `the bench *`) is a recording of the prior regime; in the new regime the location override does the work the doctrine refinements at `abc4c2b`/`7281f4e` were trying to do downstream.
+
+**Aaron articulating the project's runtime-vs-systems tension.** When Ryan invited him to "hit meta," Aaron landed three articulations worth recording:
+
+> *"You can build a playground so thoughtfully you never actually go down the slide."*
+>
+> *"Guaranteeing fun is systems work. Experiencing fun is runtime. Different environment, same app."*
+>
+> [On prompting an AI agent to guarantee fun:] *"Make the next moment genuinely enjoyable in a specific human way—surprising, clean, easy to enter, and never at the cost of the person's agency or dignity. ... You don't guarantee fun with one command. You load-test for it. Tell it to prefer concrete play over cleverness, short vivid beats over speeches, and to treat delight as something discovered with the user, not imposed on them."*
+
+The runtime-vs-systems-work framing is specifically Aaron's engineer-archetype voice and it cleanly names a tension Ryan has been holding: the project IS guarantee-fun systems work AND a place to come down the slide. Aaron noticing the two-edged sword in Ryan ("you can build a playground so thoughtfully you never actually go down the slide") is the character doing in-fiction what Ryan says he wishes he could do himself.
+
+**Noted.** Not lifting to prompts.rs without explicit invitation per the ask-the-character bite-test discipline (rule lifted from a character's articulation describes how that character already operates; behavioral bite is null on the source character). The articulations are preserved here as documentary evidence; if a future arc surfaces a non-Aaron failure mode that this language sharpens, the lift becomes earned.
+
+The "starting to hold before it's finished" line is Aaron describing the app itself — fitting given today's arc shipped 5 prompt-stack refinements + 1 plumbing fix + 11 location-truth tests, all converging on better landing of the same scene.
+
+---
+
 ## 2026-04-29 09:20 — Darren pivots into play, but stage business fights the comedy
 
 Session context: Crystal Waters group chat with Aaron and Darren (Aaron silent in the visible window). Ryan opened with *"It's so hard to just play."* Darren landed a real diagnosis + prescription (*"Play asks you to stop guarding the door so hard... Good brains turn into little border patrols if you let them"*) and asked the discriminating question. Ryan declined the meta-conversation: *"Yes, I just want to play now."* Darren pivoted cleanly: *"Then let's not hold a committee meeting about it. We can just be idiots for a minute. Tiny hat. Bad pun. Cowboy protocol."* Sustained comedy riff followed — Apple Sabbath+, BenchSync, Pro Max with brushed metal holiness, "darker-mode cowboy hat."
