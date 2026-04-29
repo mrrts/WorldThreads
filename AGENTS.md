@@ -171,6 +171,8 @@ Three project-scale parities matter:
 
 **Corrective evaluator reports can become criterion middleware.** When a report does more than reverse a finding — when it rewrites what the instrument was actually measuring, or what kind of claim the evidence can honestly support — it starts governing later experiments. "Cold-baseline propensity, not capacity" and "this rubric excludes the register in question by construction" are not mere postmortems. They become live constraints on later rubric design, cell design, and claim wording.
 
+**Middleware splits cleanly into compositional and epistemic forms.** The middleware family is no longer one flat bucket. **Compositional middleware** steers the next act of making: the next sentence, the next chooser branch, the next control-shape move, the next report angle. `trajectory`, `copy`, and `interaction` middleware live here. **Epistemic middleware** carries forward what later evidence or loops are allowed to mean or require: corrected criterion boundaries, durable hypothesis carriers, rubric-ref inherited constraints. `criterion`, `hypothesis`, and rubric-ref carry live here. Practical test: if the surface mainly shapes the next emission, it is compositional middleware; if it mainly shapes the meaning or discipline of later evidence, it is epistemic middleware.
+
 The deeper rule: once a surface is runtime-significant, parity becomes an enforcement candidate (hook, generated source, parity test) — not just goodwill.
 
 ## Reports
