@@ -122,6 +122,15 @@ enum Cmd {
         /// Min token length to keep (default 3).
         #[arg(long, default_value_t = 3)]
         min_len: usize,
+        /// Minimum acceptable signature-level neutral rate (0.0-1.0).
+        #[arg(long)]
+        gate_min_neutral_rate: Option<f64>,
+        /// Minimum acceptable signature-level ache rate (0.0-1.0).
+        #[arg(long)]
+        gate_min_ache_rate: Option<f64>,
+        /// Maximum acceptable signature-level warm rate (0.0-1.0).
+        #[arg(long)]
+        gate_max_warm_rate: Option<f64>,
     },
 
     /// Substrate atlas (v1): registry of every `pub fn build_*` in atlas
@@ -1761,8 +1770,17 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         Cmd::MomentstampVocab { world, character, role, min_len, top } => {
             cmd_momentstamp_vocab(&r, world.as_deref(), character.as_deref(), &role, min_len, top)
         }
-        Cmd::MomentstampCorridor { world, character, role, min_len } => {
-            cmd_momentstamp_corridor(&r, world.as_deref(), character.as_deref(), &role, min_len)
+        Cmd::MomentstampCorridor { world, character, role, min_len, gate_min_neutral_rate, gate_min_ache_rate, gate_max_warm_rate } => {
+            cmd_momentstamp_corridor(
+                &r,
+                world.as_deref(),
+                character.as_deref(),
+                &role,
+                min_len,
+                gate_min_neutral_rate,
+                gate_min_ache_rate,
+                gate_max_warm_rate,
+            )
         }
         Cmd::ListWorlds => cmd_list_worlds(&r),
         Cmd::ListCharacters { world } => cmd_list_characters(&r, world.as_deref()),
@@ -2936,7 +2954,6 @@ fn cmd_anchor_groove(
             "diagnosis": opening_diagnosis,
         });
     }
-
     if r.json {
         emit(true, payload);
     } else {
@@ -3427,7 +3444,12 @@ fn cmd_momentstamp_corridor(
     character: Option<&str>,
     role: &str,
     min_len: usize,
+    gate_min_neutral_rate: Option<f64>,
+    gate_min_ache_rate: Option<f64>,
+    gate_max_warm_rate: Option<f64>,
 ) -> Result<(), Box<dyn std::error::Error>> {
+    let gate_requested =
+        gate_min_neutral_rate.is_some() || gate_min_ache_rate.is_some() || gate_max_warm_rate.is_some();
     if let Some(w) = world {
         r.check_world(w)?;
     }
@@ -3552,12 +3574,47 @@ fn cmd_momentstamp_corridor(
         }
     }
 
+    let warm_rate = if total_signatures > 0 { sig_warm as f64 / total_signatures as f64 } else { 0.0 };
+    let neutral_rate = if total_signatures > 0 { sig_neutral as f64 / total_signatures as f64 } else { 0.0 };
+    let ache_rate = if total_signatures > 0 { sig_ache as f64 / total_signatures as f64 } else { 0.0 };
+
+    let mut gate_failures: Vec<String> = Vec::new();
+    if let Some(min_neutral) = gate_min_neutral_rate {
+        if neutral_rate < min_neutral {
+            gate_failures.push(format!(
+                "neutral_rate {:.4} < required {:.4}",
+                neutral_rate, min_neutral
+            ));
+        }
+    }
+    if let Some(min_ache) = gate_min_ache_rate {
+        if ache_rate < min_ache {
+            gate_failures.push(format!(
+                "ache_rate {:.4} < required {:.4}",
+                ache_rate, min_ache
+            ));
+        }
+    }
+    if let Some(max_warm) = gate_max_warm_rate {
+        if warm_rate > max_warm {
+            gate_failures.push(format!(
+                "warm_rate {:.4} > allowed {:.4}",
+                warm_rate, max_warm
+            ));
+        }
+    }
+
     let payload = json!({
         "scope": {
             "world": world,
             "character": character,
             "role": role,
             "min_len": min_len,
+            "gates": {
+                "min_neutral_rate": gate_min_neutral_rate,
+                "min_ache_rate": gate_min_ache_rate,
+                "max_warm_rate": gate_max_warm_rate,
+            }
         },
         "totals": {
             "signatures": total_signatures,
@@ -3573,17 +3630,22 @@ fn cmd_momentstamp_corridor(
                 "warm": sig_warm,
                 "neutral": sig_neutral,
                 "ache": sig_ache,
-                "warm_rate": if total_signatures > 0 { sig_warm as f64 / total_signatures as f64 } else { 0.0 },
-                "neutral_rate": if total_signatures > 0 { sig_neutral as f64 / total_signatures as f64 } else { 0.0 },
-                "ache_rate": if total_signatures > 0 { sig_ache as f64 / total_signatures as f64 } else { 0.0 },
+                "warm_rate": warm_rate,
+                "neutral_rate": neutral_rate,
+                "ache_rate": ache_rate,
             }
         },
         "lexicons": {
             "warm": warm_lexicon.into_iter().collect::<Vec<_>>(),
             "neutral": neutral_lexicon.into_iter().collect::<Vec<_>>(),
             "ache": ache_lexicon.into_iter().collect::<Vec<_>>(),
-        }
+        },
+        "gate": {
+            "passed": gate_failures.is_empty(),
+            "failures": gate_failures,
+        },
     });
+    let gate_passed = payload["gate"]["passed"].as_bool().unwrap_or(true);
 
     if r.json {
         emit(true, payload);
@@ -3600,6 +3662,23 @@ fn cmd_momentstamp_corridor(
             rates["neutral_rate"].as_f64().unwrap_or(0.0) * 100.0,
             rates["ache_rate"].as_f64().unwrap_or(0.0) * 100.0,
         );
+        if gate_requested {
+            println!("gates: {}", if gate_passed { "PASS" } else { "FAIL" });
+            if !gate_passed {
+                if let Some(items) = payload["gate"]["failures"].as_array() {
+                    for item in items {
+                        if let Some(s) = item.as_str() {
+                            println!("- {}", s);
+                        }
+                    }
+                }
+            }
+        }
+    }
+    if gate_requested && !gate_passed {
+        return Err(Box::<dyn std::error::Error>::from(
+            "momentstamp corridor gate failed".to_string(),
+        ));
     }
     Ok(())
 }
