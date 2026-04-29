@@ -3210,6 +3210,10 @@ struct SignatureBucket {
     signatures_with_curiosity: usize,
 }
 
+fn signature_token_matches_curiosity(token: &str, lexicon: &BTreeSet<&'static str>) -> bool {
+    lexicon.iter().any(|needle| token.contains(needle))
+}
+
 fn cmd_momentstamp_vocab(
     r: &Resolved,
     world: Option<&str>,
@@ -3310,7 +3314,7 @@ fn cmd_momentstamp_vocab(
             total_tokens += 1;
             bucket.tokens += 1;
             *token_counts.entry(token.to_string()).or_insert(0) += 1;
-            if curiosity_lexicon.iter().any(|needle| token.contains(needle)) {
+            if signature_token_matches_curiosity(token, &curiosity_lexicon) {
                 sig_has_curiosity = true;
                 bucket.curiosity_hits += 1;
             }
@@ -9463,5 +9467,30 @@ mod tests {
             group_session_target("abc-123"),
             "group:abc-123".to_string()
         );
+    }
+
+    #[test]
+    fn signature_token_matches_curiosity_handles_compound_tokens() {
+        let lexicon: BTreeSet<&'static str> = [
+            "ache",
+            "attention",
+            "bearing_cross",
+            "cross",
+            "curiosity",
+            "embracing_honesty",
+            "engagement",
+            "grace",
+            "honesty",
+            "listening",
+            "longing",
+            "seeking_grace",
+            "texture",
+        ]
+        .into_iter()
+        .collect();
+
+        assert!(signature_token_matches_curiosity("bearing_cross_", &lexicon));
+        assert!(signature_token_matches_curiosity("embracing_honesty_", &lexicon));
+        assert!(!signature_token_matches_curiosity("ordinary_small", &lexicon));
     }
 }
