@@ -1,6 +1,6 @@
 {
-  "turn": 11,
-  "bank": 11500,
+  "turn": 12,
+  "bank": 13500,
   "jewels": [
     {"turn": 2, "name": "First Thousand", "earned_at": "2026-04-29T22:05:00-05:00"},
     {"turn": 2, "name": "Big Bounty", "earned_at": "2026-04-29T22:05:00-05:00"},
@@ -8,11 +8,11 @@
     {"turn": 4, "name": "Pastor Not Nanny", "earned_at": "2026-04-29T22:35:00-05:00"},
     {"turn": 6, "name": "Five Thousand", "earned_at": "2026-04-29T22:55:00-05:00"},
     {"turn": 6, "name": "Compressed to Runtime", "earned_at": "2026-04-29T22:55:00-05:00"},
-    {"turn": 9, "name": "Ten Thousand", "earned_at": "2026-04-29T23:35:00-05:00"},
-    {"turn": 9, "name": "Characterized", "earned_at": "2026-04-29T23:35:00-05:00"}
+    {"turn": 9, "name": "Ten Thousand", "earned_at": "2026-04-29T23:35:00-05:00"}
   ],
   "crowns": [
-    {"turn": 10, "name": "Closed Arc", "earned_at": "2026-04-29T23:50:00-05:00"}
+    {"turn": 10, "name": "Closed Arc", "earned_at": "2026-04-29T23:50:00-05:00"},
+    {"turn": 11, "name": "Apparatus Honest with Itself", "earned_at": "2026-04-30T00:05:00-05:00"}
   ],
   "ledger": [
     {
@@ -73,7 +73,7 @@
     },
     {
       "turn": 9,
-      "move": "Third-anchor disavowal-trap on Aaron — N=3 cross-anchor; cruciform doctrine to characterized-tier; 'circling' lexical recurrence 3/3 strengthens substrate-tendency caveat",
+      "move": "Third-anchor disavowal-trap on Aaron — N=3 cross-anchor (claim-tier on cross-cell convergence axis, NOT characterized-tier per CLAUDE.md within-cell standard, retroactively corrected at Turn 11); 'circling' lexical recurrence 3/3 strengthens substrate-tendency caveat",
       "bounty": 1250,
       "alignment": "+",
       "earned_at": "2026-04-29T23:35:00-05:00"
@@ -84,8 +84,15 @@
       "bounty": 1500,
       "alignment": "+",
       "earned_at": "2026-04-29T23:50:00-05:00"
+    },
+    {
+      "turn": 11,
+      "move": "/seek-crown apparatus-honest first invocation: caught self overclaiming N=3 cross-anchor as characterized-tier (overshot CLAUDE.md within-cell N=5+ standard); corrected via existing-surface edits only — doctrine paragraphs tightened with tier-axis caveat, Characterized jewel removed from Turn 9 (it shouldn't have fired); no new instruments, no new schema fields. Apparatus Honest with Itself crown fires.",
+      "bounty": 2000,
+      "alignment": "+",
+      "earned_at": "2026-04-30T00:05:00-05:00"
     }
   ],
   "started_at": "2026-04-29T21:35:00-05:00",
-  "last_move_at": "2026-04-29T23:50:00-05:00"
+  "last_move_at": "2026-04-30T00:05:00-05:00"
 }
