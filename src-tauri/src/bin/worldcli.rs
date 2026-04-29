@@ -7111,16 +7111,8 @@ async fn cmd_consult(
             "invalid --mode '{}'; must be 'immersive' or 'backstage'", mode
         )));
     }
-    if character_id.is_some() && group_chat_id.is_some() {
-        return Err(Box::<dyn std::error::Error>::from(
-            "consult: pass either <character_id> or --group-chat <id>, not both".to_string(),
-        ));
-    }
-    if character_id.is_none() && group_chat_id.is_none() {
-        return Err(Box::<dyn std::error::Error>::from(
-            "consult: missing target (pass <character_id> or --group-chat <id>)".to_string(),
-        ));
-    }
+    let target = resolve_consult_target(character_id, group_chat_id)
+        .map_err(Box::<dyn std::error::Error>::from)?;
     if let Some(cid) = character_id {
         let _ = r.check_character(cid)?;
     }
@@ -7133,8 +7125,8 @@ async fn cmd_consult(
     let (system_prompt, mut model_config) = app_lib::ai::consultant::build_consultant_system_prompt(
         &r.db,
         mode,
-        character_id,
-        group_chat_id,
+        target.character_id,
+        target.group_chat_id,
     ).map_err(Box::<dyn std::error::Error>::from)?;
     if let Some(m) = model_override { model_config.dialogue_model = m.to_string(); }
 
@@ -7142,7 +7134,7 @@ async fn cmd_consult(
     // history if --session was supplied.
     let (prior_messages, session_id, consult_target_id, consult_target_name, world_id) = {
         let conn = r.db.conn.lock().unwrap();
-        if let Some(cid) = character_id {
+        if let Some(cid) = target.character_id {
             let character = get_character(&conn, cid)?;
             let (session_id, prior_messages): (Option<String>, Vec<(String, String)>) = match session {
                 None => (None, Vec::new()),
@@ -7181,7 +7173,7 @@ async fn cmd_consult(
                 character.world_id.clone(),
             )
         } else {
-            let gcid = group_chat_id.expect("validated above");
+            let gcid = target.group_chat_id.expect("validated above");
             let gc = get_group_chat(&conn, gcid)?;
             let (session_id, prior_messages): (Option<String>, Vec<(String, String)>) = match session {
                 None => (None, Vec::new()),
@@ -7190,7 +7182,7 @@ async fn cmd_consult(
                         "SELECT session_id FROM dev_chat_sessions WHERE name = ?1",
                         params![name], |r| r.get(0),
                     ).ok();
-                    let synthetic_target = format!("group:{gcid}");
+                    let synthetic_target = group_session_target(gcid);
                     let id = match existing {
                         Some(id) => id,
                         None => {
@@ -7345,6 +7337,32 @@ async fn cmd_consult(
             actual_usd, actual_in, actual_out, daily_so_far + actual_usd, run_id);
     }
     Ok(())
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+struct ConsultTarget<'a> {
+    character_id: Option<&'a str>,
+    group_chat_id: Option<&'a str>,
+}
+
+fn resolve_consult_target<'a>(
+    character_id: Option<&'a str>,
+    group_chat_id: Option<&'a str>,
+) -> Result<ConsultTarget<'a>, String> {
+    if character_id.is_some() && group_chat_id.is_some() {
+        return Err("consult: pass either --character-id <id> or --group-chat <id>, not both".to_string());
+    }
+    if character_id.is_none() && group_chat_id.is_none() {
+        return Err("consult: missing target (pass --character-id <id> or --group-chat <id>)".to_string());
+    }
+    Ok(ConsultTarget {
+        character_id,
+        group_chat_id,
+    })
+}
+
+fn group_session_target(group_chat_id: &str) -> String {
+    format!("group:{group_chat_id}")
 }
 
 // ─── Relational stance inspect + manual refresh ─────────────────────────
@@ -8938,4 +8956,47 @@ fn cmd_session_list(r: &Resolved) -> Result<(), Box<dyn std::error::Error>> {
     })).collect();
     emit(r.json, JsonValue::Array(out));
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn resolve_consult_target_rejects_both_targets() {
+        let err = resolve_consult_target(Some("char-1"), Some("group-1"))
+            .expect_err("should reject both character and group targets");
+        assert!(err.contains("not both"));
+    }
+
+    #[test]
+    fn resolve_consult_target_rejects_missing_targets() {
+        let err = resolve_consult_target(None, None)
+            .expect_err("should reject missing consult target");
+        assert!(err.contains("missing target"));
+    }
+
+    #[test]
+    fn resolve_consult_target_accepts_character_target() {
+        let t = resolve_consult_target(Some("char-1"), None)
+            .expect("should accept character target");
+        assert_eq!(t.character_id, Some("char-1"));
+        assert_eq!(t.group_chat_id, None);
+    }
+
+    #[test]
+    fn resolve_consult_target_accepts_group_target() {
+        let t = resolve_consult_target(None, Some("group-1"))
+            .expect("should accept group target");
+        assert_eq!(t.character_id, None);
+        assert_eq!(t.group_chat_id, Some("group-1"));
+    }
+
+    #[test]
+    fn group_session_target_uses_group_prefix() {
+        assert_eq!(
+            group_session_target("abc-123"),
+            "group:abc-123".to_string()
+        );
+    }
 }

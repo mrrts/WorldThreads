@@ -7669,6 +7669,25 @@ mod fence_shape_detection_tests {
     }
 
     #[test]
+    fn render_location_change_for_prompt_uses_scene_now_shape_on_first_set() {
+        assert_eq!(
+            render_location_change_for_prompt(r#"{"to":"Garden Patio"}"#),
+            "Scene now in Garden Patio",
+            "first-set location changes should render as 'Scene now in ...' rather than implying a prior location"
+        );
+    }
+
+    #[test]
+    fn render_location_change_for_prompt_falls_back_to_raw_content_on_malformed_json() {
+        let raw = "{not valid json";
+        assert_eq!(
+            render_location_change_for_prompt(raw),
+            raw,
+            "malformed location_change payloads should fall back to raw content rather than inventing a summary"
+        );
+    }
+
+    #[test]
     fn scene_description_prompt_emits_fence_shape_correction_for_malformed_history() {
         let world = minimal_world();
         let character = minimal_character();
