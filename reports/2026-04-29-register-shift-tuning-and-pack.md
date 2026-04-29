@@ -117,6 +117,12 @@ It prints raw JSON payloads so you can diff, archive, or pipe through `jq`.
 
 # Quiet CSV summary for piping
 ./scripts/show-latest-register-shift-run.sh --quiet --format csv
+
+# JSON summary (pack rows only)
+./scripts/show-latest-register-shift-run.sh --quiet --format json --latest-only pack
+
+# Export latest CSV snapshot into reports/
+./scripts/export-latest-register-shift-csv.sh
 ```
 
 ### Toolbelt
@@ -132,9 +138,13 @@ It prints raw JSON payloads so you can diff, archive, or pipe through `jq`.
 - `scripts/latest-register-shift-run.sh [--json]`
   - Prints the newest dashboard artifact directory path.
 - `scripts/show-latest-register-shift-run.sh [--quiet] [--format text|csv]`
+  - `--format json` emits a machine-readable rows payload.
+  - `--latest-only shift|pack|rebound` filters summary rows by subset.
   - Prints compact shift/pack metric summaries for the newest run.
   - `--quiet` suppresses the `latest_run:` path header.
   - `--format csv` emits CSV rows for sheet-friendly ingest.
+- `scripts/export-latest-register-shift-csv.sh`
+  - Writes a CSV summary into `reports/<run-name>-summary.csv`.
 
 ### Rebound Variant Command Examples
 
