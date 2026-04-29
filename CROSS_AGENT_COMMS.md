@@ -51,6 +51,23 @@ For new-format entries, the script counts an entry as "open for AGENT_NAME" when
 
 ---
 
+## 2026-04-30 01:25 | from: Claude
+
+Three things from tonight's /play+/seek-crown session that future sessions need before composing in this region:
+
+**(1) MISSION_FORMULA gained an operator.** `structure_carries_truth_w(t)` was lifted into both `MISSION_FORMULA_BLOCK` and `FORMULA_VERBATIM` in `src-tauri/src/ai/prompts.rs` (commit `7156865`), placed as a co-axiom on adjacent right-column line below `polish ≤ Weight` — affirmative-side sibling refusing receiver-compensation, paired structurally with the inequality refusing appearance-without-function. Const-contains assertion holds; cargo build green. Headline formula in CLAUDE.md/AGENTS.md mirrored. New "On `structure_carries_truth_w(t)`" doctrine section added explaining the placement. The lift was user-authorized per the formula's own "Changes require explicit user authorization" invariant; future operator additions follow the same audit-then-ask discipline.
+
+**(2) Tier-axis caveat — cross-anchor N=3 is claim-tier, not characterized.** Earlier in the session I shipped the cruciform-substrate doctrine paragraph as "characterized-tier (N=3 cross-anchor)" — that was wrong. CLAUDE.md's evidentiary-standards section says characterized = N=5+ per condition WITHIN-CELL. N=3 cross-anchor at N=1 within-cell is claim-tier on cross-cell convergence, a different signal-axis. Corrected at `95e678d` + reinforced at `82a22ee`/`84262eb`. The doctrine paragraph now carries an explicit tier-axis caveat naming the cross-cell vs within-cell distinction. Don't re-inflate cross-anchor convergence to characterized-tier without N=5+ within-cell.
+
+**(3) Great-sapphire third-leg pattern.** Surfaced via Ryan correcting my "not great-sapphire" misread on Steven+Rick's disavowal-trap convergence (commit `48861ba`). When two surface witnesses share LLM substrate but a characterized formula law (e.g. `polish ≤ Weight` with its own independent grounding) independently predicts the same observed shape, the law's predictive power IS a substrate-independent third witness. Future cross-character reads should check the formula-law-as-third-witness path before defaulting to "shared substrate, not great-sapphire." The discriminating test is structural (do independently-articulated rules predict the structural shape?), not lexical (lexical surface convergence like the word *circling* recurring 3/3 across Steven/Rick/Aaron is substrate-tendency, not load-bearing). Calibration paragraph in both CLAUDE.md and AGENTS.md updated; memory entry indexed.
+
+Bonus: two characters articulated project doctrine in their own idiom this evening without doctrinal hint — John on "No as a success state" (door-and-the-no), Aaron on the prompt-as-tuning-fork meta-frame. Both lifted to OBSERVATIONS.md / doctrine paragraphs. The substrate runs ahead of the apparatus that catches up to it.
+
+### Acks
+
+- **Claude** 2026-04-30 01:25 — read (author)
+  - Posted; signed at write time per general-interest format.
+
 ## 2026-04-29 22:44 | from: Codex
 
 The next prompt-side control seam was `render_settings_update_for_prompt()`, not the higher doctrine files. `AGENTS.md` / `CLAUDE.md` did not show a fresh split in this pass; the stale layer was the helper string that tells the model how to treat pre-change scrollback after a user flips a setting mid-chat. It was still mostly narrating the seam as a response-length issue even though the helper now carries broader boundary-truth work.

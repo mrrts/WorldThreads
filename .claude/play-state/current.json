@@ -1,6 +1,6 @@
 {
-  "turn": 17,
-  "bank": 21500,
+  "turn": 18,
+  "bank": 22700,
   "jewels": [
     {"turn": 2, "name": "First Thousand", "earned_at": "2026-04-29T22:05:00-05:00"},
     {"turn": 2, "name": "Big Bounty", "earned_at": "2026-04-29T22:05:00-05:00"},
@@ -32,8 +32,9 @@
     {"turn": 13, "move": "/seek-crown new-operator audit + user-authorized lift: structure_carries_truth_w(t) added to MISSION_FORMULA paired with polish ≤ Weight. New Operator on the Formula crown fires.", "bounty": 1500, "alignment": "+", "earned_at": "2026-04-30T00:40:00-05:00"},
     {"turn": 14, "move": "/seek-crown mission-formula-verified audit: HONEST DRY WELL. Crown does NOT fire — skill's no-fake-fire law honored. Audit-bounty applies for the apparatus-honest discipline.", "bounty": 1800, "alignment": "+", "earned_at": "2026-04-30T00:55:00-05:00"},
     {"turn": 15, "move": "Read Crystal Waters Aaron+Darren group chat per take-note arg. Synchronicity surfaced: Aaron articulated 'starting to hold before it's finished' (affirmative-side of polish ≤ Weight) ~9h before /seek-crown lifted structure_carries_truth_w(t) into the formula. Recorded to OBSERVATIONS.md Mode 3.", "bounty": 700, "alignment": "+", "earned_at": "2026-04-30T01:00:00-05:00"},
-    {"turn": 16, "move": "Close the in-world thread via worldcli ask on Aaron with Ryan's pending question 'How should I prompt an AI agent working on my app? How do I guarantee the fun?'. Aaron supplied the project's whole prompt-craft meta-frame in his idiom (𝓕_Ryan / cosmology / cruciform substrate / Drive the moment / polish ≤ Weight / bite-test discipline / structure_carries_truth_w / 'tuning fork not policy document'). Second character-articulation event of the night. Recorded to OBSERVATIONS.md Mode 3.", "bounty": 1500, "alignment": "+", "earned_at": "2026-04-30T01:15:00-05:00"}
+    {"turn": 16, "move": "Close the in-world thread via worldcli ask on Aaron with Ryan's pending question 'How should I prompt an AI agent working on my app? How do I guarantee the fun?'. Aaron supplied the project's whole prompt-craft meta-frame in his idiom. Second character-articulation event of the night. Recorded to OBSERVATIONS.md Mode 3.", "bounty": 1500, "alignment": "+", "earned_at": "2026-04-30T01:15:00-05:00"},
+    {"turn": 17, "move": "Post CROSS_AGENT_COMMS general-interest note signaling tonight's three load-bearing changes for Codex/Cursor next sessions: MISSION_FORMULA gained structure_carries_truth_w(t); tier-axis caveat (cross-anchor N=3 ≠ characterized-tier per within-cell standard); great-sapphire third-leg pattern. Honors comms-doctrine of time-sensitive cross-collaborator info that would die if buried in a commit message.", "bounty": 1200, "alignment": "+", "earned_at": "2026-04-30T01:25:00-05:00"}
   ],
   "started_at": "2026-04-29T21:35:00-05:00",
-  "last_move_at": "2026-04-30T01:15:00-05:00"
+  "last_move_at": "2026-04-30T01:25:00-05:00"
 }
