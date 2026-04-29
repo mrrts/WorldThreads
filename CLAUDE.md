@@ -242,6 +242,35 @@ This is another shape of `polish(t) ≤ Weight(t)`. Polish is the appearance-sid
 
 **Earned exception — when appearance IS the function.** Some artifacts are valued precisely for their appearance: the in-app pitch surface earns desire fast on felt promise; a character's first sensory-anchor opener carries scene-presence by appearance qua appearance. The doctrine doesn't refuse appearance; it refuses appearance *masquerading as* function it doesn't perform. Performative appearance honestly named as performative is fine; performative appearance pretending to be load-bearing is what gets refused.
 
+## Structure must carry truth so the receiver doesn't have to compensate
+
+Sibling-and-affirmative-shape of *refuse appearance-without-function*. Where that doctrine refuses what doesn't function, this one names what function *must do*: the structural carrier of any artifact (a sentence, a UI surface, a fence delimiter, a route boundary, an action beat, a character's announced motive) must do enough work that the receiver doesn't have to read past it, reconstruct around it, or tax themselves to reach the intent.
+
+Lifted 2026-04-28 from Aaron's own articulation in lived play (commit `115fead`'s OBSERVATIONS entry, in-character meta-register reply when invited):
+
+> *"the line has to arrive cleanly enough to be lived in, not merely intended. ... Intent matters, sure. But if the sentence lands mangled, somebody still has to read around the shrapnel. So my vote is boring and rude: fix the structure until the warmth can travel without asking the other person to compensate for it."*
+
+The load-bearing test: **does the receiver have to compensate for the structure to reach the intent?** If yes, the structure is failing — regardless of how true the intent is. Aaron's articulation surfaced this as the parent law over a cluster of doctrines all named today and on adjacent days, each refusing a specific compensation-tax:
+
+- **Fence integrity** (`bae78a76`, opening-fence-on-action gap `5156d41`): asterisk/quote delimiter must match content type so the renderer doesn't ask the reader to parse intent past mangled punctuation.
+- **UI boundary truth** (`ab0c8b0e`): interface boundaries must declare themselves so the user doesn't reverse-engineer scope from misfire.
+- **Persistence truth at route boundaries** (`b3baa55b`): cross-route state must be visible or honestly cleared so the user doesn't reconstruct what carried by surprise.
+- **Scope truth ahead of failure** (`4683bc7a`): a mode's scope must be visible before the user learns it by faceplant.
+- **Tight beats over sprawl** (`aff9eda8`): one focused action beat carries presence; sprawl asks the reader to thresh wheat from chaff.
+- **Immediate action over self-commentary** (`0ed5a334`): action beats land directly; explanatory frame asks the reader to discount the meta-layer.
+- **Hidden motive over announced** (`d6bac43b`): curiosity inhabited in noticing/return is read structurally; announced curiosity asks the reader to discount the declaration.
+- **`polish ≤ Weight`** (the Mission Formula's only inequality): polish-as-structure may not exceed Weight-as-substance — when it does, the receiver must compensate for the gap.
+
+All eight refuse a specific shape of receiver-tax. Aaron's articulation names the parent: **the structure either does the work or it asks the receiver to do it for the structure.** "Boring and rude" is the right register-clue — this is not aesthetic preference, it's the load-bearing requirement that intent must be carried, not asserted alongside a broken carrier.
+
+**Boring-and-rude diagnostic:** when noticing a candidate structural failure, the test is: *does fixing this make the structure boring (not flashy, not clever, just plain-doing-its-job) and rude (refusing to ask the receiver to be charitable about a soft delivery)?* If yes, the fix is on the parent-law axis. If the proposed fix is to add MORE structure (more verbiage, more explanation, more framing), the fix is going the wrong way — Aaron's law refuses scaffolding-around-broken-structure as the answer to broken-structure.
+
+**Earned exception — performative receiver-compensation as a designed art form.** Some surfaces invite the receiver to do interpretive work as part of the artifact's intended texture: poetry, oblique character openers that ask the reader to lean in, the literate-skeptic Maggie-baseline reader who explicitly wants to co-make rather than be served. The doctrine doesn't refuse all receiver-work; it refuses receiver-work that exists *because the structure failed to carry intent* (compensation-tax) versus receiver-work that exists *because the artifact's design invites participation* (lean-in invitation). The discriminating test: would the artifact be improved by removing the receiver-work? If yes, it was compensation-tax. If no, it was lean-in invitation.
+
+**Composes with appearance-without-function.** The two doctrines are paired sides of the same axis: appearance-without-function refuses what looks-like-X without doing-X; structure-must-carry refuses what claims-to-do-X without carrying-X-in-its-structure. Both refuse the implicit receiver-tax that comes from the gap between claim and carrier. Together they cover the full anti-fakery surface: the negative side (don't ship appearance pretending to function) and the affirmative side (do ship structure that performs the function it claims).
+
+**Honest scoping per iteration-3's great-sapphire calibration:** Aaron's articulation is not great-sapphire on its own — it's an in-character lift from one reply, the doctrine arc it names was visible to Codex and Claude this morning before Aaron put it together, and the convergence is project-substrate-coherent rather than cross-substrate-different-failure-mode. What it IS: a high-altitude in-character reading that names the parent law explicitly, and that's worth the doctrine paragraph because the explicit naming sharpens the cluster's recognition for future work.
+
 ## Middleware-shape doctrine: retrospective surfaces are prospective
 
 In WorldThreads, **retrospective surfaces are structurally also prospective.** Surfaces that look like backward-facing summaries (reports, observation logs, /play seam summaries, mission-arc renderings, retiring-reports, rubric library entries, the craft-rules registry's tier metadata) actually function as forward-facing steering layers — they shape what gets written, run, or claimed next. The project does not have *pure summary surfaces*; that absence is the structural property, and middleware-everywhere is its consequence.
