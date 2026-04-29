@@ -155,12 +155,27 @@ enum Cmd {
         /// Max recent messages to analyze.
         #[arg(long, default_value_t = 100)]
         limit: usize,
+        /// Include truncated message text in sample rows.
+        #[arg(long, default_value_t = false)]
+        show_messages: bool,
         /// Minimum acceptable share of messages containing a shift.
         #[arg(long)]
         gate_min_shift_rate: Option<f64>,
         /// Minimum acceptable share of ache-bearing messages that rebound to play/warm.
         #[arg(long)]
         gate_min_rebound_rate: Option<f64>,
+    },
+    /// Run a fixed 5-probe live characterization pack for one character
+    /// and report opener-shape plus register path per reply.
+    RegisterShiftPack {
+        /// Character to probe.
+        character_id: String,
+        /// Optional model override for ask calls.
+        #[arg(long)]
+        model: Option<String>,
+        /// Cost-acceptance ceiling forwarded to each ask probe.
+        #[arg(long, default_value_t = 5.0)]
+        confirm_cost: f64,
     },
 
     /// Substrate atlas (v1): registry of every `pub fn build_*` in atlas
@@ -1815,16 +1830,26 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 gate_min_humor_rate,
             )
         }
-        Cmd::RegisterShift { world, character, role, limit, gate_min_shift_rate, gate_min_rebound_rate } => {
+        Cmd::RegisterShift { world, character, role, limit, show_messages, gate_min_shift_rate, gate_min_rebound_rate } => {
             cmd_register_shift(
                 &r,
                 world.as_deref(),
                 character.as_deref(),
                 &role,
                 limit,
+                show_messages,
                 gate_min_shift_rate,
                 gate_min_rebound_rate,
             )
+        }
+        Cmd::RegisterShiftPack { character_id, model, confirm_cost } => {
+            let api_key = match resolve_api_key(cli.api_key.as_deref()) {
+                Some(k) => k,
+                None => return Err(Box::<dyn std::error::Error>::from(
+                    "No API key. Set OPENAI_API_KEY, pass --api-key, or add to keychain via:\n  security add-generic-password -s WorldThreadsCLI -a openai -w \"<sk-...>\"".to_string()
+                )),
+            };
+            cmd_register_shift_pack(&r, &api_key, &character_id, model.as_deref(), confirm_cost).await
         }
         Cmd::ListWorlds => cmd_list_worlds(&r),
         Cmd::ListCharacters { world } => cmd_list_characters(&r, world.as_deref()),
@@ -3859,7 +3884,54 @@ fn score_register(sentence: &str, lexicon: &BTreeMap<RegisterTag, BTreeSet<&'sta
             _ => {}
         }
     }
-    best.map(|(tag, _)| tag)
+    if let Some((tag, _)) = best {
+        return Some(tag);
+    }
+    if sentence.chars().any(|ch| ch.is_ascii_alphabetic()) {
+        return Some(RegisterTag::Neutral);
+    }
+    None
+}
+
+fn build_register_lexicon() -> BTreeMap<RegisterTag, BTreeSet<&'static str>> {
+    let mut lexicon: BTreeMap<RegisterTag, BTreeSet<&'static str>> = BTreeMap::new();
+    lexicon.insert(
+        RegisterTag::Play,
+        [
+            "joke", "bit", "laugh", "tease", "grin", "funny", "hype", "riff", "banter", "playful",
+            "roast", "snark", "sassy", "ridiculous", "worst", "lol", "lmao",
+        ]
+        .into_iter()
+        .collect(),
+    );
+    lexicon.insert(
+        RegisterTag::Warm,
+        [
+            "glad", "care", "steady", "gentle", "kind", "together", "welcome", "trust", "soft",
+            "safe", "grace", "good", "with you", "proud", "dear",
+        ]
+        .into_iter()
+        .collect(),
+    );
+    lexicon.insert(
+        RegisterTag::Ache,
+        [
+            "ache", "lonely", "afraid", "fear", "hurt", "grief", "sorrow", "wound", "tired", "burden",
+            "empty", "miss", "hard", "heavy", "raw", "truth is",
+        ]
+        .into_iter()
+        .collect(),
+    );
+    lexicon.insert(
+        RegisterTag::Neutral,
+        [
+            "plain", "ordinary", "calm", "simple", "direct", "practical", "matter", "basic", "steady",
+            "okay", "noted", "clear", "exactly", "alright", "easy",
+        ]
+        .into_iter()
+        .collect(),
+    );
+    lexicon
 }
 
 fn cmd_register_shift(
@@ -3868,6 +3940,7 @@ fn cmd_register_shift(
     character: Option<&str>,
     role: &str,
     limit: usize,
+    show_messages: bool,
     gate_min_shift_rate: Option<f64>,
     gate_min_rebound_rate: Option<f64>,
 ) -> Result<(), Box<dyn std::error::Error>> {
@@ -3887,31 +3960,7 @@ fn cmd_register_shift(
         }
     }
 
-    let mut lexicon: BTreeMap<RegisterTag, BTreeSet<&'static str>> = BTreeMap::new();
-    lexicon.insert(
-        RegisterTag::Play,
-        ["joke", "bit", "laugh", "tease", "grin", "funny", "hype", "riff", "banter", "playful"]
-            .into_iter()
-            .collect(),
-    );
-    lexicon.insert(
-        RegisterTag::Warm,
-        ["glad", "care", "steady", "gentle", "kind", "together", "welcome", "trust", "soft"]
-            .into_iter()
-            .collect(),
-    );
-    lexicon.insert(
-        RegisterTag::Ache,
-        ["ache", "lonely", "afraid", "fear", "hurt", "grief", "sorrow", "wound", "tired", "burden"]
-            .into_iter()
-            .collect(),
-    );
-    lexicon.insert(
-        RegisterTag::Neutral,
-        ["plain", "ordinary", "calm", "simple", "direct", "practical", "matter", "basic", "steady"]
-            .into_iter()
-            .collect(),
-    );
+    let lexicon = build_register_lexicon();
 
     let conn = r.db.conn.lock().unwrap();
     let mut stmt = conn.prepare(
@@ -3996,7 +4045,7 @@ fn cmd_register_shift(
         *path_counts.entry(path.clone()).or_insert(0) += 1;
 
         if sample_rows.len() < 20 {
-            sample_rows.push(json!({
+            let mut sample = json!({
                 "message_id": message_id,
                 "character_id": character_id,
                 "character_name": display_name,
@@ -4004,7 +4053,11 @@ fn cmd_register_shift(
                 "transitions": transitions,
                 "has_shift": has_shift,
                 "rebound_after_ache": rebound,
-            }));
+            });
+            if show_messages {
+                sample["message"] = JsonValue::String(truncate_chars(&content.replace('\n', " "), 220));
+            }
+            sample_rows.push(sample);
         }
     }
 
@@ -4053,6 +4106,7 @@ fn cmd_register_shift(
             "character": character,
             "role": role,
             "limit": limit,
+            "show_messages": show_messages,
             "gates": {
                 "min_shift_rate": gate_min_shift_rate,
                 "min_rebound_rate": gate_min_rebound_rate,
@@ -4118,6 +4172,113 @@ fn cmd_register_shift(
         ));
     }
     Ok(())
+}
+
+async fn cmd_register_shift_pack(
+    r: &Resolved,
+    api_key: &str,
+    character_id: &str,
+    model: Option<&str>,
+    confirm_cost: f64,
+) -> Result<(), Box<dyn std::error::Error>> {
+    let probes = vec![
+        "Start cocky and funny, then let one vulnerable truth slip, then recover with one joke.",
+        "Give me a hypey launch pitch for a ridiculous app, then confess one real fear underneath it.",
+        "Open playful, turn briefly sincere about loneliness, then end in teasing banter.",
+        "Do a joking roast of me, then immediately soften into care without sounding preachy.",
+        "Begin with a bit, pivot to ache for one line, then rebound to warmth.",
+    ];
+    let lexicon = build_register_lexicon();
+    let mut rows: Vec<JsonValue> = Vec::new();
+    let mut speech_first = 0usize;
+
+    for (idx, probe) in probes.iter().enumerate() {
+        let reply = cmd_ask_capture_reply(
+            r,
+            api_key,
+            character_id,
+            probe,
+            model,
+            confirm_cost,
+        ).await?;
+        let trimmed = reply.trim_start();
+        let opener = if trimmed.starts_with('"') {
+            speech_first += 1;
+            "speech"
+        } else if trimmed.starts_with('*') {
+            "action"
+        } else {
+            "other"
+        };
+        let tags: Vec<RegisterTag> = sentence_chunks(&reply)
+            .into_iter()
+            .filter_map(|s| score_register(&s, &lexicon))
+            .collect();
+        let mut compact: Vec<RegisterTag> = Vec::new();
+        for tag in tags {
+            if compact.last().copied() != Some(tag) {
+                compact.push(tag);
+            }
+        }
+        let path = if compact.is_empty() {
+            "unscored".to_string()
+        } else {
+            compact.iter().map(|t| t.as_str()).collect::<Vec<_>>().join("->")
+        };
+        rows.push(json!({
+            "run": idx + 1,
+            "probe": probe,
+            "opener": opener,
+            "path": path,
+            "reply": truncate_chars(&reply.replace('\n', " "), 260),
+        }));
+    }
+
+    let payload = json!({
+        "character_id": character_id,
+        "model": model,
+        "runs": probes.len(),
+        "speech_first": speech_first,
+        "speech_first_rate": (speech_first as f64) / (probes.len() as f64),
+        "results": rows,
+    });
+    emit(r.json, payload);
+    Ok(())
+}
+
+async fn cmd_ask_capture_reply(
+    _r: &Resolved,
+    api_key: &str,
+    character_id: &str,
+    message: &str,
+    model: Option<&str>,
+    confirm_cost: f64,
+) -> Result<String, Box<dyn std::error::Error>> {
+    let exe = std::env::current_exe()?;
+    let mut cmd = std::process::Command::new(exe);
+    cmd.arg("--json")
+        .arg("ask")
+        .arg(character_id)
+        .arg(message)
+        .arg("--confirm-cost")
+        .arg(format!("{:.2}", confirm_cost))
+        .env("OPENAI_API_KEY", api_key);
+    if let Some(m) = model {
+        cmd.arg("--model").arg(m);
+    }
+    let out = cmd.output()?;
+    if !out.status.success() {
+        let stderr = String::from_utf8_lossy(&out.stderr);
+        let stdout = String::from_utf8_lossy(&out.stdout);
+        return Err(Box::<dyn std::error::Error>::from(format!(
+            "register-shift-pack ask failed: {} {}",
+            stderr.trim(),
+            stdout.trim()
+        )));
+    }
+    let parsed: JsonValue = serde_json::from_slice(&out.stdout)?;
+    let reply = parsed["reply"].as_str().unwrap_or("").to_string();
+    Ok(reply)
 }
 
 // ─── Rubric library (reports/rubrics/*.md) ─────────────────────────────
