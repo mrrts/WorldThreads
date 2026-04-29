@@ -149,6 +149,22 @@ different architectures (e.g., a tag-forcing presence-of-X rubric AND a
 gestalt does-this-feel-like-Y rubric). Agreement → trust verdict. Disagreement
 IS the signal — investigate manually.
 
+**Doctrine-judgment classification belongs in LLM, not python.** When the
+rule the arc is testing is doctrine-shaped — i.e. names "with earned
+exceptions," protects variety/voice/surprise, or has any clause the python
+can't honestly encode — DO the grading via LLM rubric (Layer B). Don't write
+or extend a python regex / word-list / shape-matcher to count what an LLM
+should be reading on its own terms. Numeric gating on the resulting rate is
+fine (rate thresholds ARE useful structural gates); what the rate COUNTS
+must be LLM-judged. The Jasper micro-followup at `974409c1` is the worked
+example of the failure mode this refuses — strict python classifier marked
+an actionable imperative reply as `shape: other` because the verb-list
+didn't include the variety the doctrine itself protects. Same applies if
+you're tempted to extend `chat-improvement-loop.sh`'s inline `is_pass()`
+or `worldcli grade-stress-pack`'s shape categories to handle a new edge
+case. See CLAUDE.md / AGENTS.md "Doctrine-judgment classification belongs
+in LLM, not python" for the full doctrine.
+
 **Layer C — cross-character validation (for universal-shape rules).** If the
 rule's failure mode is shared across characters (over-consecration,
 nanny-register, false uplift, etc.), run Layer A on a second and third
