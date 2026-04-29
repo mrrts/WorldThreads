@@ -7521,6 +7521,10 @@ mod fence_shape_detection_tests {
             "detector should include the conservative verb extensions from lived corpus misses"
         );
         assert!(
+            is_opening_quote_on_action_shape("\"I wince at myself a little and shake it off.*"),
+            "detector should keep catching the lived-corpus wince/shake variant"
+        );
+        assert!(
             is_opening_quote_on_action_shape("\"My left hand gives the faintest tremor, and I shift the page to settle it.*"),
             "detector should catch possessive-pronoun body-part openers that still trap action in quotes"
         );
