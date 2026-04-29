@@ -175,6 +175,8 @@ Three project-scale parities matter:
 
 **Middleware splits cleanly into compositional and epistemic forms.** The middleware family is no longer one flat bucket. **Compositional middleware** steers the next act of making: the next sentence, the next chooser branch, the next control-shape move, the next report angle. `trajectory`, `copy`, and `interaction` middleware live here. **Epistemic middleware** carries forward what later evidence or loops are allowed to mean or require: corrected criterion boundaries, durable hypothesis carriers, rubric-ref inherited constraints. `criterion`, `hypothesis`, and rubric-ref carry live here. Practical test: if the surface mainly shapes the next emission, it is compositional middleware; if it mainly shapes the meaning or discipline of later evidence, it is epistemic middleware.
 
+**LLM-is-evidence, not score-only empiricism.** Empirical work is not limited to numeric gates. Fresh outputs from real model calls (under controlled prompts and declared budget) are first-class evidence, including qualitative behaviors that metrics may miss. Don't simulate likely outputs when a live call is available and warranted. Use quantitative scoring as a secondary lens: useful for comparability and CI, but not a prerequisite for calling work empirical. Practical test: if the question is about prompt-to-output behavior, gather at least one fresh real-output sample before collapsing to summary claims; if a score helps, add it after the raw evidence is captured.
+
 The deeper rule: once a surface is runtime-significant, parity becomes an enforcement candidate (hook, generated source, parity test) — not just goodwill.
 
 ## Reports
