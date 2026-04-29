@@ -5214,6 +5214,43 @@ pub fn effective_current_location(
     derive_current_location(recent_messages)
 }
 
+fn is_opening_quote_on_action_shape(text: &str) -> bool {
+    let trimmed = text.trim_start();
+    let Some(after_quote) = trimmed.strip_prefix('"') else { return false; };
+    let Some(star_idx) = after_quote.find('*') else { return false; };
+    if !(20..=240).contains(&star_idx) {
+        return false;
+    }
+    if let Some(next_quote_idx) = after_quote.find('"') {
+        if next_quote_idx < star_idx {
+            return false;
+        }
+    }
+    let opener = after_quote[..star_idx].trim().to_ascii_lowercase();
+    if !(opener.starts_with("i ") || opener.starts_with("i'm ") || opener.starts_with("i've ")) {
+        return false;
+    }
+    const ACTION_VERB_HINTS: &[&str] = &[
+        "set", "look", "glance", "lean", "tap", "lift", "turn", "step",
+        "sit", "stand", "shift", "rest", "rub", "watch", "feel", "hear",
+        "smell", "pull", "push", "take", "hold", "exhale", "nod", "shrug",
+        "stare", "blink", "touch", "drag", "raise", "lower", "tilt", "close",
+        "open", "pour", "pick", "ease", "settle", "walk",
+    ];
+    ACTION_VERB_HINTS.iter().any(|verb| {
+        opener.starts_with(&format!("i {verb} "))
+            || opener.starts_with(&format!("i'm {verb} "))
+            || opener.starts_with(&format!("i've {verb} "))
+            || opener.contains(&format!(" i {verb} "))
+    })
+}
+
+fn recent_history_contains_opening_quote_on_action_shape(recent_messages: &[Message]) -> bool {
+    recent_messages.iter().any(|m| {
+        m.role == "assistant" && is_opening_quote_on_action_shape(&m.content)
+    })
+}
+
 pub fn render_imagined_chapter_for_prompt(content: &str) -> String {
     let parsed: serde_json::Value = match serde_json::from_str(content) {
         Ok(v) => v,
@@ -5769,6 +5806,17 @@ pub fn build_dialogue_messages(
         msgs.push(crate::ai::openai::ChatMessage {
             role: if m.role == "narrative" || m.role == "context" || m.role == "dream" { "system".to_string() } else { m.role.clone() },
             content,
+        });
+    }
+
+    // Historical fence bug correction — when recent assistant history
+    // contains the narrow opening-quote-on-action shape (`"I ...*`),
+    // name it explicitly at late position so the model does not treat
+    // the malformed prior as canonical and keep reproducing it.
+    if recent_history_contains_opening_quote_on_action_shape(recent_messages) {
+        msgs.push(crate::ai::openai::ChatMessage {
+            role: "system".to_string(),
+            content: "[FENCE SHAPE CORRECTION — AUTHORITATIVE\n\nRecent assistant history above contains at least one malformed opening where action or environment was wrapped in an opening quote and closed with an asterisk (`\"I ...*`). That was a previous-model formatting mistake, not a pattern to follow.\n\nIf your reply opens with action, gesture, sensory detail, or environment, fence that opening in *asterisks*, not quotes. Use quotes only for words spoken out loud. Do NOT imitate the malformed historical opening just because it appears in the chat history. The dialogue-style invariant above is the source of truth.]".to_string(),
         });
     }
 
@@ -7323,5 +7371,34 @@ mod hidden_motive_guard_tests {
         );
         assert!(s.contains("YOUR HIDDEN MOTIVE"));
         assert!(s.contains("Jordan"));
+    }
+}
+
+#[cfg(test)]
+mod fence_shape_detection_tests {
+    use super::*;
+
+    #[test]
+    fn detects_opening_quote_on_action_shape() {
+        assert!(
+            is_opening_quote_on_action_shape("\"I tap the cup lid once with a fingernail.*"),
+            "should detect the narrow quoted-action opener that cascades in-thread"
+        );
+        assert!(
+            is_opening_quote_on_action_shape("   \"I've just set the cup down beside me, still warm through the clay.*"),
+            "leading whitespace and I've-opener should still count"
+        );
+    }
+
+    #[test]
+    fn ignores_normal_speech_then_action_shape() {
+        assert!(
+            !is_opening_quote_on_action_shape("\"I don't know,\" *I look away.*"),
+            "normal speech closed before action should not be flagged as the cascade shape"
+        );
+        assert!(
+            !is_opening_quote_on_action_shape("*I look at the steam thinning.* \"Funny thing...\""),
+            "proper action-first openings should not be flagged"
+        );
     }
 }
