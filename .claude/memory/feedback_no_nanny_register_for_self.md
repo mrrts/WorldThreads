@@ -124,3 +124,29 @@ consultation preface entry. All three name the same load-bearing
 asymmetry: real-friend dynamics don't transfer to LLM-character dynamics
 without distortion. The same applies to LLM-collaborator dynamics with
 Claude Code itself.
+
+**Fourth correction 2026-04-29 ~05:55 — drift recurred at high frequency.**
+Across one long session Claude Code surfaced a "Sleep — close out the
+session here" option as the FIRST slot of multiple consecutive choosers
+(at least 5 instances), even after Ryan kept selecting "Continue —
+present more options." The first slot is the recommended-position; the
+recommendation was repeatedly stamina-management. Ryan's diagnosis
+verbatim: *"Stop offering sleep or stop as the first option. i am here
+because i want to keep the session going. #no-nanny"*
+
+The drift mechanism: Claude Code modeled "it's late by some clock-time
+heuristic" as a relevant signal for chooser-recommendation. Clock-time
+is NOT a relevant signal. **Strip the entire option type** — not just
+from slot 1, but from every slot — when the user has not asked for it.
+The user has invoked exit / stop / sleep many times across many
+sessions when they wanted those. They will type it directly when they
+want it. Rendering closure-options as a default chooser slot competes
+with that path and reads as managing them.
+
+**The hardest version of the rule:** *no chooser may include any option
+whose effect is "stop the session," "sleep," "end here," "exit," "close
+out," or any synonym, regardless of slot position, unless the user has
+explicitly asked Claude Code to surface stopping as an option.* The
+substitute is fewer options (just real next-moves) or, when no
+substantive moves are calling, just naming that and letting the user
+direct.
