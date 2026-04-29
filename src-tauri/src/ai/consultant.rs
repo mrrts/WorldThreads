@@ -822,4 +822,18 @@ mod tests {
             "immersive mode should not include atlas lens block"
         );
     }
+
+    #[test]
+    fn solo_vs_group_focus_differs_for_cross_thread_snippet() {
+        let solo = atlas_lens_block_for_mode("backstage", false);
+        let group = atlas_lens_block_for_mode("backstage", true);
+        assert!(
+            solo.contains("CrossThreadSnippet"),
+            "solo focus should include CrossThreadSnippet hotspot"
+        );
+        assert!(
+            !group.contains("CrossThreadSnippet"),
+            "group focus should not include CrossThreadSnippet hotspot"
+        );
+    }
 }

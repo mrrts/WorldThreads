@@ -92,12 +92,15 @@ enum Cmd {
     /// / parity / craft / enforcement columns. `--json` for machine output.
     /// `--audit` (v2): fail if scan roots contain a new `pub fn build_*` not
     /// registered in `substrate_atlas::BuildSubstrate`.
+    /// `--lens` prints only the compact backstage atlas lens.
     /// `--emit-markdown <path>` writes the markdown table (utf-8).
     Substrates {
         #[arg(long)]
         audit: bool,
         #[arg(long)]
         json: bool,
+        #[arg(long)]
+        lens: bool,
         #[arg(long, value_name = "PATH")]
         emit_markdown: Option<PathBuf>,
     },
@@ -1652,8 +1655,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         Cmd::Substrates {
             audit,
             json,
+            lens,
             emit_markdown,
-        } => cmd_substrates(audit, json, emit_markdown.as_ref()),
+        } => cmd_substrates(audit, json, lens, emit_markdown.as_ref()),
         Cmd::ShowAuthorAnchor { world } => cmd_show_author_anchor(&r, world.as_deref()),
         Cmd::PickResponders { group_chat, message, omit_continuity_note, confirm_cost, question_summary } => {
             let api_key = resolve_api_key(cli.api_key.as_deref())
@@ -2028,6 +2032,7 @@ fn cmd_show_craft_rule(name: &str, json: bool) -> Result<(), Box<dyn std::error:
 fn cmd_substrates(
     audit: bool,
     json: bool,
+    lens: bool,
     emit_markdown: Option<&PathBuf>,
 ) -> Result<(), Box<dyn std::error::Error>> {
     if audit {
@@ -2041,7 +2046,9 @@ fn cmd_substrates(
         std::fs::write(p, &md)?;
         eprintln!("substrates: wrote {}", p.display());
     }
-    if json {
+    if lens {
+        println!("{}", substrate_atlas::format_backstage_lens());
+    } else if json {
         println!("{}", substrate_atlas::format_atlas_json()?);
     } else if !audit {
         // With `--audit` only, keep stdout quiet for CI; table otherwise.
