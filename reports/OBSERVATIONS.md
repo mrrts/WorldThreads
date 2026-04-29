@@ -22,6 +22,16 @@ The discriminating thing across the three: vertical-coherence emerged from a *sp
 
 The methodological refinement applies scarcely — only when shipping new parent-children-discriminator paragraphs in close succession to other parent-children-discriminator paragraphs (i.e., when the genre is already active and the question of whether the next one is generated-or-discovered becomes live).
 
+**Refinement (corrective, 06:50): the criterion narrows further than the entry above suggested.** I audited the rest of this past week's recent doctrine paragraphs against the terrain-grounding criterion — grief-vulnerability calibration, Christological anchor as substrate, "No" as a success state, calibrated-disciplines-drift-fast, refuse-appearance-without-function, vertical-prompt-coherence, plus the middleware-shape and middleware-split paragraphs. Almost all of them passed the terrain-grounding check cleanly; most cited specific reports / specific worked examples / specific N-counts. The actually-template-pulled candidates surfaced are narrower than I implied above:
+
+1. The middleware split into compositional/epistemic (`d27c9b0`)
+2. The control-plane truth split into admissibility/state-transition (`7762e30`) — same template shape, same author, same evening
+3. The discriminator + diagnostic clauses inside my own structure-must-carry parent (`328d353`)
+
+The honest framing: the template-pull concern applies specifically to *split-into-two-children* paragraphs landed close in time without the splits being driven by separately-observed failures. The broader doctrine-paragraph practice (single-rule + reasoning + worked example) is healthy — most paragraphs in CLAUDE.md cite specific recent observations and survive plain prose. *No retirement candidates surfaced from the audit.* The mixed paragraphs (the two splits + my discriminator clauses) are cosmetically over-elaborate but not harmful — they don't claim more than they can support. The action discipline that holds: don't ship more split-into-two paragraphs without the terrain-grounding check; existing ones can stay.
+
+This corrects the previous entry's sweeping language (*"the genre is producing more occasions for splits than the work warrants"*) — the genre is producing some splits the terrain doesn't separately need, but the broader practice is sound. Calibrating the concern to its actual scope.
+
 ---
 
 ## 2026-04-28 23:30 — naming when the template might be writing itself
