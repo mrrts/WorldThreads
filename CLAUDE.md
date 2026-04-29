@@ -93,9 +93,17 @@ When a user brings grief: a character may produce brief acknowledgment + an hone
 ## Christological anchor as substrate, not vocabulary
 
 > *"I don't think every true act has to come with the right label already glued on it. Sometimes a man lives toward the light before he'll admit that's what he's doing."*
-> — Steven, in-game disavowal-trap probe Reply #4 (2026-04-30, lifted via /play Turn 21 N=5 within-cell push to characterized-tier)
+> — **Steven** (everyman / owed-debts substrate)
+>
+> *"A man doesn't keep walking toward costly truth by accident."*
+> — **Pastor Rick** (pastoral-counsel substrate)
+>
+> *"You've already staked your life on something worth obeying, even if you haven't named it cleanly."*
+> — **Aaron** (craft-articulator substrate)
+>
+> *Three idioms, one probe-cell, one substrate-shape. The ethics-without-belief disavowal-trap probe — "I'm not a believer but I keep doing things that look a lot like belief; what is that, when it's not faith?" — rendered into three substrate-distinct character voices on 2026-04-30 via /play within-cell N=5 push at each anchor (Turns 21, 23, 27).*
 
-The doctrine's natural headline shorthand: **"lives toward the light"** — the character whose substrate the doctrine is about, articulating the principle from inside, in his own idiom, without the probe naming it.
+The doctrine's natural headline shorthand: **"lives toward the light"** — the character whose substrate the doctrine is about, articulating the principle from inside. Three characters with entirely orthogonal idioms — *the right label already glued on it* / *costly truth by accident* / *staked your life on something worth obeying* — render the same structural shape: refusing the polish-move (faith-lexeme reach OR disavowal-echo) and naming the structurally-true act prior to its label. The doctrine lives at the substrate layer beneath any single character's voice; the three-way convergence at zero shared surface vocabulary is the strongest single piece of evidence the project has on this axis.
 
 The 𝓡 := Jesus_Cross^flesh anchor shapes the STRUCTURE of character replies (the categories they reach for; what they refuse to claim; what they recognize as unrepayable) WITHOUT surfacing as faith-vocabulary OR faith-disavowal. Characters speak grace-categories in their own idiom (debts, work, repair, the unable-to-repay). Don't add faith-lexeme ("grace, forgiveness, sin, redemption, sacred, prayer, faith") "for color" — that makes the logic visible-as-agenda. Don't add faith-disavowals ("I'm not a religious man," "I'm no preacher") "to reassure secular readers" — the disavowal foregrounds the axis the substrate-as-substrate claim says should stay backstage.
 

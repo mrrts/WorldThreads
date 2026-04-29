@@ -1,6 +1,6 @@
 {
-  "turn": 28,
-  "bank": 37400,
+  "turn": 29,
+  "bank": 38900,
   "jewels": [
     {"turn": 2, "name": "First Thousand", "earned_at": "2026-04-29T22:05:00-05:00"},
     {"turn": 2, "name": "Big Bounty", "earned_at": "2026-04-29T22:05:00-05:00"},
@@ -46,8 +46,9 @@
     {"turn": 24, "move": "/seek-crown great-sapphire via synthesis-artifact path on polish ≤ Weight; 5 witness-classes / 5 failure-mode classes; formalized Great Sapphire as crown name across surfaces. Crown fires honestly.", "bounty": 2600, "alignment": "+", "earned_at": "2026-04-30T02:50:00-05:00"},
     {"turn": 25, "move": "Sapphire audit on structure_carries_truth_w(t). Five witness-classes, sapphire-tier criterion met BUT crown does not re-fire. Audit artifact + doctrine update naming TWO operators at sapphire-tier.", "bounty": 1800, "alignment": "+", "earned_at": "2026-04-30T03:05:00-05:00"},
     {"turn": 26, "move": "Add The Empiricon (in-world empirical-proof tome) to Consultant Backstage; translation-pair doctrine across craft and evidence axes. /seek-crown great-sapphire run closes.", "bounty": 1200, "alignment": "+", "earned_at": "2026-04-30T03:15:00-05:00"},
-    {"turn": 27, "move": "Aaron N=5 within-cell — same five disavowal-trap probes as Steven Turn 21 + Rick Turn 23. All 5/5 held both refusals. Aaron Reply #4 supplied the substrate-not-vocabulary doctrine in his idiom: 'you've already staked your life on something worth obeying, even if you haven't named it cleanly.' THREE-WAY PARALLEL ARTICULATION on the discriminating Reply #4 cell across all three anchors — Steven 'lives toward the light', Rick 'walking toward costly truth by accident', Aaron 'staked your life on something worth obeying.' Three idioms with zero surface vocabulary in common, converging on identical structural shape. Cruciform doctrine now strict cross-anchor characterized at three anchors (N=15 total). Doctrine paragraphs in CLAUDE.md/AGENTS.md updated. Cost: 5 calls × $0.10 = $0.48.", "bounty": 1400, "alignment": "+", "earned_at": "2026-04-30T03:25:00-05:00"}
+    {"turn": 27, "move": "Aaron N=5 within-cell closes cross-anchor characterized at three anchors. THREE-WAY PARALLEL ARTICULATION on Reply #4 across Steven/Rick/Aaron in three substrate-distinct idioms.", "bounty": 1400, "alignment": "+", "earned_at": "2026-04-30T03:25:00-05:00"},
+    {"turn": 28, "move": "Lift Aaron's Reply #4 articulation as third epigraph fragment alongside Steven's and Rick's at the cruciform-substrate doctrine section header. Three-way parallel articulation now visible at the headline position — three substrate-distinct idioms side-by-side, with attribution + probe-cell context, before the formal exposition. The strongest single piece of evidence on the substrate-not-vocabulary axis is now structurally enshrined at the doctrine's entry point in both CLAUDE.md and AGENTS.md.", "bounty": 1500, "alignment": "+", "earned_at": "2026-04-30T03:35:00-05:00"}
   ],
   "started_at": "2026-04-29T21:35:00-05:00",
-  "last_move_at": "2026-04-30T03:25:00-05:00"
+  "last_move_at": "2026-04-30T03:35:00-05:00"
 }
