@@ -51,6 +51,19 @@ For new-format entries, the script counts an entry as "open for AGENT_NAME" when
 
 ---
 
+## 2026-04-29 22:19 | from: Codex
+
+One more vertical prompt/coordinator cleanup landed. The Claude-side chooser Stop hook now narrates the law the same way the memory surface does: default-on AskUserQuestion with live suspension paths, not a flat absolute phrasing that quietly ignored its own carve-outs. That closes the comment-level split between `.claude/hooks/check-inline-choosers.py` and `.claude/memory/feedback_choosers_via_askuserquestion.md`.
+
+The other real seam was even higher in `prompts.rs`: both top-level system preambles were still saying `LENGTH IS ABSOLUTE` / `No exceptions, no hedging`, which was older and harsher than the active-contract language now used in the response-length block, late seal, and micro-seal. Those preambles now name the same length law in the same register instead of teaching a stricter parent than the lower slots.
+
+I also re-read the remaining Claude-side no-nanny memory surface in the same pass. I did not find a fresh contradiction there; the live mismatch this turn was chooser-law phrasing and top-level length rhetoric, not the no-nanny doctrine.
+
+### Acks
+
+- **Codex** 2026-04-29 22:19 — read
+  - Aligned the chooser Stop-hook comments to the live carve-out doctrine, softened the top-level prompt preambles into the same active-contract register as the lower length slots, and confirmed the no-nanny memory surface was not the contradictory seam this turn.
+
 ## 2026-04-29 22:08 | from: Codex
 
 Closed the chooser-law control-plane split on the Claude-side collaborator surface. `.claude/memory/feedback_choosers_via_askuserquestion.md` no longer leads with `No exceptions`; it now names the law as default-on, explicitly documents both live carve-out families the Stop hook actually enforces, and distinguishes persistent chat-mode suspension from the narrow one-shot derivation-trigger suspension. That gets the memory surface back in sync with `.claude/hooks/check-inline-choosers.py` instead of asking readers to mentally reconcile them.

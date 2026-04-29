@@ -1,11 +1,10 @@
 #!/usr/bin/env python3
-"""Stop-hook: enforce that EVERY turn ends with an AskUserQuestion chooser.
+"""Stop-hook: enforce the default-on AskUserQuestion chooser law.
 
 Project law (.claude/memory/feedback_choosers_via_askuserquestion.md):
-every assistant turn must end with an AskUserQuestion invocation. The
-default chooser, when no more specific question fits, is:
-  - Continue — present more options for what to do next
-  - Exit    — end here
+by default every assistant turn ends with an AskUserQuestion invocation.
+The default chooser, when no more specific question fits, is a fixed
+4-option numbered set (so user can steer with 1/2/3/4).
 
 The rationale: this turns conversation flow into an explicit, user-driven
 state machine. The model never decides on its own to stop or to drift into
@@ -22,14 +21,14 @@ recent USER message in the transcript.
 
 This hook fires on Stop. It walks the transcript, locates the most-recent
 assistant message, and inspects its content blocks for a tool_use of name
-"AskUserQuestion". If absent AND chat mode is not active, it blocks the
-turn-end with a system-reminder telling the model to add the chooser
-before stopping.
+"AskUserQuestion". If absent AND no live suspension path is active, it
+blocks the turn-end with a system-reminder telling the model to add the
+chooser before stopping.
 
 Inline-chooser and trailing-question detection (the previous, narrower
 rule) is subsumed by this stronger check: any text-only ending fails the
-new rule regardless of its surface shape, so the auxiliary detectors are
-removed. The hook stays fast and conservative.
+default rule unless the live carve-out logic suspends it, so the
+auxiliary detectors are removed. The hook stays fast and conservative.
 """
 from __future__ import annotations
 
@@ -268,10 +267,9 @@ def main() -> int:
         "TURN ENDED WITHOUT ASKUSERQUESTION. "
         "Project law (.claude/memory/feedback_choosers_via_askuserquestion.md): "
         "EVERY turn must end with an AskUserQuestion chooser. The default chooser, "
-        "when no more specific question fits, is: "
-        '"Continue — present more options for what to do next" / "Exit — end here". '
+        "when no more specific question fits, is a fixed 4-option numbered set. "
         "Do NOT just emit a closing statement. Invoke AskUserQuestion now — either "
-        "with a context-fitting set of options OR with the default Continue/Exit "
+        "with a context-fitting set of options OR with the fixed 4-option "
         "fallback. The chooser IS the ending of every reply."
     )
     print(json.dumps({"decision": "block", "reason": warning}))
