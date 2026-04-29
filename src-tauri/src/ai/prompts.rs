@@ -4914,7 +4914,7 @@ fn end_of_turn_micro_seal(response_length: Option<&str>) -> String {
         _ => "**Default lean:** often **2–3 short sentences** total is enough unless the final length seal above names a different mode.",
     };
     format!(
-        "END-OF-TURN MICRO-SEAL:\n- Start from somewhere concrete in present tense — usually action, sometimes a held silence or sensory anchor when the moment wants less motion.\n- {cap}\n- If one elevated sentence appears, immediately follow with plain concrete consequence or fact.\n- Do not chain elevated sentences."
+        "END-OF-TURN MICRO-SEAL:\n- Let the first line arrive from somewhere concrete in present tense — usually speech plus one visible action or sensory anchor, with held silence or a plainer arrival only when the moment genuinely wants less motion.\n- {cap}\n- If one elevated sentence appears, immediately follow with plain concrete consequence or fact.\n- Do not chain elevated sentences."
     )
 }
 
