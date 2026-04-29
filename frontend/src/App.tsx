@@ -341,7 +341,7 @@ function MainApp() {
             type="button"
             onClick={() => setFocusMode(false)}
             className="group px-3 py-1.5 rounded-full text-xs font-medium bg-muted/80 backdrop-blur text-muted-foreground hover:text-foreground border border-border/50 transition-colors"
-            title="Cmd+Shift+F or Esc to exit Focus"
+            title="Leave Focus (Cmd+Shift+F or Esc)"
           >
             <span className="opacity-70">Focus is on</span>
             <span className="ml-2 opacity-0 group-hover:opacity-100 transition-opacity">· Cmd+Shift+F or Esc to exit</span>
@@ -363,7 +363,7 @@ function MainApp() {
             aria-label="Focus is available in chats"
           >
             <span className="opacity-70">Focus</span>
-            <span className="ml-2 opacity-0 group-hover:opacity-100 transition-opacity">· available in chats</span>
+            <span className="ml-2 opacity-0 group-hover:opacity-100 transition-opacity">· in chats</span>
           </button>
         </div>
       )}
@@ -377,7 +377,7 @@ function MainApp() {
           className="fixed bottom-4 right-4 z-30 px-3 py-1.5 rounded-full text-xs font-medium bg-muted/80 backdrop-blur text-muted-foreground border border-border/50 pointer-events-none animate-in fade-in slide-in-from-bottom-2"
           role="status"
         >
-          Focus mode is available in chats
+          Focus is available in chats
         </div>
       )}
 
