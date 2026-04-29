@@ -318,6 +318,14 @@ const _: () = {
         const_contains(STYLE_DIALOGUE_INVARIANT, "Move the scene forward by one true step"),
         "FEATURE-SCOPED INVARIANT VIOLATED: the scene-driving clause must keep the load-bearing one-true-step framing — coexists with OPEN ON ONE TRUE THING (don't manufacture forward motion via prop-piling)."
     );
+    assert!(
+        const_contains(STYLE_DIALOGUE_INVARIANT, "COMEDY RHYTHM WANTS THE LINE FIRST"),
+        "FEATURE-SCOPED INVARIANT VIOLATED: dialogue style must include the comedy-rhythm line-first carve-out for play/bit-comedy register."
+    );
+    assert!(
+        const_contains(STYLE_DIALOGUE_INVARIANT, "depth-register's grammar"),
+        "FEATURE-SCOPED INVARIANT VIOLATED: comedy-rhythm clause must explicitly name this as a register-specific inversion, not a global replacement of depth-register opener grammar."
+    );
 };
 
 pub const FORMAT_SECTION: &str = r#"# FORMAT
