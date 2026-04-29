@@ -518,4 +518,35 @@ mod tests {
     fn v2_audit_no_drift_between_registry_and_ai_sources() {
         audit_registry_matches_discovered().unwrap_or_else(|e| panic!("{e}"));
     }
+
+    #[test]
+    fn backstage_lens_respects_focus_ranking_order() {
+        let lens = format_backstage_lens_with_focus(&[
+            BuildSubstrate::CrossThreadSnippet,
+            BuildSubstrate::DialogueSystemPromptWithOverrides,
+        ]);
+        let cross_idx = lens
+            .find("CrossThreadSnippet")
+            .expect("expected CrossThreadSnippet in lens");
+        let dialogue_idx = lens
+            .find("DialogueSystemPromptWithOverrides")
+            .expect("expected DialogueSystemPromptWithOverrides in lens");
+        assert!(
+            cross_idx < dialogue_idx,
+            "focused substrate should be ranked before non-focused parity rows"
+        );
+    }
+
+    #[test]
+    fn backstage_lens_marks_technical_mode_as_opt_in() {
+        let lens = format_backstage_lens();
+        assert!(
+            lens.contains("only surface technical labels if the user explicitly asks for internals"),
+            "lens should enforce technical opt-in wording"
+        );
+        assert!(
+            lens.contains("Technical lookup (only if asked):"),
+            "lens should clearly scope technical section to on-request use"
+        );
+    }
 }
