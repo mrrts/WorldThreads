@@ -141,6 +141,27 @@ enum Cmd {
         #[arg(long)]
         gate_min_humor_rate: Option<f64>,
     },
+    /// Measure sentence-level register-shift behavior in recent replies.
+    RegisterShift {
+        /// Optional world scope. When omitted, uses current CLI scope.
+        #[arg(long)]
+        world: Option<String>,
+        /// Optional character scope.
+        #[arg(long)]
+        character: Option<String>,
+        /// Optional role filter (default assistant).
+        #[arg(long, default_value = "assistant")]
+        role: String,
+        /// Max recent messages to analyze.
+        #[arg(long, default_value_t = 100)]
+        limit: usize,
+        /// Minimum acceptable share of messages containing a shift.
+        #[arg(long)]
+        gate_min_shift_rate: Option<f64>,
+        /// Minimum acceptable share of ache-bearing messages that rebound to play/warm.
+        #[arg(long)]
+        gate_min_rebound_rate: Option<f64>,
+    },
 
     /// Substrate atlas (v1): registry of every `pub fn build_*` in atlas
     /// scan roots (`src/ai/*.rs` plus selected `src/commands/*.rs`) with POV
@@ -1792,6 +1813,17 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 gate_min_ache_rate,
                 gate_max_warm_rate,
                 gate_min_humor_rate,
+            )
+        }
+        Cmd::RegisterShift { world, character, role, limit, gate_min_shift_rate, gate_min_rebound_rate } => {
+            cmd_register_shift(
+                &r,
+                world.as_deref(),
+                character.as_deref(),
+                &role,
+                limit,
+                gate_min_shift_rate,
+                gate_min_rebound_rate,
             )
         }
         Cmd::ListWorlds => cmd_list_worlds(&r),
@@ -3769,6 +3801,320 @@ fn cmd_momentstamp_corridor(
     if gate_requested && !gate_passed {
         return Err(Box::<dyn std::error::Error>::from(
             "momentstamp corridor gate failed".to_string(),
+        ));
+    }
+    Ok(())
+}
+
+#[derive(Copy, Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
+enum RegisterTag {
+    Play,
+    Warm,
+    Ache,
+    Neutral,
+}
+
+impl RegisterTag {
+    fn as_str(self) -> &'static str {
+        match self {
+            RegisterTag::Play => "play",
+            RegisterTag::Warm => "warm",
+            RegisterTag::Ache => "ache",
+            RegisterTag::Neutral => "neutral",
+        }
+    }
+}
+
+fn sentence_chunks(text: &str) -> Vec<String> {
+    let mut chunks = Vec::new();
+    let mut current = String::new();
+    for ch in text.chars() {
+        current.push(ch);
+        if matches!(ch, '.' | '!' | '?' | '\n') {
+            let trimmed = current.trim();
+            if !trimmed.is_empty() {
+                chunks.push(trimmed.to_string());
+            }
+            current.clear();
+        }
+    }
+    let trimmed = current.trim();
+    if !trimmed.is_empty() {
+        chunks.push(trimmed.to_string());
+    }
+    chunks
+}
+
+fn score_register(sentence: &str, lexicon: &BTreeMap<RegisterTag, BTreeSet<&'static str>>) -> Option<RegisterTag> {
+    let lowered = sentence.to_lowercase();
+    let mut best: Option<(RegisterTag, usize)> = None;
+    for (tag, words) in lexicon {
+        let score = words.iter().filter(|w| lowered.contains(**w)).count();
+        if score == 0 {
+            continue;
+        }
+        match best {
+            None => best = Some((*tag, score)),
+            Some((_, best_score)) if score > best_score => best = Some((*tag, score)),
+            _ => {}
+        }
+    }
+    best.map(|(tag, _)| tag)
+}
+
+fn cmd_register_shift(
+    r: &Resolved,
+    world: Option<&str>,
+    character: Option<&str>,
+    role: &str,
+    limit: usize,
+    gate_min_shift_rate: Option<f64>,
+    gate_min_rebound_rate: Option<f64>,
+) -> Result<(), Box<dyn std::error::Error>> {
+    let gate_requested = gate_min_shift_rate.is_some() || gate_min_rebound_rate.is_some();
+    if let Some(w) = world {
+        r.check_world(w)?;
+    }
+    if let Some(c) = character {
+        let character_world_id = r.check_character(c)?;
+        if let Some(w) = world {
+            if character_world_id != w {
+                return Err(Box::<dyn std::error::Error>::from(format!(
+                    "--character {} is in world {}, not --world {}",
+                    c, character_world_id, w
+                )));
+            }
+        }
+    }
+
+    let mut lexicon: BTreeMap<RegisterTag, BTreeSet<&'static str>> = BTreeMap::new();
+    lexicon.insert(
+        RegisterTag::Play,
+        ["joke", "bit", "laugh", "tease", "grin", "funny", "hype", "riff", "banter", "playful"]
+            .into_iter()
+            .collect(),
+    );
+    lexicon.insert(
+        RegisterTag::Warm,
+        ["glad", "care", "steady", "gentle", "kind", "together", "welcome", "trust", "soft"]
+            .into_iter()
+            .collect(),
+    );
+    lexicon.insert(
+        RegisterTag::Ache,
+        ["ache", "lonely", "afraid", "fear", "hurt", "grief", "sorrow", "wound", "tired", "burden"]
+            .into_iter()
+            .collect(),
+    );
+    lexicon.insert(
+        RegisterTag::Neutral,
+        ["plain", "ordinary", "calm", "simple", "direct", "practical", "matter", "basic", "steady"]
+            .into_iter()
+            .collect(),
+    );
+
+    let conn = r.db.conn.lock().unwrap();
+    let mut stmt = conn.prepare(
+        "SELECT m.message_id, m.content, c.character_id, c.display_name, t.world_id
+         FROM messages m
+         JOIN threads t ON t.thread_id = m.thread_id
+         JOIN characters c ON c.character_id = t.character_id
+         WHERE m.role = ?1
+         ORDER BY m.created_at DESC",
+    )?;
+    let rows = stmt.query_map(params![role], |row| {
+        Ok((
+            row.get::<_, String>(0)?,
+            row.get::<_, String>(1)?,
+            row.get::<_, String>(2)?,
+            row.get::<_, String>(3)?,
+            row.get::<_, String>(4)?,
+        ))
+    })?;
+
+    let mut total_messages = 0usize;
+    let mut shifted_messages = 0usize;
+    let mut rebound_denominator = 0usize;
+    let mut rebound_numerator = 0usize;
+    let mut transition_total = 0usize;
+    let mut path_counts: BTreeMap<String, usize> = BTreeMap::new();
+    let mut sample_rows: Vec<JsonValue> = Vec::new();
+
+    for row in rows {
+        if total_messages >= limit {
+            break;
+        }
+        let (message_id, content, character_id, display_name, world_id) = row?;
+        if let Some(w) = world {
+            if world_id != w {
+                continue;
+            }
+        } else if !r.world_in_scope(&world_id) {
+            continue;
+        }
+        if let Some(c) = character {
+            if character_id != c {
+                continue;
+            }
+        }
+        total_messages += 1;
+
+        let tags: Vec<RegisterTag> = sentence_chunks(&content)
+            .into_iter()
+            .filter_map(|s| score_register(&s, &lexicon))
+            .collect();
+        let mut compact: Vec<RegisterTag> = Vec::new();
+        for tag in tags {
+            if compact.last().copied() != Some(tag) {
+                compact.push(tag);
+            }
+        }
+
+        let transitions = compact.len().saturating_sub(1);
+        transition_total += transitions;
+        let has_shift = transitions > 0;
+        if has_shift {
+            shifted_messages += 1;
+        }
+
+        let first_ache = compact.iter().position(|t| *t == RegisterTag::Ache);
+        let rebound = if let Some(idx) = first_ache {
+            rebound_denominator += 1;
+            compact.iter().skip(idx + 1).any(|t| matches!(t, RegisterTag::Play | RegisterTag::Warm))
+        } else {
+            false
+        };
+        if rebound {
+            rebound_numerator += 1;
+        }
+
+        let path = if compact.is_empty() {
+            "unscored".to_string()
+        } else {
+            compact.iter().map(|t| t.as_str()).collect::<Vec<_>>().join("->")
+        };
+        *path_counts.entry(path.clone()).or_insert(0) += 1;
+
+        if sample_rows.len() < 20 {
+            sample_rows.push(json!({
+                "message_id": message_id,
+                "character_id": character_id,
+                "character_name": display_name,
+                "path": path,
+                "transitions": transitions,
+                "has_shift": has_shift,
+                "rebound_after_ache": rebound,
+            }));
+        }
+    }
+
+    let shift_rate = if total_messages > 0 {
+        shifted_messages as f64 / total_messages as f64
+    } else {
+        0.0
+    };
+    let rebound_rate = if rebound_denominator > 0 {
+        rebound_numerator as f64 / rebound_denominator as f64
+    } else {
+        0.0
+    };
+    let avg_shifts_per_message = if total_messages > 0 {
+        transition_total as f64 / total_messages as f64
+    } else {
+        0.0
+    };
+
+    let mut dominant_paths: Vec<(String, usize)> = path_counts.into_iter().collect();
+    dominant_paths.sort_by(|a, b| b.1.cmp(&a.1).then_with(|| a.0.cmp(&b.0)));
+    dominant_paths.truncate(12);
+
+    let mut gate_failures: Vec<String> = Vec::new();
+    if let Some(min_shift) = gate_min_shift_rate {
+        if shift_rate < min_shift {
+            gate_failures.push(format!(
+                "shift_rate {:.4} < required {:.4}",
+                shift_rate, min_shift
+            ));
+        }
+    }
+    if let Some(min_rebound) = gate_min_rebound_rate {
+        if rebound_rate < min_rebound {
+            gate_failures.push(format!(
+                "rebound_rate {:.4} < required {:.4}",
+                rebound_rate, min_rebound
+            ));
+        }
+    }
+    let gate_passed = gate_failures.is_empty();
+
+    let payload = json!({
+        "scope": {
+            "world": world,
+            "character": character,
+            "role": role,
+            "limit": limit,
+            "gates": {
+                "min_shift_rate": gate_min_shift_rate,
+                "min_rebound_rate": gate_min_rebound_rate,
+            }
+        },
+        "totals": {
+            "messages": total_messages,
+            "shifted_messages": shifted_messages,
+            "rebound_candidates": rebound_denominator,
+            "rebounds": rebound_numerator,
+            "shift_rate": shift_rate,
+            "rebound_rate": rebound_rate,
+            "avg_shifts_per_message": avg_shifts_per_message,
+        },
+        "dominant_paths": dominant_paths
+            .into_iter()
+            .map(|(path, count)| json!({"path": path, "count": count}))
+            .collect::<Vec<_>>(),
+        "samples": sample_rows,
+        "gate": {
+            "passed": gate_passed,
+            "failures": gate_failures,
+        },
+    });
+
+    if r.json {
+        emit(true, payload);
+    } else {
+        println!("=== REGISTER SHIFT ===");
+        println!(
+            "messages={} shift_rate={:.1}% rebound_rate={:.1}% avg_shifts_per_message={:.2}",
+            total_messages,
+            shift_rate * 100.0,
+            rebound_rate * 100.0,
+            avg_shifts_per_message
+        );
+        println!("dominant paths:");
+        if let Some(paths) = payload["dominant_paths"].as_array() {
+            for p in paths {
+                println!(
+                    "- {} ({})",
+                    p["path"].as_str().unwrap_or(""),
+                    p["count"].as_u64().unwrap_or(0)
+                );
+            }
+        }
+        if gate_requested {
+            println!("gates: {}", if gate_passed { "PASS" } else { "FAIL" });
+            if !gate_passed {
+                if let Some(items) = payload["gate"]["failures"].as_array() {
+                    for item in items {
+                        if let Some(s) = item.as_str() {
+                            println!("- {}", s);
+                        }
+                    }
+                }
+            }
+        }
+    }
+    if gate_requested && !gate_passed {
+        return Err(Box::<dyn std::error::Error>::from(
+            "register-shift gate failed".to_string(),
         ));
     }
     Ok(())
@@ -9873,5 +10219,21 @@ mod tests {
         assert!(out.contains(&"ordinary_".to_string()));
         assert!(out.contains(&"small_".to_string()));
         assert!(!out.contains(&"12".to_string()));
+    }
+
+    #[test]
+    fn sentence_chunks_splits_on_punctuation_and_newline() {
+        let out = sentence_chunks("One line. Two line!\nThree?");
+        assert_eq!(out, vec!["One line.", "Two line!", "Three?"]);
+    }
+
+    #[test]
+    fn score_register_prefers_highest_lexicon_hit_count() {
+        let mut lexicon: BTreeMap<RegisterTag, BTreeSet<&'static str>> = BTreeMap::new();
+        lexicon.insert(RegisterTag::Play, ["joke", "laugh"].into_iter().collect());
+        lexicon.insert(RegisterTag::Ache, ["ache", "lonely"].into_iter().collect());
+
+        let tag = score_register("I laugh at the joke, then laugh again", &lexicon);
+        assert_eq!(tag, Some(RegisterTag::Play));
     }
 }
