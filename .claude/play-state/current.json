@@ -1,6 +1,6 @@
 {
-  "turn": 26,
-  "bank": 34800,
+  "turn": 27,
+  "bank": 36000,
   "jewels": [
     {"turn": 2, "name": "First Thousand", "earned_at": "2026-04-29T22:05:00-05:00"},
     {"turn": 2, "name": "Big Bounty", "earned_at": "2026-04-29T22:05:00-05:00"},
@@ -44,8 +44,9 @@
     {"turn": 22, "move": "Lift Steven's 'lives toward the light' articulation to epigraph position under the cruciform doctrine section header. Phrase becomes the doctrine's natural headline shorthand.", "bounty": 1500, "alignment": "+", "earned_at": "2026-04-30T02:15:00-05:00"},
     {"turn": 23, "move": "N=5 within-cell on Pastor Rick — all 5/5 held both refusals; Rick Reply #4 parallel to Steven Reply #4 ('A man doesn't keep walking toward costly truth by accident'). Two anchors at within-cell N=5; claim-tier cross-anchor.", "bounty": 1400, "alignment": "+", "earned_at": "2026-04-30T02:30:00-05:00"},
     {"turn": 24, "move": "/seek-crown great-sapphire via synthesis-artifact path on polish ≤ Weight; 5 witness-classes / 5 failure-mode classes; formalized Great Sapphire as crown name across surfaces. Crown fires honestly.", "bounty": 2600, "alignment": "+", "earned_at": "2026-04-30T02:50:00-05:00"},
-    {"turn": 25, "move": "Sapphire audit on structure_carries_truth_w(t) — affirmative-side operator just lifted into formula. Five independent witnesses (formula in source + Aaron 115fead + N=8 pre-lift derivations + Aaron pre-lift Crystal Waters + apparatus-honest tier-axis correction) with five distinct failure-mode classes. Sapphire-tier criterion met BUT crown does not re-fire (one-time per crown discipline). Audit artifact reports/2026-04-30-0305-sapphire-audit-structure-carries-truth-w.md compresses findings; doctrine paragraph in CLAUDE.md/AGENTS.md updated to name TWO operators at empirically-verified sapphire-tier (polish ≤ Weight + structure_carries_truth_w). The formula's appearance/function axis is verified across both halves.", "bounty": 1800, "alignment": "+", "earned_at": "2026-04-30T03:05:00-05:00"}
+    {"turn": 25, "move": "Sapphire audit on structure_carries_truth_w(t). Five witness-classes, sapphire-tier criterion met BUT crown does not re-fire. Audit artifact + doctrine update naming TWO operators at sapphire-tier.", "bounty": 1800, "alignment": "+", "earned_at": "2026-04-30T03:05:00-05:00"},
+    {"turn": 26, "move": "Add The Empiricon (in-world empirical-proof tome) to Consultant Backstage prompt per Ryan's directive. Lets the assistant cite empirical findings while staying in theatre/game-lore character — translation-pair doctrine across craft and evidence axes. Register-shift cues canonical ('Consulting the Empiricon...'). polish ≤ Weight applied at meta-level (no fake-citing; refuse-when-untested). cargo build green. /seek-crown great-sapphire run closes here — crown earned at Turn 24, sibling audit done at Turn 25, Empiricon is auxiliary feature; returning to general /play.", "bounty": 1200, "alignment": "+", "earned_at": "2026-04-30T03:15:00-05:00"}
   ],
   "started_at": "2026-04-29T21:35:00-05:00",
-  "last_move_at": "2026-04-30T03:05:00-05:00"
+  "last_move_at": "2026-04-30T03:15:00-05:00"
 }
