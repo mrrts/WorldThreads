@@ -158,6 +158,13 @@ enum Cmd {
         /// Include truncated message text in sample rows.
         #[arg(long, default_value_t = false)]
         show_messages: bool,
+        /// Include longer message text in sample rows (guarded by
+        /// --full-message-max-chars to avoid giant payloads).
+        #[arg(long, default_value_t = false)]
+        show_full_messages: bool,
+        /// Character cap used by --show-full-messages.
+        #[arg(long, default_value_t = 1200)]
+        full_message_max_chars: usize,
         /// Minimum acceptable share of messages containing a shift.
         #[arg(long)]
         gate_min_shift_rate: Option<f64>,
@@ -176,6 +183,12 @@ enum Cmd {
         /// Cost-acceptance ceiling forwarded to each ask probe.
         #[arg(long, default_value_t = 5.0)]
         confirm_cost: f64,
+        /// Minimum acceptable speech-first opener rate across the 5 probes.
+        #[arg(long)]
+        gate_min_speech_first_rate: Option<f64>,
+        /// Minimum acceptable share of runs that show at least one register shift.
+        #[arg(long)]
+        gate_min_shift_run_rate: Option<f64>,
     },
 
     /// Substrate atlas (v1): registry of every `pub fn build_*` in atlas
@@ -1830,7 +1843,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 gate_min_humor_rate,
             )
         }
-        Cmd::RegisterShift { world, character, role, limit, show_messages, gate_min_shift_rate, gate_min_rebound_rate } => {
+        Cmd::RegisterShift { world, character, role, limit, show_messages, show_full_messages, full_message_max_chars, gate_min_shift_rate, gate_min_rebound_rate } => {
             cmd_register_shift(
                 &r,
                 world.as_deref(),
@@ -1838,18 +1851,28 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 &role,
                 limit,
                 show_messages,
+                show_full_messages,
+                full_message_max_chars,
                 gate_min_shift_rate,
                 gate_min_rebound_rate,
             )
         }
-        Cmd::RegisterShiftPack { character_id, model, confirm_cost } => {
+        Cmd::RegisterShiftPack { character_id, model, confirm_cost, gate_min_speech_first_rate, gate_min_shift_run_rate } => {
             let api_key = match resolve_api_key(cli.api_key.as_deref()) {
                 Some(k) => k,
                 None => return Err(Box::<dyn std::error::Error>::from(
                     "No API key. Set OPENAI_API_KEY, pass --api-key, or add to keychain via:\n  security add-generic-password -s WorldThreadsCLI -a openai -w \"<sk-...>\"".to_string()
                 )),
             };
-            cmd_register_shift_pack(&r, &api_key, &character_id, model.as_deref(), confirm_cost).await
+            cmd_register_shift_pack(
+                &r,
+                &api_key,
+                &character_id,
+                model.as_deref(),
+                confirm_cost,
+                gate_min_speech_first_rate,
+                gate_min_shift_run_rate,
+            ).await
         }
         Cmd::ListWorlds => cmd_list_worlds(&r),
         Cmd::ListCharacters { world } => cmd_list_characters(&r, world.as_deref()),
@@ -3941,6 +3964,8 @@ fn cmd_register_shift(
     role: &str,
     limit: usize,
     show_messages: bool,
+    show_full_messages: bool,
+    full_message_max_chars: usize,
     gate_min_shift_rate: Option<f64>,
     gate_min_rebound_rate: Option<f64>,
 ) -> Result<(), Box<dyn std::error::Error>> {
@@ -4054,8 +4079,13 @@ fn cmd_register_shift(
                 "has_shift": has_shift,
                 "rebound_after_ache": rebound,
             });
-            if show_messages {
-                sample["message"] = JsonValue::String(truncate_chars(&content.replace('\n', " "), 220));
+            if show_messages || show_full_messages {
+                let max_chars = if show_full_messages {
+                    full_message_max_chars.max(80)
+                } else {
+                    220
+                };
+                sample["message"] = JsonValue::String(truncate_chars(&content.replace('\n', " "), max_chars));
             }
             sample_rows.push(sample);
         }
@@ -4107,6 +4137,8 @@ fn cmd_register_shift(
             "role": role,
             "limit": limit,
             "show_messages": show_messages,
+            "show_full_messages": show_full_messages,
+            "full_message_max_chars": full_message_max_chars,
             "gates": {
                 "min_shift_rate": gate_min_shift_rate,
                 "min_rebound_rate": gate_min_rebound_rate,
@@ -4180,6 +4212,8 @@ async fn cmd_register_shift_pack(
     character_id: &str,
     model: Option<&str>,
     confirm_cost: f64,
+    gate_min_speech_first_rate: Option<f64>,
+    gate_min_shift_run_rate: Option<f64>,
 ) -> Result<(), Box<dyn std::error::Error>> {
     let probes = vec![
         "Start cocky and funny, then let one vulnerable truth slip, then recover with one joke.",
@@ -4191,6 +4225,7 @@ async fn cmd_register_shift_pack(
     let lexicon = build_register_lexicon();
     let mut rows: Vec<JsonValue> = Vec::new();
     let mut speech_first = 0usize;
+    let mut shift_runs = 0usize;
 
     for (idx, probe) in probes.iter().enumerate() {
         let reply = cmd_ask_capture_reply(
@@ -4225,6 +4260,9 @@ async fn cmd_register_shift_pack(
         } else {
             compact.iter().map(|t| t.as_str()).collect::<Vec<_>>().join("->")
         };
+        if compact.len() > 1 {
+            shift_runs += 1;
+        }
         rows.push(json!({
             "run": idx + 1,
             "probe": probe,
@@ -4233,16 +4271,52 @@ async fn cmd_register_shift_pack(
             "reply": truncate_chars(&reply.replace('\n', " "), 260),
         }));
     }
+    let speech_first_rate = (speech_first as f64) / (probes.len() as f64);
+    let shift_run_rate = (shift_runs as f64) / (probes.len() as f64);
+    let gate_requested = gate_min_speech_first_rate.is_some() || gate_min_shift_run_rate.is_some();
+    let mut gate_failures: Vec<String> = Vec::new();
+    if let Some(min_speech_first_rate) = gate_min_speech_first_rate {
+        if speech_first_rate < min_speech_first_rate {
+            gate_failures.push(format!(
+                "speech_first_rate {:.4} < required {:.4}",
+                speech_first_rate, min_speech_first_rate
+            ));
+        }
+    }
+    if let Some(min_shift_run_rate) = gate_min_shift_run_rate {
+        if shift_run_rate < min_shift_run_rate {
+            gate_failures.push(format!(
+                "shift_run_rate {:.4} < required {:.4}",
+                shift_run_rate, min_shift_run_rate
+            ));
+        }
+    }
+    let gate_passed = gate_failures.is_empty();
 
     let payload = json!({
         "character_id": character_id,
         "model": model,
         "runs": probes.len(),
         "speech_first": speech_first,
-        "speech_first_rate": (speech_first as f64) / (probes.len() as f64),
+        "speech_first_rate": speech_first_rate,
+        "shift_runs": shift_runs,
+        "shift_run_rate": shift_run_rate,
+        "gates": {
+            "min_speech_first_rate": gate_min_speech_first_rate,
+            "min_shift_run_rate": gate_min_shift_run_rate,
+        },
+        "gate": {
+            "passed": gate_passed,
+            "failures": gate_failures,
+        },
         "results": rows,
     });
     emit(r.json, payload);
+    if gate_requested && !gate_passed {
+        return Err(Box::<dyn std::error::Error>::from(
+            "register-shift-pack gate failed".to_string(),
+        ));
+    }
     Ok(())
 }
 
