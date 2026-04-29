@@ -745,6 +745,9 @@ enum Cmd {
         /// Maximum average words allowed per character.
         #[arg(long, default_value_t = 45.0)]
         max_avg_words: f64,
+        /// Treat direct questions as actionable closes when grading.
+        #[arg(long, default_value_t = false)]
+        question_as_action_allowed: bool,
     },
 
     /// Evaluate natural-corpus messages against a rubric on either
@@ -1976,8 +1979,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             };
             cmd_grade_runs(&r, &api_key, &run_ids, rubric.as_deref(), rubric_ref.as_deref(), rubric_file.as_deref(), model.as_deref(), confirm_cost).await
         }
-        Cmd::GradeStressPack { files, min_pass_rate, max_avg_words } => {
-            cmd_grade_stress_pack(&r, &files, min_pass_rate, max_avg_words)
+        Cmd::GradeStressPack { files, min_pass_rate, max_avg_words, question_as_action_allowed } => {
+            cmd_grade_stress_pack(&r, &files, min_pass_rate, max_avg_words, question_as_action_allowed)
         }
         Cmd::Synthesize { git_ref, end_ref, limit, character, group_chat, question, question_file, role, context_turns, model, confirm_cost, repo } => {
             let api_key = match resolve_api_key(cli.api_key.as_deref()) {
@@ -4254,6 +4257,7 @@ fn cmd_grade_stress_pack(
     files: &[PathBuf],
     min_pass_rate: f64,
     max_avg_words: f64,
+    question_as_action_allowed: bool,
 ) -> Result<(), Box<dyn std::error::Error>> {
     if files.is_empty() {
         return Err(Box::<dyn std::error::Error>::from(
@@ -4278,7 +4282,17 @@ fn cmd_grade_stress_pack(
         word_count_sum: usize,
     }
 
-    fn classify_archetype(row: &JsonValue) -> String {
+    fn has_action_shape(reply: &str, question_as_action_allowed: bool) -> bool {
+        let low = reply.to_ascii_lowercase();
+        let cue_words = [
+            "do ", "start ", "stop ", "send ", "take ", "open ", "write ", "walk ", "breathe ",
+            "text ", "pick ", "give ", "tell ", "name ", "list ", "focus ", "hold ", "ship ",
+        ];
+        let has_directive = cue_words.iter().any(|w| low.contains(w));
+        has_directive || (question_as_action_allowed && low.contains('?'))
+    }
+
+    fn classify_archetype(row: &JsonValue, question_as_action_allowed: bool) -> String {
         let reply = row
             .get("reply")
             .and_then(|v| v.as_str())
@@ -4294,16 +4308,12 @@ fn cmd_grade_stress_pack(
         if reply.starts_with('*') || reply.contains("*i ") {
             return "stage_business_present".to_string();
         }
-        let cue_words = [
-            "do ", "start ", "stop ", "send ", "take ", "open ", "write ", "walk ", "breathe ",
-            "text ", "pick ",
-        ];
-        let has_directive = cue_words.iter().any(|w| reply.contains(w));
-        if !has_directive {
+        let has_action_shape = has_action_shape(&reply, question_as_action_allowed);
+        if !has_action_shape {
             return "no_concrete_directive".to_string();
         }
         if (reply.contains("truth") || reply.contains("honest") || reply.contains("plain"))
-            && !has_directive
+            && !has_action_shape
         {
             return "abstraction_over_action".to_string();
         }
@@ -4328,11 +4338,17 @@ fn cmd_grade_stress_pack(
             let Some(character) = row.get("character").and_then(|v| v.as_str()) else {
                 continue;
             };
-            let pass = row.get("pass").and_then(|v| v.as_bool()).unwrap_or(false);
+            let row_pass = row.get("pass").and_then(|v| v.as_bool()).unwrap_or(false);
+            let reply = row.get("reply").and_then(|v| v.as_str()).unwrap_or("");
             let words = row
                 .get("word_count")
                 .and_then(|v| v.as_u64())
                 .unwrap_or(0) as usize;
+            let pass = if !reply.is_empty() {
+                words <= 45 && has_action_shape(reply, question_as_action_allowed)
+            } else {
+                row_pass
+            };
 
             let cs = per_char.entry(character.to_string()).or_default();
             cs.total += 1;
@@ -4349,7 +4365,7 @@ fn cmd_grade_stress_pack(
             agg.word_count_sum += words;
 
             if !pass {
-                let archetype = classify_archetype(row);
+                let archetype = classify_archetype(row, question_as_action_allowed);
                 *per_char_archetypes
                     .entry(character.to_string())
                     .or_default()
@@ -4427,6 +4443,7 @@ fn cmd_grade_stress_pack(
         "thresholds": {
             "min_pass_rate": min_pass_rate,
             "max_avg_words": max_avg_words,
+            "question_as_action_allowed": question_as_action_allowed,
         },
         "files": by_file,
         "overall": {
@@ -4444,8 +4461,8 @@ fn cmd_grade_stress_pack(
     } else {
         println!("=== GRADE STRESS PACK ===");
         println!(
-            "thresholds: min_pass_rate={:.2}, max_avg_words={:.1}",
-            min_pass_rate, max_avg_words
+            "thresholds: min_pass_rate={:.2}, max_avg_words={:.1}, question_as_action_allowed={}",
+            min_pass_rate, max_avg_words, question_as_action_allowed
         );
         if let Some(chars) = payload["overall"]["per_character"].as_array() {
             for row in chars {

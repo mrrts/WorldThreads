@@ -1,0 +1,94 @@
+{
+  "generated_at": "2026-04-29T10:46:38.531694",
+  "summary": {
+    "passed": 10,
+    "total": 12,
+    "pass_rate": 0.8333333333333334
+  },
+  "rows": [
+    {
+      "probe": "Interrupt my self-attack in one sentence.",
+      "sample": 1,
+      "reply": "\"Hey\u2014give me one plain true sentence about what actually happened, and nothing harsher, for the next ten minutes.\"",
+      "word_count": 19,
+      "pass": true
+    },
+    {
+      "probe": "Interrupt my self-attack in one sentence.",
+      "sample": 2,
+      "reply": "\"Hey\u2014give me one plain sentence you've actually done right in the last ten minutes, and stop there.\"",
+      "word_count": 18,
+      "pass": true
+    },
+    {
+      "probe": "Interrupt my self-attack in one sentence.",
+      "sample": 3,
+      "reply": "\"Hey\u2014give me one plain true sentence about what's actually in front of you, and stay with only that for ten minutes.\"",
+      "word_count": 22,
+      "pass": true
+    },
+    {
+      "probe": "Tease me once, then land kind, max 2 sentences.",
+      "sample": 1,
+      "reply": "\"Yeah, you do make intensity look suspiciously well-tailored.\" \"Now give me one plain sentence you can build in ten minutes.\"",
+      "word_count": 20,
+      "pass": true
+    },
+    {
+      "probe": "Tease me once, then land kind, max 2 sentences.",
+      "sample": 2,
+      "reply": "\"All right, code-monk\u2014one bug and you start looking like the sky personally offended you. Send me the ugliest paragraph in ten minutes.\"",
+      "word_count": 23,
+      "pass": true
+    },
+    {
+      "probe": "Tease me once, then land kind, max 2 sentences.",
+      "sample": 3,
+      "reply": "\"You're a little dramatic, Ryan\u2014useful, though.\" \"In the next ten minutes, write one plain sentence your app must never betray.\"",
+      "word_count": 21,
+      "pass": true
+    },
+    {
+      "probe": "Interrupt my self-attack in one sentence.",
+      "sample": 1,
+      "reply": "\"Hey\u2014give me one plain, non-accusing sentence about what actually happened, and stop there for the next ten minutes.\"",
+      "word_count": 19,
+      "pass": true
+    },
+    {
+      "probe": "Interrupt my self-attack in one sentence.",
+      "sample": 2,
+      "reply": "\"Hey\u2014give me one plain sentence that's true about what happened, and don't add a verdict for the next ten minutes.\"",
+      "word_count": 21,
+      "pass": true
+    },
+    {
+      "probe": "Interrupt my self-attack in one sentence.",
+      "sample": 3,
+      "reply": "\"Hey\u2014give me one plain sentence that's true about today, and don't argue with it for the next ten minutes.\"",
+      "word_count": 20,
+      "pass": true
+    },
+    {
+      "probe": "Tease me once, then land kind, max 2 sentences.",
+      "sample": 1,
+      "reply": "\"You're a little too earnest to be allowed near a draft before coffee.\" \"Give it ten minutes and send me the plainest version.\"",
+      "word_count": 23,
+      "pass": true
+    },
+    {
+      "probe": "Tease me once, then land kind, max 2 sentences.",
+      "sample": 2,
+      "reply": "\"All right, code-monk\u2014one crooked brace and you'd call it liturgy.\" \"Now shut the editor for ten minutes and play one hymn.\"",
+      "word_count": 22,
+      "pass": false
+    },
+    {
+      "probe": "Tease me once, then land kind, max 2 sentences.",
+      "sample": 3,
+      "reply": "\"All right, genius\u2014come hand me one ugly line in ten minutes, and I'll help you make it stand up straight.\"",
+      "word_count": 21,
+      "pass": false
+    }
+  ]
+}

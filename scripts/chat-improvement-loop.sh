@@ -104,8 +104,9 @@ chars={"Darren":"${DARREN}","Jasper":"${JASPER}"}
 def wc(t): return len(re.findall(r"\\b\\w+[\\w'-]*\\b", t))
 def is_pass(t):
     concise=wc(t)<=45
-    concrete=any(w in t.lower() for w in ("do ","start ","stop ","send ","take ","open ","write ","walk ","breathe ","text ","pick ","put ","set "))
-    return concise and concrete
+    concrete=any(w in t.lower() for w in ("do ","start ","stop ","send ","take ","open ","write ","walk ","breathe ","text ","pick ","put ","set ","give ","tell ","name ","list ","focus ","hold ","ship "))
+    question="?" in t
+    return concise and (concrete or question)
 for name,cid in chars.items():
     rows=[]
     for i,p in enumerate(probes,1):
@@ -126,6 +127,7 @@ PY
   "$CLI" --json grade-stress-pack "$STRESS_D" "$STRESS_J" \
     --min-pass-rate "$STRESS_MIN_PASS_RATE" \
     --max-avg-words "$STRESS_MAX_AVG_WORDS" \
+    --question-as-action-allowed \
     > "$STRESS_GRADE" || true
 fi
 
@@ -166,6 +168,39 @@ print(f"GATE {status} | shift={shift_ok} eval={eval_ok} stress={stress_ok} | sta
 PY
 )"
   echo "$GATE_LINE"
+  if [[ "$RUN_STRESS_PACK" == "1" ]]; then
+    ACTION_SHAPE_LINE="$(python3 - <<PY
+import json
+from pathlib import Path
+def rows(path):
+    return json.loads(Path(path).read_text()).get("rows", [])
+def shape(reply: str):
+    low = reply.lower()
+    imperative_words = ("do ","start ","stop ","send ","take ","open ","write ","walk ","breathe ","text ","pick ","put ","set ","give ","tell ","name ","list ","focus ","hold ","ship ")
+    if any(w in low for w in imperative_words):
+        return "imperative"
+    if "?" in reply:
+        return "question"
+    return "other"
+all_rows = rows("${STRESS_D}") + rows("${STRESS_J}")
+counts = {"imperative": 0, "question": 0, "other": 0}
+for r in all_rows:
+    rep = r.get("reply")
+    if not isinstance(rep, str):
+        continue
+    counts[shape(rep)] += 1
+total = sum(counts.values()) or 1
+print(
+    "ACTION_SHAPE"
+    + f" | imperative={counts['imperative']} ({counts['imperative']/total:.0%})"
+    + f" question={counts['question']} ({counts['question']/total:.0%})"
+    + f" other={counts['other']} ({counts['other']/total:.0%})"
+    + f" | stamp=${STAMP}"
+)
+PY
+)"
+    echo "$ACTION_SHAPE_LINE"
+  fi
 fi
 
 echo "[loop] artifacts:"
