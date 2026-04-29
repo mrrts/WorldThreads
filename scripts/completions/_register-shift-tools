@@ -1,0 +1,38 @@
+#compdef latest-register-shift-run.sh show-latest-register-shift-run.sh register-shift-dashboard.sh run-rebound-strict.sh
+
+_latest_register_shift_run() {
+  _arguments \
+    '--help[Show usage]' \
+    '--json[Emit compact JSON]' \
+    '--pretty[Emit pretty JSON]' \
+    '--name-only[Print run directory basename]' \
+    '--list-files[List files in latest run]'
+}
+
+_show_latest_register_shift_run() {
+  _arguments \
+    '--help[Show usage]' \
+    '--quiet[Suppress latest_run header]' \
+    '--format[Output format]:format:(text csv json)' \
+    '--latest-only[Filter rows by subset]:subset:(all shift pack rebound)'
+}
+
+_register_shift_dashboard() {
+  _arguments \
+    '1:profile:(loose medium strict)' \
+    '--help[Show usage]' \
+    '--commit-artifacts[Commit generated artifacts]'
+}
+
+_run_rebound_strict() {
+  _arguments \
+    '--help[Show usage]' \
+    '--commit-artifacts[Commit generated artifacts]'
+}
+
+case "$service" in
+  latest-register-shift-run.sh) _latest_register_shift_run ;;
+  show-latest-register-shift-run.sh) _show_latest_register_shift_run ;;
+  register-shift-dashboard.sh) _register_shift_dashboard ;;
+  run-rebound-strict.sh) _run_rebound_strict ;;
+esac

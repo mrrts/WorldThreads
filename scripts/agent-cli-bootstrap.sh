@@ -3,10 +3,16 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 WORLDCLI_BIN="${WORLDCLI_BIN:-$ROOT_DIR/src-tauri/target/debug/worldcli}"
+JSON_MODE=false
+
+if [[ "${1:-}" == "--json" ]]; then
+  JSON_MODE=true
+  shift
+fi
 
 if [[ "${1:-}" == "--help" || "${1:-}" == "-h" ]]; then
   cat <<'EOF'
-Usage: agent-cli-bootstrap.sh
+Usage: agent-cli-bootstrap.sh [--json]
 Runs the CLI discovery checklist and prints basic availability status.
 EOF
   exit 0
@@ -15,16 +21,24 @@ fi
 run_check() {
   local label="$1"
   shift
-  printf "==> %s\n" "$label"
   if "$@" >/dev/null 2>&1; then
-    echo "PASS"
+    if ! $JSON_MODE; then
+      printf "==> %s\nPASS\n" "$label"
+    fi
+    CHECK_RESULTS+=("{\"label\":\"$label\",\"passed\":true}")
   else
-    echo "FAIL"
+    if ! $JSON_MODE; then
+      printf "==> %s\nFAIL\n" "$label"
+    fi
+    CHECK_RESULTS+=("{\"label\":\"$label\",\"passed\":false}")
   fi
 }
 
-echo "Agent CLI bootstrap discovery checks"
-echo "repo: $ROOT_DIR"
+CHECK_RESULTS=()
+if ! $JSON_MODE; then
+  echo "Agent CLI bootstrap discovery checks"
+  echo "repo: $ROOT_DIR"
+fi
 
 run_check "worldcli --help" worldcli --help
 run_check "worldcli register-shift --help" worldcli register-shift --help
@@ -40,5 +54,10 @@ run_check "show-latest-register-shift-run --help" "$ROOT_DIR/scripts/show-latest
 run_check "compare-register-shift-runs --help" "$ROOT_DIR/scripts/compare-register-shift-runs.py" --help
 run_check "export-latest-register-shift-csv --help" "$ROOT_DIR/scripts/export-latest-register-shift-csv.sh" --help
 
-echo
-echo "Reference: $ROOT_DIR/docs/CLI_AGENT_DISCOVERY.md"
+if $JSON_MODE; then
+  printf '{"repo":"%s","reference":"%s/docs/CLI_AGENT_DISCOVERY.md","checks":[%s]}\n' \
+    "$ROOT_DIR" "$ROOT_DIR" "$(IFS=,; echo "${CHECK_RESULTS[*]}")"
+else
+  echo
+  echo "Reference: $ROOT_DIR/docs/CLI_AGENT_DISCOVERY.md"
+fi
