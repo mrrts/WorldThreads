@@ -10,6 +10,7 @@ pub struct ImaginedChapter {
     pub world_day: Option<i64>,
     pub title: String,
     pub seed_hint: String,
+    pub scene_location: Option<String>,
     /// The step-1 invented scene prose used to drive the illustration.
     /// Stored for debug/replay but intentionally NOT shown to the
     /// chapter writer — the telephone-game inversion is the feature.
@@ -33,14 +34,15 @@ pub fn create_imagined_chapter(
     chapter: &ImaginedChapter,
 ) -> Result<(), rusqlite::Error> {
     conn.execute(
-        "INSERT INTO imagined_chapters (chapter_id, thread_id, world_day, title, seed_hint, scene_description, image_id, content, created_at, breadcrumb_message_id, canonized)
-         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)",
+        "INSERT INTO imagined_chapters (chapter_id, thread_id, world_day, title, seed_hint, scene_location, scene_description, image_id, content, created_at, breadcrumb_message_id, canonized)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12)",
         params![
             chapter.chapter_id,
             chapter.thread_id,
             chapter.world_day,
             chapter.title,
             chapter.seed_hint,
+            chapter.scene_location,
             chapter.scene_description,
             chapter.image_id,
             chapter.content,
@@ -116,7 +118,7 @@ pub fn get_imagined_chapter(
     chapter_id: &str,
 ) -> Result<ImaginedChapter, rusqlite::Error> {
     conn.query_row(
-        "SELECT chapter_id, thread_id, world_day, title, seed_hint, scene_description, image_id, content, created_at, breadcrumb_message_id, canonized
+        "SELECT chapter_id, thread_id, world_day, title, seed_hint, scene_location, scene_description, image_id, content, created_at, breadcrumb_message_id, canonized
          FROM imagined_chapters WHERE chapter_id = ?1",
         params![chapter_id],
         |r| Ok(ImaginedChapter {
@@ -125,12 +127,13 @@ pub fn get_imagined_chapter(
             world_day: r.get(2)?,
             title: r.get(3)?,
             seed_hint: r.get(4)?,
-            scene_description: r.get(5)?,
-            image_id: r.get(6)?,
-            content: r.get(7)?,
-            created_at: r.get(8)?,
-            breadcrumb_message_id: r.get(9)?,
-            canonized: r.get::<_, i32>(10)? != 0,
+            scene_location: r.get(5)?,
+            scene_description: r.get(6)?,
+            image_id: r.get(7)?,
+            content: r.get(8)?,
+            created_at: r.get(9)?,
+            breadcrumb_message_id: r.get(10)?,
+            canonized: r.get::<_, i32>(11)? != 0,
         }),
     )
 }
@@ -141,7 +144,7 @@ pub fn list_imagined_chapters_for_thread(
     thread_id: &str,
 ) -> Result<Vec<ImaginedChapter>, rusqlite::Error> {
     let mut stmt = conn.prepare(
-        "SELECT chapter_id, thread_id, world_day, title, seed_hint, scene_description, image_id, content, created_at, breadcrumb_message_id, canonized
+        "SELECT chapter_id, thread_id, world_day, title, seed_hint, scene_location, scene_description, image_id, content, created_at, breadcrumb_message_id, canonized
          FROM imagined_chapters WHERE thread_id = ?1
          ORDER BY created_at DESC"
     )?;
@@ -151,12 +154,13 @@ pub fn list_imagined_chapters_for_thread(
         world_day: r.get(2)?,
         title: r.get(3)?,
         seed_hint: r.get(4)?,
-        scene_description: r.get(5)?,
-        image_id: r.get(6)?,
-        content: r.get(7)?,
-        created_at: r.get(8)?,
-        breadcrumb_message_id: r.get(9)?,
-        canonized: r.get::<_, i32>(10)? != 0,
+        scene_location: r.get(5)?,
+        scene_description: r.get(6)?,
+        image_id: r.get(7)?,
+        content: r.get(8)?,
+        created_at: r.get(9)?,
+        breadcrumb_message_id: r.get(10)?,
+        canonized: r.get::<_, i32>(11)? != 0,
     }))?;
     rows.collect()
 }

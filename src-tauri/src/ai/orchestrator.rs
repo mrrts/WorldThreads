@@ -1206,9 +1206,12 @@ pub async fn run_dialogue_streaming(
     illustration_captions: &std::collections::HashMap<String, String>,
     current_location_override: Option<&str>,
 ) -> Result<String, String> {
-    // Streaming preview path (no journals/quests/etc loaded). Pass None
-    // for relational_stance — the preview is a transient pre-generate
-    // and doesn't need the synthesized stance loaded.
+    // Streaming preview path only. It intentionally runs a lighter
+    // control-plane surface than run_dialogue_with_base: no
+    // journals/quests/stance/momentstamp/drift-correction, because this
+    // function is a transient pre-generate preview rather than the full
+    // shipping dialogue path. If it is ever reactivated as more than a
+    // preview, parity-review it against run_dialogue_with_base first.
     let system = prompts::build_dialogue_system_prompt(world, character, user_profile, mood_directive, response_length, group_context, tone, local_model, mood_chain, leader, &[], None, &[], None, &[], None, None);
     let user_display_name = user_profile.map(|p| p.display_name.as_str());
     let messages = build_dialogue_streaming_messages(
@@ -3771,13 +3774,14 @@ pub async fn invent_scene_for_chapter(
     cast_recent_journals: &[(String, crate::db::queries::JournalEntry)],
     recent_history: &[crate::db::queries::ConversationLine],
     seed_hint: Option<&str>,
+    scene_location: Option<&str>,
     tone: Option<&str>,
     previous_chapter: Option<&str>,
     depth: Option<&str>,
 ) -> Result<(InventedScene, Option<openai::Usage>), String> {
     let messages = prompts::build_scene_invention_prompt(
         world, cast, user_profile, recent_kept_facts, cast_recent_journals,
-        recent_history, seed_hint, tone, previous_chapter, depth,
+        recent_history, seed_hint, scene_location, tone, previous_chapter, depth,
     );
     let request = ChatRequest {
         model: model.to_string(),

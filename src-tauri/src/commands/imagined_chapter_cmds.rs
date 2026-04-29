@@ -30,6 +30,8 @@ pub struct GenerateImaginedChapterRequest {
     pub thread_id: String,
     /// Optional user-provided hint for what they want to read.
     pub seed_hint: Option<String>,
+    /// Optional chapter-owned authoritative location.
+    pub scene_location: Option<String>,
     /// Continue from the most-recent prior chapter for this thread.
     pub continue_from_previous: bool,
     /// Image quality tier ("low" / "medium" / "high"). Defaults to "medium".
@@ -126,6 +128,12 @@ pub async fn generate_imagined_chapter_cmd(
     if api_key.trim().is_empty() {
         return Err("no API key".to_string());
     }
+    let scene_location = request
+        .scene_location
+        .as_deref()
+        .map(str::trim)
+        .filter(|s| !s.is_empty())
+        .map(str::to_string);
 
     // ─── Load everything from the DB up front ───────────────────────────
     let (
@@ -299,6 +307,7 @@ pub async fn generate_imagined_chapter_cmd(
             world_day,
             title: String::new(),
             seed_hint: request.seed_hint.clone().unwrap_or_default(),
+            scene_location: scene_location.clone(),
             scene_description: String::new(),
             image_id: None,
             content: String::new(),
@@ -328,6 +337,7 @@ pub async fn generate_imagined_chapter_cmd(
         &cast_journals_owned,
         &recent_history,
         request.seed_hint.as_deref(),
+        scene_location.as_deref(),
         narration_tone.as_deref(),
         previous_chapter_content.as_deref(),
         request.depth.as_deref(),
@@ -425,7 +435,7 @@ pub async fn generate_imagined_chapter_cmd(
         false, // include_scene_summary — we already have the description
         if all_names.is_empty() { None } else { Some(&all_names[..]) },
         None,
-    None,
+        scene_location.as_deref(),
     ).await?;
 
     if let Some(u) = &image_chat_usage {
@@ -730,6 +740,7 @@ pub fn canonize_imagined_chapter_cmd(
     let content = serde_json::json!({
         "chapter_id": chapter.chapter_id,
         "title": chapter.title,
+        "scene_location": chapter.scene_location,
         "image_id": chapter.image_id,
         "first_line": first_line,
     }).to_string();

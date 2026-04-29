@@ -1627,6 +1627,7 @@ pub fn run_migrations(conn: &Connection) -> Result<(), rusqlite::Error> {
             world_day INTEGER,
             title TEXT NOT NULL DEFAULT '',
             seed_hint TEXT NOT NULL DEFAULT '',
+            scene_location TEXT DEFAULT NULL,
             scene_description TEXT NOT NULL DEFAULT '',
             image_id TEXT,
             content TEXT NOT NULL DEFAULT '',
@@ -1670,6 +1671,18 @@ pub fn run_migrations(conn: &Connection) -> Result<(), rusqlite::Error> {
             "UPDATE imagined_chapters SET canonized = 1 WHERE breadcrumb_message_id IS NOT NULL",
             [],
         );
+    }
+
+    let scene_location_col_exists: bool = conn.query_row(
+        "SELECT 1 FROM pragma_table_info('imagined_chapters') WHERE name = 'scene_location'",
+        [],
+        |_| Ok(true),
+    ).unwrap_or(false);
+    if !scene_location_col_exists {
+        conn.execute(
+            "ALTER TABLE imagined_chapters ADD COLUMN scene_location TEXT DEFAULT NULL",
+            [],
+        )?;
     }
 
     // ── dev_chat_sessions / dev_chat_messages ─────────────────────────────

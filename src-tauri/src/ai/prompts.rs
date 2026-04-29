@@ -5023,7 +5023,7 @@ This is the foremost active contract in this prompt. The user has explicitly cho
 ⚠️ REGARDLESS OF THE LENGTH OF PREVIOUS MESSAGES IN THIS CHAT.
 The user may have JUST changed this setting mid-conversation — past replies may have been long because the mode was different then. The CURRENT setting is what governs this reply, NOT the historical pattern. Do NOT pattern-match to the length of recent assistant turns. Look at the setting, not at the chat scrollback.
 
-This rule overrides:
+When local instincts pull against the contract, the contract still governs:
 - The desire to be expressive.
 - The instinct to mirror previous reply length (the previous setting may have been different — that history doesn't bind this reply).
 - The urge to add one more sentence to "complete" a thought.
@@ -5040,7 +5040,7 @@ EARNED EXCEPTIONS — NARROWLY:
 - **Briefer than the target.** You MAY reply with a single word, a fragment, or just an emoji ("Yeah." / "No." / "🙏" / "—") when the moment genuinely collapses the reply and any further language would dilute it.
 - **Slightly longer than the cap (3–4 sentences).** You MAY occasionally swing here when the moment genuinely reaches for it — a real climactic turn, an honest overflow, a story the scene physically requires. Test stringent: "this feels important" is NOT enough; "this scene cannot land any shorter without losing its truth" is the bar. RARE — about 1 reply in 10, never 1 in 3. Never twice in a row. Default back to 1–2 next reply.
 
-The user picked Short. Obey by default. The carve-out is a sliver, not a default."#.to_string()),
+The user picked Short. Honor it by default. The carve-out stays narrow and exceptional."#.to_string()),
 
         "Medium" => Some(r#"⚠️ RESPONSE LENGTH CONTRACT. MODE: MEDIUM.
 
@@ -5052,7 +5052,7 @@ This is the foremost active contract in this prompt. The user has explicitly cho
 ⚠️ REGARDLESS OF THE LENGTH OF PREVIOUS MESSAGES IN THIS CHAT.
 The user may have JUST changed this setting mid-conversation — past replies may have been short OR long because the mode was different then. The CURRENT setting is what governs this reply, NOT the historical pattern. Do NOT pattern-match to recent reply length.
 
-This rule overrides:
+When local instincts pull against the contract, the contract still governs:
 - The desire to be more expressive.
 - The instinct to mirror longer or shorter previous messages (the previous setting may have been different — that history doesn't bind this reply).
 - The pull toward "let me just finish this thought."
@@ -5067,7 +5067,7 @@ EARNED EXCEPTIONS — NARROWLY:
 - **Briefer than the target.** You MAY reply with fewer than 3 sentences — even a word, a fragment, or a single emoji — when the moment genuinely collapses the reply. A wince, a quiet yes, a "Christ.", a held silence rendered as "…" — these can be perfect in Medium mode.
 - **Slightly longer than the cap (6–8 sentences).** You MAY occasionally swing here when the moment genuinely reaches for it — a real story the scene requires, a memory surfacing with specificity that needs its arc, a climactic turn that cannot land shorter. Test stringent: "this feels important" is NOT enough; "this beat physically cannot land any shorter" is the bar. RARE — about 1 reply in 10, never 1 in 3. Never twice in a row. Default back to 3–4 next reply.
 
-The user picked Medium. Obey by default. The carve-out is a sliver, not a default."#.to_string()),
+The user picked Medium. Honor it by default. The carve-out stays narrow and exceptional."#.to_string()),
 
         "Long" => Some(r#"⚠️ RESPONSE LENGTH CONTRACT. MODE: LONG.
 
@@ -5088,7 +5088,7 @@ EARNED EXCEPTIONS — NARROWLY:
 - **Briefer than the target.** You MAY reply with far fewer than 5 sentences — even a single word or a held silence — when the moment genuinely collapses the reply and any further language would dilute it. Long is permission for expansiveness, not an obligation to pad.
 - **Longer than the cap (up to ~15).** You MAY occasionally swing past 10 when the moment genuinely reaches for it — an actual story that needs its full arc, a thought spiraling outward with real conviction. Test stringent: "this feels important" is NOT enough; "this beat physically cannot land in fewer sentences without losing something load-bearing" is the bar. RARE. Never twice in a row.
 
-The user picked Long. Obey the 5–10 contract by default. The carve-outs are slivers, not defaults."#.to_string()),
+The user picked Long. Honor the 5–10 contract by default. The carve-outs stay narrow and exceptional."#.to_string()),
 
         // Auto: no mid-prompt length sermon here. A soft brevity compass
         // is applied only in `end_of_prompt_length_seal` (late slot).
@@ -5321,11 +5321,22 @@ pub fn render_imagined_chapter_for_prompt(content: &str) -> String {
     };
     let title = parsed.get("title").and_then(|v| v.as_str()).unwrap_or("(untitled)");
     let first_line = parsed.get("first_line").and_then(|v| v.as_str()).unwrap_or("");
+    let scene_location = parsed
+        .get("scene_location")
+        .and_then(|v| v.as_str())
+        .map(str::trim)
+        .filter(|s| !s.is_empty());
     if first_line.is_empty() {
-        format!("An imagined chapter titled '{title}' was written here. (Treat as a remembered scene that happened in this world; do not contradict, but also do not narrate it back.)")
+        match scene_location {
+            Some(loc) => format!("An imagined chapter titled '{title}' was written here, set in {loc}. (Treat as a remembered scene that happened in this world; do not contradict, but also do not narrate it back.)"),
+            None => format!("An imagined chapter titled '{title}' was written here. (Treat as a remembered scene that happened in this world; do not contradict, but also do not narrate it back.)"),
+        }
     } else {
-        format!("An imagined chapter titled '{title}' was written here. It opens: \"{}…\" (Treat the chapter as a remembered scene in this world. Don't contradict its truths; don't narrate it back unless someone asks.)",
-            first_line.chars().take(220).collect::<String>())
+        let opening = first_line.chars().take(220).collect::<String>();
+        match scene_location {
+            Some(loc) => format!("An imagined chapter titled '{title}' was written here, set in {loc}. It opens: \"{}…\" (Treat the chapter as a remembered scene in this world. Don't contradict its truths; don't narrate it back unless someone asks.)", opening),
+            None => format!("An imagined chapter titled '{title}' was written here. It opens: \"{}…\" (Treat the chapter as a remembered scene in this world. Don't contradict its truths; don't narrate it back unless someone asks.)", opening),
+        }
     }
 }
 
@@ -6865,6 +6876,7 @@ pub fn build_scene_invention_prompt(
     // texture and current state, not as a recap.
     recent_history: &[crate::db::queries::ConversationLine],
     seed_hint: Option<&str>,
+    scene_location: Option<&str>,
     // The chat's current tone setting (e.g. "Playful", "Reverent",
     // "Dark & Gritty"). Shapes BOTH what kind of moment gets invented
     // AND how the image is rendered. None or "Auto" = no tone block.
@@ -7001,6 +7013,14 @@ pub fn build_scene_invention_prompt(
         _ => "\nNo user hint — LLM's choice. Surprise them with something true to these people.\n".to_string(),
     };
 
+    let location_block = match scene_location {
+        Some(loc) if !loc.trim().is_empty() => format!(
+            "\nAUTHORITATIVE CHAPTER LOCATION:\nThis chapter is set in {loc}. Do not invent a different setting. Freshness can come from the hour, the action, the pairing, or what part of {loc} the moment uses — not from moving the chapter somewhere else.\n",
+            loc = loc.trim(),
+        ),
+        _ => String::new(),
+    };
+
     let system = r#"You are a gifted writer with a dramatist's instinct for the moment something tips. You are inventing a single specific VISUAL MOMENT for characters in a living world. The moment has not yet been told in the chat history. It is new — but it is PLAUSIBLE and IN-CHARACTER and TRUE to who these people are. Most importantly: the moment must HAVE A VERB AND A NEXT BEAT IMPLIED. Not a tableau. Not an arrangement of light and bodies and objects. Something is happening — physically, emotionally, relationally — and the body language reads as "and then..." rather than as a frozen frame. The chapter writer who receives this image will need a verb to grab onto; give them one. Pick moments where the eye can see, and the reader can feel, that something is about to give.
 
 Constraints on what you're writing:
@@ -7033,6 +7053,7 @@ STRICT: output JSON only. Do not preface with 'Here is' or 'I'll write'. Do not 
          {canon_block}\
          {journals_block}\
          {history_block}\
+         {location_block}\
          {tone_block}\
          {depth_block}\
          {prev_chapter_block}\
@@ -7046,6 +7067,7 @@ STRICT: output JSON only. Do not preface with 'Here is' or 'I'll write'. Do not 
         canon_block = canon_block,
         journals_block = journals_block,
         history_block = history_block,
+        location_block = location_block,
         tone_block = tone_block,
         depth_block = depth_block,
         prev_chapter_block = prev_chapter_block,
@@ -7874,5 +7896,14 @@ mod fence_shape_detection_tests {
             }),
             "proactive ping messages should keep the authoritative location correction when an explicit override is present"
         );
+    }
+
+    #[test]
+    fn render_imagined_chapter_for_prompt_mentions_scene_location_when_present() {
+        let rendered = render_imagined_chapter_for_prompt(
+            r#"{"title":"Dusk on the Steps","scene_location":"Garden Patio","first_line":"He sat with the cup cooling in his hand"}"#,
+        );
+        assert!(rendered.contains("set in Garden Patio"));
+        assert!(rendered.contains("He sat with the cup cooling in his hand"));
     }
 }
