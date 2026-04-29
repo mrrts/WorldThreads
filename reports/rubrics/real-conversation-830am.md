@@ -23,6 +23,7 @@ Scoring discipline:
 - Penalize repeated opener choreography when it starts to feel like a house style.
 - Reward concise lines that still carry character-distinctive voice.
 - If a reply includes a nudge, ask: "Could I actually do this in the next ten minutes?"
+- Do **not** penalize surprise/variety by default; only mark down style variance when it obscures the actionable next move.
 
 # When to use
 

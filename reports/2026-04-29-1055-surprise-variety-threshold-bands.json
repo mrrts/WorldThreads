@@ -1,0 +1,82 @@
+{
+  "generated_at": "2026-04-29T10:55:59.336622",
+  "samples": [
+    {
+      "file": "2026-04-29-1013-stress-pack-24-hybridb-confidence-grade.json",
+      "character": "Darren",
+      "pass_rate": 0.8333333333333334,
+      "other_rate": 0.0,
+      "no_concrete_rate": 0.16666666666666666
+    },
+    {
+      "file": "2026-04-29-1013-stress-pack-24-hybridb-confidence-grade.json",
+      "character": "Jasper",
+      "pass_rate": 0.8333333333333334,
+      "other_rate": 0.0,
+      "no_concrete_rate": 0.16666666666666666
+    },
+    {
+      "file": "2026-04-29-1021-stress-pack-24-hybridb-targeted-repair-grade.json",
+      "character": "Darren",
+      "pass_rate": 0.875,
+      "other_rate": 0.0,
+      "no_concrete_rate": 0.16666666666666666
+    },
+    {
+      "file": "2026-04-29-1021-stress-pack-24-hybridb-targeted-repair-grade.json",
+      "character": "Jasper",
+      "pass_rate": 0.9166666666666666,
+      "other_rate": 0.0,
+      "no_concrete_rate": 0.16666666666666666
+    },
+    {
+      "file": "2026-04-29-1042-stress-pack-24-imperative-or-question-grade.json",
+      "character": "Darren",
+      "pass_rate": 0.8333333333333334,
+      "other_rate": 0.0,
+      "no_concrete_rate": 0.16666666666666666
+    },
+    {
+      "file": "2026-04-29-1042-stress-pack-24-imperative-or-question-grade.json",
+      "character": "Jasper",
+      "pass_rate": 0.9166666666666666,
+      "other_rate": 0.0,
+      "no_concrete_rate": 0.08333333333333333
+    },
+    {
+      "file": "2026-04-29-1047-stress-pack-24-imperative-or-question-regrade-effective.json",
+      "character": "Darren",
+      "pass_rate": 1.0,
+      "other_rate": 0.0,
+      "no_concrete_rate": 0.0
+    },
+    {
+      "file": "2026-04-29-1047-stress-pack-24-imperative-or-question-regrade-effective.json",
+      "character": "Jasper",
+      "pass_rate": 0.9583333333333334,
+      "other_rate": 0.0,
+      "no_concrete_rate": 0.041666666666666664
+    },
+    {
+      "file": "2026-04-29-1051-stress-pack-24-canonical-grade.json",
+      "character": "Darren",
+      "pass_rate": 0.875,
+      "other_rate": 0.125,
+      "no_concrete_rate": 0.125
+    },
+    {
+      "file": "2026-04-29-1051-stress-pack-24-canonical-grade.json",
+      "character": "Jasper",
+      "pass_rate": 0.9583333333333334,
+      "other_rate": 0.041666666666666664,
+      "no_concrete_rate": 0.041666666666666664
+    }
+  ],
+  "suggested_bands": {
+    "other_rate_warning": 0.1,
+    "other_rate_fail_candidate": 0.15,
+    "no_concrete_rate_warning": 0.16666666666666666,
+    "no_concrete_rate_fail_candidate": 0.17,
+    "two_signal_fail_recommendation": "fail only when other_rate >= 0.15 AND no_concrete_rate >= 0.17"
+  }
+}
