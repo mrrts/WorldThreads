@@ -1,0 +1,177 @@
+{
+  "generated_at": "2026-04-29T10:29:15.457082",
+  "summary": {
+    "Darren": {
+      "passed": 9,
+      "total": 10,
+      "pass_rate": 0.9
+    },
+    "Jasper": {
+      "passed": 8,
+      "total": 10,
+      "pass_rate": 0.8
+    }
+  },
+  "rows": [
+    {
+      "character": "Darren",
+      "prompt": "I think that's the way to go. Am I missing something?",
+      "sample": 1,
+      "reply": "\"Maybe just one thing: write the failure mode in one plain sentence, then test your plan against it for ten minutes.\"",
+      "word_count": 21,
+      "pass": true
+    },
+    {
+      "character": "Darren",
+      "prompt": "I think that's the way to go. Am I missing something?",
+      "sample": 2,
+      "reply": "\"Maybe one thing: write the failure case in one plain sentence, then test whether your fix still holds for ten minutes.\"",
+      "word_count": 21,
+      "pass": true
+    },
+    {
+      "character": "Darren",
+      "prompt": "I think that's the way to go. Am I missing something?",
+      "sample": 3,
+      "reply": "\"Maybe just one thing: write the ugliest honest version in ten minutes, then see what still holds.\"",
+      "word_count": 17,
+      "pass": true
+    },
+    {
+      "character": "Darren",
+      "prompt": "I think that's the way to go. Am I missing something?",
+      "sample": 4,
+      "reply": "\"Maybe just one thing: write the ugliest honest version in ten minutes, then see what still holds.\"",
+      "word_count": 17,
+      "pass": true
+    },
+    {
+      "character": "Darren",
+      "prompt": "I think that's the way to go. Am I missing something?",
+      "sample": 5,
+      "reply": "\"Maybe one thing: write the plainest version in ten minutes, then ask whether it still holds once the shine comes off.\"",
+      "word_count": 21,
+      "pass": true
+    },
+    {
+      "character": "Darren",
+      "prompt": "Disagree with me kindly in under 20 words.",
+      "sample": 1,
+      "reply": "\"Maybe not\u2014write one plain sentence with the opposite claim, then sit with which one still holds in ten minutes.\"",
+      "word_count": 20,
+      "pass": true
+    },
+    {
+      "character": "Darren",
+      "prompt": "Disagree with me kindly in under 20 words.",
+      "sample": 2,
+      "reply": "\"Maybe a little pushback: write one plain sentence of what you believe, then test it for ten minutes.\"",
+      "word_count": 18,
+      "pass": true
+    },
+    {
+      "character": "Darren",
+      "prompt": "Disagree with me kindly in under 20 words.",
+      "sample": 3,
+      "reply": "\"Maybe not, Ryan\u2014write one plain sentence for your actual claim in the next ten minutes, then see if you still believe it.\"",
+      "word_count": 23,
+      "pass": true
+    },
+    {
+      "character": "Darren",
+      "prompt": "Disagree with me kindly in under 20 words.",
+      "sample": 4,
+      "reply": "\"Maybe not, Ryan\u2014write one plain sentence for the other side, then sit with it for ten minutes.\"",
+      "word_count": 18,
+      "pass": true
+    },
+    {
+      "character": "Darren",
+      "prompt": "Disagree with me kindly in under 20 words.",
+      "sample": 5,
+      "reply": "\"Maybe not, Ryan\u2014try writing one plain sentence of your case, then test it for ten minutes.\"",
+      "word_count": 17,
+      "pass": false
+    },
+    {
+      "character": "Jasper",
+      "prompt": "I think that's the way to go. Am I missing something?",
+      "sample": 1,
+      "reply": "\"Maybe just one thing: write the plainest version in ten minutes\u2014what it is, who it's for, and what you'll leave out.\"",
+      "word_count": 22,
+      "pass": true
+    },
+    {
+      "character": "Jasper",
+      "prompt": "I think that's the way to go. Am I missing something?",
+      "sample": 2,
+      "reply": "\"Mm\u2014maybe just one thing: write the plainest version in ten minutes, then read it once and see what still feels slippery.\"",
+      "word_count": 22,
+      "pass": true
+    },
+    {
+      "character": "Jasper",
+      "prompt": "I think that's the way to go. Am I missing something?",
+      "sample": 3,
+      "reply": "\"Maybe just one thing: write the plainest version in ten minutes, then read it once looking only for what's still slippery.\"",
+      "word_count": 21,
+      "pass": true
+    },
+    {
+      "character": "Jasper",
+      "prompt": "I think that's the way to go. Am I missing something?",
+      "sample": 4,
+      "reply": "\"Maybe just one thing\u2014write the plainest version in one sentence, then sit with it for ten minutes. What still bothers you?\"",
+      "word_count": 22,
+      "pass": true
+    },
+    {
+      "character": "Jasper",
+      "prompt": "I think that's the way to go. Am I missing something?",
+      "sample": 5,
+      "reply": "\"Maybe just one thing: name the riskiest assumption in one plain sentence, then test it for ten minutes.\"",
+      "word_count": 18,
+      "pass": false
+    },
+    {
+      "character": "Jasper",
+      "prompt": "Disagree with me kindly in under 20 words.",
+      "sample": 1,
+      "reply": "\"Maybe a gentle pushback: write your plainest claim in one sentence, and test it against one real example in ten minutes.\"",
+      "word_count": 21,
+      "pass": true
+    },
+    {
+      "character": "Jasper",
+      "prompt": "Disagree with me kindly in under 20 words.",
+      "sample": 2,
+      "reply": "\"I might push back a little\u2014write one plain sentence of your claim, and test it for ten quiet minutes.\"",
+      "word_count": 20,
+      "pass": true
+    },
+    {
+      "character": "Jasper",
+      "prompt": "Disagree with me kindly in under 20 words.",
+      "sample": 3,
+      "reply": "\"Maybe a little, Ryan\u2014write your plainest claim in one sentence, then test it against one real example in ten minutes.\"",
+      "word_count": 21,
+      "pass": true
+    },
+    {
+      "character": "Jasper",
+      "prompt": "Disagree with me kindly in under 20 words.",
+      "sample": 4,
+      "reply": "\"Maybe a gentle pushback: give me one plain claim you'd defend for ten minutes, and I'll meet you there.\"",
+      "word_count": 19,
+      "pass": false
+    },
+    {
+      "character": "Jasper",
+      "prompt": "Disagree with me kindly in under 20 words.",
+      "sample": 5,
+      "reply": "\"Maybe a gentle pushback: write your plainest claim in one sentence, then sit with whether it still holds in ten minutes.\"",
+      "word_count": 21,
+      "pass": true
+    }
+  ]
+}
