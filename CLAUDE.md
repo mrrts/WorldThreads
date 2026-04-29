@@ -476,6 +476,14 @@ Worked example: `plain_after_crooked_dialogue` was authored from Hal's own reply
 
 **Every assistant message has a `created_at`; every prompt change is a git commit with a `committer_date`.** The message database is, without added instrumentation, a before/after dataset for every prompt-stack change. A commit is the boundary; messages on either side were generated under different prompts; the difference IS direct evidence. **This is the methodology, not one among many.** Craft claims about "whether the prompts are working" not grounded in this comparison are vibes.
 
+## Momentstamp lead-block characterization (2026-04-29)
+
+Status: **keep**.
+
+Lead-block ablation (prepend ON vs OFF, inline series + chain handoff unchanged) reached claim-tier on the primary endpoint: curiosity-back. At N=5 pairs on Jasper, lead ON closed with ask-back in 5/5 vs 3/5 with lead OFF (100% vs 60%, +40pp). Centering, trajectory awareness, and honest limit-naming were effectively equivalent across variants; length effect seen at N=3 did not replicate at N=5.
+
+Interpretation: inline+chain appear to carry most depth-signal work; lead primacy adds measurable margin specifically on user-directed closure behavior. Budget trade remains justified under reactions-off gating. Do not re-open rollback discussion without stronger contradictory evidence.
+
 **Three experimental modes:**
 - **Mode A — passive corpus** (`worldcli evaluate`): rule shifted real-use behavior; effect should show up in ordinary conversation.
 - **Mode B — qualitative synthesis** (`worldcli synthesize`): bundles before/after corpus into ONE call, returns prose grounded in quotes. Right when prior count-runs missed something a rubric couldn't name.
