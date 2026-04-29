@@ -131,6 +131,30 @@ It prints raw JSON payloads so you can diff, archive, or pipe through `jq`.
 - Drift comparison:
   - `./scripts/compare-register-shift-runs.py reports/register-shift-dashboard-<old> reports/register-shift-dashboard-<new>`
 
+### Latest Drift Snapshot (081959 -> 082326)
+
+```
+[darren-register-shift.json]
+  shift_rate: 0.7000 (+0.0000)
+  rebound_rate: 0.2800 (+0.0000)
+  avg_shifts_per_message: 1.4375 (+0.0000)
+
+[jasper-register-shift.json]
+  shift_rate: 0.8125 (+0.0000)
+  rebound_rate: 0.3684 (+0.0000)
+  avg_shifts_per_message: 2.3125 (+0.0000)
+
+[darren-pack.json]
+  speech_first_rate: 1.0000 (+0.0000)
+  shift_run_rate: 1.0000 (+0.0000)
+  gate_passed: True -> True
+
+[jasper-pack.json]
+  speech_first_rate: 1.0000 (+0.0000)
+  shift_run_rate: 1.0000 (+0.0000)
+  gate_passed: True -> True
+```
+
 ### Jasper Finn
 
 Command:
