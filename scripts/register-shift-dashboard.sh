@@ -48,6 +48,9 @@ esac
 
 PACK_MIN_SPEECH_FIRST="${PACK_MIN_SPEECH_FIRST:-$PACK_MIN_SPEECH_FIRST_DEFAULT}"
 PACK_MIN_SHIFT_RUN="${PACK_MIN_SHIFT_RUN:-$PACK_MIN_SHIFT_RUN_DEFAULT}"
+SHIFT_MIN_RATE="${SHIFT_MIN_RATE:-}"
+SHIFT_MIN_REBOUND_RATE="${SHIFT_MIN_REBOUND_RATE:-}"
+RUN_REBOUND_PACK="${RUN_REBOUND_PACK:-false}"
 
 if [[ ! -x "$WORLDCLI" ]]; then
   echo "worldcli not found/executable at: $WORLDCLI" >&2
@@ -69,14 +72,26 @@ run_json_to_file() {
   echo "saved: $out_file"
 }
 
+shift_gate_args=()
+if [[ -n "$SHIFT_MIN_RATE" ]]; then
+  shift_gate_args+=(--gate-min-shift-rate "$SHIFT_MIN_RATE")
+fi
+if [[ -n "$SHIFT_MIN_REBOUND_RATE" ]]; then
+  shift_gate_args+=(--gate-min-rebound-rate "$SHIFT_MIN_REBOUND_RATE")
+fi
+
 echo "preset: $PRESET"
 echo "pack gates: speech_first>=$PACK_MIN_SPEECH_FIRST shift_run>=$PACK_MIN_SHIFT_RUN"
+if [[ -n "$SHIFT_MIN_RATE" || -n "$SHIFT_MIN_REBOUND_RATE" ]]; then
+  echo "shift gates: min_shift=${SHIFT_MIN_RATE:-none} min_rebound=${SHIFT_MIN_REBOUND_RATE:-none}"
+fi
+echo "run rebound pack: $RUN_REBOUND_PACK"
 echo "artifact dir: $OUT_DIR"
 
 run_json_to_file darren-register-shift \
-  "$WORLDCLI" --scope full --json register-shift --character "$DARREN_ID" --limit "$LIMIT"
+  "$WORLDCLI" --scope full --json register-shift --character "$DARREN_ID" --limit "$LIMIT" "${shift_gate_args[@]}"
 run_json_to_file jasper-register-shift \
-  "$WORLDCLI" --scope full --json register-shift --character "$JASPER_ID" --limit "$LIMIT"
+  "$WORLDCLI" --scope full --json register-shift --character "$JASPER_ID" --limit "$LIMIT" "${shift_gate_args[@]}"
 
 run_json_to_file darren-pack \
   "$WORLDCLI" --json register-shift-pack "$DARREN_ID" \
@@ -89,6 +104,22 @@ run_json_to_file jasper-pack \
   --confirm-cost "$CONFIRM_COST" \
   --gate-min-speech-first-rate "$PACK_MIN_SPEECH_FIRST" \
   --gate-min-shift-run-rate "$PACK_MIN_SHIFT_RUN"
+
+if [[ "$RUN_REBOUND_PACK" == "true" ]]; then
+  run_json_to_file darren-pack-rebound \
+    "$WORLDCLI" --json register-shift-pack "$DARREN_ID" \
+    --variant rebound \
+    --confirm-cost "$CONFIRM_COST" \
+    --gate-min-speech-first-rate "$PACK_MIN_SPEECH_FIRST" \
+    --gate-min-shift-run-rate "$PACK_MIN_SHIFT_RUN"
+
+  run_json_to_file jasper-pack-rebound \
+    "$WORLDCLI" --json register-shift-pack "$JASPER_ID" \
+    --variant rebound \
+    --confirm-cost "$CONFIRM_COST" \
+    --gate-min-speech-first-rate "$PACK_MIN_SPEECH_FIRST" \
+    --gate-min-shift-run-rate "$PACK_MIN_SHIFT_RUN"
+fi
 
 scoreboard_line="$(PRESET="$PRESET" python3 - "$OUT_DIR" <<'PY'
 import json,os,sys
@@ -121,6 +152,7 @@ files:
 - jasper-register-shift.json
 - darren-pack.json
 - jasper-pack.json
+$(if [[ "$RUN_REBOUND_PACK" == "true" ]]; then echo "- darren-pack-rebound.json"; echo "- jasper-pack-rebound.json"; fi)
 EOF
 
 echo

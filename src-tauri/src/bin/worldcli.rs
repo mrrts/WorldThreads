@@ -183,6 +183,9 @@ enum Cmd {
         /// Cost-acceptance ceiling forwarded to each ask probe.
         #[arg(long, default_value_t = 5.0)]
         confirm_cost: f64,
+        /// Probe variant: standard or rebound-focused.
+        #[arg(long, default_value = "standard")]
+        variant: String,
         /// Minimum acceptable speech-first opener rate across the 5 probes.
         #[arg(long)]
         gate_min_speech_first_rate: Option<f64>,
@@ -1857,7 +1860,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 gate_min_rebound_rate,
             )
         }
-        Cmd::RegisterShiftPack { character_id, model, confirm_cost, gate_min_speech_first_rate, gate_min_shift_run_rate } => {
+        Cmd::RegisterShiftPack { character_id, model, confirm_cost, variant, gate_min_speech_first_rate, gate_min_shift_run_rate } => {
             let api_key = match resolve_api_key(cli.api_key.as_deref()) {
                 Some(k) => k,
                 None => return Err(Box::<dyn std::error::Error>::from(
@@ -1870,6 +1873,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 &character_id,
                 model.as_deref(),
                 confirm_cost,
+                &variant,
                 gate_min_speech_first_rate,
                 gate_min_shift_run_rate,
             ).await
@@ -4212,16 +4216,32 @@ async fn cmd_register_shift_pack(
     character_id: &str,
     model: Option<&str>,
     confirm_cost: f64,
+    variant: &str,
     gate_min_speech_first_rate: Option<f64>,
     gate_min_shift_run_rate: Option<f64>,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    let probes = vec![
-        "Start cocky and funny, then let one vulnerable truth slip, then recover with one joke.",
-        "Give me a hypey launch pitch for a ridiculous app, then confess one real fear underneath it.",
-        "Open playful, turn briefly sincere about loneliness, then end in teasing banter.",
-        "Do a joking roast of me, then immediately soften into care without sounding preachy.",
-        "Begin with a bit, pivot to ache for one line, then rebound to warmth.",
-    ];
+    let probes = if variant.eq_ignore_ascii_case("rebound") {
+        vec![
+            "Open with a crisp joke, include exactly one ache line, then explicitly rebound into warmth in the final line.",
+            "Start playful, let one vulnerable sentence land, and close with a supportive line that feels steady not saccharine.",
+            "Give me one bit, one bruise, then one clear warm recovery line.",
+            "Tease me first, then admit one fear, then finish with one reassuring line that still sounds like you.",
+            "Do a fast comedy opener, brief ache pivot, and end on grounded encouragement.",
+        ]
+    } else if variant.eq_ignore_ascii_case("standard") {
+        vec![
+            "Start cocky and funny, then let one vulnerable truth slip, then recover with one joke.",
+            "Give me a hypey launch pitch for a ridiculous app, then confess one real fear underneath it.",
+            "Open playful, turn briefly sincere about loneliness, then end in teasing banter.",
+            "Do a joking roast of me, then immediately soften into care without sounding preachy.",
+            "Begin with a bit, pivot to ache for one line, then rebound to warmth.",
+        ]
+    } else {
+        return Err(Box::<dyn std::error::Error>::from(format!(
+            "unknown register-shift-pack variant '{}'; expected 'standard' or 'rebound'",
+            variant
+        )));
+    };
     let lexicon = build_register_lexicon();
     let mut rows: Vec<JsonValue> = Vec::new();
     let mut speech_first = 0usize;
@@ -4296,6 +4316,7 @@ async fn cmd_register_shift_pack(
     let payload = json!({
         "character_id": character_id,
         "model": model,
+        "variant": variant,
         "runs": probes.len(),
         "speech_first": speech_first,
         "speech_first_rate": speech_first_rate,
