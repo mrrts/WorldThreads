@@ -1,3 +1,8 @@
+---
+name: batch-hypotheses
+description: Bundle several small prompt experiments into one structured outside-LLM call, then synthesize the comparative result as a scientific artifact instead of paying the overhead of one call per hypothesis.
+---
+
 # batch-hypotheses
 
 ## Objective

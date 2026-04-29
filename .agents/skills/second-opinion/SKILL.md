@@ -1,3 +1,8 @@
+---
+name: second-opinion
+description: Buy an outside-LLM consult when a real reasoning, architecture, color, or interpretation gap warrants it, using either repo-aware codex exec or a direct ChatGPT API call under the shared daily budget.
+---
+
 # second-opinion
 
 ## Objective

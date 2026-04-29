@@ -1,3 +1,8 @@
+---
+name: derive-and-test
+description: Derive a character-specific MISSION FORMULA reading, run a single elicitation against it, grade the reply against the derivation's own predicates, and update the living substrate/report trail from the result.
+---
+
 # derive-and-test
 
 Operate the MISSION FORMULA at per-character × per-world resolution. The skill authors a **triadic derivation** (invariants × world × character) of F = (R, C) for one character, runs a single elicitation against a designed prompt, grades the reply against the derivation's own predicates, writes a return-reading-shaped report, updates the character's living substrate document, and presents a chooser whose options carry forecast cost. **Selection IS authorization to spend up to that forecast.**

@@ -1,3 +1,8 @@
+---
+name: run-experiment
+description: Design and run a commit-bounded natural experiment against the live message corpus, with hypothesis audition, pre-registered prediction, honest interpretation, and report follow-through.
+---
+
 # run-experiment
 
 Design and run a rigorous natural-experiment using the **messages × commits** doctrine codified in CLAUDE.md. The full loop: audition 2–3 candidate hypotheses with the user → user confirms via a chooser → design the experiment with a pre-registered prediction → run via `worldcli evaluate` (or `sample-windows` for read-only investigations) → interpret honestly → report and commit.

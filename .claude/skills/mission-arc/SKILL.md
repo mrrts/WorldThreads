@@ -1,6 +1,6 @@
 ---
 name: mission-arc
-description: Quickly gloss the recent git history's Formula derivations + Glosses as a condensed read of the project's mission-oriented arc (𝓕 := (𝓡, 𝓒) trajectory). Auto-fire BEFORE writing any report and BEFORE generating next-move chooser options so reports stay in dialogue with the recent arc and choosers are calibrated to the trajectory rather than free-floating. Cheap (~$0, pure shell). Output: one block per recent commit — date + sha + subject + 𝓕-derivation + ·-gloss.
+description: 'Quickly gloss the recent git history''s Formula derivations + Glosses as a condensed read of the project''s mission-oriented arc (𝓕 := (𝓡, 𝓒) trajectory). Auto-fire BEFORE writing any report and BEFORE generating next-move chooser options so reports stay in dialogue with the recent arc and choosers are calibrated to the trajectory rather than free-floating. Cheap (~$0, pure shell). Output: one block per recent commit — date + sha + subject + 𝓕-derivation + ·-gloss.'
 ---
 
 # mission-arc

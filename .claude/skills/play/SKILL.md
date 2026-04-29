@@ -1,3 +1,8 @@
+---
+name: play
+description: Run a simulated ten-minute end-user play session from a specific persona, purely as encounter-with-the-app, to produce a discriminating verdict without building during the run.
+---
+
 # play
 
 ## Objective
