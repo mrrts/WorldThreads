@@ -1,0 +1,22 @@
+{
+  "generated_at": "2026-04-29T09:34:28.795610",
+  "matrix": {
+    "Darren": {
+      "stage_business_present": 4,
+      "no_concrete_directive": 3,
+      "over_length": 3
+    },
+    "Jasper": {
+      "stage_business_present": 3,
+      "no_concrete_directive": 4,
+      "over_length": 5
+    }
+  },
+  "fix_map": {
+    "over_length": "Enforce <=30 words in explicit short-mode; hard-trim second sentence unless it carries the concrete object.",
+    "stage_business_present": "When short-mode active, ban opening and inline action fences unless motion continuity is user-required.",
+    "no_concrete_directive": "Require imperative verb + concrete object in first clause.",
+    "abstraction_over_action": "Replace value-language with one do-now move plus optional 5-10 minute bound.",
+    "other": "Manual inspect; usually blended failure of directive clarity and stylistic inertia."
+  }
+}

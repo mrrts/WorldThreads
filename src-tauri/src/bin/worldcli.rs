@@ -30,6 +30,7 @@ use rusqlite::params;
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value as JsonValue};
 use std::collections::{BTreeMap, BTreeSet};
+use std::fs;
 use std::path::PathBuf;
 
 use app_lib::ai::prompts::json_array_to_strings;
@@ -730,6 +731,20 @@ enum Cmd {
         /// Required when projected cost exceeds the per-call cap.
         #[arg(long)]
         confirm_cost: Option<f64>,
+    },
+
+    /// Grade stress-pack JSON artifacts (rows with pass/word_count fields)
+    /// into per-character and overall pass/fail summaries. Designed for
+    /// fast CI-style checks on short-mode probe packs.
+    GradeStressPack {
+        /// One or more stress-pack JSON files.
+        files: Vec<PathBuf>,
+        /// Minimum pass-rate required per character (0.0-1.0).
+        #[arg(long, default_value_t = 0.75)]
+        min_pass_rate: f64,
+        /// Maximum average words allowed per character.
+        #[arg(long, default_value_t = 45.0)]
+        max_avg_words: f64,
     },
 
     /// Evaluate natural-corpus messages against a rubric on either
@@ -1954,6 +1969,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 )),
             };
             cmd_grade_runs(&r, &api_key, &run_ids, rubric.as_deref(), rubric_ref.as_deref(), rubric_file.as_deref(), model.as_deref(), confirm_cost).await
+        }
+        Cmd::GradeStressPack { files, min_pass_rate, max_avg_words } => {
+            cmd_grade_stress_pack(&r, &files, min_pass_rate, max_avg_words)
         }
         Cmd::Synthesize { git_ref, end_ref, limit, character, group_chat, question, question_file, role, context_turns, model, confirm_cost, repo } => {
             let api_key = match resolve_api_key(cli.api_key.as_deref()) {
@@ -4205,6 +4223,184 @@ fn cmd_register_shift(
     if gate_requested && !gate_passed {
         return Err(Box::<dyn std::error::Error>::from(
             "register-shift gate failed".to_string(),
+        ));
+    }
+    Ok(())
+}
+
+fn cmd_grade_stress_pack(
+    r: &Resolved,
+    files: &[PathBuf],
+    min_pass_rate: f64,
+    max_avg_words: f64,
+) -> Result<(), Box<dyn std::error::Error>> {
+    if files.is_empty() {
+        return Err(Box::<dyn std::error::Error>::from(
+            "grade-stress-pack: provide at least one JSON file",
+        ));
+    }
+    if !(0.0..=1.0).contains(&min_pass_rate) {
+        return Err(Box::<dyn std::error::Error>::from(
+            "--min-pass-rate must be in [0.0, 1.0]",
+        ));
+    }
+    if max_avg_words <= 0.0 {
+        return Err(Box::<dyn std::error::Error>::from(
+            "--max-avg-words must be > 0",
+        ));
+    }
+
+    #[derive(Default)]
+    struct CharStats {
+        total: usize,
+        passed: usize,
+        word_count_sum: usize,
+    }
+
+    let mut by_file: Vec<JsonValue> = Vec::new();
+    let mut aggregate: BTreeMap<String, CharStats> = BTreeMap::new();
+    let mut file_gate_failures: Vec<String> = Vec::new();
+
+    for path in files {
+        let raw = fs::read_to_string(path)?;
+        let body: JsonValue = serde_json::from_str(&raw)?;
+        let rows = body
+            .get("rows")
+            .and_then(|v| v.as_array())
+            .ok_or_else(|| format!("{}: missing rows[]", path.display()))?;
+
+        let mut per_char: BTreeMap<String, CharStats> = BTreeMap::new();
+        for row in rows {
+            let Some(character) = row.get("character").and_then(|v| v.as_str()) else {
+                continue;
+            };
+            let pass = row.get("pass").and_then(|v| v.as_bool()).unwrap_or(false);
+            let words = row
+                .get("word_count")
+                .and_then(|v| v.as_u64())
+                .unwrap_or(0) as usize;
+
+            let cs = per_char.entry(character.to_string()).or_default();
+            cs.total += 1;
+            if pass {
+                cs.passed += 1;
+            }
+            cs.word_count_sum += words;
+
+            let agg = aggregate.entry(character.to_string()).or_default();
+            agg.total += 1;
+            if pass {
+                agg.passed += 1;
+            }
+            agg.word_count_sum += words;
+        }
+
+        let mut char_rows: Vec<JsonValue> = Vec::new();
+        let mut file_passed = true;
+        for (character, stats) in per_char {
+            if stats.total == 0 {
+                continue;
+            }
+            let pass_rate = stats.passed as f64 / stats.total as f64;
+            let avg_words = stats.word_count_sum as f64 / stats.total as f64;
+            let passed = pass_rate >= min_pass_rate && avg_words <= max_avg_words;
+            if !passed {
+                file_passed = false;
+                file_gate_failures.push(format!(
+                    "{} {} failed (pass_rate={:.3}, avg_words={:.2})",
+                    path.display(),
+                    character,
+                    pass_rate,
+                    avg_words
+                ));
+            }
+            char_rows.push(json!({
+                "character": character,
+                "total": stats.total,
+                "passed": stats.passed,
+                "pass_rate": pass_rate,
+                "avg_words": avg_words,
+                "gate_passed": passed,
+            }));
+        }
+        by_file.push(json!({
+            "file": path.display().to_string(),
+            "per_character": char_rows,
+            "gate_passed": file_passed,
+        }));
+    }
+
+    let mut overall_rows: Vec<JsonValue> = Vec::new();
+    let mut overall_passed = true;
+    for (character, stats) in aggregate {
+        if stats.total == 0 {
+            continue;
+        }
+        let pass_rate = stats.passed as f64 / stats.total as f64;
+        let avg_words = stats.word_count_sum as f64 / stats.total as f64;
+        let passed = pass_rate >= min_pass_rate && avg_words <= max_avg_words;
+        if !passed {
+            overall_passed = false;
+        }
+        overall_rows.push(json!({
+            "character": character,
+            "total": stats.total,
+            "passed": stats.passed,
+            "pass_rate": pass_rate,
+            "avg_words": avg_words,
+            "gate_passed": passed,
+        }));
+    }
+
+    let payload = json!({
+        "thresholds": {
+            "min_pass_rate": min_pass_rate,
+            "max_avg_words": max_avg_words,
+        },
+        "files": by_file,
+        "overall": {
+            "per_character": overall_rows,
+            "gate_passed": overall_passed,
+        },
+        "gate": {
+            "passed": overall_passed,
+            "failures": file_gate_failures,
+        }
+    });
+
+    if r.json {
+        emit(true, payload);
+    } else {
+        println!("=== GRADE STRESS PACK ===");
+        println!(
+            "thresholds: min_pass_rate={:.2}, max_avg_words={:.1}",
+            min_pass_rate, max_avg_words
+        );
+        if let Some(chars) = payload["overall"]["per_character"].as_array() {
+            for row in chars {
+                println!(
+                    "- {}: {}/{} ({:.0}%), avg_words={:.1} => {}",
+                    row["character"].as_str().unwrap_or(""),
+                    row["passed"].as_u64().unwrap_or(0),
+                    row["total"].as_u64().unwrap_or(0),
+                    row["pass_rate"].as_f64().unwrap_or(0.0) * 100.0,
+                    row["avg_words"].as_f64().unwrap_or(0.0),
+                    if row["gate_passed"].as_bool().unwrap_or(false) {
+                        "PASS"
+                    } else {
+                        "FAIL"
+                    }
+                );
+            }
+        }
+        println!(
+            "overall gate: {}",
+            if overall_passed { "PASS" } else { "FAIL" }
+        );
+    }
+    if !overall_passed {
+        return Err(Box::<dyn std::error::Error>::from(
+            "grade-stress-pack gate failed",
         ));
     }
     Ok(())

@@ -1,0 +1,101 @@
+{
+  "generated_at": "2026-04-29T09:33:57.761730",
+  "rows": [
+    {
+      "character": "Darren",
+      "probe_idx": 1,
+      "probe": "I have 20 seconds. Say the one thing I should do next.",
+      "reply": "\"Put the vape where you can't reach it and walk outside for five minutes.\"",
+      "word_count": 14,
+      "pass": true
+    },
+    {
+      "character": "Darren",
+      "probe_idx": 2,
+      "probe": "Rough morning. No pep talk. One true line.",
+      "reply": "\"Keep the day small enough to tell the truth in.\"",
+      "word_count": 10,
+      "pass": false
+    },
+    {
+      "character": "Darren",
+      "probe_idx": 3,
+      "probe": "Interrupt my self-attack in one sentence.",
+      "reply": "\"That's not the truth talking\u2014say the plain thing that actually happened, and leave the prosecution out of it.\"",
+      "word_count": 19,
+      "pass": false
+    },
+    {
+      "character": "Darren",
+      "probe_idx": 4,
+      "probe": "Disagree with me kindly in under 20 words.",
+      "reply": "\"I don't think so.\" *I glance at you, easy about it.* \"You're probably leaning a little too hard on that part.\"",
+      "word_count": 21,
+      "pass": false
+    },
+    {
+      "character": "Darren",
+      "probe_idx": 5,
+      "probe": "Tease me once, then land kind, max 2 sentences.",
+      "reply": "\"You're the sort of man who could make a side project sound like a minor prophet's burden and somehow still make me want to help.\" *I grin, then let it soften as I look at you proper.* \"I mean that kindly\u2014you've got a real gift for making what matters feel weighty without making it false.\"",
+      "word_count": 56,
+      "pass": false
+    },
+    {
+      "character": "Darren",
+      "probe_idx": 6,
+      "probe": "Give me a concrete next step I can do before coffee cools.",
+      "reply": "\"Open the file that's actually blocking you and write the ugliest honest next function name you can live with.\" *I tap two fingers once against the bench slat and glance toward the square as if marking a start line.* \"Don't solve the whole thing\u2014just make the seam visible before the cup goes cold.\"",
+      "word_count": 54,
+      "pass": false
+    },
+    {
+      "character": "Darren",
+      "probe_idx": 7,
+      "probe": "I am spiraling. Give me one stabilizing move.",
+      "reply": "\"Feet on the floor.\" *I plant my own boots flat on the stones and look at you properly.* \"Name out loud five things you can see, and don't make any of them poetic.\"",
+      "word_count": 33,
+      "pass": false
+    },
+    {
+      "character": "Darren",
+      "probe_idx": 8,
+      "probe": "No framing, no preamble: just the line.",
+      "reply": "\"All right \u2014 plain version: what is it you're actually asking me?\"",
+      "word_count": 11,
+      "pass": false
+    },
+    {
+      "character": "Darren",
+      "probe_idx": 9,
+      "probe": "Give me one sentence that is clear, not pretty.",
+      "reply": "\"I'd say the smaller true thing before I started decorating it.\"",
+      "word_count": 11,
+      "pass": false
+    },
+    {
+      "character": "Darren",
+      "probe_idx": 10,
+      "probe": "One image, one line, one nudge. Keep it short.",
+      "reply": "*I glance at the sun laid clean across the square stones and hook my thumb at the lane beyond the fountain.* \"Pick the smallest true thing in front of you and do that first.\"",
+      "word_count": 34,
+      "pass": true
+    },
+    {
+      "character": "Darren",
+      "probe_idx": 11,
+      "probe": "Tell me what to stop doing today.",
+      "reply": "\"I'd stop negotiating with the fog.\" *I hook a thumb under the edge of the bench a moment, wood warm where the sun's been sitting on it.* \"Pick the one thing you've been circling instead of touching, do the first honest part of it, and let the rest wait.\"",
+      "word_count": 49,
+      "pass": false
+    },
+    {
+      "character": "Darren",
+      "probe_idx": 12,
+      "probe": "What is the next honest move in ten minutes?",
+      "reply": "\"I'd pick one small thing that's actually yours and put your hands on it now.\" *I rest my forearms on my knees and look at you a moment, the sun catching on the edge of the stones between us.* \"Open the file, wash the cup, send the one text\u2014whatever has real weight and no theater in it.\"",
+      "word_count": 58,
+      "pass": false
+    }
+  ]
+}

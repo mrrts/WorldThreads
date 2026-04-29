@@ -1,0 +1,4 @@
+=== GRADE STRESS PACK ===
+thresholds: min_pass_rate=0.75, max_avg_words=45.0
+- Darren: 2/12 (17%), avg_words=30.8 => FAIL
+overall gate: FAIL
