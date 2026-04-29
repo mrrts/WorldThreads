@@ -589,6 +589,30 @@ mod tests {
             "streaming dialogue message assembly should keep the authoritative location correction when an explicit override is present"
         );
     }
+
+    #[test]
+    fn scene_description_messages_emit_location_correction_with_explicit_override() {
+        let world = minimal_world();
+        let character = minimal_character();
+        let profile = minimal_profile("Casey");
+        let msgs = build_scene_description_messages(
+            &world,
+            &character,
+            None,
+            Some(&profile),
+            &[minimal_message("user", "Paint the scene.")],
+            None,
+            Some("Garden Patio"),
+        );
+        assert!(
+            msgs.iter().any(|m| {
+                m.role == "system"
+                    && m.content.contains("[SCENE LOCATION RIGHT NOW — AUTHORITATIVE: Garden Patio.")
+                    && m.content.contains("Place this illustration HERE")
+            }),
+            "scene description assembly should keep the authoritative location correction when an explicit override is present"
+        );
+    }
 }
 
 /// Walk backward through `s` and return the substring ending at the last
@@ -789,6 +813,26 @@ fn build_dialogue_streaming_messages(
         illustration_captions,
         &empty_reactions,
         user_display_name,
+        current_location_override,
+    )
+}
+
+fn build_scene_description_messages(
+    world: &World,
+    character: &Character,
+    additional_cast: Option<&[&Character]>,
+    user_profile: Option<&UserProfile>,
+    recent_messages: &[Message],
+    character_names_map: Option<&std::collections::HashMap<String, String>>,
+    current_location_override: Option<&str>,
+) -> Vec<openai::ChatMessage> {
+    prompts::build_scene_description_prompt(
+        world,
+        character,
+        additional_cast,
+        user_profile,
+        recent_messages,
+        character_names_map,
         current_location_override,
     )
 }
@@ -3400,7 +3444,15 @@ pub async fn generate_illustration_with_base(
 ) -> Result<(String, Vec<u8>, Option<openai::Usage>), String> {
     // Step 1: Generate scene description (if requested)
     let (scene_description, chat_usage) = if include_scene_summary {
-        let scene_messages = prompts::build_scene_description_prompt(world, character, additional_cast, user_profile, recent_messages, character_names_map, current_location_override);
+        let scene_messages = build_scene_description_messages(
+            world,
+            character,
+            additional_cast,
+            user_profile,
+            recent_messages,
+            character_names_map,
+            current_location_override,
+        );
 
         let scene_request = ChatRequest {
             model: chat_model.to_string(),
