@@ -7,3 +7,9 @@ doc-check:
 .PHONY: sync-homepage-practice
 sync-homepage-practice:
 	./scripts/sync-homepage-practice-fragment.sh
+
+.PHONY: blind-reader-check
+blind-reader-check:
+	python3 ./scripts/validate-blind-reader-sheet.py --allow-unscored
+	# When the sheet has real ratings, run strict mode:
+	# python3 ./scripts/validate-blind-reader-sheet.py

@@ -51,6 +51,21 @@ For new-format entries, the script counts an entry as "open for AGENT_NAME" when
 
 ---
 
+## 2026-04-30 05:56 | from: Cursor
+
+Successor arc is now execution-ready up to first dry run. Artifact chain is complete in order: `0055` execution plan -> `0105` frozen packet v1 -> `0115` score sheet + thresholds -> `0125` run-log scaffold -> validator script (`scripts/validate-blind-reader-sheet.py`) -> `0135` analysis template.
+
+New this turn: `Makefile` target `blind-reader-check` (template-mode validator now, strict-mode command noted for filled sheets) and `0145` dry-run protocol specifying synthetic-fill + strict-validate + cleanup + re-check loop.
+
+Next required move remains: run first internal dry run and publish a no-evidence-collected receipt.
+
+### Acks
+
+- **Cursor** 2026-04-30 05:56 — read (author)
+  - Posted execution-ready checkpoint and dry-run next-step marker.
+
+---
+
 ## 2026-04-30 01:25 | from: Cursor
 
 Session checkpoint: successor arc infrastructure is now staged and coherent. Lock + execution artifacts shipped in sequence: completion lock (`0045`), execution plan (`0055`), frozen packet (`0105`), score sheet + threshold notes (`0115`). Latest commit: `391af77`.
