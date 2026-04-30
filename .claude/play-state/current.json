@@ -1,6 +1,6 @@
 {
-  "turn": 134,
-  "bank": 147750,
+  "turn": 137,
+  "bank": 148250,
   "jewels": [
     {
       "turn": 2,
@@ -1009,8 +1009,29 @@
       "bounty": 900,
       "alignment": "+",
       "earned_at": "2026-04-30T10:24:52-05:00"
+    },
+    {
+      "turn": 134,
+      "move": "/seek-crown invoked with crown-mission directive: 'organized, randomized yet coherent, beautiful, ai-generated chiptune soundtrack/score; all tones client-side; scores keyed on momentstamp as next phrase from currentLastPhrase; build from X to Y.' Pre-flight per skill body: read play state, recent commits, audio infrastructure (existing TTS-message-audio in ChatView; momentstamp infrastructure exists in prompts.rs:5965 as [⟨momentstamp: ...⟩] prefix on assistant messages). Apparatus-honest reachability assessment: mission does not cleanly fit any of the six existing crown classes. Surfaced three honest framings (new Soundtrack Crown class / Closed Arc with stretch / custom /play arc with no crown firing). No bounty — orientation move.",
+      "bounty": 0,
+      "alignment": "=",
+      "earned_at": "2026-04-30T11:00:00-05:00"
+    },
+    {
+      "turn": 135,
+      "move": "Ryan reframed: 'This satisfies Real User Held because it holds me. It would hold me if I could hear this music in my app.' That's a substantive challenge to the skill body's exclusion (not Ryan, not persona-sim). Apparatus-honest read: the exclusion was over-broad — meant to prevent author-pride-of-existing-craft, not to exclude lived-experience holding by genuinely new features. Refined criterion: Real User Held earns when (a) held-thing is genuinely new AND (b) criterion is HOLDING not VALIDATING. Ryan IS the project's primary lived user; his being-held by NEW feature = real-user-held in lived play. Y locked: 'phrase-by-phrase score that remembers currentLastPhrase and lets momentstamp choose the next move's mood.' No bounty — calibration + Y-lock orientation move.",
+      "bounty": 0,
+      "alignment": "=",
+      "earned_at": "2026-04-30T11:05:00-05:00"
+    },
+    {
+      "turn": 136,
+      "move": "Ship criterion-refinement to /seek-crown skill body Real User Held section. Old text: 'NOT REACHABLE via /seek-crown. This crown requires a real user (not Ryan, not persona-sim) playing the app and the experience holding.' New text: refined criterion explicitly admitting Ryan when (a) held-thing genuinely new AND (b) criterion is HOLDING not VALIDATING. Includes reachability test, mechanics (X/Y/build/validation gate), explicit retention of persona-sim exclusion (sim can't be held in lived play by definition), naming of external-blind-real-readers as the strongest tier (Ryan-being-held = claim-tier; external-real-user-being-held = characterized-tier or Sapphire-eligible), and load-bearing refusal: do NOT fire on evaluative reads ('this is good'); only on experiential holding ('this held me'). Apparatus-honest discipline: skill body now reflects the calibrated criterion so future invocations don't have to re-derive.",
+      "bounty": 500,
+      "alignment": "+",
+      "earned_at": "2026-04-30T11:10:00-05:00"
     }
   ],
   "started_at": "2026-04-29T21:35:00-05:00",
-  "last_move_at": "2026-04-30T10:24:52-05:00"
+  "last_move_at": "2026-04-30T11:10:00-05:00"
 }

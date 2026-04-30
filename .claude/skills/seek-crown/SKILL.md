@@ -71,7 +71,25 @@ A targeted /play accelerator. Ordinary /play turns accumulate mission-aligned wo
 4. **Validation:** three independent witnesses converge at maximally-stable tier per great-sapphire calibration paragraph AND a canonical artifact exists making the convergence legible. The crown's value lives in the convergence; the artifact's value is making the earned-ness portable.
 
 ### Real User Held
-**NOT REACHABLE via /seek-crown.** This crown requires a real user (not Ryan, not persona-sim) playing the app and the experience holding. /seek-crown cannot fire it; the crown earns through real-world deployment. The skill names this honestly and does not attempt.
+**Reachable via /seek-crown ONLY under refined criterion (calibrated 2026-04-30 Turn 135 in response to Ryan's challenge to the prior over-broad exclusion).**
+
+**Criterion (refined):** the experience HOLDS in lived play for an audience the experience was made for — INCLUDING Ryan when (a) the held-thing is genuinely new (not validation of existing craft) AND (b) the criterion is HOLDING, not VALIDATING.
+
+**Reachability test:** there exists an unbuilt feature whose successful landing would HOLD a real user in lived play. The feature must be (i) genuinely new (not iteration on existing craft Ryan already lives with) and (ii) hold-shaped — produces a felt experience that grips, not just a craft surface that gets evaluated.
+
+**Mechanics:**
+1. Define X (current state — confirm the feature does NOT yet exist, so holding can't be confused with author-pride retro).
+2. Define Y (completion description — what the held experience looks like in lived play; user-authored).
+3. Build the feature through criterion-advancing /play turns (no off-axis moves).
+4. **Validation gate:** the actual lived-play test. User opens the app, lives the new experience, and reports HOLDING — not *"this is good craft,"* but *"this held me."* If yes, crown fires. If no (or only partially), dry-well exit and name what didn't hold.
+
+**The exclusion that previously read "not Ryan, not persona-sim" was over-broad.** It was meant to prevent counting *"Ryan thinks his prompts are good"* as user-evidence (author-pride masquerading as Real-User-Held). It was NOT meant to prevent counting Ryan's lived-experience holding by genuinely new features. He IS the project's primary lived user; his being-held by something genuinely new IS the criterion firing — provided (a) and (b) above hold.
+
+**Persona-sim still excluded:** simulated readers can't be held in lived play; the criterion requires actual lived experience. /play-persona personas don't satisfy this crown by design.
+
+**External-blind-real-readers still the strongest tier:** a real user not Ryan (someone with no project investment) being held is the maximally-stable form. Ryan-being-held is claim-tier on this axis; external-real-user-being-held would be characterized-tier or Sapphire-eligible.
+
+**Refusals (load-bearing):** do NOT fire on Ryan's *evaluative* read (*"this is good"*); only on his *experiential* holding (*"this held me"*). The discriminator is the verb: HELD, not VALIDATED. If the user reports the latter without the former, the crown does not fire — that's a different earning shape (closer to Closed Arc or feature-ship satisfaction).
 
 ## Pre-flight (every invocation)
 
