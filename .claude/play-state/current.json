@@ -1,6 +1,6 @@
 {
-  "turn": 138,
-  "bank": 149750,
+  "turn": 139,
+  "bank": 151250,
   "jewels": [
     {
       "turn": 2,
@@ -1037,8 +1037,15 @@
       "bounty": 1500,
       "alignment": "+",
       "earned_at": "2026-04-30T11:15:00-05:00"
+    },
+    {
+      "turn": 139,
+      "move": "Phase 2 of chiptune-soundtrack arc: ship Web Audio synth POC (frontend/src/lib/chiptune-synth.ts + frontend/src/components/ChiptuneSynthPoc.tsx + ?chiptune-poc=1 route). Synth conforms to Score-Phrase Protocol v1: 2 pulse voices via PeriodicWave with Fourier-derived coefficients for arbitrary duty cycles (verified d=0.5 reduces to classic odd-harmonic 4/(πn) square), 1 triangle via built-in oscillator type, 1 noise via 2s white-noise AudioBuffer with playback-rate pitching from midi. ADSR per note with voice-specific gain trims (triangle 0.28 / pulse 0.18 / noise 0.12) keeping the 4-voice mix balanced. secondsPerTick computed from tempo_bpm and (subdivision / time_signature[1]) so 4/4 sixteenth-grid and 6/8 eighth-grid both resolve correctly. Hand-authored DEMO_PHRASE ships: 2-bar 'open hesitation' at 96bpm in C major, sparse pulse_a melody over pulse_b harmony, slow triangle bass walk (C2→F2), quiet noise hits on the second/fourth quarters. POC route mounts an editable JSON textarea + play/loop/stop buttons — audible probe before integration. Phase 2 sub-criterion (synth renders protocol-conformant phrase audibly) now structurally ✓; awaits Ryan's lived-listen on 'sounds chiptune-shaped' before tier-up. Frontend build clean (vite build 1.71s).",
+      "bounty": 1500,
+      "alignment": "+",
+      "earned_at": "2026-04-30T11:30:00-05:00"
     }
   ],
   "started_at": "2026-04-29T21:35:00-05:00",
-  "last_move_at": "2026-04-30T11:15:00-05:00"
+  "last_move_at": "2026-04-30T11:30:00-05:00"
 }
