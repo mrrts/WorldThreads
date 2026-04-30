@@ -16,6 +16,7 @@ fi
 
 CHARACTER_ID="${1:-}"
 TURNS="${TURNS:-2}"
+DRY_RUN="${DRY_RUN:-0}"
 
 cd "$SRC_TAURI_DIR"
 
@@ -40,8 +41,15 @@ fi
 
 echo "Running worldcli smoke: character_id=$CHARACTER_ID turns=$TURNS"
 
+BASE_CMD=(cargo run --bin worldcli -- simulate-dialogue "$CHARACTER_ID" --turns "$TURNS")
+
+if [[ "$DRY_RUN" == "1" ]]; then
+  echo "DRY RUN: ${BASE_CMD[*]}"
+  exit 0
+fi
+
 set +e
-OUT="$(cargo run --bin worldcli -- simulate-dialogue "$CHARACTER_ID" --turns "$TURNS" 2>&1)"
+OUT="$("${BASE_CMD[@]}" 2>&1)"
 RC=$?
 set -e
 
