@@ -786,3 +786,5 @@ WorldThreads is a Tauri desktop app, so most gstack web-shaped skills (`/qa`, `/
 **Composes with project law:** every turn ends with AskUserQuestion. Skill invocations satisfy this naturally when they include AskUserQuestion gates; for skills that complete with a status report and no chooser, the reply must STILL end with a chooser — prefer a context-real branch set and keep chooser cardinality fixed at 4 options.
 
 **Chooser cardinality is now fixed at four options.** Elevated 2026-04-29 from stylistic preference to standing interaction law: every turn-ending chooser presents exactly **4 numbered options** so Ryan can respond with `1/2/3/4` at speed. This is a control-surface guarantee, not a vibe guideline. If only 1-2 realistic branches exist, still provide four by including adjacent productive branches (e.g., execute, inspect, tighten, or user-defined move).
+
+**Chooser leverage target is mission-first.** The 4 options are not arbitrary closers; they are the highest-leverage next moves toward mission available from the current state. Rank by expected mission progress per minute, then present as `1-4` concrete actions.
