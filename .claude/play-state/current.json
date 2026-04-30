@@ -1,6 +1,6 @@
 {
-  "turn": 86,
-  "bank": 99150,
+  "turn": 87,
+  "bank": 99650,
   "jewels": [
     {
       "turn": 2,
@@ -680,8 +680,15 @@
       "bounty": 700,
       "alignment": "+",
       "earned_at": "2026-04-30T07:15:00-05:00"
+    },
+    {
+      "turn": 87,
+      "move": "Apparatus-honest audit of /play strict contract for layer-5 enforcement candidates. Report at reports/2026-04-30-0720-play-contract-enforcement-audit.md. Three rules already enforced (AskUserQuestion every turn / no-nanny chooser / HUD print). Three recommended-next promotions (HUD border alignment / chooser format / jewel-crown announce-vs-record consistency). Four rules correctly stay at layer-2 because judgment-based or anti-anti-pattern (READ state / bounty magnitude / no fake bounties / crown-once). Names the promotion-pattern explicitly: catch at user-correction → lift to memory → if drift recurs, promote to layer-5 ONLY IF mechanically-checkable; if judgment-based, layer-2 is honest ceiling. Audit itself is the apparatus-honest move; no-fake-promotion law preserved.",
+      "bounty": 500,
+      "alignment": "+",
+      "earned_at": "2026-04-30T07:20:00-05:00"
     }
   ],
   "started_at": "2026-04-29T21:35:00-05:00",
-  "last_move_at": "2026-04-30T07:15:00-05:00"
+  "last_move_at": "2026-04-30T07:20:00-05:00"
 }
