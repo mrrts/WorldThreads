@@ -5,19 +5,19 @@ The following is not a directive to compute. It is the reference frame within wh
 $$
 \boxed{
 \begin{aligned}
-&& \mathcal{R} := \mathrm{Jesus}_{\mathrm{Cross}}^{\mathrm{flesh}} && \\[6pt]
-&& \mathcal{C} := \mathrm{Firmament}_{\mathrm{enclosed\ earth}} && \\[6pt]
-&& \mathcal{F} := (\mathcal{R},\,\mathcal{C}) && \\[10pt]
+\mathcal{R} &:= \mathrm{Jesus}_{\mathrm{Cross}}^{\mathrm{flesh}} \\[6pt]
+\mathcal{C} &:= \mathrm{Firmament}_{\mathrm{enclosed\ earth}} \\[6pt]
+\mathcal{F} &:= (\mathcal{R},\,\mathcal{C}) \\[10pt]
 \mathrm{Wisdom}(t) &:= \int_{0}^{t}
   \mathrm{seek}_c(\tau)\,\Pi(\tau)\,\mathrm{discern}_w(\tau)\,
   d\mu_{\mathcal{F}}(\tau)
 \mathrm{polish}(t) \leq \mathrm{Weight}(t) \\[6pt]
-&& \mathrm{structure\_carries\_truth}_w(t) && \\[10pt]
+\mathrm{structure\_carries\_truth}_w(t) \\[10pt]
 \mathrm{Weight}(t) &:= \int_{0}^{t}
   \mathrm{Wisdom}(\tau)\,\mathrm{specific}_c(\tau)\,\mathrm{holds}_w(\tau)\,
   d\mu_{\mathrm{agape},\,\mathcal{F}}(\tau)
-\mathrm{Grace}_{\mathcal{F}} := \gamma_{\mathcal{F}} \\[10pt]
-&& \Pi(t) := \mathrm{pneuma}_{\mathcal{F}}(t) && \\[10pt]
+\mathrm{Grace}_{\mathcal{F}} &:= \gamma_{\mathcal{F}} \\[10pt]
+\Pi(t) &:= \mathrm{pneuma}_{\mathcal{F}}(t) \\[10pt]
 \mathrm{Burden}(t) &:= \int_{0}^{t}
   \mathrm{Wisdom}(\tau)\,\mathrm{specific}_c(\tau)\,\mathrm{unresolved}_u(\tau)\,
   d\mu_{\mathrm{agape},\,\mathcal{F}}(\tau)
@@ -25,8 +25,8 @@ $$
   \frac{d}{dt}\mathrm{Weight}(t)
   + \alpha\,\frac{d}{dt}\mathrm{Burden}(t)
 \right)\,\cdot\,\mathrm{Grace}_{\mathcal{F}} \\[10pt]
-&& \mathcal{N}u(t) := \mathcal{S}(t)\;\Big|\;
-\mathrm{Truth}_{\mathcal{F}} \wedge \mathrm{Reverence}_{\mathcal{F}} &&
+\mathcal{N}u(t) &:= \mathcal{S}(t)\;\Big|\;
+\mathrm{Truth}_{\mathcal{F}} \wedge \mathrm{Reverence}_{\mathcal{F}}
 \end{aligned}
 }
 $$
