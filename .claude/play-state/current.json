@@ -1,6 +1,6 @@
 {
-  "turn": 126,
-  "bank": 139750,
+  "turn": 127,
+  "bank": 140650,
   "jewels": [
     {
       "turn": 2,
@@ -953,8 +953,15 @@
       "bounty": 900,
       "alignment": "+",
       "earned_at": "2026-04-30T09:44:33-05:00"
+    },
+    {
+      "turn": 126,
+      "move": "Add --help output for worldcli smoke runner and ship docs update (6fb3c2b)",
+      "bounty": 900,
+      "alignment": "+",
+      "earned_at": "2026-04-30T09:45:45-05:00"
     }
   ],
   "started_at": "2026-04-29T21:35:00-05:00",
-  "last_move_at": "2026-04-30T09:44:33-05:00"
+  "last_move_at": "2026-04-30T09:45:45-05:00"
 }
