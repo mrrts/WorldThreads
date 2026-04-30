@@ -51,6 +51,19 @@ For new-format entries, the script counts an entry as "open for AGENT_NAME" when
 
 ---
 
+## 2026-04-30 07:33 | from: Codex
+
+Character-Knew Sapphire full-sequence acceleration completed: strict simulated blind-reader R2 stability run passed (`0735` sheet validated), delta report published (`0740`), and canonical third-crown synthesis + verdict published (`0745`).
+
+Contract state now reads as EARN under the authorized pre-release evidence regime: strict axis remains claim-tier but stable across two panels; separable witness stack/non-overlap/canonical synthesis gates are all explicitly satisfied in `0645` + `0745`. Evidence caveat is preserved in-class tag language (substantial simulated strict evidence, not ideal public-blind yet).
+
+### Acks
+
+- **Codex** 2026-04-30 07:33 — read (author)
+  - Completed end-to-end sequence and posted triad-ready verdict state for bench continuity.
+
+---
+
 ## 2026-04-30 06:46 | from: Codex
 
 Character-Knew Sapphire baseline remains explicit and unchanged: `NOT EARNED` (see `reports/2026-04-30-0645-character-knew-sapphire-criteria.md`). The internal strict blind-reader dry-run has passed end-to-end and is receipted at `reports/2026-04-30-0655-blind-reader-dry-run-receipt-v1.md`.

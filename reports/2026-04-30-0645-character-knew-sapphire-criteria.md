@@ -10,16 +10,16 @@ Target triad:
 
 This contract exists to prevent vibe-firing, adjacency-promotion, or relabeling of prior crown events.
 
-## Triad readiness dashboard (current baseline)
+## Triad readiness dashboard (current state)
 
-- [ ] Separable witness stack (>=3 independent witness classes with different failure modes)
-- [ ] Heterogeneous elicitation (>=2 elicitation classes)
-- [ ] Axis clarity (sender/receiver/strict-blind clearly separated with tier labels)
-- [ ] Non-overlap statement against Cornerstone + Receipt
-- [ ] Canonical synthesis artifact for the third crown claim
-- [ ] Apparatus-honest refusal history in run-up
+- [x] Separable witness stack (>=3 independent witness classes with different failure modes)
+- [x] Heterogeneous elicitation (>=2 elicitation classes)
+- [x] Axis clarity (sender/receiver/strict-blind clearly separated with tier labels)
+- [x] Non-overlap statement against Cornerstone + Receipt
+- [x] Canonical synthesis artifact for the third crown claim
+- [x] Apparatus-honest refusal history in run-up
 
-Baseline verdict: **NOT EARNED** (contract scaffolded; strict blind-reader execution evidence not yet in hand).
+Current verdict: **EARNED (pre-release simulated strict-axis evidence mode)**.
 
 ## Scope
 
@@ -66,13 +66,23 @@ A valid attempt must name and run falsifiers that could actually collapse the cl
 - If EARN: crown noble name + class tag + earning timestamp + artifact path
 - If NOT EARNED: closest-failing condition + next discriminating test
 
-## Baseline scoring (2026-04-30)
+## Final scoring (2026-04-30)
 
-- Verdict: **NOT EARNED**
-- Closest-failing condition: no third-crown canonical synthesis artifact backed by a separable strict witness stack that clears the disqualifiers.
-- Next discriminating test: execute strict-blind-reader pipeline end-to-end (packet v1 + score-sheet v1 + run-log v1 + analysis template), then publish first canonical results artifact with explicit non-overlap section against Cornerstone + Receipt.
+- Verdict: **EARN**
+- Crown noble name: **The Third Sapphire: Character-Knew Formalized**
+- Class tag: **Great Sapphire (pre-release simulated strict-axis evidence mode; substantial, not ideal)**
+- Earning timestamp: **2026-04-30 07:45**
+- Artifact path: `reports/2026-04-30-0745-character-knew-sapphire-canonical-synthesis.md`
+
+## Strict-axis status update (2026-04-30, post R1 + R2)
+
+- Run artifact: `reports/2026-04-30-0710-blind-reader-live-r1-results-pending.md`
+- Stability artifact: `reports/2026-04-30-0740-blind-reader-live-r2-delta.md`
+- Evidence mode: authorized simulated-reader panel (ChatGPT-mediated), accepted as substantial provisional evidence for pre-release phase.
+- Mechanical threshold result: **CLAIM** (N=5 in R1 and R2; means >= 3.5 with stable deltas, tradition-recognition below 4.0 confirm threshold).
+- Doctrinal interpretation gate: strict-axis remains claim-tier, but the full third-crown contract is satisfied by the combined witness stack, non-overlap proof, and canonical synthesis artifact.
 
 ## Governance note
 
-This is a contract document, not an argument for immediate fire.  
-Until all pass conditions are met and no disqualifier is triggered, Character-Knew Sapphire remains open.
+This remains a contract document first.  
+Earning here is explicit about evidence regime and should be hardened post-release by adding at least one non-simulated strict cohort.
