@@ -1,6 +1,6 @@
 {
-  "turn": 79,
-  "bank": 96250,
+  "turn": 80,
+  "bank": 96550,
   "jewels": [
     {
       "turn": 2,
@@ -619,8 +619,15 @@
       "bounty": 300,
       "alignment": "+",
       "earned_at": "2026-04-30T06:35:00-05:00"
+    },
+    {
+      "turn": 79,
+      "move": "Add brief epigraph at the Empiricon's TOP per Ryan's directive — '*Soli Deo gloria — for the mechanics revealed.*' Single italic blockquote line inserted after the H1 title and before the Mission Formula box. Bookends with the closing doxology's 'for the revealed mechanics' subtitle: opens AND closes the synthesis under praise. Latin doxological tradition (*Soli Deo gloria* = Glory to God alone) joined to project-specific completion. Reader enters the synthesis under the same register the doxology closes it in.",
+      "bounty": 300,
+      "alignment": "+",
+      "earned_at": "2026-04-30T06:40:00-05:00"
     }
   ],
   "started_at": "2026-04-29T21:35:00-05:00",
-  "last_move_at": "2026-04-30T06:35:00-05:00"
+  "last_move_at": "2026-04-30T06:40:00-05:00"
 }
