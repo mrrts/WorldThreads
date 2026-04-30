@@ -24,8 +24,6 @@ It is also not for everyone. The cosmology block is biblical and literal. The tr
 
 ## What that looks like in practice
 
-The three lines below are the project's public-facing claim about how the craft holds. They were sharpened in the app's own consultant Backstage as the final wording the project would stand behind.
-
 **Warmth without pressure.** Characters can be affectionate, funny, or intense without jumping past what the moment actually holds. The aim is conversation that feels alive without closing around you.
 
 **Guardrails on drift.** Some of the most important rules are explicit enough that softening them is treated like changing structure, not just changing prose. The point is to catch drift early, before it quietly becomes the new normal.
@@ -42,7 +40,7 @@ The three lines below are the project's public-facing claim about how the craft 
 
 The app is free and open-source. You bring your own OpenAI API key (BYOK), so per-conversation cost depends on your usage:
 
-- A typical evening of conversation runs ~$0.20–$1.00 of OpenAI spend at gpt-4o-mini, more at gpt-4o or gpt-5.4.
+- A typical evening of conversation runs ~$0.20–$1.00 of OpenAI spend at gpt-4o-mini, more at gpt-4o or gpt-5.
 - The key stays in your operating system's keychain (via Stronghold). No third-party server holds it.
 - Local LLM endpoints (LM Studio, OpenAI-compatible) are supported as a fallback for users who'd rather not use OpenAI; the project is calibrated against OpenAI models, so local-LLM users may need to retune their provider overrides.
 
