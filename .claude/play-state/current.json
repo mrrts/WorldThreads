@@ -1,6 +1,6 @@
 {
-  "turn": 132,
-  "bank": 145750,
+  "turn": 133,
+  "bank": 146850,
   "jewels": [
     {
       "turn": 2,
@@ -995,8 +995,15 @@
       "bounty": 1200,
       "alignment": "+",
       "earned_at": "2026-04-30T09:58:42-05:00"
+    },
+    {
+      "turn": 132,
+      "move": "Add Makefile worldcli-smoke-metrics target and ship timestamped metrics artifact (e4d4712)",
+      "bounty": 1100,
+      "alignment": "+",
+      "earned_at": "2026-04-30T10:00:20-05:00"
     }
   ],
   "started_at": "2026-04-29T21:35:00-05:00",
-  "last_move_at": "2026-04-30T09:58:42-05:00"
+  "last_move_at": "2026-04-30T10:00:20-05:00"
 }
