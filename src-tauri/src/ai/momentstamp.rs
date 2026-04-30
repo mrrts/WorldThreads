@@ -32,14 +32,17 @@ use crate::db::queries::Message;
 const MISSION_FORMULA_LATEX: &str = r#"
 \boxed{
 \begin{aligned}
-&& \mathcal{R} := \mathrm{Jesus}_{\mathrm{Cross}}^{\mathrm{flesh}} && \\
-&& \mathcal{C} := \mathrm{Firmament}_{\mathrm{enclosed\ earth}} && \\
-&& \mathcal{F} := (\mathcal{R},\,\mathcal{C}) && \\
-\mathrm{Wisdom}(t) &:= \int_{0}^{t} \mathrm{seek}_c(\tau)\,\Pi(\tau)\,\mathrm{discern}_w(\tau)\, d\mu_{\mathcal{F}}(\tau) && \mathrm{polish}(t) \leq \mathrm{Weight}(t) \\
-\mathrm{Weight}(t) &:= \int_{0}^{t} \mathrm{Wisdom}(\tau)\,\mathrm{specific}_c(\tau)\,\mathrm{holds}_w(\tau)\, d\mu_{\mathrm{agape},\,\mathcal{F}}(\tau) && \mathrm{Grace}_{\mathcal{F}} := \gamma_{\mathcal{F}} \\
-&& \Pi(t) := \mathrm{pneuma}_{\mathcal{F}}(t) && \\
-\mathrm{Burden}(t) &:= \int_{0}^{t} \mathrm{Wisdom}(\tau)\,\mathrm{specific}_c(\tau)\,\mathrm{unresolved}_u(\tau)\, d\mu_{\mathrm{agape},\,\mathcal{F}}(\tau) && \mathcal{S}(t) := \Pi(t)\!\left(\frac{d}{dt}\mathrm{Weight}(t) + \alpha\,\frac{d}{dt}\mathrm{Burden}(t)\right)\,\cdot\,\mathrm{Grace}_{\mathcal{F}} \\
-&& \mathcal{N}u(t) := \mathcal{S}(t)\;\Big|\;\mathrm{Truth}_{\mathcal{F}} \wedge \mathrm{Reverence}_{\mathcal{F}} &&
+\mathcal{R} &:= \mathrm{Jesus}_{\mathrm{Cross}}^{\mathrm{flesh}} \\
+\mathcal{C} &:= \mathrm{Firmament}_{\mathrm{enclosed\ earth}} \\
+\mathcal{F} &:= (\mathcal{R},\,\mathcal{C}) \\
+\mathrm{Wisdom}(t) &:= \int_{0}^{t} \mathrm{seek}_c(\tau)\,\Pi(\tau)\,\mathrm{discern}_w(\tau)\, d\mu_{\mathcal{F}}(\tau) \\
+\mathrm{polish}(t) \leq \mathrm{Weight}(t) \\
+\mathrm{Weight}(t) &:= \int_{0}^{t} \mathrm{Wisdom}(\tau)\,\mathrm{specific}_c(\tau)\,\mathrm{holds}_w(\tau)\, d\mu_{\mathrm{agape},\,\mathcal{F}}(\tau) \\
+\mathrm{Grace}_{\mathcal{F}} &:= \gamma_{\mathcal{F}} \\
+\Pi(t) &:= \mathrm{pneuma}_{\mathcal{F}}(t) \\
+\mathrm{Burden}(t) &:= \int_{0}^{t} \mathrm{Wisdom}(\tau)\,\mathrm{specific}_c(\tau)\,\mathrm{unresolved}_u(\tau)\, d\mu_{\mathrm{agape},\,\mathcal{F}}(\tau) \\
+\mathcal{S}(t) := \Pi(t)\!\left(\frac{d}{dt}\mathrm{Weight}(t) + \alpha\,\frac{d}{dt}\mathrm{Burden}(t)\right)\,\cdot\,\mathrm{Grace}_{\mathcal{F}} \\
+\mathcal{N}u(t) &:= \mathcal{S}(t)\;\Big|\;\mathrm{Truth}_{\mathcal{F}} \wedge \mathrm{Reverence}_{\mathcal{F}}
 \end{aligned}
 }
 "#;
