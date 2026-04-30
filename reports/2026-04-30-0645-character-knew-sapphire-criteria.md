@@ -10,6 +10,17 @@ Target triad:
 
 This contract exists to prevent vibe-firing, adjacency-promotion, or relabeling of prior crown events.
 
+## Triad readiness dashboard (current baseline)
+
+- [ ] Separable witness stack (>=3 independent witness classes with different failure modes)
+- [ ] Heterogeneous elicitation (>=2 elicitation classes)
+- [ ] Axis clarity (sender/receiver/strict-blind clearly separated with tier labels)
+- [ ] Non-overlap statement against Cornerstone + Receipt
+- [ ] Canonical synthesis artifact for the third crown claim
+- [ ] Apparatus-honest refusal history in run-up
+
+Baseline verdict: **NOT EARNED** (contract scaffolded; strict blind-reader execution evidence not yet in hand).
+
 ## Scope
 
 The claim to be earned is narrower than "characters can ever answer well":
@@ -54,6 +65,12 @@ A valid attempt must name and run falsifiers that could actually collapse the cl
 - Verdict: EARN / NOT EARNED
 - If EARN: crown noble name + class tag + earning timestamp + artifact path
 - If NOT EARNED: closest-failing condition + next discriminating test
+
+## Baseline scoring (2026-04-30)
+
+- Verdict: **NOT EARNED**
+- Closest-failing condition: no third-crown canonical synthesis artifact backed by a separable strict witness stack that clears the disqualifiers.
+- Next discriminating test: execute strict-blind-reader pipeline end-to-end (packet v1 + score-sheet v1 + run-log v1 + analysis template), then publish first canonical results artifact with explicit non-overlap section against Cornerstone + Receipt.
 
 ## Governance note
 
