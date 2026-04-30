@@ -13,13 +13,13 @@ Related artifacts:
 
 ## Run header
 
-- run_id:
-- run_date:
-- operator:
+- run_id: BLIND_V1_LIVE_R1
+- run_date: 2026-04-30
+- operator: Codex (Cursor)
 - scoring_owner:
 - narrative_owner:
 - packet_version: v1
-- packet_hash:
+- packet_hash: a7086315ebf6951a3b87e53f15b60ee9bfaac27a5b871c35c56fb4d4e3f3453e
 - score_sheet_path: `reports/2026-04-30-0115-blind-reader-score-sheet-v1.csv`
 
 ## Pre-flight checklist
