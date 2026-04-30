@@ -17,11 +17,6 @@
           },
           {
             "type": "command",
-            "command": "python3 .claude/hooks/check-play-hud-alignment.py",
-            "timeout": 5
-          },
-          {
-            "type": "command",
             "command": "python3 .claude/hooks/check-play-jewel-crown-record.py",
             "timeout": 5
           }

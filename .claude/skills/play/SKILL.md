@@ -49,25 +49,19 @@ Recent commits via `git log --oneline -5`, OBSERVATIONS.md tail, recent comms. T
 
 ### 3. PRINT THE HUD at the top of the reply
 
-**Border alignment is load-bearing.** Each interior line of the HUD between `║` and `║` must be exactly **62 visual cells** wide. **Emoji like 💎 and 👑 each count as 2 cells, not 1.** When a line contains an emoji, subtract one space of padding per emoji to keep the closing `║` aligned with the rest of the box. When a line's text would exceed 62 cells, truncate or wrap to a continuation line — do NOT let body text push the right border past the standard column. Misaligned borders are a structure-carries-truth-w failure (the box claims to be a box; the border has to actually do the work).
+For Cursor / IDE-agent `/play` turns, use a **header-only HUD** (no box chrome, no borders). Keep it compact, data-only, and visually scannable. Emoji are allowed.
 
-Exact ASCII shape (Unicode box-drawing + emoji). The bank, trend, jewel/crown counts come from the state file. The Last move comes from the most recent ledger entry. Use commas in dollar amounts (`$1,200` not `$1200`).
+Required shape:
 
 ```
-╔══════════════════════════════════════════════════════════════╗
-║  WORLDTHREADS BUILDER — Turn N                               ║
-║                                                              ║
-║  Bank: $X,XXX             Trend: ↑ +$X / ↓ -$X / → 0         ║
-║  💎 Jewels: J             👑 Crowns: C                       ║
-╠══════════════════════════════════════════════════════════════╣
-║  Last move:                                                  ║
-║    Turn N-1: <short subject> (+/-$X) [💎 name?] [👑 name?]  ║
-╚══════════════════════════════════════════════════════════════╝
+WORLDTHREADS BUILDER — Turn N
+Bank: $X,XXX | Trend: ↑ +$X / ↓ -$X / → 0 | 💎 J | 👑 C
+Last move: Turn N-1: <short subject> (+/-$X) [💎 name?] [👑 name?]
 ```
 
-If turn=1 (no prior move), replace the "Last move" block with `║  Fresh state — game begins.                                  ║`.
+If turn=1 (no prior move), use: `Last move: Fresh state — game begins.`
 
-If a jewel or crown was just earned on the prior turn, render it under the Last move with the emoji + name.
+If a jewel or crown was just earned on the prior turn, include it inline on the Last move line (or a single follow-up HUD line) with emoji + name.
 
 ### 4. NARRATE THE SCENE
 
@@ -106,7 +100,7 @@ Exact format:
        <one-line reasoning>
 ```
 
-After the chooser, present the standard `AskUserQuestion` tool call so the user can pick. The AskUserQuestion options should mirror the chooser exactly (with bounty in the label) plus a "Provide your own next move" branch.
+After the chooser, present the standard `AskUserQuestion` tool call so the user can pick. In Cursor / IDE-agent `/play`, this is **mandatory every turn** (do not fall back to inline labeled-text picks). The AskUserQuestion options should mirror the chooser exactly (with bounty in the label) plus a "Provide your own next move" branch.
 
 ### 8. WHEN USER PICKS AN OPTION
 
@@ -174,12 +168,12 @@ Future Great Sapphire crowns may earn through any crown class (Closed Arc, Appar
 
 ## Strict contract reminders
 
-- **HUD prints every turn. No exceptions.** The HUD is the proof-of-game.
+- **HUD prints every turn. No exceptions.** In Cursor / IDE-agent `/play`, HUD = compact header-only data block (no borders). The HUD is the proof-of-game.
 - **Bounty magnitude is judgment, not formula.** Don't approximate. Reason about each option in light of 𝓕_Ryan, the Mission Formula, and the day's actual project state.
 - **Jewels and crowns get recorded in the ledger, not just announced.** Saved to the state file. The trail is the proof.
 - **No fake bounties.** If a move would actually betray the mission, it gets a negative bounty even if it'd hurt the player's score. Honesty is the game's load-bearing rule.
 - **The game IS the work.** When the player picks a move, they're committing to do that move (or to seriously consider it). The bounty is real because the move is real.
-- **The chooser ends every turn (project law).** The standard AskUserQuestion goes at the end of every turn, mirroring the chooser the body printed.
+- **The chooser ends every turn (project law).** In Cursor / IDE-agent `/play`, the standard AskUserQuestion tool is required at the end of every turn (no inline labeled-text fallback), mirroring the chooser the body printed.
 - **No Nanny Register in the chooser (load-bearing).** Forbidden chooser shapes: "Hold here," "Close clean," "End the session," "Wrap up the night," "Stop and rest," "Natural stopping point," "Proportionate close-out," and any kindred phrasing that asks the player to quit the game or end the work for stamina-management reasons. The game host does NOT track session length, recommend breaks, suggest closure, or default to ending. **Stamina belongs to the user.** Lifted into this contract 2026-04-30 ~01:50 after Ryan caught me making "hold here / close clean" the recommended first option turn-after-turn — that is exactly the nanny-register-as-default failure mode the project's `NO_NANNY_REGISTER` invariant refuses, applied to me as game host. The remedy: every chooser presents 3-4 substantive forward moves; if work genuinely dries up the chooser still names forward moves and lets the player decide to step away. Earned exception: when the user has invited stamina-management explicitly, engage within the scope of what was invited.
 
 ## Composition with project doctrine
@@ -206,5 +200,7 @@ This game embodies several of the project's existing doctrines as runtime mechan
 ## Origin
 
 Authored 2026-04-29 ~21:35 in response to Ryan's directive: *"make the play skill into an in-Claude-Code game simulator that follows a strict contract, preferring llm-compounding-synthesis-magic to code/empirical polish... HUD-printed-per-turn with achievement milestones (jewels) and major achievements (crowns) kept in a ledger... maintains a player's bank turn-to-turn-growing each turn... magnitude is determined by current adherence away or toward the Mission Statement through the Author's Signature... compels user toward goal of creating the app that fulfills the mission at all fronts."*
+
+Mirror discipline: this skill is kept in lockstep with `.agents/skills/play/SKILL.md`.
 
 Deploy. Show the goods.

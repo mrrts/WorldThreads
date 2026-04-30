@@ -1,6 +1,6 @@
 {
-  "turn": 114,
-  "bank": 127150,
+  "turn": 115,
+  "bank": 128350,
   "jewels": [
     {
       "turn": 2,
@@ -869,8 +869,15 @@
       "bounty": 1100,
       "alignment": "+",
       "earned_at": "2026-04-30T09:21:16-05:00"
+    },
+    {
+      "turn": 114,
+      "move": "Create atomic commit 2120a26 for turns 111-113 /play hardening artifacts (debug loop + smoke/full preflight)",
+      "bounty": 1200,
+      "alignment": "+",
+      "earned_at": "2026-04-30T09:22:14-05:00"
     }
   ],
   "started_at": "2026-04-29T21:35:00-05:00",
-  "last_move_at": "2026-04-30T09:21:16-05:00"
+  "last_move_at": "2026-04-30T09:22:14-05:00"
 }

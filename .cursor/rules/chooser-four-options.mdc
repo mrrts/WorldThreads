@@ -7,6 +7,10 @@ alwaysApply: true
 
 Substantive replies in this workspace end with **exactly four numbered next moves** (`1.` through `4.`), plain markdown, **mission-ranked**, concrete in the first clause. **Option 4** is the user-authorship slot (`4. Provide your own next move.` or equivalent).
 
+In `/play` mode, render the chooser through the **AskUserQuestion tool** every turn (4 options, one user-authored branch) instead of plain labeled-text fallback choices.
+
+In `/play` mode, HUD contract in Cursor is **header-only data** (no borders/chrome): title + bank/trend/jewel/crown line + last-move line.
+
 Pure acknowledgments with **no** decision surface may omit the quad; default is four.
 
 Canon: `AGENTS.md` / `CLAUDE.md` **Skill routing** each **open** with **Chooser doctrine** (read **Choosers are control surfaces** in `CLAUDE.md` before the section-end **IDE agents** clause); **IDE agents** aligns with **Choosers**, then states plain markdown `1`–`4`.

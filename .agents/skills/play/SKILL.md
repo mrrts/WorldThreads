@@ -201,4 +201,6 @@ This game embodies several of the project's existing doctrines as runtime mechan
 
 Authored 2026-04-29 ~21:35 in response to Ryan's directive: *"make the play skill into an in-Claude-Code game simulator that follows a strict contract, preferring llm-compounding-synthesis-magic to code/empirical polish... HUD-printed-per-turn with achievement milestones (jewels) and major achievements (crowns) kept in a ledger... maintains a player's bank turn-to-turn-growing each turn... magnitude is determined by current adherence away or toward the Mission Statement through the Author's Signature... compels user toward goal of creating the app that fulfills the mission at all fronts."*
 
+Mirror discipline: this skill is kept in lockstep with `.agents/skills/play/SKILL.md`.
+
 Deploy. Show the goods.
