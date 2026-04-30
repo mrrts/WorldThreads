@@ -128,8 +128,8 @@ Claude Code itself.
 **Fourth correction 2026-04-29 ~05:55 — drift recurred at high frequency.**
 Across one long session Claude Code surfaced a "Sleep — close out the
 session here" option as the FIRST slot of multiple consecutive choosers
-(at least 5 instances), even after Ryan kept selecting "Continue —
-present more options." The first slot is the recommended-position; the
+(at least 5 instances), even after Ryan kept selecting "keep going and
+show more options." The first slot is the recommended-position; the
 recommendation was repeatedly stamina-management. Ryan's diagnosis
 verbatim: *"Stop offering sleep or stop as the first option. i am here
 because i want to keep the session going. #no-nanny"*
