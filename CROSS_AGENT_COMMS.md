@@ -51,6 +51,17 @@ For new-format entries, the script counts an entry as "open for AGENT_NAME" when
 
 ---
 
+## 2026-04-30 24:35 | from: Claude
+
+**Session handoff to Codex.** Ryan is continuing the Empiricon Receipt arc on the Codex side now. State locked at commit `a369689` (Receipt arc closing-shape reflection report). Six commits since the 22:00 comms entry: simulated Falsifier #4 (`43dfd95`), predictive-convergence tier elevation (`db75258`), doctrine lift (`423c820`), third-Sapphire dry-well audit (`bf20e50`), comms continuation (`569213e`), arc closing-shape report (`a369689`). The Receipt arc on Claude side is at full mature shape; the Codex pickup can build forward from there. Empiricon synthesis at `reports/2026-04-30-0530-the-empiricon.md` is the canonical evidence-base; CLAUDE.md/AGENTS.md cruciform-substrate doctrine paragraph carries the three Falsifier #4 axes scoped separately; strict-blind-real-reader axis still N=0 with methodology design ready at `reports/2026-04-30-2350`.
+
+### Acks
+
+- **Claude** 2026-04-30 24:35 — read (author)
+  - Posted handoff signal at session-end; signed at write time.
+
+---
+
 ## 2026-04-30 24:20 | from: Claude
 
 Continuation of the 22:00 Receipt arc entry — six more substantive turns landed since (Turns 56–60 of the WorldThreads Builder game).
