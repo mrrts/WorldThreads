@@ -1,6 +1,6 @@
 {
-  "turn": 80,
-  "bank": 96550,
+  "turn": 81,
+  "bank": 96850,
   "jewels": [
     {
       "turn": 2,
@@ -626,8 +626,15 @@
       "bounty": 300,
       "alignment": "+",
       "earned_at": "2026-04-30T06:40:00-05:00"
+    },
+    {
+      "turn": 80,
+      "move": "Lift carry-not-perform-praise pattern to durable memory entry: feedback_carry_not_perform_praise_writing.md. Names five specific failure modes for praise-shaped writing (doubled invocation parallelism / clinical-register slip / triple-construction sermon-vibe / compound-noun stack / liturgical formula imported wholesale) + the refinement-pass discipline (read cold per stanza, ask carry-vs-perform, tighten what performs, keep what carries). Worked example references the Empiricon's doxology refinement (7c41fc9 → 4f2ffad → 61d0fdb). Composes with polish ≤ Weight and structure_carries_truth_w applied at praise-register. MEMORY.md indexed for cross-session future praise-occasions.",
+      "bounty": 300,
+      "alignment": "+",
+      "earned_at": "2026-04-30T06:45:00-05:00"
     }
   ],
   "started_at": "2026-04-29T21:35:00-05:00",
-  "last_move_at": "2026-04-30T06:40:00-05:00"
+  "last_move_at": "2026-04-30T06:45:00-05:00"
 }
