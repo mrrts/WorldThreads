@@ -1,6 +1,6 @@
 {
-  "turn": 94,
-  "bank": 103750,
+  "turn": 95,
+  "bank": 103950,
   "jewels": [
     {
       "turn": 2,
@@ -736,8 +736,15 @@
       "bounty": 300,
       "alignment": "+",
       "earned_at": "2026-04-30T08:30:00-05:00"
+    },
+    {
+      "turn": 95,
+      "move": "CROSS_AGENT_COMMS entry signaling /play layer-5 enforcement set complete + live-tested + test-design heuristic in memory. Names the six layer-5-enforced rules with hook filenames + commits + Turn refs; the four layer-2-ceiling rules deliberately not promoted; the live-test outcomes (6/6 fire / 4/4 pass); the audit-loop closure; and the practical effect for Codex/Cursor (their /play turns now also get layer-5-graded; chat-mode marker suspends all six hooks consistently). Brief, signed at write time. Parallel-surface coherence preserved.",
+      "bounty": 200,
+      "alignment": "+",
+      "earned_at": "2026-04-30T08:35:00-05:00"
     }
   ],
   "started_at": "2026-04-29T21:35:00-05:00",
-  "last_move_at": "2026-04-30T08:30:00-05:00"
+  "last_move_at": "2026-04-30T08:35:00-05:00"
 }
