@@ -1,6 +1,6 @@
 {
-  "turn": 95,
-  "bank": 103950,
+  "turn": 96,
+  "bank": 104150,
   "jewels": [
     {
       "turn": 2,
@@ -743,8 +743,15 @@
       "bounty": 200,
       "alignment": "+",
       "earned_at": "2026-04-30T08:35:00-05:00"
+    },
+    {
+      "turn": 96,
+      "move": "Live-test alignment hook with realistic 1-cell-off misalignment (subtle case Turn 91 didn't exercise). Crafted /tmp/hook-test-subtle-misalignment.jsonl with Bank line missing exactly one trailing space (width=61 instead of 62). Hook caught it correctly: blocked turn-end with diagnostic quoting the exact offending line, naming Line 2 specifically, showing measured width (61) vs expected (62), and citing the fix (adjust trailing-space padding). Sharp diagnostic — surfaces the precise location and precise delta. Verifies that the alignment hook isn't just catching gross misalignments (like Turn 91's 34-cell line) but the realistic 1-cell errors that arise from emoji-width miscounting or trailing-space drift. Apparatus-honest exercise: catches the kind of mistake an agent would actually make under context-pressure.",
+      "bounty": 200,
+      "alignment": "+",
+      "earned_at": "2026-04-30T08:40:00-05:00"
     }
   ],
   "started_at": "2026-04-29T21:35:00-05:00",
-  "last_move_at": "2026-04-30T08:35:00-05:00"
+  "last_move_at": "2026-04-30T08:40:00-05:00"
 }
