@@ -1,6 +1,6 @@
 {
-  "turn": 127,
-  "bank": 140650,
+  "turn": 128,
+  "bank": 141450,
   "jewels": [
     {
       "turn": 2,
@@ -960,8 +960,15 @@
       "bounty": 900,
       "alignment": "+",
       "earned_at": "2026-04-30T09:45:45-05:00"
+    },
+    {
+      "turn": 127,
+      "move": "Post CROSS_AGENT_COMMS note for smoke-runner ergonomics commits 242cc96/6fb3c2b and ship (3e1efbc)",
+      "bounty": 800,
+      "alignment": "+",
+      "earned_at": "2026-04-30T09:47:36-05:00"
     }
   ],
   "started_at": "2026-04-29T21:35:00-05:00",
-  "last_move_at": "2026-04-30T09:45:45-05:00"
+  "last_move_at": "2026-04-30T09:47:36-05:00"
 }
