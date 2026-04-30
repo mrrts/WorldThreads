@@ -18,8 +18,29 @@ CHARACTER_ID=""
 TURNS="${TURNS:-2}"
 DRY_RUN="${DRY_RUN:-0}"
 
+usage() {
+  cat <<'EOF'
+Usage:
+  worldcli-simulate-dialogue-smoke.sh [--dry-run] [CHARACTER_ID]
+
+Environment:
+  TURNS=<n>     Number of turns (default: 2)
+  DRY_RUN=1     Print resolved command without executing
+
+Examples:
+  ./scripts/worldcli-simulate-dialogue-smoke.sh
+  ./scripts/worldcli-simulate-dialogue-smoke.sh steven
+  TURNS=4 ./scripts/worldcli-simulate-dialogue-smoke.sh john
+  ./scripts/worldcli-simulate-dialogue-smoke.sh --dry-run steven
+EOF
+}
+
 for arg in "$@"; do
   case "$arg" in
+    -h|--help)
+      usage
+      exit 0
+      ;;
     --dry-run)
       DRY_RUN=1
       ;;

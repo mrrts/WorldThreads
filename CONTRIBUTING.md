@@ -45,6 +45,7 @@ Operator examples:
 - `TURNS=3 make worldcli-simulate-dialogue-smoke`
 - `./scripts/worldcli-simulate-dialogue-smoke.sh steven`
 - `TURNS=4 ./scripts/worldcli-simulate-dialogue-smoke.sh john`
+- `./scripts/worldcli-simulate-dialogue-smoke.sh --help`
 
 **/play UI contract stress:** run `make play-contract-stress` (or `python3 scripts/play-contract-stress.py`) to exercise chained `/play` HUD + chooser-hook adversarial cases before/after `/play` contract changes.
 
