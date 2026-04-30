@@ -28,3 +28,4 @@ pub mod imagined_chapter_cmds;
 pub mod quest_cmds;
 pub mod genesis_cmds;
 pub mod location_cmds;
+pub mod chiptune_score_cmds;

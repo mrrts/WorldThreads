@@ -10,3 +10,4 @@ pub mod substrate_atlas;
 pub mod relational_stance;
 pub mod load_test_anchor;
 pub mod derivation;
+pub mod chiptune_score;

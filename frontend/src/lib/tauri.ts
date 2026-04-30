@@ -520,6 +520,17 @@ export const api = {
 
   getTodayUsage: () => invoke<DailyUsage>("get_today_usage_cmd"),
 
+  generateNextScorePhrase: (apiKey: string, args: {
+    currentLastPhrase: unknown | null;
+    momentstamp: string;
+    moodHint?: string | null;
+  }) => invoke<{ phrase: unknown; raw: string }>("generate_next_score_phrase_cmd", {
+    apiKey,
+    currentLastPhrase: args.currentLastPhrase ?? null,
+    momentstamp: args.momentstamp,
+    moodHint: args.moodHint ?? null,
+  }),
+
   getUserProfile: (worldId: string) => invoke<UserProfile | null>("get_user_profile_cmd", { worldId }),
   updateUserProfile: (profile: UserProfile) => invoke<void>("update_user_profile_cmd", { profile }),
   regenerateCharacterDerivation: (apiKey: string, characterId: string) =>

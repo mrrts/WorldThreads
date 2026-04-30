@@ -50,6 +50,7 @@ use commands::user_profile_cmds::*;
 use commands::world_cmds::*;
 use commands::world_image_cmds::*;
 use commands::location_cmds::*;
+use commands::chiptune_score_cmds::*;
 use tauri::Manager;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -267,6 +268,7 @@ pub fn run() {
             get_character_mood_cmd,
             get_mood_settings_cmd,
             set_mood_settings_cmd,
+            generate_next_score_phrase_cmd,
             list_local_models_cmd,
             get_latest_backup_cmd,
             list_backups_cmd,

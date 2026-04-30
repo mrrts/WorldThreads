@@ -1,6 +1,6 @@
 {
-  "turn": 139,
-  "bank": 151250,
+  "turn": 140,
+  "bank": 152450,
   "jewels": [
     {
       "turn": 2,
@@ -1044,8 +1044,15 @@
       "bounty": 1500,
       "alignment": "+",
       "earned_at": "2026-04-30T11:30:00-05:00"
+    },
+    {
+      "turn": 140,
+      "move": "Phase 3 of chiptune-soundtrack arc + two mid-arc reshapes per Ryan directives. Reshape #1 ('assume 4 tracks of midi instruments'): protocol pivots from 4-fixed-NES-named voices (pulse_a/pulse_b/triangle/noise) to 4 generic tracks each with {name, instrument, notes}; instrument palette expanded to {square, pulse_25, pulse_125, triangle, sawtooth, sine, noise} — 7 cheap Web Audio voices. Reshape #2 ('make sure you make rests a primitive'): track events promoted to tagged union — {type: 'note', tick, duration, midi, velocity} vs {type: 'rest', tick, duration}. Rest is first-class: a deliberate silence the composer reaches for, distinct from 'no event scheduled,' carrying breath/anticipation/space-for-another-track. Protocol REFUSES the implicit-rest shape (midi: null) on new emissions; legacy untyped events still read (midi=null → rest, midi=number → note) for forgiveness. Synth (frontend/src/lib/chiptune-synth.ts) rewritten with TrackEvent discriminated union + normalizeEvent + scheduler that no-ops on rests; DEMO_PHRASE now includes typed rests in the lead line. AI generator (src-tauri/src/ai/chiptune_score.rs) system prompt teaches the type tag explicitly + 'do not use midi: null'; validator normalizes legacy events forward + enforces type ∈ {note, rest} + strips midi/velocity from rests + requires midi on notes. Protocol report (reports/2026-04-30-1115-...) Voice-format section rewritten as 'Event primitives — note and rest are first-class' with worked examples. Frontend bridge (api.generateNextScorePhrase) + POC integration shipped; POC has momentstamp/mood-hint inputs + Generate-next button + auto-play. Cost: gpt-4o-mini at ~$0.001-0.002/call (50× under the protocol's $0.05 estimate). Both builds clean (cargo 4.83s; vite 1.62s). Phase 3 sub-criterion (generator returns protocol-conformant phrase from currentLastPhrase + momentstamp) structurally ✓; awaits live API call to confirm round-trip JSON validity. Apparatus-honest: two reshape directives mid-arc honored without resistance — Ryan's reads sharpened the protocol shape before any held-or-not test fires.",
+      "bounty": 1200,
+      "alignment": "+",
+      "earned_at": "2026-04-30T11:50:00-05:00"
     }
   ],
   "started_at": "2026-04-29T21:35:00-05:00",
-  "last_move_at": "2026-04-30T11:30:00-05:00"
+  "last_move_at": "2026-04-30T11:50:00-05:00"
 }

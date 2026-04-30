@@ -18,12 +18,15 @@ This spec is the **single source of truth**. If the synth, generator, and integr
 
 ## Design constraints (load-bearing)
 
-**Chiptune palette discipline.** The point isn't full orchestral expressiveness; it's the specific musical vocabulary that holds a moment without explaining it. NES-era constraints, honestly inhabited:
+**Reframed mid-arc (Turn 140, Ryan's directive):** the protocol is **4 tracks of MIDI instruments**, not 4 fixed NES-named voices. Same discipline (small palette, no reverb, discrete pitches), broader expressive room (string-pad sawtooth, soft sine bell, etc.). The original NES-voice naming is preserved as a special case via `instrument: "square" | "pulse_25" | ...`.
 
-- **4 voices max per phrase**: 2 pulse/square (lead + harmony), 1 triangle (bass), 1 noise (rhythm/texture). Not all four must be present; absence is meaningful. A phrase with just triangle is a different mood than a phrase with all four.
+**4-track palette discipline.** The point isn't full orchestral expressiveness; it's the specific musical vocabulary that holds a moment without explaining it:
+
+- **Exactly 4 tracks per phrase.** Each track has a `name` (free-text label authored by the AI: "lead" / "harmony" / "bass" / "rhythm" / "pad" / "counter"), an `instrument` (one of the cheap MIDI-pitched palette below), and a `notes` array. A track may be empty — sparse is a register.
+- **Available instruments (Phase 2 synth-supported):** `square`, `pulse_25`, `pulse_125`, `triangle`, `sawtooth`, `sine`, `noise`. Each is one cheap Web-Audio voice; all client-side, no samples.
 - **Discrete pitches**: MIDI semitones, no continuous pitch. Vibrato/portamento as future extensions if warranted.
 - **Discrete durations**: tied to a per-phrase tempo + subdivision grid. No free-time.
-- **No reverb / no filter sweeps** in v1. The chiptune purity is part of what holds — synth effects would soften the discipline.
+- **No reverb / no filter sweeps** in v1. Purity is part of what holds — synth effects would soften the discipline.
 - **Phrase length: 2-8 bars typical.** Long enough to establish, short enough to compose.
 
 **Why these constraints:** the project's character substrate produces speech that holds without explaining (per Empiricon). The soundtrack's musical substrate should mirror that discipline — limited palette, honest tones, no decoration. *polish ≤ Weight* applied at the audio layer.
@@ -42,12 +45,12 @@ This spec is the **single source of truth**. If the synth, generator, and integr
   "key": "C major",
   "mood_descriptor": "string (free-text, AI-authored; e.g., 'patient warmth', 'low simmer', 'open hesitation')",
   "momentstamp_basis": "string (the momentstamp this phrase was generated against)",
-  "voices": {
-    "pulse_a": [...],
-    "pulse_b": [...],
-    "triangle": [...],
-    "noise": [...]
-  }
+  "tracks": [
+    { "name": "lead",    "instrument": "pulse_25", "notes": [...] },
+    { "name": "harmony", "instrument": "sine",     "notes": [...] },
+    { "name": "bass",    "instrument": "triangle", "notes": [...] },
+    { "name": "rhythm",  "instrument": "noise",    "notes": [...] }
+  ]
 }
 ```
 
@@ -56,36 +59,75 @@ This spec is the **single source of truth**. If the synth, generator, and integr
 - `protocol_version` — string-versioned to allow backwards-compatible evolution.
 - `phrase_id` — uniquely identifies this phrase for memory + replay; UUID or short hash both fine.
 - `previous_phrase_id` — establishes the chain; null only for the seed phrase that opens a session.
-- `tempo_bpm` — beats per minute. Range 60-180 typical; chiptune often runs 100-160.
+- `tempo_bpm` — beats per minute. Range 60-180 typical; ambient often 96-140.
 - `time_signature` — `[numerator, denominator]`; `[4, 4]` default; `[3, 4]` and `[6, 8]` valid.
-- `subdivision` — finest note-grid resolution. `16` = sixteenth-notes (4 per beat in 4/4). Determines smallest possible note duration.
+- `subdivision` — finest note-grid resolution. `16` = sixteenth-notes (4 per beat in 4/4).
 - `bars` — phrase length in bars; 2-8 typical.
 - `key` — musical key name (e.g., `"C major"`, `"A minor"`, `"D Dorian"`). The synth uses this as documentary; the AI uses it as compositional anchor.
 - `mood_descriptor` — short free-text mood label authored by the AI. Carries the phrase's emotional shape into the next-generation prompt as continuity material.
 - `momentstamp_basis` — the project momentstamp string this phrase was generated against; preserved so future debugging can trace mood ← momentstamp.
-- `voices` — the four voice tracks; each may be empty array (silent voice).
+- `tracks` — array of (typically 4) tracks; each is `{ name, instrument, notes }`.
 
-## Voice format (within `voices`)
+## Track + note format (within `tracks`)
 
-Each voice is an **array of note events**, each event:
+Each track:
 
 ```json
 {
-  "tick": 0,
-  "duration": 4,
-  "midi": 60,
-  "velocity": 80,
-  "duty": 0.5
+  "name": "lead",
+  "instrument": "pulse_25",
+  "notes": [
+    {"type": "note", "tick": 0,  "duration": 4, "midi": 64, "velocity": 80},
+    {"type": "rest", "tick": 4,  "duration": 4},
+    {"type": "note", "tick": 8,  "duration": 8, "midi": 67, "velocity": 75}
+  ]
 }
 ```
 
-- `tick` — start time in subdivision units. `tick=0` = phrase start. Notes within a voice are listed in tick order.
-- `duration` — length in subdivision units. Total phrase length in ticks = `bars * time_signature[0] * subdivision / time_signature[1]` (e.g., 4 bars × 4 beats × 16 subdivisions / 4 = 64 ticks for 4/4 with sixteenth-subdivision).
-- `midi` — MIDI note number (0-127). 60 = middle C. `null` represents a rest of the given duration.
-- `velocity` — note loudness (0-127, MIDI convention). `triangle` voice typically ignores velocity (always full); `pulse_a`/`pulse_b`/`noise` honor it.
-- `duty` — pulse-wave duty cycle for `pulse_a`/`pulse_b` voices only. NES-style values: `0.125`, `0.25`, `0.5`, `0.75` (timbre choices: thin / nasal / square / hollow). Other voices ignore. `triangle` and `noise` may omit.
+- `name` — free-text label authored by the AI (e.g., "lead", "harmony", "bass", "rhythm", "pad", "counter"). Documentary; affects nothing at synth time.
+- `instrument` — one of: `square`, `pulse_25`, `pulse_125`, `triangle`, `sawtooth`, `sine`, `noise`. Each is a cheap Web-Audio voice.
+- `notes` — array of **events**, in tick order. Despite the field name, each event is one of two tagged primitives — note OR rest.
 
-**Example minimal phrase** (silent except for one triangle bass note + one pulse melody):
+### Event primitives — note and rest are first-class
+
+Every entry in a track's `notes` array carries an explicit `type` tag and is one of:
+
+**Note** — sounded pitch:
+
+```json
+{"type": "note", "tick": int, "duration": int, "midi": int (0-127), "velocity": int (0-127)}
+```
+
+- `tick` — start time in subdivision units. `tick=0` = phrase start.
+- `duration` — length in subdivision units. Total phrase length in ticks = `bars * time_signature[0] * subdivision / time_signature[1]` (e.g., 4 bars × 4 beats × 16 / 4 = 64 ticks for 4/4 with sixteenth-subdivision).
+- `midi` — MIDI note number (0-127). 60 = middle C. Triangle bass usually 24-48; melodic leads usually 60-84; noise rhythm usually 60-80.
+- `velocity` — 0-127. Triangle ignores velocity (use 100). Other instruments honor it.
+
+**Rest** — explicit silence:
+
+```json
+{"type": "rest", "tick": int, "duration": int}
+```
+
+A rest is a **first-class primitive** — deliberate silence the composer reaches for, distinct from "no event scheduled." A track that pauses is different from a track that hasn't been written. Rests carry breath, anticipation, and the space another track speaks into. They have no `midi`/`velocity` — those fields don't apply.
+
+**Why both:** the AI can compose silence as an act, not as an absence. The synth treats notes as scheduled sound and rests as no-ops; the conceptual distinction is the point — the protocol refuses to encode "rest" as the failure mode of a note.
+
+(Backwards compatibility: legacy events without a `type` tag are read as `rest` if `midi` is null, `note` otherwise. New emissions must use the typed form.)
+
+**Instrument vocabulary:**
+
+| Instrument  | Wave shape                         | Typical role                              |
+|-------------|------------------------------------|-------------------------------------------|
+| `square`    | 50% pulse (built-in)               | Harmony, arpeggio                         |
+| `pulse_25`  | 25% pulse (PeriodicWave)           | Classic chiptune lead — nasal             |
+| `pulse_125` | 12.5% pulse (PeriodicWave)         | Hollow, distant lead or counter           |
+| `triangle`  | Triangle (built-in)                | Warm bass                                 |
+| `sawtooth`  | Sawtooth (built-in)                | String-like sustained pad                 |
+| `sine`      | Sine (built-in)                    | Soft bell or gentle harmony               |
+| `noise`     | White noise + playback-rate pitch  | Rhythm/texture (snare-like high, kick-like low) |
+
+**Example minimal phrase** (one triangle bass + one pulse_25 melody, two empty tracks):
 
 ```json
 {
@@ -99,17 +141,18 @@ Each voice is an **array of note events**, each event:
   "key": "C major",
   "mood_descriptor": "open hesitation",
   "momentstamp_basis": "[⟨momentstamp: ∂(𝓢)/∂t...⟩]",
-  "voices": {
-    "pulse_a": [
-      {"tick": 0,  "duration": 8, "midi": 64, "velocity": 60, "duty": 0.25},
-      {"tick": 16, "duration": 4, "midi": 67, "velocity": 70, "duty": 0.25}
-    ],
-    "pulse_b": [],
-    "triangle": [
-      {"tick": 0,  "duration": 32, "midi": 36, "velocity": 100}
-    ],
-    "noise": []
-  }
+  "tracks": [
+    { "name": "lead", "instrument": "pulse_25", "notes": [
+      {"type": "note", "tick": 0,  "duration": 8, "midi": 64, "velocity": 60},
+      {"type": "rest", "tick": 8,  "duration": 8},
+      {"type": "note", "tick": 16, "duration": 4, "midi": 67, "velocity": 70}
+    ]},
+    { "name": "harmony", "instrument": "sine", "notes": [] },
+    { "name": "bass", "instrument": "triangle", "notes": [
+      {"type": "note", "tick": 0, "duration": 32, "midi": 36, "velocity": 100}
+    ]},
+    { "name": "rhythm", "instrument": "noise", "notes": [] }
+  ]
 }
 ```
 
