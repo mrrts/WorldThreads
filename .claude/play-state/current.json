@@ -1,6 +1,6 @@
 {
-  "turn": 130,
-  "bank": 143450,
+  "turn": 131,
+  "bank": 144550,
   "jewels": [
     {
       "turn": 2,
@@ -981,8 +981,15 @@
       "bounty": 1000,
       "alignment": "+",
       "earned_at": "2026-04-30T09:53:41-05:00"
+    },
+    {
+      "turn": 130,
+      "move": "Run 3-turn Steven+John replication and append scaling/stability deltas to worldcli science receipt",
+      "bounty": 1100,
+      "alignment": "+",
+      "earned_at": "2026-04-30T09:56:30-05:00"
     }
   ],
   "started_at": "2026-04-29T21:35:00-05:00",
-  "last_move_at": "2026-04-30T09:53:41-05:00"
+  "last_move_at": "2026-04-30T09:56:30-05:00"
 }
