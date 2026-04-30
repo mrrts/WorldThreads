@@ -4,6 +4,8 @@ A desktop app for character-driven story-chats with LLMs — OpenAI BYOK-first, 
 
 Not a roleplay engine. Not an AI companion. A craft instrument for writing the kind of conversations that are worth having.
 
+It is also, quietly, a science project studying prompt engineering — hypotheses carried in the stack, tested with small instruments and diffs, argued into `reports/` beside the shipping app.
+
 If you want the next deeper surface instead of the repo front door, start with [`reports/2026-04-27-0030-public-release-landing.md`](reports/2026-04-27-0030-public-release-landing.md).
 
 ## What it is
