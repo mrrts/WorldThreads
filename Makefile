@@ -13,3 +13,7 @@ blind-reader-check:
 	python3 ./scripts/validate-blind-reader-sheet.py --allow-unscored
 	# When the sheet has real ratings, run strict mode:
 	# python3 ./scripts/validate-blind-reader-sheet.py
+
+.PHONY: blind-reader-dry-run
+blind-reader-dry-run:
+	./scripts/blind-reader-dry-run.sh
