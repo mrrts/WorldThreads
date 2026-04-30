@@ -1,6 +1,6 @@
 {
-  "turn": 145,
-  "bank": 156150,
+  "turn": 146,
+  "bank": 156550,
   "jewels": [
     {
       "turn": 2,
@@ -1086,8 +1086,15 @@
       "bounty": 600,
       "alignment": "+",
       "earned_at": "2026-04-30T13:10:00-05:00"
+    },
+    {
+      "turn": 146,
+      "move": "Persist soundtrack collection across reload. useChiptuneSoundtrack accepts new storageKey arg (per-chat localStorage namespace: solo='chiptune_collection.{charId}'; group='chiptune_collection.group.{chatId}'). Lifecycle split into three honest paths: (a) toggle-off → wipes in-memory AND persisted (explicit reset; user said off, mean it); (b) unmount/remount → only stops playback, keeps persisted (so reload restores); (c) chat-switch (storageKey changes) → resets in-memory of old chat WITHOUT wiping its persisted data, loads new chat's persisted collection. Persistence saves on every phrase append; restore happens in a (enabled, storageKey)-keyed effect that detects key changes via lastLoadedKeyRef. Internal stop functions split: stopPlaybackOnly (silence audio only), resetInMemory (silence + clear in-memory state), stopAndReset (full toggle-off including persisted wipe). The exported stopAndReset honors the toggle-off semantic. ChatView + GroupChatView wire storageKey from charId/chatId. Frontend build clean (vite 1.64s). Soundtrack now spans sessions: a chat's accumulated musical record survives quitting the app and resuming; switching chats loads each chat's own playlist; explicit reset still works.",
+      "bounty": 400,
+      "alignment": "+",
+      "earned_at": "2026-04-30T13:25:00-05:00"
     }
   ],
   "started_at": "2026-04-29T21:35:00-05:00",
-  "last_move_at": "2026-04-30T13:10:00-05:00"
+  "last_move_at": "2026-04-30T13:25:00-05:00"
 }

@@ -282,6 +282,7 @@ export function GroupChatView({ store, onNavigateToCharacter, focusMode = false,
     enabled: soundtrackEnabled,
     apiKey: store.apiKey ?? null,
     latestAssistantMessage,
+    storageKey: chatId ? `chiptune_collection.group.${chatId}` : null,
   });
 
   // Focus-trigger: fan out to all group members' inventories on user

@@ -13,6 +13,12 @@ interface Args {
   enabled: boolean;
   apiKey: string | null;
   latestAssistantMessage: Message | null;
+  /**
+   * Per-chat localStorage key for persisting the phrase collection across
+   * reload. Pass null to disable persistence (e.g., when chatId is unknown).
+   * Solo: `chiptune_collection.${charId}`; Group: `chiptune_collection.group.${chatId}`.
+   */
+  storageKey?: string | null;
 }
 
 interface SoundtrackState {
@@ -26,27 +32,26 @@ interface SoundtrackState {
 }
 
 /**
- * Soundtrack lifecycle — circular playlist that grows.
+ * Soundtrack lifecycle — circular playlist that grows AND persists.
  *
  *   - Every phrase generated from an assistant message's momentstamp is APPENDED
- *     to a collection. The collection accumulates over the conversation and is
- *     never shrunk during the session.
- *   - Playback cycles through the whole collection in FIFO order, wrapping
- *     back to the first phrase after the last. Each iteration plays the phrase
- *     at `playbackIndex % collection.length` and increments.
- *   - When a new phrase arrives mid-cycle, it lands at the END of the collection
- *     and is reached when the playback cursor wraps around to it. New arrivals
- *     do NOT preempt the current iteration — they wait their turn in the cycle.
- *   - Continuation chain: each new generation passes the most recently generated
- *     phrase (the END of the collection) as `currentLastPhrase`, so the chain
- *     of compositional memory follows generation order, not playback order.
- *   - Disable / unmount stops scheduling and silences the active handle. The
- *     collection is RESET on disable (toggle off → start fresh on next on).
+ *     to a per-chat collection. Persisted to localStorage on every append so the
+ *     collection survives reload.
+ *   - Playback cycles through the collection in FIFO order, wrapping back to
+ *     the first phrase after the last. New arrivals don't preempt — they wait
+ *     their turn in the cycle.
+ *   - Continuation chain follows GENERATION order: each new generation passes
+ *     the most-recently-generated phrase (last index of the collection) as
+ *     `currentLastPhrase`, regardless of what's currently playing.
+ *   - Toggle-off CLEARS the persisted collection (explicit reset). Reload while
+ *     toggled-on RESTORES the collection. Switching chats loads the new chat's
+ *     persisted collection (does NOT wipe the old chat's).
  */
 export function useChiptuneSoundtrack({
   enabled,
   apiKey,
   latestAssistantMessage,
+  storageKey = null,
 }: Args): SoundtrackState {
   const [status, setStatus] = useState<SoundtrackStatus>("idle");
   const [error, setError] = useState<string | null>(null);
@@ -54,22 +59,63 @@ export function useChiptuneSoundtrack({
   const [collectionSize, setCollectionSize] = useState<number>(0);
 
   const handleRef = useRef<PlayHandle | null>(null);
-  const cursorRef = useRef<number>(0);                            // audio time when current iteration ends
-  const phraseCollectionRef = useRef<ScorePhrase[]>([]);          // append-only this session
-  const playbackIndexRef = useRef<number>(0);                     // monotone — modulo at read time
+  const cursorRef = useRef<number>(0);
+  const phraseCollectionRef = useRef<ScorePhrase[]>([]);
+  const playbackIndexRef = useRef<number>(0);
   const stepTimeoutRef = useRef<number | null>(null);
   const lastTriggerKeyRef = useRef<string | null>(null);
   const generatingRef = useRef<boolean>(false);
   const enabledRef = useRef<boolean>(enabled);
+  const storageKeyRef = useRef<string | null>(storageKey);
+  const lastLoadedKeyRef = useRef<string | null>(null);
   enabledRef.current = enabled;
+  storageKeyRef.current = storageKey;
 
-  const stopAll = useCallback(() => {
+  // ── Persistence helpers ─────────────────────────────────────────────
+  const persistCollection = useCallback(() => {
+    const key = storageKeyRef.current;
+    if (!key) return;
+    try {
+      localStorage.setItem(key, JSON.stringify(phraseCollectionRef.current));
+    } catch {
+      // quota / private mode — silent
+    }
+  }, []);
+
+  const loadPersistedCollection = useCallback((key: string): ScorePhrase[] => {
+    try {
+      const raw = localStorage.getItem(key);
+      if (!raw) return [];
+      const parsed = JSON.parse(raw);
+      if (!Array.isArray(parsed)) return [];
+      return parsed as ScorePhrase[];
+    } catch {
+      return [];
+    }
+  }, []);
+
+  const clearPersistedCollection = useCallback(() => {
+    const key = storageKeyRef.current;
+    if (!key) return;
+    try {
+      localStorage.removeItem(key);
+    } catch {
+      // private mode — silent
+    }
+  }, []);
+
+  // ── Playback control ────────────────────────────────────────────────
+  const stopPlaybackOnly = useCallback(() => {
     if (stepTimeoutRef.current !== null) {
       clearTimeout(stepTimeoutRef.current);
       stepTimeoutRef.current = null;
     }
     handleRef.current?.stop();
     handleRef.current = null;
+  }, []);
+
+  const resetInMemory = useCallback(() => {
+    stopPlaybackOnly();
     cursorRef.current = 0;
     phraseCollectionRef.current = [];
     playbackIndexRef.current = 0;
@@ -77,12 +123,15 @@ export function useChiptuneSoundtrack({
     setCurrentPhrase(null);
     setStatus("idle");
     setError(null);
-  }, []);
+  }, [stopPlaybackOnly]);
 
-  // step(): play the phrase at playbackIndex % collection.length, increment,
-  // and reschedule self ~150ms before this iteration ends so the next iteration's
-  // start chains seamlessly. New phrases appended to the collection are picked
-  // up on subsequent iterations as the cycle reaches them.
+  /** Toggle-off / explicit-reset path: wipes in-memory AND persisted. */
+  const stopAndReset = useCallback(() => {
+    resetInMemory();
+    clearPersistedCollection();
+  }, [resetInMemory, clearPersistedCollection]);
+
+  // ── The loop step ───────────────────────────────────────────────────
   const step = useCallback(() => {
     if (!enabledRef.current) return;
 
@@ -103,8 +152,6 @@ export function useChiptuneSoundtrack({
     cursorRef.current = handle.endsAt;
     setStatus(generatingRef.current ? "generating" : "playing");
 
-    // Advance cursor for next iteration. Modulo applied on next read so a
-    // mid-cycle collection growth is reflected naturally.
     playbackIndexRef.current = playbackIndexRef.current + 1;
 
     const msUntilEnd = (handle.endsAt - getAudioContextTime()) * 1000;
@@ -112,14 +159,45 @@ export function useChiptuneSoundtrack({
     stepTimeoutRef.current = window.setTimeout(step, lookahead);
   }, []);
 
-  // Disable / unmount: kill scheduling + reset the collection so the next
-  // toggle-on starts a fresh session.
+  // ── Disable / unmount lifecycle ─────────────────────────────────────
+  // Toggle-off explicitly clears persisted state. Unmount only stops playback
+  // (persisted state survives so reload + remount restores the collection).
   useEffect(() => {
-    if (!enabled) stopAll();
-    return () => stopAll();
-  }, [enabled, stopAll]);
+    if (!enabled) {
+      stopAndReset();
+    }
+    return () => {
+      stopPlaybackOnly();
+    };
+  }, [enabled, stopAndReset, stopPlaybackOnly]);
 
-  // Trigger on new assistant message arrival.
+  // ── Restore on (enabled, storageKey) change ─────────────────────────
+  // When the storageKey changes (e.g., user switches chats), reset in-memory
+  // (don't wipe the previous chat's persisted data) and restore from the new
+  // key. When enabled becomes true with an existing collection, restore.
+  useEffect(() => {
+    if (!enabled) {
+      lastLoadedKeyRef.current = null;
+      return;
+    }
+    if (storageKey === lastLoadedKeyRef.current) return;
+
+    // Storage key changed (or first load). Clear in-memory state of previous
+    // chat without wiping its persisted data, then load new chat's.
+    resetInMemory();
+    lastLoadedKeyRef.current = storageKey;
+
+    if (!storageKey) return;
+    const restored = loadPersistedCollection(storageKey);
+    if (restored.length === 0) return;
+
+    phraseCollectionRef.current = restored;
+    playbackIndexRef.current = 0;
+    setCollectionSize(restored.length);
+    step();
+  }, [enabled, storageKey, resetInMemory, loadPersistedCollection, step]);
+
+  // ── Trigger on new assistant message arrival ────────────────────────
   const triggerKey = latestAssistantMessage
     ? `${latestAssistantMessage.message_id}::${latestAssistantMessage.formula_signature ?? ""}`
     : null;
@@ -139,8 +217,6 @@ export function useChiptuneSoundtrack({
     setStatus("generating");
     setError(null);
 
-    // Continuation chain follows GENERATION order: most-recently-generated
-    // phrase is at the end of the collection.
     const previousPhrase = phraseCollectionRef.current.length > 0
       ? phraseCollectionRef.current[phraseCollectionRef.current.length - 1]
       : null;
@@ -157,13 +233,11 @@ export function useChiptuneSoundtrack({
         const wasEmpty = phraseCollectionRef.current.length === 0;
         phraseCollectionRef.current = [...phraseCollectionRef.current, next];
         setCollectionSize(phraseCollectionRef.current.length);
+        persistCollection();
 
         if (wasEmpty) {
-          // First phrase of the session — kick off the loop.
           step();
         } else {
-          // Loop is already running; the new phrase will be reached when the
-          // cycle wraps. Status returns to 'playing' (loop continues).
           setStatus("playing");
         }
       } catch (e) {
@@ -173,13 +247,13 @@ export function useChiptuneSoundtrack({
         generatingRef.current = false;
       }
     })();
-  }, [enabled, apiKey, triggerKey, latestAssistantMessage, step]);
+  }, [enabled, apiKey, triggerKey, latestAssistantMessage, step, persistCollection]);
 
   return {
     status,
     error,
     currentPhrase,
     collectionSize,
-    stopAndReset: stopAll,
+    stopAndReset,
   };
 }

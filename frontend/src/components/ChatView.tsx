@@ -257,6 +257,7 @@ export function ChatView({ store, onNavigateToCharacter, focusMode = false, onTo
     enabled: soundtrackEnabled,
     apiKey: store.apiKey ?? null,
     latestAssistantMessage,
+    storageKey: charId ? `chiptune_collection.${charId}` : null,
   });
 
   // Focus-trigger: when the user engages with this chat (click, scroll,
