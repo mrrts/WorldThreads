@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="WorldThreads">
+  <title>WorldThreads</title>
+  <circle cx="32" cy="32" r="30" fill="#6e3c1c"/>
+  <text x="32" y="44"
+        text-anchor="middle"
+        font-family="'Iowan Old Style', 'Hoefler Text', Georgia, serif"
+        font-size="40"
+        font-weight="600"
+        font-style="italic"
+        fill="#fefcf8">𝓕</text>
+</svg>
