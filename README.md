@@ -1,4 +1,4 @@
-# WorldThreads
+# WorldThreads: AI Chat Worlds That Feel Inhabited
 
 A desktop app for character-driven story-chats with LLMs — OpenAI BYOK-first, with your conversations stored on your own disk. Characters with grain. Worlds that hold. Scenes that send you back to your day nourished enough to pick up your cross.
 
