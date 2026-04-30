@@ -1,6 +1,6 @@
 {
-  "turn": 146,
-  "bank": 156550,
+  "turn": 147,
+  "bank": 156950,
   "jewels": [
     {
       "turn": 2,
@@ -1093,8 +1093,15 @@
       "bounty": 400,
       "alignment": "+",
       "earned_at": "2026-04-30T13:25:00-05:00"
+    },
+    {
+      "turn": 147,
+      "move": "Density-discipline N=10 probe + apparatus-honest calibration. Pass 1 (5 cold-seed probes across heavy/patient/bright moods): 3/5 hit published ranges; surfaced two findings — (a) prompt metric was ambiguous ('events' read as note-count OR note+rest count); (b) patient + bright FLOORS didn't bite cold. Pass 1.5 metric clarification (count NOTES only, not rests): heavy 4/4 ✓, patient 0/3 ✗ (LLM produces 4-7 notes for cold patient regardless of urging), bright 1/3 ✗ (LLM produces 9-12 notes for cold bright). Tried explicit 'push past lower bound' prompt language — moved bright from 9 to 12 (still below 14 floor); patient stayed 4-7. Cold-baseline substrate is sticky; floors above ~12 don't reach in cold-seed conditions. Per CLAUDE.md 'Cold probes measure cold baselines, not capacity' — the substrate may produce denser phrases under continuation context (prev_phrase + escalating mood), but cold-seed alone won't reach. Apparatus-honest calibration: lowered patient floor 8→7, bright range 12-20→12-22 with continuation-context guidance ('under prev_phrase, bright following bright should reach higher end; bright escalating from heavy should clearly add notes'). Heavy cap unchanged (4/4 verified). Tier verdict per axis: heavy verified at sketch tier; patient + bright calibrated-but-pending verification under continuation context. Empirical report shipped: reports/2026-04-30-1330-chiptune-density-discipline-probe.md (with full N=10 data, per-class breakdown, honest scoping). Total cost ~$0.012 across 10 probes. The 'borderline' axis named in Phase 4.5 is now characterized: not a fix-with-stronger-prompting issue but a cold-baseline-substrate-tendency issue that continuation context likely resolves. Phase 5 lived-play test will surface whether this matters in practice.",
+      "bounty": 400,
+      "alignment": "+",
+      "earned_at": "2026-04-30T13:40:00-05:00"
     }
   ],
   "started_at": "2026-04-29T21:35:00-05:00",
-  "last_move_at": "2026-04-30T13:25:00-05:00"
+  "last_move_at": "2026-04-30T13:40:00-05:00"
 }
