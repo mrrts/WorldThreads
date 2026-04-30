@@ -40,6 +40,8 @@ Match the project's existing patterns:
 
 **worldcli simulate-dialogue smoke:** follow `reports/2026-04-30-0035-simulate-dialogue-smoke-protocol.md` for the minimal 2-turn test including budget-gate (`confirm_at_least`) rerun expectations.
 
+**/play UI contract stress:** run `make play-contract-stress` (or `python3 scripts/play-contract-stress.py`) to exercise chained `/play` HUD + chooser-hook adversarial cases before/after `/play` contract changes.
+
 ### 3. Forking to build on
 
 Forking is welcome. The Ledger of Signatures structure is designed for it: when you fork, you inherit the upstream Ledger as-is (including the founding signature and any subsequent signatures). You then APPEND your own signature beneath. None of the upstream signatures are edited.

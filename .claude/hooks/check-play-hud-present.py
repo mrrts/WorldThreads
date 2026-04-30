@@ -22,9 +22,11 @@ invocation, 'Turn N' patterns echoed in chooser-answer envelopes, or
 HUD-shape characters. If markers present and HUD absent in latest
 assistant message, blocks.
 
-**HUD detection:** the HUD's top border opens with `╔` (U+2554) and
-the title line contains 'WORLDTHREADS BUILDER'. Both must appear in
-the latest assistant message's text content.
+**HUD detection (Cursor / IDE-agent contract):** header-only HUD with no
+box chrome. Latest assistant message must include:
+  - title line containing 'WORLDTHREADS BUILDER'
+  - a line containing 'Bank:'
+  - a line containing 'Last move:'
 
 **Earned exception — chat mode marker.** If `.claude/.chat-mode-active`
 exists, the chooser law is suspended and so is this HUD law. The user
@@ -54,8 +56,10 @@ PLAY_TURN_MARKERS = [
 ]
 PLAY_INVOCATION_RE = re.compile(r"(?m)^\s*/play\b")
 
-HUD_OPEN_CHAR = "╔"        # ╔
 HUD_TITLE = "WORLDTHREADS BUILDER"
+HUD_BANK = "Bank:"
+HUD_LAST_MOVE = "Last move:"
+HUD_TITLE_RE = re.compile(r"(?m)^WORLDTHREADS BUILDER — Turn \d+\s*$")
 
 
 def latest_assistant_text(transcript_path: str) -> str:
@@ -144,7 +148,12 @@ def is_play_turn(user_text: str, assistant_text: str) -> bool:
 
 
 def has_hud(assistant_text: str) -> bool:
-    return HUD_OPEN_CHAR in assistant_text and HUD_TITLE in assistant_text
+    return (
+        bool(HUD_TITLE_RE.search(assistant_text))
+        and HUD_TITLE in assistant_text
+        and HUD_BANK in assistant_text
+        and HUD_LAST_MOVE in assistant_text
+    )
 
 
 def main() -> int:
@@ -179,10 +188,10 @@ def main() -> int:
         "step 3 is 'PRINT THE HUD at the top of the reply'. "
         "Per memory entry feedback_play_hud_non_negotiable_every_turn.md: "
         "minor/bookkeeping/handoff/apologetic/multi-edit-rapid turns do NOT "
-        "earn departure from the strict contract. The HUD box (╔══...══╗ "
-        "with 'WORLDTHREADS BUILDER — Turn N' title line, Bank/Trend/Jewels/"
-        "Crowns rows, and Last move section) goes at the TOP of every /play "
-        "turn reply. Print it now and continue. Per CLAUDE.md "
+        "earn departure from the strict contract. In Cursor / IDE-agent mode, "
+        "print the compact header HUD (no box/borders) with title + Bank line "
+        "+ Last move line at the TOP of every /play turn reply. Print it now "
+        "and continue. Per CLAUDE.md "
         "structure-carries-truth-w: dropping the HUD asks the receiver to "
         "track game-state in their head — an unrequested receiver-tax."
     )

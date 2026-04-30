@@ -17,3 +17,11 @@ blind-reader-check:
 .PHONY: blind-reader-dry-run
 blind-reader-dry-run:
 	./scripts/blind-reader-dry-run.sh
+
+.PHONY: play-contract-stress
+play-contract-stress:
+	python3 ./scripts/play-contract-stress.py
+
+.PHONY: play-contract-smoke
+play-contract-smoke:
+	python3 ./scripts/play-contract-stress.py --smoke

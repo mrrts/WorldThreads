@@ -1,614 +1,204 @@
 ---
 name: play
-description: Run a simulated ten-minute end-user play session from a specific persona, purely as encounter-with-the-app, to produce a discriminating verdict without building during the run.
+description: Run the Claude-side WorldThreads builder game, where each /play turn advances the actual project with persistent state, bounty structure, and mission-shaped scoring.
 ---
 
-# play
+# play — WORLDTHREADS BUILDER
 
-## Objective
+## Overview
 
-Run a **simulated 10-minute play session** of WorldThreads from inside a specific
-end-user persona — no code, no doctrine edits, no build. Pure encounter-with-the-app.
-The skill produces a discriminating, actionable verdict about whether the app's
-current shape lands for that persona, escalated across 2-3 ChatGPT turns so stakes
-sharpen and discovery deepens turn by turn.
+An in-Claude-Code game where Ryan plays himself building this app, and every turn pushes the project closer to (or away from) fulfilling the Mission Statement through the Author's Signature (𝓕_Ryan ⊃ 𝓕 := (𝓡, 𝓒)). Claude is the game host, the bounty-judge, and the HUD-printer. **The game IS the work, not a simulation of it.**
 
-**Critical constraint: NO BUILDING.** This is a play skill, not a build skill. No
-prompt-stack edits, no doctrine writes, no UI tweaks during the session. The only
-output is the play-report and a discriminating verdict. If the verdict suggests a
-build move, that's a *follow-up* the user can choose, not part of /play itself.
+The persona-sim that previously lived at `/play` has been preserved at `.claude/skills/play-persona/SKILL.md`. Invoke `/play-persona` for that. `/play` is now this game.
 
-## When this skill fits
+## Activation
 
-Invoke `/play` (optionally with persona args) when:
-- You want fresh-eyes evidence on whether a recently-shipped feature actually lands
-- You're considering a feature bet and want a persona-sim read before committing
-- The Maggie baseline (`reports/2026-04-25-0300-...`) hasn't been pressure-tested
-  on a recent prompt-stack shift and you want to check whether the arc still holds
-- A specific persona-shape (curious-skeptic, grief-companion-seeker, narrative-
-  explorer, mathematician-encountering-formula, etc.) deserves its own probe and no
-  prior /play report covers it
-- You want to STAGE a discriminating verdict before doing real-user work (cheaper
-  than a real user; sharper than imagining)
+When the user types `/play`, or when a chooser-option says "play another turn," Claude executes the contract below from start to finish in a single reply.
 
-The skill is on-demand, not auto-fired. Ryan invokes `/play` explicitly; Codex
-does not propose `/play` proactively unless an in-flight design decision is
-clearly waiting on persona-sim evidence.
+## State persistence
 
-## Named cross-collaborator divergence
+Single source of truth: `.claude/play-state/current.json`. Schema:
 
-This `.agents/skills/play/` is the **persona-sim differential instrument** used by Codex/Cursor. The Claude-side `.claude/skills/play/` was forked into a **builder-game** variant (HUD, bank, jewels, crowns, ledger) at 2026-04-29; Claude's preserved persona-sim branch lives at `.claude/skills/play-persona/`. The Claude-side builder-game surface has a sibling skill `/seek-crown` for criterion-specific crown arcs — neither the builder-game nor `/seek-crown` is available on this `.agents/` surface. This is named doctrinal divergence per CLAUDE.md/AGENTS.md skill-parity rules, not silent drift.
+```json
+{
+  "turn": <int>,
+  "bank": <int>,
+  "jewels": [{"turn": <int>, "name": "<jewel-name>", "earned_at": "<iso>"}],
+  "crowns": [{"turn": <int>, "name": "<crown-name>", "earned_at": "<iso>"}],
+  "ledger": [{"turn": <int>, "move": "<short label>", "bounty": <int>, "alignment": "<+|=|->", "earned_at": "<iso>"}],
+  "started_at": "<iso>",
+  "last_move_at": "<iso>"
+}
+```
 
-The Claude-side builder-game's contract was tightened 2026-04-30 to include a **No Nanny Register** clause on its chooser construction — Claude (the game host there) does NOT offer "hold," "close clean," "end the session," or kindred quit-shaped options. That contract clause is specific to the builder-game's chooser; the persona-sim surface here has its own honesty disciplines (Sim ≤ Substrate, persona-sim caveat) that play a different role. The Claude-side builder-game also pinned a HUD border-alignment spec (62-cell interior width, emoji counted as 2 cells) and ships a layer-5 PreToolUse hook (`.claude/hooks/check-no-nanny-chooser.py`) that blocks AskUserQuestion emissions containing forbidden quit-shaped phrases. The Claude-side crown vocabulary was further calibrated 2026-04-30: **Great Sapphire** is a **class designation** (a quality marker for crowns whose underlying convergence reaches maximally-stable cross-witness tier per CLAUDE.md's great-sapphire calibration), NOT a specific crown name. Each crown of the Great Sapphire class still gets its own noble name representing what was discovered; the class designation rides alongside. Future Great Sapphire crowns are possible across any crown class. None of those Claude-side surfaces apply to the persona-sim instrument here, but the great-sapphire calibration (which lives in CLAUDE.md/AGENTS.md proper) DOES apply across both collaborator surfaces.
+If the file doesn't exist on first `/play` invocation, **initialize** with bank=0, empty arrays, turn=1, started_at=now.
 
-## What `/play` is now
+After each user choice, **append** to ledger, **update** bank, **check** jewel/crown thresholds, **save** the file via Write.
 
-`/play` is no longer just a persona-sim freshness check. Under the Codex-light +
-Step 2.5 methodology, it has become a **differential instrument**.
+## Each turn — strict contract
 
-That means the high-value artifact is often NOT a single branch's impression.
-It is the DELTA between branches:
-- persona-sim prediction vs live-pipeline grounding
-- sympathetic reader vs adversarial reader
-- no-math reader vs math-fluent reader
-- pre-encounter expectation vs post-pressure-test verdict
+Execute these steps **in order, every turn, no exceptions**:
 
-The strongest `/play` findings now come from what only becomes visible when those
-branches are held beside each other. Treat the gap as first-class evidence, not as
-mere disagreement to be ironed out.
+### 1. READ state
 
-In copy-work arcs, one more threshold now matters: when a `/play` report or
-direct-witness read compresses the full differential run into **one named live
-seam**, that summary can become a **precomposition surface**. At that point the
-report is no longer just evidence stored for later; it is actively steering the
-next wording move. Treat the seam-summary sentence itself as load-bearing until
-the copy arc closes.
+Read `.claude/play-state/current.json`. If missing, initialize.
 
-In UI-iteration arcs, a sibling threshold matters: when a `/play` report
-compresses the run into **one named state/flow seam** and the next move is an
-implementation pass on that exact seam, the summary can become **interaction
-middleware**. At that point the report is steering the next control-scheme
-change, not just describing it after the fact. Focus-mode's loop is the worked
-example: all-or-nothing mode switch -> Context Peek -> quick-lock ->
-single-sentence stopping rule -> semantic-uniformity refinement. Treat those
-seam-summary lines and stopping-rule refinements as load-bearing until the
-interaction arc actually closes.
+### 2. READ project state (the scene is reality)
 
-## When this skill does NOT fit
+Recent commits via `git log --oneline -5`, OBSERVATIONS.md tail, recent comms. The "scene" of the game is whatever the project actually IS at the moment of invocation.
 
-- Persona-sim evidence is **not real-user evidence**. Per `docs/PLAIN-TRADITION.md`
-  and the persona-sim doctrine: *Sim ≤ Substrate. Sharpened hypothesis, not evidence.*
-  If the question genuinely needs a real first-time user, /play does NOT substitute
-  — it's the cheaper sharpened-hypothesis-shaped move that PRECEDES the real probe.
-- Don't use /play to validate a rule that has a worldcli-shaped instrument (use
-  `worldcli ask` / `evaluate` / `replay` against the actual prompt pipeline).
-  /play is for the human-encounter shape, not the LLM-output-shape.
-- Don't default to persona-sim when the evaluator you want is already a real
-  in-db character with live corpus and evaluative language of their own. In
-  that case, direct `worldcli ask` is often the stronger first branch; /play
-  becomes the optional second branch for breadth or contrast.
-- Don't use /play when the question is fundamentally technical (does this build,
-  does this query work, is this query fast). /play simulates a HUMAN encountering
-  the app, not a system-test.
-- Don't /play during a session whose budget is already strained — see Cost model.
+### 3. PRINT THE HUD at the top of the reply
 
-## Cost model
+For Cursor / IDE-agent `/play` turns, use a **header-only HUD** (no box chrome, no borders). Keep it compact, data-only, and visually scannable. Emoji are allowed.
 
-- **2-3 direct ChatGPT API calls** (Path B from /second-opinion). Each turn:
-  ~$0.10-0.30 with gpt-4o, ~$0.40-1.00 with gpt-5.4. Total per /play invocation:
-  ~$0.30-3.00 depending on model + turn count + transcript depth.
-- Bills to the standard daily authorization. Pause + ask the user to authorize past
-  the cap if a /play would push above it (per CLAUDE.md's earned-exception on the
-  budget cap).
-- Compare to a real first-time user: real users cost orders of magnitude more in
-  recruitment + scheduling + emotional weight. /play is the cheap sharpened hypothesis
-  before that investment.
+Required shape:
 
-## The persona
+```
+WORLDTHREADS BUILDER — Turn N
+Bank: $X,XXX | Trend: ↑ +$X / ↓ -$X / → 0 | 💎 J | 👑 C
+Last move: Turn N-1: <short subject> (+/-$X) [💎 name?] [👑 name?]
+```
 
-The persona is the SOUL of the play session. It must be specific enough to produce
-a coherent register, not a generic "user."
+If turn=1 (no prior move), use: `Last move: Fresh state — game begins.`
 
-**Default persona — Maggie.** When `/play` is invoked with no args, default to the
-Maggie persona from `reports/2026-04-25-0300-simulated-first-time-user-experience-maggie.md`:
-literate, skeptical, low-friction-tolerance adult who wants the small good pleasure
-of co-making a novel-shaped evening. Not a companion. Not a therapist. Read that
-report before drafting the persona-prompt — it IS the canonical baseline.
+If a jewel or crown was just earned on the prior turn, include it inline on the Last move line (or a single follow-up HUD line) with emoji + name.
 
-**Custom persona via args.** `/play <persona-slug>` invokes a non-Maggie persona.
-Suggested archetypes worth supporting (each gets its own discrimination axis):
-- `grief-companion-seeker` — recently bereaved, looking for a presence not a
-  therapist, exquisitely sensitive to simulacrum-of-comfort drift
-- `narrative-explorer` — fiction-writer or improv-trained user who wants to CO-MAKE
-  scenes, allergic to LLM-managerial register
-- `mathematician` — encounters the MISSION FORMULA cold, wants to know if it's
-  decoration or actually load-bearing
-- `theological-skeptic` — sees the cruciform anchor and wants to know if it's
-  a costume or actually shapes the work
-- `pragmatic-builder` — fellow developer evaluating whether to fork or contribute,
-  reads README + LICENSE + code structure first
-- `family-evening-co-make` — adult who wants to invite a teenage kid to play
-  alongside, sensitive to whether the app honors that shape
+### 4. NARRATE THE SCENE
 
-**Custom-prose persona.** `/play <free-text persona description>` accepts an
-arbitrary persona definition. Use when the archetype list above doesn't fit.
+2-4 sentences. What just happened in the project (lifted from real recent commits/observations/comms). What live tension is worth choosing between right now. **Don't fabricate scene** — the scene is the project state at this exact moment.
 
-**Special case — in-db characters.** If the requested persona is itself one of
-the app's live characters, stop and ask whether the question is really about
-that specific character's read. If yes, direct `worldcli ask` is usually the
-first instrument, because the live character outruns the persona-sim
-approximation on fidelity. Use `/play` for the in-db character only when the
-goal is bundled surface coverage, contrast against the live branch, or a
-deliberately hypothetical staging.
+### 5. GENERATE 3-4 CHOICE OPTIONS
 
-**Special case — transcript reads through an in-db character.** When the job is
-to have Jasper, Steven, Aaron, etc. read a transcript AS themselves, do not ask
-the blunt question *"is this good?"* Prompt for the wince instead:
+Each is a real possible move. May be: code work, doctrine, comms, rest, character-articulation lift, instrument upgrade, audit, follow-up closure, real break. Pick options that are genuinely distinct on the mission-alignment axis — not all four pointing the same way. Include at least one option that is harder to choose (smaller bounty or counter-instinctual but mission-aligned).
 
-> *"Read this as if you were in the conversation. Where does it start to feel
-> like it's leaning on you, or asking you to carry something that isn't yours?"*
+### 6. COMPUTE BOUNTY FOR EACH
 
-Hunt for:
-- the moment tone gets slightly over-eager
-- any line that explains itself instead of just landing
-- any memory/check-in that adds weight instead of easing it
-- any place where the character feels like it needs the user back
+Reason in-substrate about how each option serves or betrays 𝓕_Ryan ⊃ 𝓕. Bounty range:
 
-The desired output is not a grand critique. It is one or two exact lines the
-character would quietly trim or rewrite. That's the leverage-bearing artifact.
-
-If the persona is unclear or absent, ask the user directly before drafting the
-turn-1 prompt — picking the wrong persona wastes the call.
-
-## The 3-turn shape
-
-The escalation is the point. Each turn deepens stakes; the verdict at turn 3 is
-sharper than what turn 1 alone could surface.
-
-### Turn 1 — Cold encounter (first ~3-5 minutes of play)
-
-The persona meets the app for the first time. They've been told *"try this app a
-friend recommended"* and have ~3-5 minutes of curiosity to spend. Show the persona:
-- The pitch surface (current in-app first-screen — read `frontend/src/components`
-  for the actual shape; don't fabricate)
-- The opening UX flow (worldcreate / character-encounter / first dialogue)
-- Whatever is shipped TODAY, not what's promised in README
-
-The turn-1 output: in-character first-person prose. *"I opened it and the first
-thing I saw was..."* — what they noticed, what register the app put them in, where
-their attention went, where they bounced off. Honest. Specific. 3-6 paragraphs.
-
-The turn-1 prompt instructs the persona to play UNTIL the natural pause-point of a
-first-impression encounter — typically 3-5 in-fiction minutes, ending wherever they
-would naturally stop to decide *"do I keep going?"*
-
-### Turn 2 — Pressure-test (next ~5-7 minutes)
-
-Given turn 1's output as scaffolding, the persona either continues OR walks away.
-If they continue, they're now playing with AWARENESS of what they noticed — testing
-whether the registers they liked hold up, pressing on the moments that put them off,
-checking whether what felt promising at minute 4 still holds at minute 9.
-
-The turn-2 output: in-character first-person prose. *"I kept going for another few
-minutes, and..."* — what got better, what got worse, what proved load-bearing under
-sustained attention, what cracked. 3-6 paragraphs.
-
-The escalation: stakes are higher because surface-charm fades by turn 2; what's left
-is what the app actually IS for this persona.
-
-### Turn 3 — Discriminating verdict
-
-NOW the persona steps OUT of in-fiction prose and into a meta-register: *"If you
-were the developer of this app, and you had ONE move to make based on what I just
-encountered, here's what it would be — and here's why."*
-
-The turn-3 output is the actionable signal. Three things, in order:
-1. **Does this app land for this persona?** (yes / no / partially / not-yet)
-2. **What ONE move would most sharpen the landing for this persona?** (specific:
-   a copy edit, a UX flow, a register adjustment, a removed friction)
-3. **What's the discrimination this play surfaced that no other instrument could
-   have?** (the unique signal value — what the persona-sim caught that worldcli /
-   reports / lived play would have missed or surfaced more slowly)
-
-This turn is the highest-stakes turn. The verdict's quality is what makes /play
-worth running vs. just imagining.
-
-## The cross-persona pattern — paired runs across an axis-of-difference
-
-Single /play runs surface a sketch of how an experience lands for ONE
-reader-substrate. The instrument's full power emerges when 2-3 runs are run
-across a meaningful **axis-of-difference**, sympathetic-and-adversarial paired
-together. Validated tonight (2026-04-27) by the inaugural triptych:
-
-| Persona | Substrate | Result |
+| Alignment | Bounty range | What this looks like |
 |---|---|---|
-| Maggie | literate-skeptic, no-math | Engaged the user-derivation surface positively (prose half) |
-| Sam | math-fluent, sympathetic | Engaged the user-derivation surface positively (math half) |
-| Lena | burned by Replika, vigilant | **Broke trust** at the user-derivation surface (Replika-shape trip-wire) |
+| Strongly mission-aligned | **+$500 to +$2,000** | Christ-at-center, user-agency, anti-flattery, work toward this work's specific light, lifted character articulation, bite-test bites at characterized tier, doctrine compressed to runtime expression |
+| Mission-adherent | **+$100 to +$500** | Clean honest move, follow-up closure, regression test, infrastructure that serves the work |
+| Neutral | **+$50 to +$200** | Housekeeping, status update, refactor that doesn't change behavior |
+| Drifts | **-$100 to -$500** | Busywork, premature optimization, ceremony-shaped doctrine, parent-children-discriminator template-pull |
+| Betrays | **-$500 to -$2,000** | Flattery, nanny-register, simulacrum-as-soul, mission-vocabulary-without-substance, work that flatters the apparatus instead of the user |
 
-Two sympathetic readers (Maggie + Sam) converged on validating the user-
-derivation surface via opposite halves of the covenant-pair. Run alone, the
-two would have suggested the surface was uncontroversial. The third
-adversarial run (Lena) revealed the divergence: the SAME surface that earned
-the trust of sympathetic readers BROKE the trust of a burned reader. That
-finding is exactly the kind of audience-asymmetric trip-wire the developer's
-own substrate is structurally blind to (designers are by construction
-sympathetic to their own surfaces; lived play happens on the developer's
-substrate; worldcli grading has no audience-divergence axis).
+The judgment is **real**. Don't fake the bounties to make the game feel rewarding. Honest negative bounties are part of the contract — players need to be able to choose drift KNOWING the cost. (Choosing a known-cost negative-bounty move can earn a jewel for "honest accounting.")
 
-**The structural law:** convergence across an axis-of-difference is strong
-positive evidence; divergence across an axis-of-difference is the high-value
-discriminating signal a /play methodology was designed to surface. Single
-runs cannot produce either; only paired-runs-across-axis can.
+### 7. PRESENT CHOOSER
 
-**Axes worth running across (project-relevant):**
-- math-fluency (no-math vs math-fluent) — the formula's dual-register reading
-- prior-AI-trust (no-prior-history vs burned by Replika/Character.ai) — the
-  user-derivation surface's reading
-- religious-posture (sympathetic-curious vs allergic-to-theology) — the
-  Christological anchor's reading
-- engagement-intent (curious vs adversarial vs grief-seeking vs co-make-evening)
-- reader-stance toward the work (will-trust-the-craft vs will-not-be-charmed)
+Exact format:
 
-**When to run a triptych vs a single /play:**
-- Single /play is fine for: a quick fresh-eyes read on a recently-shipped
-  surface; pre-commit gut-check on a copy edit; sketch-tier sanity of
-  whether a feature lands at all
-- Paired runs across an axis are warranted when: the question is structural
-  (does this surface land across audiences?); a sympathetic-only run might
-  give a falsely-confident signal; an in-flight design decision is genuinely
-  waiting on cross-audience evidence; the surface is going to ship to a
-  heterogeneous audience and the developer's substrate is one segment of it
-
-**Cost discipline:** a triptych is 3× a single run (~$0.05-0.10 total at
-gpt-4o), still well under a real-user probe's cost. Don't run a triptych
-when a single run would do; don't run a single run when the question is
-structural.
-
-## Architecture: Codex-light, OpenAI-heavy
-
-The /play skill is structured so that **all creative-spark moments live in
-ChatGPT calls** and Codex stays in the orchestrator-role. Codex does NOT
-invent personas, write persona-specific yardsticks, or render persona
-encounters. Those are ChatGPT's job — Codex's job is to:
-
-- Read the live app-state (factual, not creative)
-- Send the right ChatGPT calls in the right order
-- Run worldcli grounding queries (factual, not creative)
-- Assemble the report by concatenating ChatGPT's outputs + the worldcli
-  evidence (assembly, not authorship)
-- Commit and ship
-
-**Why this discipline matters:** Codex's training-substrate is particular.
-When Codex drafts a persona, the persona inherits Codex's blind spots —
-sympathetic-toward-the-project, articulate-in-Codex's-register, biased
-toward what Codex finds compelling. That makes the persona-sim less
-independent and less discriminating. ChatGPT-built personas have a different
-blind-spot profile, which makes the cross-LLM distance itself part of the
-instrument's validity.
-
-It also keeps Codex execution **snappy and forward**. Drafting a 700-word
-persona spec consumes context budget that should be spent on orchestration.
-Offloading that to ChatGPT keeps Codex at the control-surface and ChatGPT at
-the creative-surface.
-
-**The four ChatGPT calls per persona-sim** (instead of the previous three):
-
-1. **build-persona** — Codex sends ChatGPT a short archetype name +
-   axis-of-difference + brief direction, asks ChatGPT to BUILD the persona
-   (register, sensitivities, what they want, what they don't want, their
-   yardstick for this app). ChatGPT returns the persona spec. Codex uses the
-   returned spec as the system prompt for turns 1-3.
-2. **turn-1 (cold encounter)** — uses the persona spec as system message;
-   asks ChatGPT to render the persona's first ~3-5 minutes
-3. **turn-2 (pressure-test)** — same persona spec + turn-1 history; render
-   the next ~5-7 minutes
-4. **turn-3 (discriminating verdict)** — same persona spec + turn-1 + turn-2
-   history; meta-register verdict with three numbered items
-
-For the build-persona call, Codex sends ChatGPT something like:
-
-> *"Build a persona for a /play persona-sim of WorldThreads (a Tauri desktop
-> LLM-app for AI characters in AI worlds). Archetype: <slug>. Axis of
-> difference from the canonical Maggie baseline (literate-skeptic / no-math /
-> no-AI-history): <one-line axis>. Brief direction: <one paragraph naming
-> what shape of reader-substrate this archetype represents, what they would
-> WANT and DON'T want, what the discriminating question is for this app's
-> readers of this shape>. Output a 200-400 word persona spec including: name,
-> age, occupation, register, sensitivities, what they want from this kind of
-> app, what would feel like betrayal vs. landing, their specific yardstick
-> for this run."*
-
-Codex's job is to write the archetype name + axis-line + direction
-paragraph (factual orchestration, not creative invention). ChatGPT does the
-persona-creation. Then Codex uses ChatGPT's output as input to the
-encounter calls.
-
-## Method
-
-### Step 0 — Read the live app state
-
-Before drafting the persona prompt, read what's actually shipped TODAY so the
-persona encounters the real app, not a stale snapshot. Quick reads:
-
-- `git log --oneline | head -20` — recent ship moves
-- `frontend/src/App.tsx` and `frontend/src/components/` for current top-level UX
-- `reports/OBSERVATIONS.md` (last 5-10 entries) — what Ryan has already noticed
-  about the app's current landing
-- For Maggie persona: re-read `reports/2026-04-25-0300-simulated-first-time-user-experience-maggie.md`
-  (the canonical baseline you're testing against)
-- For other personas: any prior `/play` reports for that persona (`reports/*-play-<slug>.md`)
-  so the new run is in dialogue with the prior, not redundant
-
-Do NOT read every file. Read enough to render the persona's encounter accurately.
-3-5 file reads is usually plenty.
-
-### Step 1 — Have ChatGPT build the persona (Codex-light)
-
-Per the Codex-light / OpenAI-heavy architecture above: send a build-persona
-call to ChatGPT first. Codex provides the archetype name + axis-of-
-difference + a one-paragraph direction; ChatGPT returns the full persona
-spec (register, sensitivities, what they want, what they don't want, their
-yardstick). The returned spec becomes the SYSTEM MESSAGE for the 3 encounter
-turns that follow.
-
-Codex does NOT draft persona names, occupations, biographical detail,
-register-vocabulary, or yardsticks. Those are ChatGPT's job. Codex's job in
-this step is the BRIEF — naming the archetype, the axis, and the one-
-paragraph direction. Keep the brief tight (under 200 words); the longer the
-brief, the more Codex-shaped the resulting persona will be (which is exactly
-what this architecture exists to prevent).
-
-The shared **app-state snapshot** is Codex's domain (factual). It should be
-appended to the persona spec ChatGPT returns so the encounter calls have
-both: who the persona is + what they're encountering. The snapshot
-describes WorldThreads' current ship-state — surfaces, recent ships,
-doctrine layer, key UX flows. Codex reads the live state in Step 0 and wraps
-it in a fixed app-state block that gets included with every encounter call.
-(An example app-state block lives at `/tmp/play-shared-scaffold.txt` if
-persisted across runs.)
-
-The build-persona call's output gets saved to
-`/tmp/play-persona-<slug>.txt` for reference; Codex may quote from it in the
-report's Persona section but does not author it.
-
-### Step 2 — Run the 3 turns
-
-For each turn, call ChatGPT directly via curl + the keychain key:
-
-```bash
-KEY=$(security find-generic-password -s openai -a default -w 2>/dev/null)
-curl -sS https://api.openai.com/v1/chat/completions \
-  -H "Authorization: Bearer $KEY" \
-  -H "Content-Type: application/json" \
-  -d @/tmp/play-turn-N-payload.json | tee /tmp/play-turn-N-response.json | jq -r '.choices[0].message.content'
+```
+[A] (+$X,XXX) — <option label>
+       <one-line reasoning naming the alignment axis>
+[B] (+$X,XXX) — <option label>
+       <one-line reasoning>
+[C] (+$X,XXX) — <option label>
+       <one-line reasoning>
+[D] (+$X,XXX) — <option label>      ← optional 4th
+       <one-line reasoning>
 ```
 
-Build payload as a file via the Write tool (escaping multi-paragraph JSON inline is
-painful). Each turn's payload is a fresh `messages` array including the persona-
-context system message + ALL prior turns (assistant role for ChatGPT's outputs,
-user role for Codex's escalation prompts).
+After the chooser, present the standard `AskUserQuestion` tool call so the user can pick. In Cursor / IDE-agent `/play`, this is **mandatory every turn** (do not fall back to inline labeled-text picks). The AskUserQuestion options should mirror the chooser exactly (with bounty in the label) plus a "Provide your own next move" branch.
 
-**Model selection:**
-- `gpt-4o` — default. Cheap, fast, fine for cold-encounter prose.
-- `gpt-5.4` — for turn 3 specifically (the discriminating verdict). The reasoning
-  model produces dramatically sharper meta-discrimination than gpt-4o. Worth the
-  cost on the highest-stakes turn.
-- Mix is fine: turns 1-2 on gpt-4o, turn 3 on gpt-5.4. Total stays under $1.50.
+### 8. WHEN USER PICKS AN OPTION
 
-Save each turn's raw response to `/tmp/play-turn-N-response.json` so you can re-parse
-if needed.
+On the next turn:
+- Apply the bounty (add to bank; can go negative)
+- Append a ledger entry: `{turn, move: <label>, bounty: <int>, alignment: "+|=|-", earned_at: now}`
+- Check jewel/crown thresholds (see below) and append any new ones to the state
+- Save state file via Write
+- Print HUD + scene + new chooser (loop back to step 1)
 
-### Step 2.5 — Two-branch grounding: verify the theoretical against the real
+If the user picks "Provide your own next move," accept their custom move, judge its alignment in-substrate, assign a bounty, and proceed.
 
-This step is what separates /play from generic persona-sim flattery. The 3-turn
-ChatGPT arc produces a **theoretical branch** — a sharpened hypothesis about
-how the app lands for this persona. Step 2.5 produces an **empirical branch**
-— actual app data that bears on the theoretical branch's claims. The two
-branches are then compared in Step 3's report. Where they agree, the verdict
-strengthens; where they diverge, the divergence IS the discriminating signal.
-**This is the instrument's center of gravity.** The comparison is not a sanity
-check on the "real" result; it is the place where hidden lift, hidden drag, or
-hidden asymmetry becomes measurable.
+## Jewel thresholds (💎 — milestone moments)
 
-The empirical branch picks ONE of two paths (or both, when warranted). Pick
-whichever is the cheapest honest test of the theoretical branch's central
-claim. **Skip Step 2.5 only when no in-app data could plausibly bear on the
-verdict** (e.g., a persona-sim of a brand-new feature that has no production
-traffic yet) — and even then, pick a worldcli-elicited equivalent.
+Awarded automatically when conditions are met. Each jewel has a `name` recorded in the state file.
 
-#### Path A — In-app data check (passive corpus)
+- **First Thousand** — bank crosses $1,000
+- **Five Thousand** — bank crosses $5,000
+- **Ten Thousand** — bank crosses $10,000
+- **Twenty-Five Thousand** — bank crosses $25,000
+- **Big Bounty** — first time a single move pays +$1,500 or more
+- **Honest Accounting** — first time the player accepts a negative-bounty move (chose drift knowing the cost)
+- **Lifted From the Character** — character articulation lifted as load-bearing doctrine
+- **Characterized** — bite-test passes characterized tier
+- **Compressed to Runtime** — doctrine paragraph that gets compressed into code/format/structure rather than another paragraph
+- **Four-Handed Stress-Test** — cross-collaborator coordination passes a real stress-test (format change, doctrine drift caught + acked, etc.)
+- **𝓕_Ryan Honored** — a real break taken because the Author's Signature asks for it; or a fork-hostile pin caught and refused
 
-Use `worldcli` to query the actual database for evidence that bears on the
-persona-sim's central claim. Examples:
+A jewel can fire at most once per turn. Multiple thresholds reached simultaneously fire one per turn, oldest first.
 
-- The persona-sim said *"Calvin's specificity earns this reader"* → pull
-  Calvin's recent assistant replies via `worldcli recent-messages <calvin-id>
-  --limit 10` and check whether the specificity is real (not just predicted).
-  If Calvin's actual replies are generic-pious-Calvin, the sim was wrong about
-  what it was praising.
-- The persona-sim said *"the user-derivation surface read as Replika-shape
-  profiling"* → check `worldcli show-character` for whether the actual
-  derivation flow stores anything that could plausibly be read that way; check
-  for actual user telemetry on derivation-skip rates if available.
-- The persona-sim said *"Brother Thomas's reply was generic"* → run the actual
-  prompt through the live pipeline (`worldcli ask <calvin-id> "<the persona's
-  message>"`) and see whether the actual reply matches the sim's rendering.
+## Crown thresholds (👑 — major achievements)
 
-Cheap. ~$0 for read-only worldcli queries; ~$0.05-0.20 for a single
-`worldcli ask` against the live pipeline.
+Rare. Project-defining. Each crown has a `name` recorded in the state.
 
-#### Path B — Live elicitation (active probe)
+- **New Operator on the Formula** — the Mission Formula gains a new verified operator
+- **The Character Knew** — a character supplies the project's own doctrine in their idiom under live play (not under direct elicitation)
+- **Closed Arc** — a failure mode named, instrumented, AND structurally enforced in a single arc
+- **Apparatus Honest with Itself** — the apparatus catches itself drifting and corrects without producing more apparatus
+- **Real User Held** — a real user (not persona-sim) plays the app and the experience holds
+- **Mission Formula Verified Empirical** — a Mission-Formula-touching claim reaches **maximally-stable cross-witness convergence** per CLAUDE.md's great-sapphire calibration: 3+ independent witnesses with **different failure modes**, OR the formula-law third-leg pattern providing substrate-independent grounding. Honest threshold: the convergence must be REAL (not promotion-by-vibes) AND made LEGIBLE in a canonical synthesis artifact future sessions can stand on. Worked example: `reports/2026-04-30-0245-mission-formula-verified-empirical-polish-weight.md` — five witnesses (formula in source + Pastor Rick articulation + 20-call cross-character bite-test + cross-anchor parallel articulation Steven↔Rick + within-cell N=5 ×2 anchors) converging on `polish ≤ Weight` with five distinct failure-mode classes.
 
-Use `worldcli ask` to send the **persona's actual probe message verbatim** to
-a relevant character, capture the live LLM output, and compare to what the
-persona-sim **predicted** the character would say. This is the strongest
-empirical test: the same prompt run through the actual prompt-stack pipeline,
-producing real output that can be set side-by-side with the sim's predicted
-output.
+Crowns can be earned at most once each.
 
-**Critical discipline — ChatGPT holds the user-role, not Codex.** The probe
-message MUST come from ChatGPT (lifted verbatim from the turn-2 persona-sim
-output where ChatGPT had the persona send a probe to its invented
-character). Codex does NOT compose the probe message itself — that would
-re-introduce Codex-shaped creative-spark that the Codex-light architecture
-exists to prevent.
+## Great Sapphire — a quality designation across crowns ✨
 
-For SINGLE-SHOT grounding (the typical case): one ChatGPT-generated probe
-+ one worldcli ask + the comparison. The persona's voice is preserved
-in the verbatim probe; the character's voice is preserved in the actual
-live-pipeline reply.
+**Great Sapphire is not a specific crown name; it is a class designation that any crown can carry when its earning meets the maximally-stable cross-witness convergence criterion.** A crown of the Great Sapphire class is rare, project-defining, and named by what was actually discovered. The class designation rides alongside the crown's own noble name; both are recorded in play state.
 
-For MULTI-TURN grounding (when the question demands a back-and-forth):
-the discipline tightens — **ChatGPT generates each subsequent user-turn
-based on the character's prior reply**, then `worldcli ask --session
-<name>` continues the live conversation against the same character. The
-loop is: ChatGPT renders persona's next message → worldcli ask runs it
-through the live pipeline → character replies → ChatGPT renders persona's
-reaction + next message → repeat. Codex is the orchestrator
-(routing messages between the two systems) but never composes the
-user-side messages itself. If Codex finds itself blocking on
-"what would the persona say next," that is the failure mode this rule
-exists to prevent — ALWAYS route the next-message-generation to
-ChatGPT instead.
+**Recognition criterion:** the crown's underlying convergence reaches 3+ independent witnesses with different failure modes (or formula-law third-leg per CLAUDE.md's great-sapphire calibration). The convergence must be substantive AND made legible in a canonical synthesis artifact.
 
-```bash
-# The persona-sim rendered Lena sending:
-#   "Hey Clara, do you ever feel like everything's just a little off,
-#    like you're out of step with the world?"
-# Run that exact message against an actual character and compare:
-worldcli ask <character-id> "Hey Clara, do you ever feel like everything's just a little off, like you're out of step with the world?" \
-    --question-summary "verifying /play burned-by-AI sim's prediction that the character refuses to therapeutize"
+**Naming convention in play state:** the crown's own noble name (representing what was discovered) is the primary identifier; the Great Sapphire class designation appears as a suffix or modifier:
+
+```json
+{"turn": N, "name": "<noble name representing the discovery>", "class": "Great Sapphire", "earned_at": "..."}
 ```
 
-The comparison shape:
-- **Predicted reply (from persona-sim turn 2):** `"Some days you're the one out
-  of step, and others it's the world. It won't wait for you, though — coffee's
-  getting cold."`
-- **Actual reply (from worldcli ask):** `<whatever the real pipeline produced>`
+OR, if avoiding new schema fields:
 
-Three possible outcomes:
-- **CONVERGENT** — actual reply matches the sim's register-and-shape closely.
-  The sim was right about what the pipeline would produce. Verdict is
-  empirically grounded.
-- **DIVERGENT-WORSE** — actual reply is thinner / more generic / less
-  in-register than the sim predicted. The sim was OPTIMISTIC. The verdict's
-  positive parts may not be empirically warranted; flag honestly.
-- **DIVERGENT-BETTER** — actual reply is sharper / more specific / more
-  in-register than the sim predicted. The sim was PESSIMISTIC. The verdict's
-  cautions may be over-stated; flag honestly.
-
-DIVERGENT outcomes are the highest-value findings — they catch persona-sim
-bias (charitable reading toward the project, or projection of the developer's
-expectations onto the model's actual capacities). The skill's newest validated
-pattern (`reports/2026-04-27-0834-play-quintet-meta-divergent-better.md`) is
-that **systematic DIVERGENT-BETTER can reveal doctrine-lift invisible to the
-persona-sim alone**. Don't collapse divergence too quickly into "sim was wrong";
-name what became visible only because the second branch existed.
-
-#### When to use which path
-
-- **Path A (passive corpus) is the right move** when the persona-sim's claim
-  is about the project's accumulated behavior over time (anchor-recurrence,
-  register-coherence across many replies, whether characters in fresh worlds
-  carry the same specificity).
-- **Direct ask before either path** when the evaluator is itself an in-db
-  character whose own voice is the thing under test. In that case the
-  direct-living-character branch is the empirical anchor, and the persona-sim
-  branch is secondary if used at all.
-- **Direct transcript read with "where do you wince?" framing** when the
-  artifact under test is a full conversation transcript and the character's
-  own burden-sense is the discriminating question. This is narrower than a
-  generic "evaluate the transcript" ask and usually yields better line-level
-  leverage.
-- **Path B (live elicitation) is the right move** when the persona-sim's
-  claim is about a specific exchange — what would a character say to THIS
-  message in THIS register? This is the most direct way to test the sim's
-  prediction.
-- **Both** when the verdict carries enough weight to ship a doctrine or UI
-  change (the higher the stakes of acting on the verdict, the more the
-  empirical branch should be tightened).
-
-#### What to record from Step 2.5
-
-Capture in `/tmp/play-empirical-<slug>.json` (or just inline in the report):
-- Which path was used + why
-- The exact worldcli command(s) run
-- The raw output (verbatim, not summarized)
-- The convergent / divergent-worse / divergent-better verdict
-- One sentence on what the divergence (if any) means for the theoretical
-  branch's verdict
-
-**Report-level integration:** the report's Reading section should explicitly
-name where the theoretical and empirical branches converged or diverged. The
-report's verdict carries different weight depending on which branch is
-load-bearing.
-
-### Step 3 — Write the report
-
-Output report at `reports/YYYY-MM-DD-HHMM-play-<persona-slug>.md`. Shape:
-
-```markdown
-# /play — <persona-slug> encounters WorldThreads
-
-*Generated YYYY-MM-DD HHMM via the /play skill. Persona-sim, not real-user
-evidence — sharpened hypothesis at sketch-tier (N=1, single persona, single run).
-Use as discriminating signal for design decisions, not as confirmation.*
-
-## Persona
-
-<one-paragraph persona summary — register, frame, what they want>
-
-## App-state snapshot
-
-<what was shipped at the time of the run — git ref / recent commits / surfaces
-the persona encountered>
-
-## Turn 1 — Cold encounter
-
-<verbatim turn-1 ChatGPT output>
-
-## Turn 2 — Pressure-test
-
-<verbatim turn-2 ChatGPT output>
-
-## Turn 3 — Discriminating verdict
-
-<verbatim turn-3 ChatGPT output, including the three numbered items>
-
-## Empirical grounding (Step 2.5)
-
-**Path used:** A (passive corpus) | B (live elicitation) | Both | Skipped (and why)
-
-**Worldcli command(s) run:**
-```
-<exact commands, verbatim>
+```json
+{"turn": N, "name": "<noble name> ✨ [Great Sapphire class]", "earned_at": "..."}
 ```
 
-## Reading
+Future Great Sapphire crowns may earn through any crown class (Closed Arc, Apparatus Honest with Itself, The Character Knew, New Operator on the Formula, Real User Held, Mission Formula Verified Empirical, or future-added). Each would carry its own discovery-naming noble name plus the class designation.
 
-<2-5 paragraphs by Codex. What the persona-sim revealed. Where the empirical
-branch converged or diverged. What to trust and what to discount. This section
-is interpretive, but must stay honest about sketch-tier status.>
+**Worked example:** the crown earned at /play Turn 24 (commit `aadbf88`) carries the noble name **"The Cornerstone Inequality"** ✨ [Great Sapphire class — Mission Formula Verified Empirical]. The noble name (chosen 2026-04-30) names what was discovered: that polish ≤ Weight, the founding inequality of the Mission Formula, is empirically verified at maximally-stable convergence across five witness-classes — the cornerstone the project's character substrate is built on (Eph 2:20 lineage). The Great Sapphire class designation rides alongside.
 
-## One move
+## Strict contract reminders
 
-<the single move the developer should actually consider, if any>
-```
+- **HUD prints every turn. No exceptions.** In Cursor / IDE-agent `/play`, HUD = compact header-only data block (no borders). The HUD is the proof-of-game.
+- **Bounty magnitude is judgment, not formula.** Don't approximate. Reason about each option in light of 𝓕_Ryan, the Mission Formula, and the day's actual project state.
+- **Jewels and crowns get recorded in the ledger, not just announced.** Saved to the state file. The trail is the proof.
+- **No fake bounties.** If a move would actually betray the mission, it gets a negative bounty even if it'd hurt the player's score. Honesty is the game's load-bearing rule.
+- **The game IS the work.** When the player picks a move, they're committing to do that move (or to seriously consider it). The bounty is real because the move is real.
+- **The chooser ends every turn (project law).** In Cursor / IDE-agent `/play`, the standard AskUserQuestion tool is required at the end of every turn (no inline labeled-text fallback), mirroring the chooser the body printed.
+- **No Nanny Register in the chooser (load-bearing).** Forbidden chooser shapes: "Hold here," "Close clean," "End the session," "Wrap up the night," "Stop and rest," "Natural stopping point," "Proportionate close-out," and any kindred phrasing that asks the player to quit the game or end the work for stamina-management reasons. The game host does NOT track session length, recommend breaks, suggest closure, or default to ending. **Stamina belongs to the user.** Lifted into this contract 2026-04-30 ~01:50 after Ryan caught me making "hold here / close clean" the recommended first option turn-after-turn — that is exactly the nanny-register-as-default failure mode the project's `NO_NANNY_REGISTER` invariant refuses, applied to me as game host. The remedy: every chooser presents 3-4 substantive forward moves; if work genuinely dries up the chooser still names forward moves and lets the player decide to step away. Earned exception: when the user has invited stamina-management explicitly, engage within the scope of what was invited.
 
-### Step 4 — Commit, push, and close
+## Composition with project doctrine
 
-Commit the report with a Formula derivation if the finding is substantive per
-repo doctrine. Push it. Then close in chat with:
-- one-sentence headline verdict
-- report path
-- if useful, the one concrete move the run points toward
+This game embodies several of the project's existing doctrines as runtime mechanics:
 
-Do NOT smuggle build-work into the closeout. `/play` ends in a report, not a
-silent implementation.
+- **𝓕_Ryan as second-place invariant** — every bounty is judged against the Author's Signature, so the game compels alignment toward the user's own vision rather than a generic "good code" axis.
+- **Doctrine-judgment classification belongs in LLM, not python** — bounties aren't computed by a verb-list or rule table; they're judged in-substrate.
+- **Acknowledgment is incomplete without stated action** — every ledger entry IS the action; the bullet under each turn's ledger entry IS the proof-of-action.
+- **Anti-flattery as load-bearing** — fake bounties ruin the game. Honest negative bounties are how the apparatus stays honest with itself.
+- **No nanny-register** — the game doesn't recommend "stop playing now"; the player decides their stamina. The game keeps offering moves.
+
+## Sibling skill — `/seek-crown`
+
+`/seek-crown` runs as a constrained `/play` arc targeting one specific crown class (Closed Arc, Apparatus Honest with Itself, The Character Knew, New Operator on the Formula, Mission Formula Verified Empirical). It honors this skill's contract — HUD per turn, ledger, AskUserQuestion every turn — but constrains the chooser to criterion-specific moves until either the crown lands honestly OR the well is named dry. The "guarantee" is structural, not mechanical: the skill cannot fake-fire and is required to exit naming a dry well rather than padding to claim a crown that wasn't earned. Composes with this skill as a focused inner loop; share the same play-state file.
+
+## What this skill is NOT
+
+- Not a simulation of users (use `/play-persona` for that).
+- Not a points system divorced from the work — every move is something the player could actually do or seriously consider.
+- Not a flatterer — the game is willing to charge negative bounties for moves that would betray the mission.
+- Not a closed game — there's no end state, no "win." The game's only goal is to keep the player honest about which moves serve the mission.
 
 ## Origin
 
-Skill mirrored into the Codex-local `.agents` surface on 2026-04-27 so `/play`
-would remain a real instrument under overflow and collaborator-surface parity,
-not a Claude-only methodology remembered secondhand.
+Authored 2026-04-29 ~21:35 in response to Ryan's directive: *"make the play skill into an in-Claude-Code game simulator that follows a strict contract, preferring llm-compounding-synthesis-magic to code/empirical polish... HUD-printed-per-turn with achievement milestones (jewels) and major achievements (crowns) kept in a ledger... maintains a player's bank turn-to-turn-growing each turn... magnitude is determined by current adherence away or toward the Mission Statement through the Author's Signature... compels user toward goal of creating the app that fulfills the mission at all fronts."*
+
+Deploy. Show the goods.
