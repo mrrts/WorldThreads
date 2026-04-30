@@ -792,6 +792,8 @@ See also: `docs/CLI_AGENT_DISCOVERY.md` for the maintained quick-reference comma
 
 ## Skill routing
 
+**Chooser doctrine** (wording discipline, cheap test, slot 4): section **Choosers are control surfaces** earlier in this file — read before the **IDE agents** clause at the end of this section.
+
 When the user's request matches an available skill, invoke it via the Skill tool. When in doubt, invoke. False positive cheaper than false negative.
 
 WorldThreads is a Tauri desktop app, so most gstack web-shaped skills (`/qa`, `/design-review`, `/canary`, `/land-and-deploy`, etc.) DON'T apply by default — skip unless Ryan explicitly invokes them.
