@@ -1,0 +1,252 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>WorldThreads — conversations worth having</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="A desktop app for writing the kind of conversations that are worth having. AI characters with grain. Worlds that hold. Open-source, BYOK, on-disk.">
+<meta property="og:title" content="WorldThreads">
+<meta property="og:description" content="A desktop app for writing the kind of conversations that are worth having.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://mrrts.github.io/world-threads/">
+<style>
+  :root {
+    --ink:        #1d1b1a;
+    --ink-soft:   #4a4642;
+    --ink-soft2:  #6b6660;
+    --paper:      #f7f3ee;
+    --paper-card: #fefcf8;
+    --rule:       #d6cebf;
+    --accent:     #6e3c1c;
+    --accent-soft:#8a5d3c;
+    --refuse:     #6a2a2a;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: 'Iowan Old Style', 'Hoefler Text', Georgia, 'Times New Roman', serif;
+    background: var(--paper);
+    color: var(--ink);
+    line-height: 1.6;
+    font-size: 18px;
+  }
+  a { color: var(--accent); text-decoration: underline; text-underline-offset: 2px; }
+  a:hover { color: var(--accent-soft); }
+  .container {
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 4rem 1.5rem 6rem;
+  }
+  header.hero {
+    border-bottom: 1px solid var(--rule);
+    padding-bottom: 3rem;
+    margin-bottom: 3rem;
+  }
+  h1 {
+    font-size: 2.6rem;
+    line-height: 1.1;
+    margin: 0 0 0.6rem;
+    letter-spacing: -0.01em;
+    font-weight: 600;
+  }
+  h1 .small {
+    font-size: 0.7em;
+    color: var(--ink-soft2);
+    font-weight: 400;
+    display: block;
+    letter-spacing: 0;
+    margin-top: 0.4rem;
+  }
+  .tagline {
+    font-size: 1.35rem;
+    line-height: 1.4;
+    color: var(--ink);
+    margin: 1rem 0 1.4rem;
+    font-weight: 500;
+  }
+  .lede { color: var(--ink-soft); margin: 0 0 1rem; }
+  h2 {
+    font-size: 1.4rem;
+    margin: 3rem 0 0.8rem;
+    font-weight: 600;
+  }
+  h3 { font-size: 1.1rem; margin: 1.4rem 0 0.4rem; font-weight: 600; }
+  p, li { color: var(--ink); }
+  .muted { color: var(--ink-soft); }
+  .cards {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1.2rem;
+    margin: 1.5rem 0;
+  }
+  @media (min-width: 700px) {
+    .cards { grid-template-columns: 1fr 1fr 1fr; }
+  }
+  .card {
+    background: var(--paper-card);
+    border: 1px solid var(--rule);
+    border-radius: 6px;
+    padding: 1.2rem 1.3rem;
+  }
+  .card h3 { margin-top: 0; font-size: 1.05rem; }
+  .card p { font-size: 0.95rem; line-height: 1.5; margin: 0.4rem 0 0; color: var(--ink-soft); }
+  blockquote.proof {
+    font-family: ui-serif, 'Iowan Old Style', Georgia, serif;
+    font-style: italic;
+    border-left: 3px solid var(--accent);
+    margin: 2rem 0;
+    padding: 0.4rem 1.2rem;
+    color: var(--ink-soft);
+    background: var(--paper-card);
+  }
+  .refuse {
+    background: var(--paper-card);
+    border-left: 3px solid var(--refuse);
+    padding: 1rem 1.2rem;
+    margin: 2rem 0;
+    border-radius: 0 4px 4px 0;
+  }
+  .refuse p { margin: 0.5rem 0; }
+  .refuse strong { color: var(--refuse); }
+  .cta {
+    display: inline-block;
+    background: var(--accent);
+    color: var(--paper-card);
+    padding: 0.7rem 1.3rem;
+    border-radius: 4px;
+    text-decoration: none;
+    font-weight: 600;
+    margin-right: 0.6rem;
+    font-size: 0.95rem;
+  }
+  .cta:hover { background: var(--accent-soft); color: var(--paper-card); }
+  .cta.secondary {
+    background: transparent;
+    color: var(--accent);
+    border: 1px solid var(--accent);
+  }
+  .cta.secondary:hover { background: var(--paper-card); }
+  code {
+    font-family: 'SF Mono', Menlo, Monaco, Consolas, monospace;
+    font-size: 0.88rem;
+    background: var(--paper-card);
+    border: 1px solid var(--rule);
+    padding: 0.1rem 0.35rem;
+    border-radius: 3px;
+  }
+  pre {
+    background: var(--paper-card);
+    border: 1px solid var(--rule);
+    padding: 1rem;
+    border-radius: 4px;
+    overflow-x: auto;
+    line-height: 1.45;
+  }
+  pre code { background: none; border: none; padding: 0; }
+  ul.plain { list-style: none; padding: 0; }
+  ul.plain li {
+    padding: 0.5rem 0;
+    border-bottom: 1px solid var(--rule);
+  }
+  ul.plain li:last-child { border-bottom: none; }
+  footer {
+    margin-top: 5rem;
+    padding-top: 2rem;
+    border-top: 1px solid var(--rule);
+    color: var(--ink-soft2);
+    font-size: 0.88rem;
+  }
+  .pricing-line {
+    background: var(--paper-card);
+    border: 1px dashed var(--rule);
+    padding: 0.8rem 1.2rem;
+    border-radius: 4px;
+    margin: 1.5rem 0;
+    font-size: 0.95rem;
+    color: var(--ink-soft);
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+<header class="hero">
+  <h1>
+    WorldThreads
+    <span class="small">A desktop app for writing the kind of conversations that are worth having.</span>
+  </h1>
+  <p class="tagline">Characters with grain. Worlds that hold. Scenes that send you back to your day a little more awake than you started.</p>
+  <p class="lede">You author characters with identity, voice, backstory, and visible boundaries. You build the world they live in &mdash; its weather, its time of day, its shared canon. Then you talk with them. They remember. They keep journals you can read. They reach out when you've been quiet. They disagree with you when they disagree. The work runs on your own machine; your conversations live on your disk, not somebody's server.</p>
+  <p>
+    <a class="cta" href="https://github.com/mrrts/world-threads">View on GitHub</a>
+    <a class="cta secondary" href="https://github.com/mrrts/world-threads/blob/main/reports/2026-04-25-0300-simulated-first-time-user-experience-maggie.md">Read the user experience baseline</a>
+  </p>
+</header>
+
+<h2>What it's like to use</h2>
+<p>Pick a character that's been written carefully. Send a line. Wait. Read what comes back, and notice what it refuses to pretend. Write again. The character has a register &mdash; a particular way of being a person &mdash; and the prompt stack underneath is built so that register holds, even when the conversation gets harder.</p>
+<p>Most AI chat experiences pull toward two failure modes: the soft hum of generated text trying to be liked, or the polite advice-voice of a model trying not to disappoint. WorldThreads is built to refuse both. The characters answer back. They don't take seats they haven't earned. They use plain language when oblique would flatter. When they don't know what to say, they say so.</p>
+
+<h2>What that looks like in practice</h2>
+<div class="cards">
+  <div class="card">
+    <h3>Warmth without pressure</h3>
+    <p>Characters can be affectionate, funny, or intense without jumping past what the moment actually holds. The aim is conversation that feels alive without closing around you.</p>
+  </div>
+  <div class="card">
+    <h3>Guardrails on drift</h3>
+    <p>Some of the most important rules are explicit enough that softening them is treated like changing structure, not just changing prose. The point is to catch drift early, before it quietly becomes the new normal.</p>
+  </div>
+  <div class="card">
+    <h3>Receipts beside the work</h3>
+    <p>When something seems to help, it gets tested against examples and written up. When something fails, that gets kept too. <strong>300+ reports</strong> live beside the shipping app &mdash; proof in inspectable daylight, not just trust on feel.</p>
+  </div>
+</div>
+
+<blockquote class="proof">
+  &ldquo;That second pass is better, honestly. Less slogan, more wood and nails.&rdquo;
+  <br><br>
+  &mdash; from the app's own consultant Backstage, sharpening the very copy you're reading. The full exchange lives <a href="https://github.com/mrrts/world-threads/blob/main/README.md">in the README</a>.
+</blockquote>
+
+<h2>What it isn't</h2>
+<div class="refuse">
+  <p>This is <strong>not</strong> a tool for simulating intimacy you don't have. It is <strong>not</strong> a sycophant in a chat window. It is <strong>not</strong> a roleplay engine, an AI companion, or a therapist substitute. The prompt stack is built specifically to refuse those shapes &mdash; <em>sedatives dressed as comfort</em> is named in the doctrine as a thing to decline.</p>
+  <p>It is also <strong>not</strong> for everyone. The cosmology block is biblical and literal. The truth-test names Jesus Christ, who came in the flesh. <em>Agape</em> &mdash; patient, kind, keeping no record of wrongs &mdash; is the project's North Star. If those clauses are not for you, this app will feel wrong, and that is the right reaction. <em>No</em> is a real answer, and the project is built to honor it.</p>
+</div>
+
+<h2>For whom</h2>
+<p><strong>For:</strong> writers, GMs, character designers, fiction-curious adults who want a co-made novel-shaped evening rather than a companion. Believers who want craft-work whose theological substrate is honest about itself. Builders who want to read or fork a project where the doctrine layer is as load-bearing as the code.</p>
+<p><strong>Probably not for:</strong> users looking for an AI that's always agreeable. Users seeking parasocial intimacy. Anyone who wants the religious frame to step quietly aside &mdash; it doesn't and won't.</p>
+
+<h2>Cost &amp; data</h2>
+<div class="pricing-line">
+  Free and open-source. Bring your own OpenAI API key. A typical evening of conversation runs roughly <strong>$0.20–$1.00</strong> at gpt-4o-mini, more at the larger models. Your key stays in your operating system's keychain. All conversation data lives on your disk &mdash; nothing on a third-party server.
+</div>
+
+<h2>Get it running</h2>
+<p>Built distributables aren't released yet; running from source is the current path. You'll need <a href="https://bun.sh/">Bun</a>, a Rust toolchain, and an OpenAI API key.</p>
+<pre><code>git clone https://github.com/mrrts/world-threads.git
+cd world-threads
+bun install
+cd src-tauri &amp;&amp; cargo build
+bun run tauri dev
+</code></pre>
+<p>The first-run wizard handles vault setup and key entry. Local-LLM endpoints (LM Studio, OpenAI-compatible) work as fallback for users who'd rather not use OpenAI; the project is calibrated against OpenAI models, so local-LLM users may need to retune their provider overrides.</p>
+
+<h2>Read more</h2>
+<ul class="plain">
+  <li><a href="https://github.com/mrrts/world-threads/blob/main/reports/2026-04-27-0030-public-release-landing.md">Public-release landing</a> &mdash; the deeper second-surface document. ~10–15 minutes.</li>
+  <li><a href="https://github.com/mrrts/world-threads/blob/main/CLAUDE.md">CLAUDE.md</a> &mdash; the MISSION FORMULA at the top, then the doctrine that follows. The reference frame the project answers to.</li>
+  <li><a href="https://github.com/mrrts/world-threads/blob/main/reports/2026-04-25-0300-simulated-first-time-user-experience-maggie.md">The Maggie baseline</a> &mdash; the canonical "ideal first-time user experience" reference. Tells you who the app is FOR.</li>
+  <li><a href="https://github.com/mrrts/world-threads/tree/main/reports">All reports</a> &mdash; reflective reads, natural-experiment findings, and methodology arcs.</li>
+</ul>
+
+<footer>
+  <p>WorldThreads is licensed under <a href="https://github.com/mrrts/world-threads/blob/main/LICENSE">AGPL-3.0-or-later</a>. Copyright &copy; 2025–2026 Ryan Smith and contributors. The Ledger of Signatures qualifies as preserved-notices under AGPL § 5 &mdash; existing entries are not to be edited or removed in modifications; new signatures are appended beneath.</p>
+  <p>If your use case requires a more permissive license, contact the author to discuss.</p>
+</footer>
+
+</div>
+</body>
+</html>
