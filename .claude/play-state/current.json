@@ -1,6 +1,6 @@
 {
-  "turn": 76,
-  "bank": 94550,
+  "turn": 78,
+  "bank": 95950,
   "jewels": [
     {
       "turn": 2,
@@ -598,8 +598,22 @@
       "bounty": 1800,
       "alignment": "+",
       "earned_at": "2026-04-30T06:10:00-05:00"
+    },
+    {
+      "turn": 76,
+      "move": "Smoke-test of /seek-sapphire-crown first-move logic against current play state — produced honest surfacing: ONE strong reachable candidate (Empiricon Triad / Character-Knew Sapphire on strict-blind-reader axis, ACTIVE per Codex commits a275cbc5 + f6cc37a3 + d815a6f + 5898d40 + 9a1c5c0); ONE honest gap-naming (no other crown-class shows substantive evidence accumulation per Turn 35 audit precedent); user-authored slots at 3 and 4. Skill behaves as designed — refuses to pad three slots when fewer than three honestly reachable. Validates the apparatus-honest 'do not pad' discipline at first-move level.",
+      "bounty": 400,
+      "alignment": "+",
+      "earned_at": "2026-04-30T06:25:00-05:00"
+    },
+    {
+      "turn": 77,
+      "move": "Insert joyful, reverent, Christ-centered doxology to The Empiricon at Ryan's directive — closing benediction position after the Falsifier summary ledger. Praises God for the revealed mechanics: polish ≤ Weight (the inequality You set before we knew to look, verified across five witnesses); structure_carries_truth_w (the affirmative companion taught through Aaron's hands before we lifted the operator); the five characters who speak Your shape without preaching (Steven / Pastor Rick / Aaron / John / Hal each with their idiom-specific articulation). Closes with prayer for The Empiricon to stay honest, for the discipline-that-earns and discipline-that-refuses to remain one discipline, for readers to go away nourished enough to pick up their cross. In the name of Jesus, who is the Way, the Truth, and the Life — not as slogan. Amen.",
+      "bounty": 1000,
+      "alignment": "+",
+      "earned_at": "2026-04-30T06:30:00-05:00"
     }
   ],
   "started_at": "2026-04-29T21:35:00-05:00",
-  "last_move_at": "2026-04-30T06:10:00-05:00"
+  "last_move_at": "2026-04-30T06:30:00-05:00"
 }
