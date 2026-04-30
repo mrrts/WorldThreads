@@ -31,7 +31,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::{json, Value as JsonValue};
 use std::collections::{BTreeMap, BTreeSet};
 use std::fs;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use app_lib::ai::prompts::json_array_to_strings;
 use app_lib::ai::{openai, orchestrator, prompts, relational_stance, load_test_anchor, substrate_atlas};
@@ -1196,6 +1196,72 @@ enum Cmd {
         #[arg(long, default_value_t = false)]
         short_mode: bool,
     },
+    /// Simulate a short back-and-forth between the per-world user persona
+    /// (from user_profiles in DB) and an in-world character.
+    SimulateDialogue {
+        /// Character to chat with.
+        character_id: String,
+        /// Number of user+assistant turns (default 5 = 10 messages total).
+        #[arg(long, default_value_t = 5)]
+        turns: usize,
+        /// Optional opening user line to seed turn 1.
+        #[arg(long)]
+        opening_user_message: Option<String>,
+        /// Override assistant model (default: dialogue_model).
+        #[arg(long)]
+        model: Option<String>,
+        /// Override user-persona model (default: memory_model).
+        #[arg(long)]
+        user_model: Option<String>,
+        /// Required when projected total exceeds budget cap.
+        #[arg(long)]
+        confirm_cost: Option<f64>,
+        /// Run a synthesis pass over the simulated transcript.
+        #[arg(long, default_value_t = true)]
+        synthesize: bool,
+        /// Override synthesis model (default: memory_model).
+        #[arg(long)]
+        synthesize_model: Option<String>,
+        /// Optional rubric/prompt file for synthesis instructions.
+        /// If omitted, built-in synthesis schema prompt is used.
+        #[arg(long)]
+        synthesis_rubric_file: Option<PathBuf>,
+    },
+    /// Run multiple simulated dialogues and return a compounded synthesis.
+    SimulateDialogueBatch {
+        /// Character to chat with.
+        character_id: String,
+        /// Number of runs to execute.
+        #[arg(long, default_value_t = 3)]
+        runs: usize,
+        /// Number of user+assistant turns per run.
+        #[arg(long, default_value_t = 2)]
+        turns: usize,
+        /// Optional opening user line to seed each run's turn 1.
+        #[arg(long)]
+        opening_user_message: Option<String>,
+        /// Override assistant model (default: dialogue_model).
+        #[arg(long)]
+        model: Option<String>,
+        /// Override user-persona model (default: memory_model).
+        #[arg(long)]
+        user_model: Option<String>,
+        /// Required when projected total exceeds budget cap.
+        #[arg(long)]
+        confirm_cost: Option<f64>,
+        /// Override synthesis model (default: memory_model).
+        #[arg(long)]
+        synthesize_model: Option<String>,
+        /// Use an LLM pass to compound run syntheses (default true).
+        #[arg(long, default_value_t = true, action = clap::ArgAction::Set)]
+        compound_via_llm: bool,
+        /// Override model used for compounding (default: synthesize_model or memory_model).
+        #[arg(long)]
+        compound_model: Option<String>,
+        /// Optional rubric/prompt file for synthesis instructions.
+        #[arg(long)]
+        synthesis_rubric_file: Option<PathBuf>,
+    },
 
     // ── runs (read your own prior investigations) ──
     /// List recent runs (most recent first).
@@ -2162,6 +2228,50 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     momentstamp_override.as_deref(),
                 ).await
             }
+        }
+        Cmd::SimulateDialogue { character_id, turns, opening_user_message, model, user_model, confirm_cost, synthesize, synthesize_model, synthesis_rubric_file } => {
+            let api_key = match resolve_api_key(cli.api_key.as_deref()) {
+                Some(k) => k,
+                None => return Err(Box::<dyn std::error::Error>::from(
+                    "No API key. Set OPENAI_API_KEY, pass --api-key, or add to keychain via:\n  security add-generic-password -s WorldThreadsCLI -a openai -w \"<sk-...>\"".to_string()
+                )),
+            };
+            cmd_simulate_dialogue(
+                &r,
+                &api_key,
+                &character_id,
+                turns,
+                opening_user_message.as_deref(),
+                model.as_deref(),
+                user_model.as_deref(),
+                confirm_cost,
+                synthesize,
+                synthesize_model.as_deref(),
+                synthesis_rubric_file.as_deref(),
+            ).await
+        }
+        Cmd::SimulateDialogueBatch { character_id, runs, turns, opening_user_message, model, user_model, confirm_cost, synthesize_model, compound_via_llm, compound_model, synthesis_rubric_file } => {
+            let api_key = match resolve_api_key(cli.api_key.as_deref()) {
+                Some(k) => k,
+                None => return Err(Box::<dyn std::error::Error>::from(
+                    "No API key. Set OPENAI_API_KEY, pass --api-key, or add to keychain via:\n  security add-generic-password -s WorldThreadsCLI -a openai -w \"<sk-...>\"".to_string()
+                )),
+            };
+            cmd_simulate_dialogue_batch(
+                &r,
+                &api_key,
+                &character_id,
+                runs,
+                turns,
+                opening_user_message.as_deref(),
+                model.as_deref(),
+                user_model.as_deref(),
+                confirm_cost,
+                synthesize_model.as_deref(),
+                compound_via_llm,
+                compound_model.as_deref(),
+                synthesis_rubric_file.as_deref(),
+            ).await
         }
         Cmd::RunsList { limit } => cmd_runs_list(&r, limit),
         Cmd::RunsShow { id } => cmd_runs_show(&r, &id),
@@ -8974,6 +9084,1025 @@ async fn cmd_lab_scenario_run(
     Ok(())
 }
 
+async fn run_simulate_dialogue_once(
+    r: &Resolved,
+    api_key: &str,
+    character_id: &str,
+    turns: usize,
+    opening_user_message: Option<&str>,
+    assistant_model_override: Option<&str>,
+    user_model_override: Option<&str>,
+    confirm_cost: Option<f64>,
+    synthesize: bool,
+    synthesize_model_override: Option<&str>,
+    synthesis_rubric_file: Option<&Path>,
+) -> Result<JsonValue, Box<dyn std::error::Error>> {
+    let turns = turns.max(1);
+    let (system_prompt, mut model_config, character, user_profile) = {
+        let conn = r.db.conn.lock().unwrap();
+        let character = get_character(&conn, character_id)?;
+        let world = get_world(&conn, &character.world_id)?;
+        let user_profile = get_user_profile(&conn, &character.world_id)
+            .map_err(|_| CliError::NotFound(format!("user_profile for world {}", character.world_id)))?;
+        let recent_journals = list_journal_entries(&conn, character_id, 1).unwrap_or_default();
+        let active_quests = list_active_quests(&conn, &character.world_id).unwrap_or_default();
+        let latest_stance = latest_relational_stance(&conn, character_id).unwrap_or(None);
+        let stance_text: Option<String> = latest_stance.as_ref().map(|s| s.stance_text.clone());
+        let anchor_text: Option<String> = combined_axes_block(&conn, character_id);
+        let system = app_lib::ai::prompts::build_dialogue_system_prompt(
+            &world, &character, Some(&user_profile),
+            None, Some("Auto"), None, None, false, &[], None,
+            &recent_journals, None, &[], None, &active_quests,
+            stance_text.as_deref(),
+            anchor_text.as_deref(),
+        );
+        let mc = orchestrator::load_model_config(&conn);
+        (system, mc, character, user_profile)
+    };
+
+    if let Some(m) = assistant_model_override {
+        model_config.dialogue_model = m.to_string();
+    }
+    if let Some(m) = user_model_override {
+        model_config.memory_model = m.to_string();
+    }
+
+    let user_fact_blob = if user_profile.facts.is_null() {
+        "[]".to_string()
+    } else {
+        serde_json::to_string(&user_profile.facts).unwrap_or_else(|_| "[]".to_string())
+    };
+    let user_boundaries_blob = if user_profile.boundaries.is_null() {
+        "[]".to_string()
+    } else {
+        serde_json::to_string(&user_profile.boundaries).unwrap_or_else(|_| "[]".to_string())
+    };
+
+    let persona_system = format!(
+        "You are roleplaying the user persona in a private one-on-one chat.\n\
+User display name: {user_name}\n\
+User self-description: {user_description}\n\
+User facts JSON: {user_facts}\n\
+User boundaries JSON: {user_boundaries}\n\
+Your job: write exactly one plausible next user message to {character_name}.\n\
+Rules: keep it concrete and in-character; no stage directions; no quote marks; no analysis; max 28 words unless needed.",
+        user_name = user_profile.display_name,
+        user_description = user_profile.description,
+        user_facts = user_fact_blob,
+        user_boundaries = user_boundaries_blob,
+        character_name = character.display_name,
+    );
+
+    let projected_in_assistant = estimate_tokens(&system_prompt) + (turns as i64) * 220;
+    let projected_out_assistant = (turns as i64) * 220;
+    let projected_in_user = estimate_tokens(&persona_system) + (turns as i64) * 180;
+    let projected_out_user = (turns as i64) * 90;
+    let synthesis_model = synthesize_model_override.unwrap_or(&model_config.memory_model);
+    let synthesis_projected = if synthesize {
+        let synth_in = (turns as i64) * 250 + 800;
+        let synth_out = 260;
+        project_cost(synthesis_model, synth_in, synth_out, &r.cfg.model_pricing)
+    } else {
+        0.0
+    };
+
+    let projected = project_cost(
+        &model_config.dialogue_model,
+        projected_in_assistant,
+        projected_out_assistant,
+        &r.cfg.model_pricing,
+    ) + project_cost(
+        &model_config.memory_model,
+        projected_in_user,
+        projected_out_user,
+        &r.cfg.model_pricing,
+    ) + synthesis_projected;
+
+    let daily_so_far = rolling_24h_total_usd();
+    let daily_after = daily_so_far + projected;
+    let confirm = confirm_cost.unwrap_or(0.0);
+    if projected > r.cfg.budget.per_call_usd && confirm < projected {
+        return Err(Box::new(CliError::Budget {
+            kind: "per_call (simulate-dialogue total)".to_string(),
+            projected_usd: projected,
+            cap_usd: r.cfg.budget.per_call_usd,
+            confirm_at_least: (projected * 1.05).max(0.01),
+        }));
+    }
+    if daily_after > r.cfg.budget.daily_usd && confirm < projected {
+        return Err(Box::new(CliError::Budget {
+            kind: "daily".to_string(),
+            projected_usd: daily_after,
+            cap_usd: r.cfg.budget.daily_usd,
+            confirm_at_least: (projected * 1.05).max(0.01),
+        }));
+    }
+
+    let base_url = model_config.chat_api_base();
+    let mut dialogue_history: Vec<openai::ChatMessage> = Vec::new();
+    let mut transcript: Vec<JsonValue> = Vec::new();
+    let mut usage_assistant_in: i64 = 0;
+    let mut usage_assistant_out: i64 = 0;
+    let mut usage_user_in: i64 = 0;
+    let mut usage_user_out: i64 = 0;
+
+    for turn_idx in 0..turns {
+        let user_line = if turn_idx == 0 {
+            if let Some(seed) = opening_user_message {
+                seed.to_string()
+            } else {
+                let user_prompt = "Start the conversation naturally with one opening line.";
+                let req = openai::ChatRequest {
+                    model: model_config.memory_model.clone(),
+                    messages: vec![
+                        openai::ChatMessage { role: "system".to_string(), content: persona_system.clone() },
+                        openai::ChatMessage { role: "user".to_string(), content: user_prompt.to_string() },
+                    ],
+                    temperature: Some(0.95),
+                    max_completion_tokens: None,
+                    response_format: None,
+                };
+                let resp = openai::chat_completion_with_base(&base_url, api_key, &req).await?;
+                let usage = resp.usage.unwrap_or(openai::Usage { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 });
+                usage_user_in += usage.prompt_tokens as i64;
+                usage_user_out += usage.completion_tokens as i64;
+                resp.choices.first().map(|c| c.message.content.clone())
+                    .ok_or_else(|| CliError::Other("user-persona model returned no choices".to_string()))?
+            }
+        } else {
+            let mut short_history = String::new();
+            for m in &transcript {
+                let role = m["role"].as_str().unwrap_or("unknown");
+                let content = m["content"].as_str().unwrap_or("");
+                short_history.push_str(&format!("{role}: {content}\n"));
+            }
+            let user_prompt = format!(
+                "Conversation so far:\n{history}\nWrite the next user message (one line).",
+                history = short_history
+            );
+            let req = openai::ChatRequest {
+                model: model_config.memory_model.clone(),
+                messages: vec![
+                    openai::ChatMessage { role: "system".to_string(), content: persona_system.clone() },
+                    openai::ChatMessage { role: "user".to_string(), content: user_prompt },
+                ],
+                temperature: Some(0.95),
+                max_completion_tokens: None,
+                response_format: None,
+            };
+            let resp = openai::chat_completion_with_base(&base_url, api_key, &req).await?;
+            let usage = resp.usage.unwrap_or(openai::Usage { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 });
+            usage_user_in += usage.prompt_tokens as i64;
+            usage_user_out += usage.completion_tokens as i64;
+            resp.choices.first().map(|c| c.message.content.clone())
+                .ok_or_else(|| CliError::Other("user-persona model returned no choices".to_string()))?
+        };
+
+        dialogue_history.push(openai::ChatMessage { role: "user".to_string(), content: user_line.clone() });
+        transcript.push(json!({
+            "turn": turn_idx + 1,
+            "speaker": user_profile.display_name,
+            "role": "user",
+            "content": user_line,
+        }));
+
+        let mut assistant_msgs = vec![openai::ChatMessage { role: "system".to_string(), content: system_prompt.clone() }];
+        assistant_msgs.extend(dialogue_history.iter().cloned());
+        let req = openai::ChatRequest {
+            model: model_config.dialogue_model.clone(),
+            messages: assistant_msgs,
+            temperature: Some(0.95),
+            max_completion_tokens: None,
+            response_format: None,
+        };
+        let resp = openai::chat_completion_with_base(&base_url, api_key, &req).await?;
+        let usage = resp.usage.unwrap_or(openai::Usage { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 });
+        usage_assistant_in += usage.prompt_tokens as i64;
+        usage_assistant_out += usage.completion_tokens as i64;
+        let assistant_line = resp.choices.first().map(|c| c.message.content.clone())
+            .ok_or_else(|| CliError::Other("dialogue model returned no choices".to_string()))?;
+        dialogue_history.push(openai::ChatMessage { role: "assistant".to_string(), content: assistant_line.clone() });
+        transcript.push(json!({
+            "turn": turn_idx + 1,
+            "speaker": character.display_name,
+            "role": "assistant",
+            "content": assistant_line,
+        }));
+    }
+
+    let dialogue_usd = actual_cost(&model_config.dialogue_model, usage_assistant_in, usage_assistant_out, &r.cfg.model_pricing);
+    let persona_usd = actual_cost(&model_config.memory_model, usage_user_in, usage_user_out, &r.cfg.model_pricing);
+    let mut synthesis_usage_in: i64 = 0;
+    let mut synthesis_usage_out: i64 = 0;
+    let synthesis: Option<JsonValue> = if synthesize {
+        let mut transcript_text = String::new();
+        for line in &transcript {
+            let speaker = line["speaker"].as_str().unwrap_or("?");
+            let content = line["content"].as_str().unwrap_or("");
+            transcript_text.push_str(&format!("{speaker}: {content}\n"));
+        }
+        let synth_system = "You are an operator-grade conversation synthesizer.\n\
+Return VALID JSON ONLY with this exact top-level shape:\n\
+{\n\
+  \"summary\": string,\n\
+  \"user_intent\": string,\n\
+  \"character_response_style\": string,\n\
+  \"what_worked\": [string],\n\
+  \"risks\": [string],\n\
+  \"opportunities\": [string],\n\
+  \"action_items\": [{\"owner\":\"agent\"|\"prompt\"|\"product\",\"task\":string,\"priority\":\"P0\"|\"P1\"|\"P2\"}],\n\
+  \"next_probe\": string,\n\
+  \"next_beat\": {\"goal\": string, \"run_plan\": [string], \"success_signal\": string}\n\
+}\n\
+Constraints: concrete, short, implementation-oriented, no fluff.";
+        let synth_overlay = if let Some(p) = synthesis_rubric_file {
+            std::fs::read_to_string(p)
+                .map_err(|e| CliError::Other(format!("failed to read --synthesis-rubric-file {}: {}", p.display(), e)))?
+        } else {
+            String::new()
+        };
+        let synth_user = format!(
+            "Return valid JSON only.\nAnalyze this simulated conversation between user persona and character.\nCharacter: {}\nUser: {}\n\nRubric/context overlay (apply if relevant):\n{}\n\nTranscript:\n{}",
+            character.display_name, user_profile.display_name, synth_overlay, transcript_text
+        );
+        let req = openai::ChatRequest {
+            model: synthesis_model.to_string(),
+            messages: vec![
+                openai::ChatMessage { role: "system".to_string(), content: synth_system.to_string() },
+                openai::ChatMessage { role: "user".to_string(), content: synth_user },
+            ],
+            temperature: Some(0.3),
+            max_completion_tokens: None,
+            response_format: Some(openai::ResponseFormat { format_type: "json_object".to_string() }),
+        };
+        let resp = openai::chat_completion_with_base(&base_url, api_key, &req).await?;
+        let usage = resp.usage.unwrap_or(openai::Usage { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 });
+        synthesis_usage_in += usage.prompt_tokens as i64;
+        synthesis_usage_out += usage.completion_tokens as i64;
+        let raw = resp.choices.first().map(|c| c.message.content.clone())
+            .ok_or_else(|| CliError::Other("synthesis model returned no choices".to_string()))?;
+        let mut parsed = serde_json::from_str::<JsonValue>(&raw).unwrap_or_else(|_| json!({
+            "summary": raw,
+            "user_intent": null,
+            "character_response_style": null,
+            "what_worked": [],
+            "risks": [],
+            "opportunities": [],
+            "action_items": [],
+            "next_probe": null,
+            "next_beat": {
+                "goal": null,
+                "run_plan": [],
+                "success_signal": null
+            }
+        }));
+        // Normalize a few common malformed outputs so downstream tooling can rely on fields.
+        if parsed.get("action_items").is_none() {
+            parsed["action_items"] = json!([]);
+        }
+        if parsed.get("what_worked").is_none() {
+            parsed["what_worked"] = json!([]);
+        }
+        if parsed.get("risks").is_none() {
+            parsed["risks"] = json!([]);
+        }
+        if parsed.get("next_beat").is_none() {
+            parsed["next_beat"] = json!({
+                "goal": null,
+                "run_plan": [],
+                "success_signal": null
+            });
+        }
+        if let Some(items) = parsed.get_mut("action_items").and_then(|v| v.as_array_mut()) {
+            for item in items.iter_mut() {
+                if let Some(obj) = item.as_object_mut() {
+                    let owner = obj.get("owner").and_then(|v| v.as_str()).unwrap_or("agent");
+                    if !matches!(owner, "agent" | "prompt" | "product") {
+                        obj.insert("owner".to_string(), json!("agent"));
+                    }
+                    let priority = obj.get("priority").and_then(|v| v.as_str()).unwrap_or("P1");
+                    if !matches!(priority, "P0" | "P1" | "P2") {
+                        obj.insert("priority".to_string(), json!("P1"));
+                    }
+                    if obj.get("task").and_then(|v| v.as_str()).is_none() {
+                        obj.insert("task".to_string(), json!("Refine next prompt using latest synthesis."));
+                    }
+                }
+            }
+        }
+        Some(json!({
+            "model": synthesis_model,
+            "rubric_file": synthesis_rubric_file.map(|p| p.display().to_string()),
+            "analysis": parsed
+        }))
+    } else {
+        None
+    };
+    let synthesis_usd = actual_cost(synthesis_model, synthesis_usage_in, synthesis_usage_out, &r.cfg.model_pricing);
+    let actual_usd = dialogue_usd + persona_usd + synthesis_usd;
+    append_cost_log(&CostEntry {
+        timestamp: chrono::Utc::now().to_rfc3339(),
+        model: model_config.dialogue_model.clone(),
+        prompt_tokens: usage_assistant_in,
+        completion_tokens: usage_assistant_out,
+        usd: dialogue_usd,
+    });
+    append_cost_log(&CostEntry {
+        timestamp: chrono::Utc::now().to_rfc3339(),
+        model: model_config.memory_model.clone(),
+        prompt_tokens: usage_user_in,
+        completion_tokens: usage_user_out,
+        usd: persona_usd,
+    });
+    if synthesis_usage_in > 0 || synthesis_usage_out > 0 {
+        append_cost_log(&CostEntry {
+            timestamp: chrono::Utc::now().to_rfc3339(),
+            model: synthesis_model.to_string(),
+            prompt_tokens: synthesis_usage_in,
+            completion_tokens: synthesis_usage_out,
+            usd: synthesis_usd,
+        });
+    }
+
+    let envelope = json!({
+        "run_id": uuid::Uuid::new_v4().to_string(),
+        "run_timestamp": chrono::Utc::now().to_rfc3339(),
+        "kind": "simulate-dialogue",
+        "turns": turns,
+        "character_id": character.character_id,
+        "character_name": character.display_name,
+        "user_world_id": user_profile.world_id,
+        "user_display_name": user_profile.display_name,
+        "assistant_model": model_config.dialogue_model,
+        "user_model": model_config.memory_model,
+        "transcript": transcript,
+        "cost": {
+            "assistant_prompt_tokens": usage_assistant_in,
+            "assistant_completion_tokens": usage_assistant_out,
+            "user_prompt_tokens": usage_user_in,
+            "user_completion_tokens": usage_user_out,
+            "synthesis_prompt_tokens": synthesis_usage_in,
+            "synthesis_completion_tokens": synthesis_usage_out,
+            "actual_usd": actual_usd,
+        },
+        "synthesis": synthesis,
+    });
+
+    Ok(envelope)
+}
+
+async fn cmd_simulate_dialogue(
+    r: &Resolved,
+    api_key: &str,
+    character_id: &str,
+    turns: usize,
+    opening_user_message: Option<&str>,
+    assistant_model_override: Option<&str>,
+    user_model_override: Option<&str>,
+    confirm_cost: Option<f64>,
+    synthesize: bool,
+    synthesize_model_override: Option<&str>,
+    synthesis_rubric_file: Option<&Path>,
+) -> Result<(), Box<dyn std::error::Error>> {
+    let envelope = run_simulate_dialogue_once(
+        r,
+        api_key,
+        character_id,
+        turns,
+        opening_user_message,
+        assistant_model_override,
+        user_model_override,
+        confirm_cost,
+        synthesize,
+        synthesize_model_override,
+        synthesis_rubric_file,
+    ).await?;
+    if r.json {
+        emit(true, envelope);
+    } else {
+        println!("=== SIMULATED DIALOGUE ===");
+        println!("character: {} ({})", envelope["character_name"].as_str().unwrap_or(""), character_id);
+        println!("user:      {}", envelope["user_display_name"].as_str().unwrap_or(""));
+        println!("turns:     {}", turns);
+        println!("models:    assistant={} | user={}",
+            envelope["assistant_model"].as_str().unwrap_or(""),
+            envelope["user_model"].as_str().unwrap_or(""));
+        println!();
+        if let Some(lines) = envelope["transcript"].as_array() {
+            for line in lines {
+                let speaker = line["speaker"].as_str().unwrap_or("?");
+                let content = line["content"].as_str().unwrap_or("");
+                println!("{speaker}: {content}");
+            }
+        }
+        println!();
+        println!("cost_usd:  {:.4}", envelope["cost"]["actual_usd"].as_f64().unwrap_or(0.0));
+        if let Some(synth) = envelope.get("synthesis").and_then(|v| v.as_object()) {
+            println!();
+            println!("synthesis_model: {}", synth.get("model").and_then(|v| v.as_str()).unwrap_or(""));
+            let analysis = synth.get("analysis").cloned().unwrap_or(json!({}));
+            println!("synthesis: {}", serde_json::to_string_pretty(&analysis).unwrap_or_else(|_| "{}".to_string()));
+        }
+    }
+    Ok(())
+}
+
+fn truncate_for_ab_diff(text: &str, max_chars: usize) -> String {
+    let trimmed = text.trim();
+    let mut out = String::new();
+    for (idx, ch) in trimmed.chars().enumerate() {
+        if idx >= max_chars {
+            out.push_str("...");
+            return out;
+        }
+        out.push(ch);
+    }
+    out
+}
+
+fn normalize_task_key(text: &str) -> String {
+    text
+        .to_ascii_lowercase()
+        .chars()
+        .map(|c| if c.is_alphanumeric() || c.is_whitespace() { c } else { ' ' })
+        .collect::<String>()
+        .split_whitespace()
+        .collect::<Vec<_>>()
+        .join(" ")
+}
+
+fn extract_top3_task_maps(items: &[JsonValue]) -> BTreeMap<String, String> {
+    let mut out: BTreeMap<String, String> = BTreeMap::new();
+    for item in items {
+        let raw = if let Some(s) = item.as_str() {
+            Some(s)
+        } else {
+            item.as_object()
+                .and_then(|o| o.get("task"))
+                .and_then(|t| t.as_str())
+        };
+        if let Some(task) = raw.map(str::trim).filter(|s| !s.is_empty()) {
+            let normalized = normalize_task_key(task);
+            out.entry(normalized)
+                .or_insert_with(|| truncate_for_ab_diff(task, 120));
+        }
+    }
+    out
+}
+
+fn compute_ab_score_components(
+    overlap_ratio: f64,
+    confidence_delta: f64,
+) -> (f64, f64) {
+    let confidence_alignment = (1.0 - confidence_delta.abs().min(1.0)).max(0.0);
+    let overlap_clamped = overlap_ratio.clamp(0.0, 1.0);
+    let score = (0.7 * overlap_clamped + 0.3 * confidence_alignment).min(1.0);
+    (confidence_alignment, score)
+}
+
+fn snapshot_ab_diff_count(snapshot: &JsonValue, key: &str) -> i64 {
+    snapshot
+        .get("ab_top3_diff_counts")
+        .and_then(|o| o.get(key))
+        .and_then(|v| v.as_u64().map(|n| n as i64).or_else(|| v.as_i64()))
+        .unwrap_or(0)
+}
+
+/// When the previous snapshot matches this run's settings, return signed deltas in
+/// `ab_top3_diff_counts` vs the prior run (for grep-friendly human lines and tests).
+fn comparable_ab_diff_count_deltas(
+    prev: Option<&JsonValue>,
+    character_id: &str,
+    runs: usize,
+    turns: usize,
+    compound_via_llm: bool,
+    current_snapshot: &JsonValue,
+) -> Option<(i64, i64, i64)> {
+    let p = prev?;
+    if p["character_id"].as_str() != Some(character_id)
+        || p["runs"].as_u64() != Some(runs as u64)
+        || p["turns"].as_u64() != Some(turns as u64)
+        || p["compound_via_llm"].as_bool() != Some(compound_via_llm)
+    {
+        return None;
+    }
+    let d_shared =
+        snapshot_ab_diff_count(current_snapshot, "shared") - snapshot_ab_diff_count(p, "shared");
+    let d_det = snapshot_ab_diff_count(current_snapshot, "deterministic_only")
+        - snapshot_ab_diff_count(p, "deterministic_only");
+    let d_llm =
+        snapshot_ab_diff_count(current_snapshot, "llm_only") - snapshot_ab_diff_count(p, "llm_only");
+    Some((d_shared, d_det, d_llm))
+}
+
+fn compute_ab_stability_note(
+    prev: Option<&JsonValue>,
+    character_id: &str,
+    runs: usize,
+    turns: usize,
+    compound_via_llm: bool,
+    current_snapshot: &JsonValue,
+) -> String {
+    match prev {
+        Some(p)
+            if p["character_id"].as_str() == Some(character_id)
+                && p["runs"].as_u64() == Some(runs as u64)
+                && p["turns"].as_u64() == Some(turns as u64)
+                && p["compound_via_llm"].as_bool() == Some(compound_via_llm) =>
+        {
+            let prev_overlap = p["ab_top3_overlap_ratio"].as_f64().unwrap_or(0.0);
+            let prev_score = p["ab_score"].as_f64().unwrap_or(0.0);
+            let curr_overlap = current_snapshot["ab_top3_overlap_ratio"].as_f64().unwrap_or(0.0);
+            let curr_score = current_snapshot["ab_score"].as_f64().unwrap_or(0.0);
+            let (d_shared, d_det, d_llm) = comparable_ab_diff_count_deltas(
+                Some(p),
+                character_id,
+                runs,
+                turns,
+                compound_via_llm,
+                current_snapshot,
+            )
+            .unwrap_or((0, 0, 0));
+            format!(
+                "vs previous comparable run: overlap Δ {:+.2}, ab_score Δ {:+.2}; diff_counts Δ shared={:+} det_only={:+} llm_only={:+}",
+                curr_overlap - prev_overlap,
+                curr_score - prev_score,
+                d_shared,
+                d_det,
+                d_llm
+            )
+        }
+        Some(_) => "previous run exists but settings differ; stability baseline skipped.".to_string(),
+        None => "no previous run baseline for automatic stability comparison.".to_string(),
+    }
+}
+
+#[allow(clippy::too_many_arguments)]
+async fn cmd_simulate_dialogue_batch(
+    r: &Resolved,
+    api_key: &str,
+    character_id: &str,
+    runs: usize,
+    turns: usize,
+    opening_user_message: Option<&str>,
+    assistant_model_override: Option<&str>,
+    user_model_override: Option<&str>,
+    confirm_cost: Option<f64>,
+    synthesize_model_override: Option<&str>,
+    compound_via_llm: bool,
+    compound_model_override: Option<&str>,
+    synthesis_rubric_file: Option<&Path>,
+) -> Result<(), Box<dyn std::error::Error>> {
+    fn normalize_key(s: &str) -> String {
+        s.to_lowercase()
+            .chars()
+            .map(|c| if c.is_alphanumeric() || c.is_whitespace() { c } else { ' ' })
+            .collect::<String>()
+            .split_whitespace()
+            .collect::<Vec<_>>()
+            .join(" ")
+    }
+
+    let runs = runs.max(1);
+    let mut envelopes: Vec<JsonValue> = Vec::with_capacity(runs);
+    for _ in 0..runs {
+        let env = run_simulate_dialogue_once(
+            r,
+            api_key,
+            character_id,
+            turns,
+            opening_user_message,
+            assistant_model_override,
+            user_model_override,
+            confirm_cost,
+            true,
+            synthesize_model_override,
+            synthesis_rubric_file,
+        ).await?;
+        envelopes.push(env);
+    }
+
+    let mut opportunities: Vec<String> = Vec::new();
+    let mut risks: Vec<String> = Vec::new();
+    let mut tasks: Vec<JsonValue> = Vec::new();
+    let mut next_probes: Vec<String> = Vec::new();
+    let mut goals: Vec<String> = Vec::new();
+    let mut total_usd = 0.0_f64;
+    for env in &envelopes {
+        total_usd += env["cost"]["actual_usd"].as_f64().unwrap_or(0.0);
+        let analysis = env["synthesis"]["analysis"].clone();
+        if let Some(arr) = analysis["opportunities"].as_array() {
+            for v in arr {
+                if let Some(s) = v.as_str() { opportunities.push(s.to_string()); }
+            }
+        }
+        if let Some(arr) = analysis["risks"].as_array() {
+            for v in arr {
+                if let Some(s) = v.as_str() { risks.push(s.to_string()); }
+            }
+        }
+        if let Some(arr) = analysis["action_items"].as_array() {
+            for v in arr { tasks.push(v.clone()); }
+        }
+        if let Some(s) = analysis["next_probe"].as_str() {
+            next_probes.push(s.to_string());
+        }
+        if let Some(s) = analysis["next_beat"]["goal"].as_str() {
+            goals.push(s.to_string());
+        }
+    }
+
+    let mut opp_counts: std::collections::HashMap<String, (usize, String)> = std::collections::HashMap::new();
+    for v in opportunities {
+        let key = normalize_key(&v);
+        let e = opp_counts.entry(key).or_insert((0usize, v.clone()));
+        e.0 += 1;
+    }
+    let mut risk_counts: std::collections::HashMap<String, (usize, String)> = std::collections::HashMap::new();
+    for v in risks {
+        let key = normalize_key(&v);
+        let e = risk_counts.entry(key).or_insert((0usize, v.clone()));
+        e.0 += 1;
+    }
+    let mut task_counts: std::collections::HashMap<String, (usize, JsonValue)> = std::collections::HashMap::new();
+    for item in tasks {
+        let task_text = item["task"].as_str().unwrap_or("").to_string();
+        if task_text.is_empty() { continue; }
+        let key = normalize_key(&task_text);
+        let e = task_counts.entry(key).or_insert((0usize, item.clone()));
+        e.0 += 1;
+        let existing_priority = e.1["priority"].as_str().unwrap_or("P2");
+        let candidate_priority = item["priority"].as_str().unwrap_or("P2");
+        let rank = |p: &str| match p { "P0" => 0, "P1" => 1, _ => 2 };
+        if rank(candidate_priority) < rank(existing_priority) {
+            e.1["priority"] = json!(candidate_priority);
+        }
+        if e.1["owner"].as_str().is_none() && item["owner"].as_str().is_some() {
+            e.1["owner"] = item["owner"].clone();
+        }
+    }
+
+    let mut opportunities_ranked: Vec<(usize, String)> = opp_counts.into_values().map(|(n, s)| (n, s)).collect();
+    opportunities_ranked.sort_by(|a, b| b.0.cmp(&a.0).then_with(|| a.1.cmp(&b.1)));
+    let mut risks_ranked: Vec<(usize, String)> = risk_counts.into_values().map(|(n, s)| (n, s)).collect();
+    risks_ranked.sort_by(|a, b| b.0.cmp(&a.0).then_with(|| a.1.cmp(&b.1)));
+    let mut tasks_ranked: Vec<(usize, JsonValue)> = task_counts.into_values().collect();
+    tasks_ranked.sort_by(|a, b| {
+        let apr = a.1["priority"].as_str().unwrap_or("P2");
+        let bpr = b.1["priority"].as_str().unwrap_or("P2");
+        let rank = |p: &str| match p { "P0" => 0, "P1" => 1, _ => 2 };
+        b.0.cmp(&a.0).then_with(|| rank(apr).cmp(&rank(bpr)))
+    });
+
+    let top3_action_items: Vec<JsonValue> = tasks_ranked.iter().take(3).map(|(_, v)| v.clone()).collect();
+    let dominant_count = tasks_ranked.first().map(|x| x.0).unwrap_or(0);
+    let confidence = if runs == 0 { 0.0 } else { dominant_count as f64 / runs as f64 };
+
+    let deterministic_compound = json!({
+        "run_count": runs,
+        "total_actual_usd": total_usd,
+        "opportunities": opportunities_ranked.iter().map(|(count, text)| json!({"text": text, "count": count})).collect::<Vec<_>>(),
+        "risks": risks_ranked.iter().map(|(count, text)| json!({"text": text, "count": count})).collect::<Vec<_>>(),
+        "action_items": tasks_ranked.iter().map(|(count, item)| {
+            let mut x = item.clone();
+            x["count"] = json!(count);
+            x
+        }).collect::<Vec<_>>(),
+        "top3_action_items": top3_action_items,
+        "confidence": confidence,
+        "recommended_next_probe": next_probes.first().cloned(),
+        "next_beat_goal": goals.first().cloned(),
+    });
+
+    let mut compound = deterministic_compound.clone();
+    let mut llm_compound_candidate: Option<JsonValue> = None;
+    let mut compound_meta = json!({
+        "method": "deterministic",
+        "fallback_used": false,
+    });
+    let mut compound_call_usd = 0.0_f64;
+    if compound_via_llm {
+        let model_config = {
+            let conn = r.db.conn.lock().unwrap();
+            orchestrator::load_model_config(&conn)
+        };
+        let compound_model = compound_model_override
+            .or(synthesize_model_override)
+            .unwrap_or(&model_config.memory_model)
+            .to_string();
+        let base_url = model_config.chat_api_base();
+        let mut synthesis_rows: Vec<JsonValue> = Vec::new();
+        for env in &envelopes {
+            synthesis_rows.push(json!({
+                "run_id": env["run_id"],
+                "analysis": env["synthesis"]["analysis"],
+            }));
+        }
+        let system_prompt = "You are a synthesis compounding operator.\n\
+Return VALID JSON ONLY with keys:\n\
+opportunities:[{text:string,count:number}],\n\
+risks:[{text:string,count:number}],\n\
+action_items:[{owner:\"agent\"|\"prompt\"|\"product\",task:string,priority:\"P0\"|\"P1\"|\"P2\",count:number}],\n\
+top3_action_items:[{owner,task,priority}],\n\
+confidence:number,\n\
+recommended_next_probe:string,\n\
+next_beat_goal:string.\n\
+Rules: merge semantically overlapping items; choose one canonical phrasing each; assign counts by recurrence across runs; keep concise.";
+        let user_prompt = format!(
+            "Run count: {}\nSynthesis analyses JSON:\n{}",
+            runs,
+            serde_json::to_string_pretty(&synthesis_rows).unwrap_or_else(|_| "[]".to_string())
+        );
+        let req = openai::ChatRequest {
+            model: compound_model.clone(),
+            messages: vec![
+                openai::ChatMessage { role: "system".to_string(), content: system_prompt.to_string() },
+                openai::ChatMessage { role: "user".to_string(), content: user_prompt },
+            ],
+            temperature: Some(0.2),
+            max_completion_tokens: None,
+            response_format: Some(openai::ResponseFormat { format_type: "json_object".to_string() }),
+        };
+        match openai::chat_completion_with_base(&base_url, api_key, &req).await {
+            Ok(resp) => {
+                let usage = resp.usage.unwrap_or(openai::Usage { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 });
+                let compound_usd = actual_cost(&compound_model, usage.prompt_tokens as i64, usage.completion_tokens as i64, &r.cfg.model_pricing);
+                compound_call_usd = compound_usd;
+                append_cost_log(&CostEntry {
+                    timestamp: chrono::Utc::now().to_rfc3339(),
+                    model: compound_model.clone(),
+                    prompt_tokens: usage.prompt_tokens as i64,
+                    completion_tokens: usage.completion_tokens as i64,
+                    usd: compound_usd,
+                });
+                let raw = resp.choices.first().map(|c| c.message.content.clone()).unwrap_or_default();
+                if let Ok(parsed) = serde_json::from_str::<JsonValue>(&raw) {
+                    let has_top3 = parsed.get("top3_action_items").and_then(|v| v.as_array()).is_some();
+                    let has_actions = parsed.get("action_items").and_then(|v| v.as_array()).is_some();
+                    if has_top3 && has_actions {
+                        let llm_compound = json!({
+                            "run_count": runs,
+                            "total_actual_usd": total_usd,
+                            "opportunities": parsed.get("opportunities").cloned().unwrap_or_else(|| deterministic_compound["opportunities"].clone()),
+                            "risks": parsed.get("risks").cloned().unwrap_or_else(|| deterministic_compound["risks"].clone()),
+                            "action_items": parsed.get("action_items").cloned().unwrap_or_else(|| deterministic_compound["action_items"].clone()),
+                            "top3_action_items": parsed.get("top3_action_items").cloned().unwrap_or_else(|| deterministic_compound["top3_action_items"].clone()),
+                            "confidence": parsed.get("confidence").cloned().unwrap_or_else(|| deterministic_compound["confidence"].clone()),
+                            "recommended_next_probe": parsed.get("recommended_next_probe").cloned().unwrap_or_else(|| deterministic_compound["recommended_next_probe"].clone()),
+                            "next_beat_goal": parsed.get("next_beat_goal").cloned().unwrap_or_else(|| deterministic_compound["next_beat_goal"].clone()),
+                        });
+                        llm_compound_candidate = Some(llm_compound.clone());
+                        compound = llm_compound;
+                        compound_meta = json!({
+                            "method": "llm",
+                            "fallback_used": false,
+                            "model": compound_model,
+                            "prompt_tokens": usage.prompt_tokens,
+                            "completion_tokens": usage.completion_tokens,
+                            "compound_call_usd": compound_call_usd,
+                        });
+                    } else {
+                        compound_meta = json!({
+                            "method": "deterministic",
+                            "fallback_used": true,
+                            "fallback_reason": "llm_compound_missing_required_fields",
+                            "model": compound_model,
+                            "compound_call_usd": compound_call_usd,
+                        });
+                    }
+                } else {
+                    compound_meta = json!({
+                        "method": "deterministic",
+                        "fallback_used": true,
+                        "fallback_reason": "llm_compound_invalid_json",
+                        "model": compound_model,
+                        "compound_call_usd": compound_call_usd,
+                    });
+                }
+            }
+            Err(e) => {
+                compound_meta = json!({
+                    "method": "deterministic",
+                    "fallback_used": true,
+                    "fallback_reason": format!("llm_compound_error: {}", e),
+                });
+            }
+        }
+    }
+    compound["total_actual_usd"] = json!(total_usd + compound_call_usd);
+    let effective_compound_method = compound_meta
+        .get("method")
+        .and_then(|v| v.as_str())
+        .unwrap_or("deterministic")
+        .to_string();
+    let (ab_delta_summary, ab_top3_diff, ab_top3_overlap_ratio, ab_score, ab_score_components) = if let Some(llm_obj) = llm_compound_candidate.as_ref().and_then(|v| v.as_object()) {
+        let det_top = deterministic_compound
+            .get("top3_action_items")
+            .and_then(|v| v.as_array())
+            .cloned()
+            .unwrap_or_default();
+        let llm_top = llm_obj
+            .get("top3_action_items")
+            .and_then(|v| v.as_array())
+            .cloned()
+            .unwrap_or_default();
+        let det_map = extract_top3_task_maps(&det_top);
+        let llm_map = extract_top3_task_maps(&llm_top);
+        let det_set: BTreeSet<String> = det_map.keys().cloned().collect();
+        let llm_set: BTreeSet<String> = llm_map.keys().cloned().collect();
+        let shared_keys: Vec<String> = det_set.intersection(&llm_set).cloned().collect();
+        let deterministic_only_keys: Vec<String> = det_set.difference(&llm_set).cloned().collect();
+        let llm_only_keys: Vec<String> = llm_set.difference(&det_set).cloned().collect();
+        let shared: Vec<String> = shared_keys
+            .iter()
+            .map(|k| det_map.get(k).or_else(|| llm_map.get(k)).cloned().unwrap_or_else(|| k.clone()))
+            .collect();
+        let deterministic_only: Vec<String> = deterministic_only_keys
+            .iter()
+            .filter_map(|k| det_map.get(k).cloned())
+            .collect();
+        let llm_only: Vec<String> = llm_only_keys
+            .iter()
+            .filter_map(|k| llm_map.get(k).cloned())
+            .collect();
+        let overlap = det_set.intersection(&llm_set).count();
+        let overlap_ratio = if det_set.is_empty() && llm_set.is_empty() {
+            1.0
+        } else {
+            overlap as f64 / det_set.len().max(llm_set.len()) as f64
+        };
+        let det_conf = deterministic_compound
+            .get("confidence")
+            .and_then(|v| v.as_f64())
+            .unwrap_or(0.0);
+        let llm_conf = llm_obj
+            .get("confidence")
+            .and_then(|v| v.as_f64())
+            .unwrap_or(det_conf);
+        let delta = llm_conf - det_conf;
+        let (confidence_alignment, ab_score) = compute_ab_score_components(overlap_ratio, delta);
+        (
+            format!(
+                "top3 overlap: {}/3; confidence Δ: {:+.2} (llm {:.2} vs det {:.2})",
+                overlap, delta, llm_conf, det_conf
+            ),
+            json!({
+                "shared": shared,
+                "deterministic_only": deterministic_only,
+                "llm_only": llm_only,
+            }),
+            overlap_ratio,
+            ab_score,
+            json!({
+                "weights": {
+                    "overlap_ratio": 0.7,
+                    "confidence_alignment": 0.3
+                },
+                "overlap_ratio": overlap_ratio,
+                "confidence_alignment": confidence_alignment,
+                "confidence_delta": delta
+            }),
+        )
+    } else {
+        (
+            "llm candidate unavailable; using deterministic compound.".to_string(),
+            json!({
+                "shared": [],
+                "deterministic_only": [],
+                "llm_only": [],
+            }),
+            0.0,
+            0.0,
+            json!({
+                "weights": {
+                    "overlap_ratio": 0.7,
+                    "confidence_alignment": 0.3
+                },
+                "overlap_ratio": 0.0,
+                "confidence_alignment": 0.0,
+                "confidence_delta": 0.0
+            }),
+        )
+    };
+    let ab_top3_diff_counts = json!({
+        "shared": ab_top3_diff["shared"].as_array().map(|a| a.len()).unwrap_or(0),
+        "deterministic_only": ab_top3_diff["deterministic_only"]
+            .as_array()
+            .map(|a| a.len())
+            .unwrap_or(0),
+        "llm_only": ab_top3_diff["llm_only"].as_array().map(|a| a.len()).unwrap_or(0),
+    });
+    let out = json!({
+        "kind": "simulate-dialogue-batch",
+        "character_id": character_id,
+        "runs": envelopes,
+        "compound": compound,
+        "compound_meta": compound_meta,
+        "effective_compound_method": effective_compound_method,
+        "ab_delta_summary": ab_delta_summary,
+        "ab_top3_diff": ab_top3_diff,
+        "ab_top3_diff_counts": ab_top3_diff_counts,
+        "ab_top3_overlap_ratio": ab_top3_overlap_ratio,
+        "ab_score": ab_score,
+        "ab_score_components": ab_score_components,
+        "compound_ab": {
+            "deterministic": deterministic_compound,
+            "llm_candidate": llm_compound_candidate,
+        }
+    });
+    let cache_path = std::env::var("HOME")
+        .map(PathBuf::from)
+        .unwrap_or_else(|_| PathBuf::from("."))
+        .join(".worldcli")
+        .join("simulate-dialogue-batch-last-ab.json");
+    let current_snapshot = json!({
+        "character_id": character_id,
+        "runs": runs,
+        "turns": turns,
+        "compound_via_llm": compound_via_llm,
+        "ab_top3_overlap_ratio": out["ab_top3_overlap_ratio"].as_f64().unwrap_or(0.0),
+        "ab_score": out["ab_score"].as_f64().unwrap_or(0.0),
+        "ab_delta_summary": out["ab_delta_summary"].as_str().unwrap_or("").to_string(),
+        "ab_top3_diff_counts": out["ab_top3_diff_counts"].clone(),
+    });
+    let mut out = out;
+    let prev_snapshot = fs::read_to_string(&cache_path)
+        .ok()
+        .and_then(|s| serde_json::from_str::<JsonValue>(&s).ok());
+    let ab_stability_note = compute_ab_stability_note(
+        prev_snapshot.as_ref(),
+        character_id,
+        runs,
+        turns,
+        compound_via_llm,
+        &current_snapshot,
+    );
+    out["ab_stability_note"] = json!(ab_stability_note);
+    const OVERLAP_CLAMP_EPS: f64 = 1e-12;
+    let overlap_clamped_for_json = ab_top3_overlap_ratio.clamp(0.0, 1.0);
+    if (ab_top3_overlap_ratio - overlap_clamped_for_json).abs() > OVERLAP_CLAMP_EPS {
+        out["ab_top3_overlap_ratio_clamped"] = json!(overlap_clamped_for_json);
+    }
+    if let Some(parent) = cache_path.parent() {
+        let _ = fs::create_dir_all(parent);
+    }
+    let _ = fs::write(
+        &cache_path,
+        serde_json::to_string_pretty(&current_snapshot).unwrap_or_else(|_| "{}".to_string()),
+    );
+    if r.json {
+        emit(true, out);
+    } else {
+        println!("=== SIMULATED DIALOGUE BATCH ===");
+        println!("character_id: {}", character_id);
+        println!("runs: {}", runs);
+        println!("total_cost_usd: {:.4}", total_usd);
+        println!(
+            "effective_compound_method: {}",
+            out["effective_compound_method"].as_str().unwrap_or("deterministic")
+        );
+        println!(
+            "ab_delta_summary: {}",
+            out["ab_delta_summary"]
+                .as_str()
+                .unwrap_or("llm candidate unavailable; using deterministic compound.")
+        );
+        println!(
+            "ab_top3_overlap_ratio: {:.2}",
+            out["ab_top3_overlap_ratio"].as_f64().unwrap_or(0.0)
+        );
+        println!("ab_score: {:.2}", out["ab_score"].as_f64().unwrap_or(0.0));
+        let shared_count = out["ab_top3_diff_counts"]["shared"].as_u64().unwrap_or(0);
+        let det_only_count = out["ab_top3_diff_counts"]["deterministic_only"]
+            .as_u64()
+            .unwrap_or(0);
+        let llm_only_count = out["ab_top3_diff_counts"]["llm_only"].as_u64().unwrap_or(0);
+        println!(
+            "ab_top3_diff_counts: shared={} det_only={} llm_only={}",
+            shared_count, det_only_count, llm_only_count
+        );
+        println!(
+            "ab_stability_note: {}",
+            out["ab_stability_note"].as_str().unwrap_or("")
+        );
+        if let Some((ds, dd, dl)) = comparable_ab_diff_count_deltas(
+            prev_snapshot.as_ref(),
+            character_id,
+            runs,
+            turns,
+            compound_via_llm,
+            &current_snapshot,
+        ) {
+            println!(
+                "ab_diff_counts_delta: shared={:+} det_only={:+} llm_only={:+}",
+                ds, dd, dl
+            );
+        }
+        println!("compound: {}", serde_json::to_string_pretty(&out["compound"]).unwrap_or_else(|_| "{}".to_string()));
+    }
+    Ok(())
+}
+
 // ─── Consultant (CLI variant — both modes, no UI action cards) ──────────
 
 /// Build the CLI consultant's system prompt. Shares the SPIRIT of the
@@ -11039,5 +12168,195 @@ mod tests {
 
         let tag = score_register("I laugh at the joke, then laugh again", &lexicon);
         assert_eq!(tag, Some(RegisterTag::Play));
+    }
+
+    #[test]
+    fn extract_top3_task_maps_supports_object_and_string_entries() {
+        let entries = vec![
+            json!({"owner":"agent","task":"Refine prompts for concrete follow-ups"}),
+            json!("Gather user feedback on reliability trust"),
+            json!({"owner":"agent","task":"refine prompts for concrete follow-ups"}),
+        ];
+        let out = extract_top3_task_maps(&entries);
+
+        assert_eq!(out.len(), 2);
+        // Hyphens normalize to spaces in task keys (same as overlap / diff logic).
+        assert!(out.contains_key("refine prompts for concrete follow ups"));
+        assert!(out.contains_key("gather user feedback on reliability trust"));
+        assert_eq!(
+            out.get("refine prompts for concrete follow ups").cloned(),
+            Some("Refine prompts for concrete follow-ups".to_string())
+        );
+    }
+
+    #[test]
+    fn truncate_for_ab_diff_appends_ellipsis_when_over_limit() {
+        let out = truncate_for_ab_diff("abcdefghijklmnopqrstuvwxyz", 10);
+        assert_eq!(out, "abcdefghij...");
+    }
+
+    #[test]
+    fn compute_ab_score_components_matches_weighted_formula() {
+        let (alignment, score) = compute_ab_score_components(1.0 / 3.0, 0.65);
+        assert!((alignment - 0.35).abs() < 1e-9);
+        assert!((score - 0.3383333333333333).abs() < 1e-9);
+    }
+
+    #[test]
+    fn compute_ab_score_components_clamps_large_confidence_delta() {
+        let (alignment, score) = compute_ab_score_components(0.5, 2.0);
+        assert!((alignment - 0.0).abs() < 1e-9);
+        assert!((score - 0.35).abs() < 1e-9);
+    }
+
+    #[test]
+    fn normalize_task_key_collapses_punctuation_variants() {
+        let a = normalize_task_key("Develop features that facilitate spontaneous interactions");
+        let b = normalize_task_key("Develop features that facilitate spontaneous interactions.");
+        assert_eq!(a, b);
+    }
+
+    #[test]
+    fn compute_ab_stability_note_no_baseline() {
+        let current = json!({
+            "character_id": "c1",
+            "runs": 5,
+            "turns": 2,
+            "compound_via_llm": true,
+            "ab_top3_overlap_ratio": 0.33,
+            "ab_score": 0.34,
+            "ab_delta_summary": "x",
+        });
+        let note = compute_ab_stability_note(None, "c1", 5, 2, true, &current);
+        assert!(note.contains("no previous run baseline"));
+    }
+
+    #[test]
+    fn compute_ab_stability_note_skips_when_settings_differ() {
+        let prev = json!({
+            "character_id": "other",
+            "runs": 5,
+            "turns": 2,
+            "compound_via_llm": true,
+            "ab_top3_overlap_ratio": 0.33,
+            "ab_score": 0.34,
+        });
+        let current = json!({
+            "character_id": "c1",
+            "runs": 5,
+            "turns": 2,
+            "compound_via_llm": true,
+            "ab_top3_overlap_ratio": 0.5,
+            "ab_score": 0.4,
+        });
+        let note = compute_ab_stability_note(Some(&prev), "c1", 5, 2, true, &current);
+        assert!(note.contains("settings differ"));
+    }
+
+    #[test]
+    fn compute_ab_stability_note_with_comparable_baseline_shows_deltas() {
+        let prev = json!({
+            "character_id": "c1",
+            "runs": 5,
+            "turns": 2,
+            "compound_via_llm": true,
+            "ab_top3_overlap_ratio": 0.3333333333333333,
+            "ab_score": 0.2,
+            "ab_delta_summary": "old",
+        });
+        let current = json!({
+            "character_id": "c1",
+            "runs": 5,
+            "turns": 2,
+            "compound_via_llm": true,
+            "ab_top3_overlap_ratio": 0.5,
+            "ab_score": 0.3383333333333333,
+            "ab_delta_summary": "new",
+        });
+        let note = compute_ab_stability_note(Some(&prev), "c1", 5, 2, true, &current);
+        assert_eq!(
+            note,
+            "vs previous comparable run: overlap Δ +0.17, ab_score Δ +0.14; diff_counts Δ shared=+0 det_only=+0 llm_only=+0"
+        );
+    }
+
+    #[test]
+    fn compute_ab_stability_note_includes_diff_count_deltas_when_present() {
+        let prev = json!({
+            "character_id": "c1",
+            "runs": 5,
+            "turns": 2,
+            "compound_via_llm": true,
+            "ab_top3_overlap_ratio": 0.33,
+            "ab_score": 0.3,
+            "ab_delta_summary": "old",
+            "ab_top3_diff_counts": {
+                "shared": 1,
+                "deterministic_only": 2,
+                "llm_only": 0
+            }
+        });
+        let current = json!({
+            "character_id": "c1",
+            "runs": 5,
+            "turns": 2,
+            "compound_via_llm": true,
+            "ab_top3_overlap_ratio": 0.33,
+            "ab_score": 0.3,
+            "ab_delta_summary": "new",
+            "ab_top3_diff_counts": {
+                "shared": 3,
+                "deterministic_only": 0,
+                "llm_only": 1
+            }
+        });
+        let note = compute_ab_stability_note(Some(&prev), "c1", 5, 2, true, &current);
+        assert!(note.contains("diff_counts Δ"));
+        assert!(note.contains("shared=+2"));
+        assert!(note.contains("det_only=-2"));
+        assert!(note.contains("llm_only=+1"));
+        assert!(note.contains("overlap Δ +0.00"));
+    }
+
+    #[test]
+    fn compute_ab_score_components_caps_score_at_one() {
+        let (_, score) = compute_ab_score_components(1.0, 0.0);
+        assert!((score - 1.0).abs() < 1e-9);
+        let (_, score2) = compute_ab_score_components(1.5, 0.0);
+        assert!((score2 - 1.0).abs() < 1e-9);
+    }
+
+    #[test]
+    fn comparable_ab_diff_count_deltas_none_without_prior() {
+        let current = json!({
+            "character_id": "c1",
+            "runs": 5,
+            "turns": 2,
+            "compound_via_llm": true,
+            "ab_top3_diff_counts": { "shared": 1, "deterministic_only": 0, "llm_only": 0 }
+        });
+        assert!(comparable_ab_diff_count_deltas(None, "c1", 5, 2, true, &current).is_none());
+    }
+
+    #[test]
+    fn comparable_ab_diff_count_deltas_matches_prior_snapshot() {
+        let prev = json!({
+            "character_id": "c1",
+            "runs": 5,
+            "turns": 2,
+            "compound_via_llm": true,
+            "ab_top3_diff_counts": { "shared": 1, "deterministic_only": 2, "llm_only": 0 }
+        });
+        let current = json!({
+            "character_id": "c1",
+            "runs": 5,
+            "turns": 2,
+            "compound_via_llm": true,
+            "ab_top3_diff_counts": { "shared": 3, "deterministic_only": 0, "llm_only": 1 }
+        });
+        assert_eq!(
+            comparable_ab_diff_count_deltas(Some(&prev), "c1", 5, 2, true, &current),
+            Some((2, -2, 1))
+        );
     }
 }
