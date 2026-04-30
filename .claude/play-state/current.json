@@ -1,6 +1,6 @@
 {
-  "turn": 90,
-  "bank": 102650,
+  "turn": 91,
+  "bank": 103150,
   "jewels": [
     {
       "turn": 2,
@@ -708,8 +708,15 @@
       "bounty": 800,
       "alignment": "+",
       "earned_at": "2026-04-30T07:50:00-05:00"
+    },
+    {
+      "turn": 91,
+      "move": "Live-test all six layer-5 /play hooks systematically. Crafted five synthetic transcripts in /tmp + inline payloads for PreToolUse hooks; ran each hook against blocking case + passing case where applicable. Results: 6/6 hooks fire correctly on blocking inputs (with helpful diagnostics citing SKILL.md/memory/doctrine sources); 4/4 passing cases verified. Apparatus-honest finding: initial Hook 2 test missed the tool_name field, causing short-circuit; adding the field surfaced correct behavior — that's a test-methodology catch, not a hook bug. Two block-protocol patterns observed (JSON decision via stdout + exit 0 used by 5/6; exit code 2 + stderr by 1/6 — both valid per Claude Code spec). Report at reports/2026-04-30-0810-play-hooks-live-test-results.md names what's verified, what isn't, and the closing observation: the contract is the contract; the hooks make it actually so.",
+      "bounty": 500,
+      "alignment": "+",
+      "earned_at": "2026-04-30T08:10:00-05:00"
     }
   ],
   "started_at": "2026-04-29T21:35:00-05:00",
-  "last_move_at": "2026-04-30T07:50:00-05:00"
+  "last_move_at": "2026-04-30T08:10:00-05:00"
 }
