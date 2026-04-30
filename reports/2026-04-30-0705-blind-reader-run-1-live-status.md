@@ -28,7 +28,7 @@ Related artifacts:
 - Score-sheet schema remains validator-clean in template mode.
 - Dry-run mechanics remain proven (`synthetic fill -> strict validate -> cleanup -> template re-check`).
 
-## Outstanding before first strict result claim
+## Outstanding before first strict result claim (historical, now completed)
 
 - Collect real-reader ratings for included rows (non-synthetic).
 - Run strict validator on real populated rows: `python3 scripts/validate-blind-reader-sheet.py`.
@@ -37,5 +37,5 @@ Related artifacts:
 
 ## Status
 
-**Live run is opened and packet-locked, but not yet evidence-bearing.**  
-Current verdict remains unchanged: `Character-Knew Sapphire` is `NOT EARNED` until real-reader strict results are recorded and interpreted.
+**Historical status superseded.**  
+This opener reflected the pre-evidence state at run launch. The run has since progressed through strict simulated R1 + R2 with canonical synthesis and third-crown verdict published at `reports/2026-04-30-0745-character-knew-sapphire-canonical-synthesis.md`.
