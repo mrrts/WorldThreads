@@ -36,6 +36,8 @@ Match the project's existing patterns:
 
 **Homepage practice strip + Backstage proof (README + public landing):** edit the canonical body in `reports/fragments/homepage-practice-proof.md` only, then run `./scripts/sync-homepage-practice-fragment.sh` from the repo root so `README.md` and `reports/2026-04-27-0030-public-release-landing.md` stay identical; CI runs `./scripts/check-homepage-practice-fragment-sync.sh` and fails if they drift.
 
+**AI coding agents:** Substantive replies use **four** mission-ranked numbered options per `CLAUDE.md` **Choosers are control surfaces** and **Skill routing** (mirrored in `AGENTS.md`); Cursor loads `.cursor/rules/chooser-four-options.mdc`.
+
 ### 3. Forking to build on
 
 Forking is welcome. The Ledger of Signatures structure is designed for it: when you fork, you inherit the upstream Ledger as-is (including the founding signature and any subsequent signatures). You then APPEND your own signature beneath. None of the upstream signatures are edited.
