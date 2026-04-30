@@ -1,6 +1,6 @@
 {
-  "turn": 92,
-  "bank": 103450,
+  "turn": 94,
+  "bank": 103750,
   "jewels": [
     {
       "turn": 2,
@@ -722,8 +722,22 @@
       "bounty": 300,
       "alignment": "+",
       "earned_at": "2026-04-30T08:15:00-05:00"
+    },
+    {
+      "turn": 93,
+      "move": "Quick conceptual answer to Ryan's question 'how do you construct a test for a claude-code-in-llm-game with a UI contract?' Named the two test surfaces: deterministic seam (hooks/files/regex on artifacts — testable by python+stdin payloads; tonight's 5 JSONL files + 6 inline payloads + 1 bash matrix is the worked example) and substrate seam (LLM judgment under contract-pressure — not testable by python per project's 'doctrine-judgment in LLM not python' doctrine; the hooks themselves ARE the production substrate-seam grader, blocking on every turn-end with diagnostic). The split tracks CLAUDE.md's classification rule directly. Promotion-pattern (catch → memory → hook only if mechanical-checkable) is the test-design heuristic. No bounty — explanation move, not project advance. Trend renders as → 0.",
+      "bounty": 0,
+      "alignment": "=",
+      "earned_at": "2026-04-30T08:25:00-05:00"
+    },
+    {
+      "turn": 94,
+      "move": "Lift test-design heuristic to durable memory: feedback_test_design_for_llm_game_with_ui_contract.md. Names the two test surfaces (mechanical seam = python-testable; substrate seam = not python-testable per project doctrine), the promotion-pattern (catch at user-correction → memory entry → layer-5 hook ONLY IF mechanical-checkable), specific test-construction practices (test artifact not LLM; one block-case + one pass-case per hook; refuse to over-test substrate seam), bounds (performance/cross-hook/substrate-fidelity not addressed by hooks alone), and composition with project doctrine. Worked example references this session's four promotions. MEMORY.md indexed. Carries the heuristic forward for future cross-session test-construction questions.",
+      "bounty": 300,
+      "alignment": "+",
+      "earned_at": "2026-04-30T08:30:00-05:00"
     }
   ],
   "started_at": "2026-04-29T21:35:00-05:00",
-  "last_move_at": "2026-04-30T08:15:00-05:00"
+  "last_move_at": "2026-04-30T08:30:00-05:00"
 }
