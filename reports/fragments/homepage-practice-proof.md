@@ -1,11 +1,15 @@
 <!--
   Canonical shared body (no leading ## — each host file owns the H2 + any local preamble).
 
+  Contributor-facing summary: CONTRIBUTING.md → section **Documentation**.
+
   After editing this file, run from repo root:
     ./scripts/sync-homepage-practice-fragment.sh
+    (or: npm run sync:homepage-practice)
 
   CI runs:
     ./scripts/check-homepage-practice-fragment-sync.sh
+    (bundled locally via: npm run doc-check  or  make doc-check)
 -->
 
 The three heads below are the **second-pass** wording (the one Backstage called *less slogan, more wood and nails*). The blockquote under them is a **verbatim Backstage reply from the shipping app** — same strip, first-pass middle/last, sharpened alternates, and the meta read — so this page is not only claiming the practice; it shows the consultant surfacing it after the Empiricon full-text wiring landed.

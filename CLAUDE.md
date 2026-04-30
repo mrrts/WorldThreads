@@ -381,6 +381,8 @@ Standing authorization to **commit and push at will** on clean work. Group chang
 
 **Commit early and often is the standing rule, not just permission.** When the unit of work is coherent enough to land, land it. Don't ask permission per artifact — that's friction the autonomy was codified to prevent.
 
+**Homepage practice strip (synced surfaces):** The README and `reports/2026-04-27-0030-public-release-landing.md` share one canonical body in `reports/fragments/homepage-practice-proof.md`. Edit the fragment only, then run `./scripts/sync-homepage-practice-fragment.sh` (or `npm run sync:homepage-practice`). CI fails if hosts drift (`./scripts/check-homepage-practice-fragment-sync.sh`, also in `npm run doc-check` / `make doc-check`). See `CONTRIBUTING.md`, section **Documentation**.
+
 ## Build before close-out
 
 Before ending a substantive implementation turn, run the narrowest honest build/test surface (`cargo build`, `npm --prefix frontend run build`, targeted tests). If the change touches both Rust and frontend, verify both or name why one wasn't rerun. If the build was already red for pre-existing reasons, still run it and distinguish pre-existing from change-induced failures.
