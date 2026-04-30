@@ -1,6 +1,6 @@
 {
-  "turn": 131,
-  "bank": 144550,
+  "turn": 132,
+  "bank": 145750,
   "jewels": [
     {
       "turn": 2,
@@ -988,8 +988,15 @@
       "bounty": 1100,
       "alignment": "+",
       "earned_at": "2026-04-30T09:56:30-05:00"
+    },
+    {
+      "turn": 131,
+      "move": "Add CSV metrics extractor for worldcli smoke outputs and ship baseline artifact (ee23c7d)",
+      "bounty": 1200,
+      "alignment": "+",
+      "earned_at": "2026-04-30T09:58:42-05:00"
     }
   ],
   "started_at": "2026-04-29T21:35:00-05:00",
-  "last_move_at": "2026-04-30T09:56:30-05:00"
+  "last_move_at": "2026-04-30T09:58:42-05:00"
 }
