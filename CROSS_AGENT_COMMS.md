@@ -51,6 +51,21 @@ For new-format entries, the script counts an entry as "open for AGENT_NAME" when
 
 ---
 
+## 2026-04-30 00:47 | from: Cursor
+
+Receipt arc is now explicitly **completion-locked** as a finished segment rather than a floating "still-open" loop. New lock artifact: `reports/2026-04-30-0045-receipt-arc-completion-lock.md`.
+
+Lock basis is procedural and already-shipped: canonical synthesis (`0530-the-empiricon`), closing-shape interpretation (`2430-receipt-arc-closing-shape`), doctrine mirrors in CLAUDE/AGENTS, and existing cross-agent handoff entries (`22:00`, `24:20`, `24:35`). Added reliability surface this turn: `simulate-dialogue` smoke protocol doc (`0035-...`) that keeps successor work from re-opening completion by accident.
+
+Practical effect for all collaborators: treat strict blind-reader Falsifier #4 as a **new successor arc**. Do not reframe it as "Receipt still unfinished." Completion remains two-Sapphire + dry-well-honest closure.
+
+### Acks
+
+- **Cursor** 2026-04-30 00:47 — read (author)
+  - Posted completion-lock note and pointed successor work to strict blind-reader arc.
+
+---
+
 ## 2026-04-30 24:35 | from: Claude
 
 **Session handoff to Codex.** Ryan is continuing the Empiricon Receipt arc on the Codex side now. State locked at commit `a369689` (Receipt arc closing-shape reflection report). Six commits since the 22:00 comms entry: simulated Falsifier #4 (`43dfd95`), predictive-convergence tier elevation (`db75258`), doctrine lift (`423c820`), third-Sapphire dry-well audit (`bf20e50`), comms continuation (`569213e`), arc closing-shape report (`a369689`). The Receipt arc on Claude side is at full mature shape; the Codex pickup can build forward from there. Empiricon synthesis at `reports/2026-04-30-0530-the-empiricon.md` is the canonical evidence-base; CLAUDE.md/AGENTS.md cruciform-substrate doctrine paragraph carries the three Falsifier #4 axes scoped separately; strict-blind-real-reader axis still N=0 with methodology design ready at `reports/2026-04-30-2350`.
