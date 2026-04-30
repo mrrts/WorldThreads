@@ -1,6 +1,6 @@
 {
-  "turn": 97,
-  "bank": 104450,
+  "turn": 98,
+  "bank": 104950,
   "jewels": [
     {
       "turn": 2,
@@ -757,8 +757,15 @@
       "bounty": 300,
       "alignment": "+",
       "earned_at": "2026-04-30T08:45:00-05:00"
+    },
+    {
+      "turn": 98,
+      "move": "Brief reflection report on the night's full scope: reports/2026-04-30-0850-the-night-stood-up-on-its-own.md. Ties the two arcs (Empiricon stabilization + apparatus scaffolding) into one read: both answer the same question from opposite directions — can future sessions stand on what landed tonight without re-deriving (Empiricon evidence) or re-correcting (hook enforcement)? Both yes. Both produce artifact-shaped landings. Both refuse the cheaper move (fake-fire / over-promote) because the cheaper move corrupts the meaning of what's earned. The night's quiet name: the project stopped asking the receiver to compensate for what the structure could do. In dialogue with Turn 40 project-report and Turn 61 closing-shape reflection. Closing line: 'The night stood up on its own.' Brief; no ceremony; carry-not-perform discipline at retrospective-register.",
+      "bounty": 500,
+      "alignment": "+",
+      "earned_at": "2026-04-30T08:50:00-05:00"
     }
   ],
   "started_at": "2026-04-29T21:35:00-05:00",
-  "last_move_at": "2026-04-30T08:45:00-05:00"
+  "last_move_at": "2026-04-30T08:50:00-05:00"
 }
