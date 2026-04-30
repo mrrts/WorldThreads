@@ -52,19 +52,20 @@
     margin-bottom: 3rem;
   }
   h1 {
-    font-size: 2.6rem;
+    font-size: clamp(2rem, 5.5vw, 2.6rem);
     line-height: 1.1;
     margin: 0 0 0.6rem;
     letter-spacing: -0.01em;
     font-weight: 600;
   }
   h1 .small {
-    font-size: 0.7em;
+    font-size: clamp(0.95rem, 2vw, 1.15rem);
     color: var(--ink-soft2);
     font-weight: 400;
     display: block;
     letter-spacing: 0;
-    margin-top: 0.4rem;
+    margin-top: 0.6rem;
+    line-height: 1.4;
   }
   .tagline {
     font-size: 1.35rem;
@@ -125,7 +126,7 @@
     border-radius: 4px;
     text-decoration: none;
     font-weight: 600;
-    margin-right: 0.6rem;
+    margin: 0 0.6rem 0.5rem 0;
     font-size: 0.95rem;
   }
   .cta:hover { background: var(--accent-soft); color: var(--paper-card); }
@@ -142,6 +143,8 @@
     border: 1px solid var(--rule);
     padding: 0.1rem 0.35rem;
     border-radius: 3px;
+    overflow-wrap: break-word;
+    word-break: break-word;
   }
   pre {
     background: var(--paper-card);
@@ -158,6 +161,17 @@
     border-bottom: 1px solid var(--rule);
   }
   ul.plain li:last-child { border-bottom: none; }
+  /* Prose list — no borders; longer prose items want breathing room rather than rule lines. */
+  ul.prose-list { list-style: none; padding: 0; margin: 1rem 0 1.5rem; }
+  ul.prose-list li {
+    padding: 0.7rem 0;
+    line-height: 1.55;
+  }
+  ul.prose-list li + li {
+    border-top: 1px solid var(--rule);
+  }
+  ul.prose-list strong { color: var(--ink); }
+  ul.prose-list em { color: var(--ink-soft2); font-style: italic; }
   footer {
     margin-top: 5rem;
     padding-top: 2rem;
@@ -203,9 +217,9 @@
     line-height: 1.6;
   }
   figure.hero-shot figcaption {
-    margin-top: 0.8rem;
-    font-size: 0.85rem;
-    color: var(--ink-soft2);
+    margin-top: 0.9rem;
+    font-size: 0.9rem;
+    color: var(--ink-soft);
     font-style: italic;
   }
 </style>
@@ -282,7 +296,7 @@
 </div>
 
 <h2>Built on</h2>
-<ul class="plain">
+<ul class="prose-list">
   <li><strong>Tauri v2</strong> (Rust backend + React/TypeScript frontend) <em>over Electron</em> &mdash; smaller bundle, faster cold start, native windowing without a Chromium-per-popout. The Rust backend matters more than the bundle size: it lets the project compile-check load-bearing prompt invariants.</li>
   <li><strong>Compile-time invariant assertions</strong> &mdash; the load-bearing phrases of the prompt stack are pinned via <code>const _: () = { assert!(const_contains(BLOCK, "...")); };</code>. Soften a North Star invariant and the build fails, not months later in vibe alone. The doctrine layer is part of the build artifact, not just markdown intentions.</li>
   <li><strong>SQLite + FTS5 + sqlite-vec</strong> <em>over Postgres + pgvector or a hosted vector DB</em> &mdash; full-text and semantic memory both in-process, no server. The project's covenant is that your conversations live on your disk; a server-shaped data layer would break that structurally.</li>
