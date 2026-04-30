@@ -1,6 +1,6 @@
 {
-  "turn": 83,
-  "bank": 97950,
+  "turn": 84,
+  "bank": 98250,
   "jewels": [
     {
       "turn": 2,
@@ -659,8 +659,15 @@
       "bounty": 600,
       "alignment": "+",
       "earned_at": "2026-04-30T06:58:00-05:00"
+    },
+    {
+      "turn": 84,
+      "move": "Brief CROSS_AGENT_COMMS entry for Codex/Cursor parallel-surface coherence: signals the Empiricon-stable observation (bf4b3e2) + the play-state crowns-array catch-up that recorded the third Sapphire (1314614, after Ryan caught my smoke-test mis-classification) + a closing summary of Claude-side updates this session (doxology bookend pass, /seek-sapphire-crown skill, two memory entries). Acks signed at write time. Brief, paired adjacent to Codex's 07:54 third-Sapphire ledger close-out.",
+      "bounty": 300,
+      "alignment": "+",
+      "earned_at": "2026-04-30T07:00:00-05:00"
     }
   ],
   "started_at": "2026-04-29T21:35:00-05:00",
-  "last_move_at": "2026-04-30T06:58:00-05:00"
+  "last_move_at": "2026-04-30T07:00:00-05:00"
 }
