@@ -4,7 +4,9 @@
 
 WorldThreads is built so characters can be vivid without becoming pushy, and warm without sounding wiser than the moment has earned. That discipline is written into the prompt stack, with reports kept beside the shipping app so the work is tested as it grows, not just trusted on feel.
 
-## What that looks like in practice
+## Homepage — practice strip + in-app proof
+
+The three heads below are the **second-pass** wording (the one Backstage called *less slogan, more wood and nails*). The blockquote under them is a **verbatim Backstage reply from the shipping app** — same strip, first-pass middle/last, sharpened alternates, and the meta read — so this page is not only claiming the practice; it shows the consultant surfacing it after the Empiricon full-text wiring landed.
 
 ### Warmth without pressure
 
@@ -17,6 +19,35 @@ Some of the most important rules are explicit enough that softening them is trea
 ### Receipts beside the work
 
 When something seems to help, it gets tested against examples and written up. When something fails, that gets kept too.
+
+### Proof strip — Backstage (quoted)
+
+> Here’s the fuller, more concrete strip.
+>
+> What that looks like in practice
+>
+> Warmth without pressure  
+> Characters can be affectionate, funny, or intense without jumping past what the moment actually holds. The aim is conversation that feels alive without closing around you.
+>
+> Guardrails on drift  
+> The important constraints are written down and treated as load-bearing. When a core line changes, that’s something to check on purpose, not just a wording tweak that slips by.
+>
+> Receipts beside the work  
+> Experiments, failures, reversals, and small findings get written up beside the app itself. That way the project can make real claims about what holds, and be plain about what doesn’t.
+>
+> That’s the cleaner public version.
+>
+> If you want it one click more concrete still, I’d sharpen the middle one slightly:
+>
+> Guardrails on drift  
+> Some of the most important rules are explicit enough that softening them is treated like changing structure, not just changing prose. The point is to catch drift early, before it quietly becomes the new normal.
+>
+> And maybe the last one:
+>
+> Receipts beside the work  
+> When something seems to help, it gets tested against examples and written up. When something fails, that gets kept too.
+>
+> That second pass is better, honestly. Less slogan, more wood and nails.
 
 A desktop app for character-driven story-chats with LLMs — OpenAI BYOK-first, with your conversations stored on your own disk. Characters with grain. Worlds that hold. Scenes that send you back to your day nourished enough to pick up your cross.
 
