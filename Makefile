@@ -29,3 +29,14 @@ play-contract-smoke:
 .PHONY: worldcli-simulate-dialogue-smoke
 worldcli-simulate-dialogue-smoke:
 	./scripts/worldcli-simulate-dialogue-smoke.sh
+
+.PHONY: worldcli-smoke-metrics
+worldcli-smoke-metrics:
+	@ts=$$(date +%Y-%m-%d-%H%M); \
+	python3 ./scripts/extract-worldcli-smoke-metrics.py \
+		/tmp/worldcli_science_steven.txt \
+		/tmp/worldcli_science_john.txt \
+		/tmp/worldcli_science_steven_t3.txt \
+		/tmp/worldcli_science_john_t3.txt \
+		> "reports/$${ts}-worldcli-smoke-metrics.csv"; \
+	echo "wrote reports/$${ts}-worldcli-smoke-metrics.csv"
