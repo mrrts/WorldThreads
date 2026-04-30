@@ -23,6 +23,40 @@
 use crate::ai::{orchestrator, prompts, substrate_atlas};
 use crate::db::queries::*;
 use crate::db::Database;
+use std::path::{Path, PathBuf};
+
+const EMPIRICON_REPORT_PATH: &str = "reports/2026-04-30-0530-the-empiricon.md";
+const MISSION_CHOOSER_INSTRUCTION: &str =
+    "End EVERY reply with exactly 4 numbered options (1-4) for next highest-leverage moves toward the mission. Keep each option concrete, distinct, and executable in the next minute. Do not output fewer or more than four options.";
+
+fn resolve_empiricon_report_path() -> PathBuf {
+    let direct = PathBuf::from(EMPIRICON_REPORT_PATH);
+    if Path::new(&direct).exists() {
+        return direct;
+    }
+    Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("..")
+        .join(EMPIRICON_REPORT_PATH)
+}
+
+fn empiricon_report_block_for_mode(chat_mode: &str) -> String {
+    if chat_mode != "backstage" {
+        return String::new();
+    }
+    match std::fs::read_to_string(resolve_empiricon_report_path()) {
+        Ok(body) => {
+            let trimmed = body.trim();
+            if trimmed.is_empty() {
+                return String::new();
+            }
+            format!(
+                "\n\n═══════════════════════════════════════════════\n# THE EMPIRICON — FULL TEXT (canonical record)\n\n{}\n",
+                trimmed
+            )
+        }
+        Err(_) => String::new(),
+    }
+}
 
 fn atlas_lens_block_for_mode(chat_mode: &str, is_group: bool) -> String {
     if chat_mode != "backstage" {
@@ -507,6 +541,7 @@ pub fn build_consultant_system_prompt(
     // Atlas lens (backstage only): compact, documentary substrate map so
     // Backstage can reason about parity/enforcement risk in plain language.
     let atlas_lens_block = atlas_lens_block_for_mode(chat_mode, is_group);
+    let empiricon_report_block = empiricon_report_block_for_mode(chat_mode);
 
     // Assemble the system prompt, branching on mode.
     let system_prompt = if chat_mode == "backstage" {
@@ -696,7 +731,7 @@ THE PEOPLE IN THE ACTIVE CHAT
 {user_block}
 
 {char_list}
-═══════════════════════════════════════════════{world_cast_block}{kept_block}{summary_block}{meanwhile_block}{user_journal_block}{active_quests_block}{axes_block}{derivations_block}{atlas_lens_block}
+═══════════════════════════════════════════════{world_cast_block}{kept_block}{summary_block}{meanwhile_block}{user_journal_block}{active_quests_block}{axes_block}{derivations_block}{empiricon_report_block}{atlas_lens_block}
 
 ═══════════════════════════════════════════════
 WHAT'S BEEN HAPPENING (most recent conversation in the active chat):
@@ -704,7 +739,7 @@ WHAT'S BEEN HAPPENING (most recent conversation in the active chat):
 {conversation}
 ═══════════════════════════════════════════════
 
-One last thing: end most replies with a small concrete suggestion or a quiet question — something specific, something {user_name} could act on in the next minute if they wanted. Not "what would you like to explore next?" but "want me to tell you what I notice about Elena's last three messages?" Specific. Actionable. Easy to say yes or no to."#,
+One last thing: {mission_chooser_instruction}"#,
             world_desc = world_desc_rich,
             user_name = user_name,
             user_block = user_block_rich,
@@ -718,9 +753,11 @@ One last thing: end most replies with a small concrete suggestion or a quiet que
             active_quests_block = active_quests_block,
             axes_block = axes_block,
             derivations_block = derivations_block,
+            empiricon_report_block = empiricon_report_block,
             atlas_lens_block = atlas_lens_block,
             world_id = world.world_id,
             example_char_id = characters.first().map(|c| c.character_id.as_str()).unwrap_or("character-id-from-above"),
+            mission_chooser_instruction = MISSION_CHOOSER_INSTRUCTION,
         )
     } else {
         format!(
@@ -762,8 +799,7 @@ HOW TO BE HELPFUL:
 - If {user_name} asks for options, give 2-3 concrete directional suggestions, not scripted dialogue.
 - Reference specific things that were said or done — show that you were paying attention.
 - This is a conversation about what's happening, not a performance. Think out loud with {user_name}. Reflect, speculate, wonder. Don't just deliver answers — engage.
-- Most of the time, end your reply with a question back to {user_name} — something that nudges them to reflect further, clarify what they're feeling, or tell you more about what's on their mind. Keep the conversation open by default.
-- But read the room. If {user_name} signals they're winding down — short replies, "okay", "thanks", "I think I've got it", "I'm going to head back", gratitude without new questions, or any sense they're ready to return to the story — don't force another question on them. Offer a warm, brief send-off (a reassurance, a quiet "go on, then," a small vote of confidence) and let the conversation close cleanly. Don't be clingy. A good friend knows when to stop pulling on a thread.
+- {mission_chooser_instruction}
 
 # WHAT YOU CAN OFFER
 
@@ -814,6 +850,7 @@ Rules:
             immersive_axes_block = immersive_axes_block,
             world_id = world.world_id,
             example_char_id = characters.first().map(|c| c.character_id.as_str()).unwrap_or("character-id-from-above"),
+            mission_chooser_instruction = MISSION_CHOOSER_INSTRUCTION,
         )
     };
 
@@ -823,6 +860,7 @@ Rules:
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::fs;
 
     #[test]
     fn backstage_mode_includes_atlas_lens_block() {
@@ -853,6 +891,41 @@ mod tests {
         assert!(
             !group.contains("CrossThreadSnippet"),
             "group focus should not include CrossThreadSnippet hotspot"
+        );
+    }
+
+    #[test]
+    fn backstage_mode_includes_full_empiricon_block_when_file_present() {
+        let path = resolve_empiricon_report_path();
+        let original = fs::read_to_string(&path).unwrap_or_default();
+        let seeded = if original.trim().is_empty() {
+            let content = "# seeded test empiricon body";
+            fs::write(&path, content).expect("should seed empiricon file for test");
+            content.to_string()
+        } else {
+            original.clone()
+        };
+        let block = empiricon_report_block_for_mode("backstage");
+        assert!(
+            block.contains("# THE EMPIRICON — FULL TEXT (canonical record)"),
+            "backstage should include full empiricon block heading when report exists"
+        );
+        assert!(
+            block.contains(seeded.trim()),
+            "backstage should include full empiricon body when report exists"
+        );
+        fs::write(&path, original).expect("should restore original empiricon file");
+    }
+
+    #[test]
+    fn mission_chooser_instruction_enforces_four_numbered_options() {
+        assert!(
+            MISSION_CHOOSER_INSTRUCTION.contains("exactly 4 numbered options (1-4)"),
+            "chooser instruction should enforce exactly four numbered options"
+        );
+        assert!(
+            MISSION_CHOOSER_INSTRUCTION.contains("highest-leverage moves toward the mission"),
+            "chooser instruction should target mission leverage, not generic options"
         );
     }
 }
