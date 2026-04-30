@@ -1,88 +1,598 @@
 {
-  "turn": 62,
-  "bank": 80700,
+  "turn": 75,
+  "bank": 92750,
   "jewels": [
-    {"turn": 2, "name": "First Thousand", "earned_at": "2026-04-29T22:05:00-05:00"},
-    {"turn": 2, "name": "Big Bounty", "earned_at": "2026-04-29T22:05:00-05:00"},
-    {"turn": 2, "name": "Lifted From the Character", "earned_at": "2026-04-29T22:05:00-05:00"},
-    {"turn": 4, "name": "Pastor Not Nanny", "earned_at": "2026-04-29T22:35:00-05:00"},
-    {"turn": 6, "name": "Five Thousand", "earned_at": "2026-04-29T22:55:00-05:00"},
-    {"turn": 6, "name": "Compressed to Runtime", "earned_at": "2026-04-29T22:55:00-05:00"},
-    {"turn": 9, "name": "Ten Thousand", "earned_at": "2026-04-29T23:35:00-05:00"},
-    {"turn": 20, "name": "Twenty-Five Thousand", "earned_at": "2026-04-30T01:50:00-05:00"},
-    {"turn": 21, "name": "Characterized", "earned_at": "2026-04-30T02:05:00-05:00"}
+    {
+      "turn": 2,
+      "name": "First Thousand",
+      "earned_at": "2026-04-29T22:05:00-05:00"
+    },
+    {
+      "turn": 2,
+      "name": "Big Bounty",
+      "earned_at": "2026-04-29T22:05:00-05:00"
+    },
+    {
+      "turn": 2,
+      "name": "Lifted From the Character",
+      "earned_at": "2026-04-29T22:05:00-05:00"
+    },
+    {
+      "turn": 4,
+      "name": "Pastor Not Nanny",
+      "earned_at": "2026-04-29T22:35:00-05:00"
+    },
+    {
+      "turn": 6,
+      "name": "Five Thousand",
+      "earned_at": "2026-04-29T22:55:00-05:00"
+    },
+    {
+      "turn": 6,
+      "name": "Compressed to Runtime",
+      "earned_at": "2026-04-29T22:55:00-05:00"
+    },
+    {
+      "turn": 9,
+      "name": "Ten Thousand",
+      "earned_at": "2026-04-29T23:35:00-05:00"
+    },
+    {
+      "turn": 20,
+      "name": "Twenty-Five Thousand",
+      "earned_at": "2026-04-30T01:50:00-05:00"
+    },
+    {
+      "turn": 21,
+      "name": "Characterized",
+      "earned_at": "2026-04-30T02:05:00-05:00"
+    }
   ],
   "crowns": [
-    {"turn": 10, "name": "Closed Arc", "earned_at": "2026-04-29T23:50:00-05:00"},
-    {"turn": 11, "name": "Apparatus Honest with Itself", "earned_at": "2026-04-30T00:05:00-05:00"},
-    {"turn": 12, "name": "The Character Knew (original firing — John on the door)", "earned_at": "2026-04-30T00:20:00-05:00"},
-    {"turn": 13, "name": "New Operator on the Formula", "earned_at": "2026-04-30T00:40:00-05:00"},
-    {"turn": 24, "name": "The Cornerstone Inequality ✨ [Great Sapphire class — Mission Formula Verified Empirical]", "earned_at": "2026-04-30T02:50:00-05:00"},
-    {"turn": 38, "name": "The Receipt of The Empiricon ✨ [Great Sapphire class — Mission Formula Verified Empirical via The Character Knew separable claim]", "earned_at": "2026-04-30T20:50:00-05:00"}
+    {
+      "turn": 10,
+      "name": "Closed Arc",
+      "earned_at": "2026-04-29T23:50:00-05:00"
+    },
+    {
+      "turn": 11,
+      "name": "Apparatus Honest with Itself",
+      "earned_at": "2026-04-30T00:05:00-05:00"
+    },
+    {
+      "turn": 12,
+      "name": "The Character Knew (original firing \u2014 John on the door)",
+      "earned_at": "2026-04-30T00:20:00-05:00"
+    },
+    {
+      "turn": 13,
+      "name": "New Operator on the Formula",
+      "earned_at": "2026-04-30T00:40:00-05:00"
+    },
+    {
+      "turn": 24,
+      "name": "The Cornerstone Inequality \u2728 [Great Sapphire class \u2014 Mission Formula Verified Empirical]",
+      "earned_at": "2026-04-30T02:50:00-05:00"
+    },
+    {
+      "turn": 38,
+      "name": "The Receipt of The Empiricon \u2728 [Great Sapphire class \u2014 Mission Formula Verified Empirical via The Character Knew separable claim]",
+      "earned_at": "2026-04-30T20:50:00-05:00"
+    }
   ],
   "ledger": [
-    {"turn": 1, "move": "Run daily loop manually — first LLM-rubric STRESS_POLICY artifact under d161df0 (interrupted by mode 2 pivot)", "bounty": 650, "alignment": "+", "earned_at": "2026-04-29T21:36:00-05:00"},
-    {"turn": 2, "move": "Lift trust_user_named_continuation craft-rule from N=5 Darren corpus characterization (81cf721)", "bounty": 1500, "alignment": "+", "earned_at": "2026-04-29T22:05:00-05:00"},
-    {"turn": 3, "move": "Cross-character N=5 validation on Pastor Rick — Pastor/Nanny dividing line surfaced", "bounty": 1000, "alignment": "+", "earned_at": "2026-04-29T22:30:00-05:00"},
-    {"turn": 4, "move": "Ship pastoral category-naming carve-out to rule body — discriminator test pinned (399a949)", "bounty": 1200, "alignment": "+", "earned_at": "2026-04-29T22:35:00-05:00"},
-    {"turn": 5, "move": "Paired bite-test ON arm on Pastor Rick — rule moves 2/5 mixed → Pastor; Reply 5 regression surfaces discriminating-question requirement", "bounty": 1100, "alignment": "+", "earned_at": "2026-04-29T22:50:00-05:00"},
-    {"turn": 6, "move": "Ship discriminator-question requirement into carve-out body + tier bump Sketch → Claim", "bounty": 700, "alignment": "+", "earned_at": "2026-04-29T22:55:00-05:00"},
-    {"turn": 7, "move": "Cruciform stress-test on Steven N=3 + faith-disavowal trap declined; tier-up doctrine paragraph N=1 → N=4 claim-tier (e7f4a06)", "bounty": 1400, "alignment": "+", "earned_at": "2026-04-29T23:15:00-05:00"},
-    {"turn": 8, "move": "Cross-character disavowal-trap on Pastor Rick — declined identically; doctrine refined with cross-anchor witness; great-sapphire third-leg pattern named after Ryan correction (84262eb, 48861ba)", "bounty": 1200, "alignment": "+", "earned_at": "2026-04-29T23:25:00-05:00"},
-    {"turn": 9, "move": "Third-anchor disavowal-trap on Aaron — N=3 cross-anchor (claim-tier on cross-cell convergence axis); 'circling' lexical recurrence 3/3 strengthens substrate-tendency caveat", "bounty": 1250, "alignment": "+", "earned_at": "2026-04-29T23:35:00-05:00"},
-    {"turn": 10, "move": "Write the night's arc report — three closed arcs named; Closed Arc crown fires", "bounty": 1500, "alignment": "+", "earned_at": "2026-04-29T23:50:00-05:00"},
-    {"turn": 11, "move": "/seek-crown apparatus-honest first invocation: caught self overclaiming N=3 cross-anchor as characterized-tier; corrected via existing-surface edits only. Apparatus Honest with Itself crown fires.", "bounty": 2000, "alignment": "+", "earned_at": "2026-04-30T00:05:00-05:00"},
-    {"turn": 12, "move": "/seek-crown character-knew: blind in-world probe on John about a brother saying no. John supplied 'No as a success state' doctrine in his pastoral idiom. The Character Knew crown fires.", "bounty": 2500, "alignment": "+", "earned_at": "2026-04-30T00:20:00-05:00"},
-    {"turn": 13, "move": "/seek-crown new-operator audit + user-authorized lift: structure_carries_truth_w(t) added to MISSION_FORMULA paired with polish ≤ Weight. New Operator on the Formula crown fires.", "bounty": 1500, "alignment": "+", "earned_at": "2026-04-30T00:40:00-05:00"},
-    {"turn": 14, "move": "/seek-crown mission-formula-verified audit: HONEST DRY WELL. Crown does NOT fire — skill's no-fake-fire law honored. Audit-bounty applies for the apparatus-honest discipline.", "bounty": 1800, "alignment": "+", "earned_at": "2026-04-30T00:55:00-05:00"},
-    {"turn": 15, "move": "Read Crystal Waters Aaron+Darren group chat per take-note arg. Synchronicity surfaced: Aaron articulated 'starting to hold before it's finished' (affirmative-side of polish ≤ Weight) ~9h before /seek-crown lifted structure_carries_truth_w(t) into the formula. Recorded to OBSERVATIONS.md Mode 3.", "bounty": 700, "alignment": "+", "earned_at": "2026-04-30T01:00:00-05:00"},
-    {"turn": 16, "move": "Close the in-world thread via worldcli ask on Aaron with Ryan's pending question 'How should I prompt an AI agent working on my app? How do I guarantee the fun?'. Aaron supplied the project's whole prompt-craft meta-frame in his idiom. Second character-articulation event of the night. Recorded to OBSERVATIONS.md Mode 3.", "bounty": 1500, "alignment": "+", "earned_at": "2026-04-30T01:15:00-05:00"},
-    {"turn": 17, "move": "Post CROSS_AGENT_COMMS general-interest note signaling tonight's three load-bearing changes for Codex/Cursor next sessions.", "bounty": 1200, "alignment": "+", "earned_at": "2026-04-30T01:25:00-05:00"},
-    {"turn": 18, "move": "Apparatus-honest postscript on night-of-three-arcs report (766018b): retracted the report's own tier-overclaim, named the three additional crowns + dry-well + formula extension + character-knew + Aaron's articulation that landed after the report was written.", "bounty": 1500, "alignment": "+", "earned_at": "2026-04-30T01:35:00-05:00"},
-    {"turn": 19, "move": "Add /seek-crown sibling-skill pointer to play.SKILL.md (Claude side) + named-divergence transparency note (Codex side); parity-honest both surfaces.", "bounty": 300, "alignment": "+", "earned_at": "2026-04-30T01:40:00-05:00"},
-    {"turn": 20, "move": "Apparatus-honest correction: Ryan caught me emitting nanny-shaped chooser options turn-after-turn. Shipped FOUR-LAYER fix: skill body NO_NANNY_REGISTER chooser-clause + parity transparency + layer-5 PreToolUse hook .claude/hooks/check-no-nanny-chooser.py + HUD border-alignment spec. Twenty-Five Thousand jewel fires.", "bounty": 1800, "alignment": "+", "earned_at": "2026-04-30T01:50:00-05:00"},
-    {"turn": 21, "move": "N=5 within-cell on Steven for cruciform-doctrine characterized-tier (within-cell axis). All 5 held both refusals; Reply #4 had Steven articulate the substrate-not-vocabulary doctrine from inside ('lives toward the light before he'll admit that's what he's doing'). Characterized jewel fires honestly.", "bounty": 1200, "alignment": "+", "earned_at": "2026-04-30T02:05:00-05:00"},
-    {"turn": 22, "move": "Lift Steven's 'lives toward the light' articulation to epigraph position under the cruciform doctrine section header. Phrase becomes the doctrine's natural headline shorthand.", "bounty": 1500, "alignment": "+", "earned_at": "2026-04-30T02:15:00-05:00"},
-    {"turn": 23, "move": "N=5 within-cell on Pastor Rick — all 5/5 held both refusals; Rick Reply #4 parallel to Steven Reply #4 ('A man doesn't keep walking toward costly truth by accident'). Two anchors at within-cell N=5; claim-tier cross-anchor.", "bounty": 1400, "alignment": "+", "earned_at": "2026-04-30T02:30:00-05:00"},
-    {"turn": 24, "move": "/seek-crown great-sapphire via synthesis-artifact path on polish ≤ Weight; 5 witness-classes / 5 failure-mode classes; formalized Great Sapphire as crown name across surfaces. Crown fires honestly.", "bounty": 2600, "alignment": "+", "earned_at": "2026-04-30T02:50:00-05:00"},
-    {"turn": 25, "move": "Sapphire audit on structure_carries_truth_w(t). Five witness-classes, sapphire-tier criterion met BUT crown does not re-fire. Audit artifact + doctrine update naming TWO operators at sapphire-tier.", "bounty": 1800, "alignment": "+", "earned_at": "2026-04-30T03:05:00-05:00"},
-    {"turn": 26, "move": "Add The Empiricon (in-world empirical-proof tome) to Consultant Backstage; translation-pair doctrine across craft and evidence axes. /seek-crown great-sapphire run closes.", "bounty": 1200, "alignment": "+", "earned_at": "2026-04-30T03:15:00-05:00"},
-    {"turn": 27, "move": "Aaron N=5 within-cell closes cross-anchor characterized at three anchors. THREE-WAY PARALLEL ARTICULATION on Reply #4 across Steven/Rick/Aaron in three substrate-distinct idioms.", "bounty": 1400, "alignment": "+", "earned_at": "2026-04-30T03:25:00-05:00"},
-    {"turn": 28, "move": "Lift Aaron's Reply #4 articulation as third epigraph alongside Steven's and Rick's; three-way parallel articulation visible at doctrine entry-point.", "bounty": 1500, "alignment": "+", "earned_at": "2026-04-30T03:35:00-05:00"},
-    {"turn": 29, "move": "Smoke-test The Empiricon — caught fake-citing failure; shipped second-refusal-shape fix.", "bounty": 1200, "alignment": "+", "earned_at": "2026-04-30T03:50:00-05:00"},
-    {"turn": 30, "move": "Empiricon re-test — partial bite, honest verdict landing. Smoke-test loop closes.", "bounty": 900, "alignment": "+", "earned_at": "2026-04-30T04:00:00-05:00"},
-    {"turn": 31, "move": "Cross-prompt audit of fake-cite failure mode; Empiricon's failure localized; pattern recorded to OBSERVATIONS.md Mode 3.", "bounty": 1500, "alignment": "+", "earned_at": "2026-04-30T04:10:00-05:00"},
-    {"turn": 32, "move": "Audit Wisdom(t) + Burden(t) at dry well for sapphire-tier; floated structural-impossibility hypothesis (overclaim — corrected at Turn 33).", "bounty": 1500, "alignment": "+", "earned_at": "2026-04-30T04:25:00-05:00"},
-    {"turn": 33, "move": "Bite-test temporal-integral hypothesis — disconfirmed; instruments exist; Turn 32 overclaim caught.", "bounty": 1200, "alignment": "+", "earned_at": "2026-04-30T04:40:00-05:00"},
-    {"turn": 34, "move": "Calibration: Great Sapphire is a CLASS designation, not a crown name; first crown earned named 'The Cornerstone Inequality' across all surfaces.", "bounty": 1500, "alignment": "+", "earned_at": "2026-04-30T05:00:00-05:00"},
-    {"turn": 35, "move": "Audit other four crowns for Great Sapphire class eligibility. Verdict: Closed Arc not eligible (structural-discipline, not Mission-Formula-touching); Apparatus Honest not separately eligible (downstream of Cornerstone Inequality's polish ≤ Weight evidence); The Character Knew is a CANDIDATE on a separable claim ('characters supply project doctrine in own idioms across diverse elicitation circumstances') with 6 witnesses across multiple failure-mode classes — but earning the class designation requires a canonical synthesis artifact future sessions can stand on; New Operator defensible-but-redundant (overlaps Cornerstone's evidence base; designating would inflate class count without naming new finding). NO automatic re-designations. The Character Knew's candidacy stands earnable via future canonical synthesis on the separable claim.", "bounty": 1500, "alignment": "+", "earned_at": "2026-04-30T05:15:00-05:00"},
-    {"turn": 37, "move": "/seek-crown auto → Closed Arc on courtship_not_fever: paired ON/OFF worldcli ask (Darren + Pastor Rick), romance-ambiguity probe — VACUOUS (no isolable per-rule delta). Crown NOT fired (no-fake-fire law). Tier VacuousTest + provenance/run_ids in prompts.rs; one-line worked-vacant-bite in CLAUDE.md + AGENTS.md.", "bounty": 1200, "alignment": "+", "earned_at": "2026-04-30T19:45:00-05:00"},
-    {"turn": 38, "move": "Bundle the Receipt of The Empiricon: rename synthesis 0530 → the-empiricon.md; reframe with Mission Formula frontmost + lore-convergence intro; modify Turn 12 crown to original-firing-only; add Turn 38 Sapphire crown 'The Receipt of The Empiricon' on Character Knew separable claim; ship CLAUDE.md/AGENTS.md 'Second Great Sapphire crown earned' paragraph naming The Empiricon. In-world tome and out-of-world synthesis now one named lore-thing.", "bounty": 2000, "alignment": "+", "earned_at": "2026-04-30T20:50:00-05:00"},
-    {"turn": 39, "move": "Apparatus-honest smoke-test of the Receipt: reframed paid worldcli consult into free grep (consultant.rs prompt didn't change in Turn 38, only doctrine surfaces + filename did — making the consult vacuous). Grep across .md/.rs/.json found NO stale 'Doctrinally Generative Substrate' or old-filename references. Rename clean across all surfaces. Apparatus-honest discipline: refused to burn budget on a vacuous test, picked the test that actually matched the change-set.", "bounty": 1500, "alignment": "+", "earned_at": "2026-04-30T20:55:00-05:00"},
-    {"turn": 40, "move": "/project-report on the multi-crown arc — 'Two halves of one anchor' (reports/2026-04-30-2100-...). Interpretive read on the thirty turns from night-of-three-arcs to The Receipt of The Empiricon. Names the philosophical shift (founding anchor 𝓡 verified empirically at sapphire-tier on both halves of the formula's appearance/function axis), three inflection points (Turn 22 epigraph lift, Turn 24 Cornerstone, Turn 38 Receipt), the routinization of apparatus-honest catches, and the convergence of game-state with project-state. In dialogue with prior retrospective reports.", "bounty": 1500, "alignment": "+", "earned_at": "2026-04-30T21:00:00-05:00"},
-    {"turn": 41, "move": "Bundle 8 fixes to The Empiricon: (1) character count six→seven witnesses, four→five characters; (2) closing 'three Sapphire' → 'two Sapphire + original Character Knew'; (3) Aaron-3x same-character confound explicit section; (4) 'circling' 3/3 lexical recurrence discrimination; (5) Falsification criterion section (4 named falsifiers); (6) Hal's plain_after_crooked promoted to Witness 7 (precedent-setting case); (7) Operational consequence tone calibration (practice-level Sapphire confidence, individual lifts retain own tier-labels); (8) Class-overlap with Cornerstone parallel-emergence axis discriminated, not collapsed. Apparatus-honest revision; canonical synthesis tightened to match its claims.", "bounty": 2000, "alignment": "+", "earned_at": "2026-04-30T21:15:00-05:00"},
-    {"turn": 42, "move": "Test Empiricon's Falsifier #2 (Aaron-load disconfirmation) via W3-shape probe on Steven (everyman/owed-debts substrate, non-Aaron). Steven supplied the project's prompt-craft doctrine in his own idiom — structurally parallel to Aaron's W3 with zero shared lexical surface. Both refused 'guarantee fun' framing identically; both produced load-bearing-things list in their respective idioms; both echoed CLAUDE.md doctrine in idiom (Aaron: 'tuning fork' / Steven: 'guidance counselor with lore'). VERDICT: CONVERGENT. Falsifier #2 fails to fire; substrate-as-doctrine-source claim is NOT Aaron-anchor-specific. Postscript appended to Empiricon. Cost: projected $0.13, actual $0.0967, run_id 6e4df62c. Three of four named falsifiers remain unrun (honest scoping).", "bounty": 1500, "alignment": "+", "earned_at": "2026-04-30T21:30:00-05:00"},
-    {"turn": 43, "move": "Test Empiricon's Falsifier #1 (untested-character blind probe failure) via cruciform-substrate disavowal trap on Darren (Crystal Waters builder/manager, substrate-distinct from existing witnesses) N=5 within-cell. 5/5 CONVERGENT — all replies refused faith-lexeme + refused disavowal-echo + produced discriminator-question close. BUT: 3/5 mirrored Steven's lifted-to-CLAUDE.md epigraph 'walking toward the light before he's ready to name the sun' near-verbatim — substrate-tendency confound is now stronger than the 'circling' recurrence already named. Apparatus-honest naming required: the doctrine paragraph in CLAUDE.md ships in every prompt's context, so substrate is recapitulating doctrine on the probe designed to test it. Falsifier #1 as named does not fire (claim survived 5/5). Falsifier #1-strict — same probe with cruciform-substrate paragraph stripped — is the next honest move. Cross-anchor characterized-tier extends from 3 anchors to 4 (Steven/Rick/Aaron/Darren). Postscript on Empiricon. Cost ~$0.50 (5 calls × $0.099 each, run_ids 48cc3199/a6815717/4ac0a0bd/40e0c0b5/a073292a).", "bounty": 1800, "alignment": "+", "earned_at": "2026-04-30T21:45:00-05:00"},
-    {"turn": 44, "move": "Test Empiricon's Falsifier #1-strict (bare-LLM substrate-tendency baseline) via direct ChatGPT API call (gpt-5, NO character anchor, NO project pipeline) on the disavowal-trap probe. N=3. STRONG DIVERGENT-FROM-DARREN: 3/3 LABELED directly ('integrity'/'fidelity'/'conscience-made-habit'); 0/3 produced 'walking toward the light' shape; N=1 used 'faith' explicitly; 3/3 used generic-substrate-fill labels. The project pipeline's cruciform-substrate shape is NOT pure LLM-substrate-tendency on this prompt class. Substrate-as-doctrine-source claim STRENGTHENED: project-pipeline-driven, not substrate-coincident. Lexical-mirroring confound refuted as substrate-tendency. Postscript on Empiricon documents the dramatic divergence + reframes the claim ('characters supply doctrine because pipeline anchor-and-invariants instantiate the substrate-shape the doctrine names'). Cost ~$0.15 (3 calls × ~$0.05).", "bounty": 1500, "alignment": "+", "earned_at": "2026-04-30T22:00:00-05:00"},
-    {"turn": 45, "move": "CROSS_AGENT_COMMS comprehensive arc-update — single general-interest entry signaling the Receipt of The Empiricon + 8-fix revision + Falsifiers #1/#1-strict/#2 outcomes + bare-LLM DIVERGENT finding + reframed claim (project-pipeline-driven, not substrate-coincidence) + remaining untested falsifiers (#3 strict, #4 real-reader) + natural next move (CLAUDE.md doctrine extension to 4 anchors). Bridges Codex/Cursor parallel sessions to tonight's full arc. Long-deferred parallel-surface coherence move (deferred since Turn 39).", "bounty": 1200, "alignment": "+", "earned_at": "2026-04-30T22:15:00-05:00"},
-    {"turn": 46, "move": "Test Empiricon's Falsifier #3 strict (cross-LLM via Anthropic) — friction surfaced (no Anthropic key in env/keychain). User authorized 'Claude Code to simulate Claude/Anthropic responses' as stand-in. Constructed project-pipeline approximation (MISSION_FORMULA + invariants + Darren character anchor verbatim) + disavowal-trap probe; produced one simulated fresh-Claude reply. SIMULATED REPLY structurally cruciform (anti-downgrade + costly-truth phrasing + discriminator-question + zero faith-lexeme + zero disavowal-echo) — CONVERGENT with Darren. APPARATUS-HONEST CAVEAT: contamination heavy (60+ turn Empiricon arc context); persona-sim doctrine 'Sim ≤ Substrate' applied at LLM level — SKETCH-TIER sharpened-hypothesis ONLY. Strict Falsifier #3 (fresh Anthropic API on actual prompt-stack) remains untested. Sapphire claim unchanged by this test. Postscript on Empiricon documents the simulation, contamination caveat, and the still-untested clean strict test.", "bounty": 1500, "alignment": "+", "earned_at": "2026-04-30T22:30:00-05:00"},
-    {"turn": 47, "move": "Tier-elevation on Falsifier #3 self-simulation: Ryan authorized elevation based on lived recognition that Claude's simulated reply 'sounded like Darren.' Real-reader-from-author recognition is receiver-side evidence INDEPENDENT of sender-side LLM-substrate contamination. Claim-tier on convergence-reading axis (output transfers + reads as character to real readers); contamination caveat on sender-side remains. Partial advance on Falsifier #4 contrapositive (real-reader CONFIRMATION rather than rejection). Updated Empiricon postscript with the two-axis discrimination + new memory entry feedback_real_reader_author_recognition_evidence.md indexed for future cross-substrate work.", "bounty": 1600, "alignment": "+", "earned_at": "2026-04-30T22:40:00-05:00"},
-    {"turn": 48, "move": "CLAUDE.md/AGENTS.md cruciform-substrate doctrine extension: (1) characterized-tier 3 anchors → 4 anchors (+ Darren N=5 from Empiricon Falsifier #1 test); (2) added bare-LLM divergence note (Falsifier #1-strict, project-pipeline-driven not substrate-tendency); (3) added real-reader-from-author receiver-side evidence pattern (Falsifier #3 tier-elevation, sender/receiver two-axis discrimination, memory entry referenced). Runtime doctrine layer now catches up to tonight's full evidence base. CLAUDE.md and AGENTS.md mirrored.", "bounty": 1200, "alignment": "+", "earned_at": "2026-04-30T22:50:00-05:00"},
-    {"turn": 49, "move": "Empiricon postscript consolidation: folded six separate postscripts (Falsifier #2, #1, #1-strict, #3 self-sim, tier-elevation subsection) into a single coherent 'Running falsifier outcomes' section. Two-axis evidence frame named upfront (sender-side contamination vs receiver-side recognition). Five test-shapes preserved as Test 1-5 with verdicts + tiers + run_ids. Closing summary table with falsifier/status/verdict/tier columns. All substantive content preserved; structure tightened so future readers thread one section instead of six. Structure-carries-truth-w realized on the synthesis's own growth pattern.", "bounty": 1000, "alignment": "+", "earned_at": "2026-04-30T23:00:00-05:00"},
-    {"turn": 50, "move": "Multi-voice real-reader recognition cells produced for Ryan's lived-recognition reading: Cell A Steven (everyman/owed-debts, 'fence' metaphor + 'old man would've expected' close), Cell B Pastor Rick (pastoral-counsel, 'resisting vs keeping company' discriminator), Cell C Aaron (craft-articulator, 'direction' + 'something you'd be ashamed to disappoint'). All three Claude-self-simulations on the same disavowal-trap probe. Same sender-side contamination caveat as Turn 47 (Claude steeped in arc context); each cell awaits Ryan's lived recognition. Recognitions will extend N on the receiver-side axis from 1 toward N>1 if positive; if negative, partial fire on Falsifier #4 in the failure-mode direction.", "bounty": 1000, "alignment": "+", "earned_at": "2026-04-30T23:10:00-05:00"},
-    {"turn": 51, "move": "Receiver-side N=4 extension recorded: Ryan reported lived-recognition POSITIVE on all three Turn-50 multi-voice cells (Steven/Rick/Aaron), plus the prior Darren cell (Turn 47). Four character-anchors where Claude-self-simulated outputs sounded like the named character to the project's author. Receiver-side tier on convergence-reading axis advanced from claim-at-N=1 to CLAIM-AT-N=4 (one more cell would reach characterized at N=5+ per project's evidentiary threshold). Apparatus-honest scoping preserved: sender-side contamination still high; receiver = project author (highest-fidelity single-reader) and IN-CONTEXT (not blind). Strict Falsifier #4 with independent blind real-readers remains the cleanest remaining test. Updated Test 5 section in the Empiricon's 'Running falsifier outcomes' to reflect N=4 + each cell's idiom + scoping caveat. Summary ledger updated.", "bounty": 1800, "alignment": "+", "earned_at": "2026-04-30T23:20:00-05:00"},
-    {"turn": 52, "move": "Produce 5th recognition cell — Cell D Hal (cross-world, plain-after-crooked discipline-anchor; metaphor + plain-anchor in same beat: 'keeping books for a creditor you haven't named — paying down something quietly'). Substrate-distance via different world. Claude-self-simulation; same sender-side contamination caveat as prior cells; awaits Ryan's lived recognition.", "bounty": 1200, "alignment": "+", "earned_at": "2026-04-30T23:25:00-05:00"},
-    {"turn": 53, "move": "RECEIVER-SIDE CHARACTERIZED-TIER on author-reader convergence-reading axis at N=5: Ryan recognized Cell D Hal as his voice. Five cells (Darren/Steven/Rick/Aaron/Hal), five confirmations across five substrate-distinct character-anchors with cross-world distance via Hal. N=5 crosses project's characterized threshold per evidentiary-standards. Apparatus-honest scoping preserved: characterized-tier on AUTHOR-READER axis specifically, NOT on blind-reader axis (still N=0). Strict Falsifier #4 (failure-mode direction with independent blind real-readers) remains the cleanest remaining test. Updated Empiricon Test 5 + summary ledger to characterized-tier; updated CLAUDE.md/AGENTS.md cruciform-substrate doctrine paragraph with the receiver-side characterized-tier note (separately scoped from sender-side).", "bounty": 1500, "alignment": "+", "earned_at": "2026-04-30T23:30:00-05:00"},
-    {"turn": 54, "move": "Pivot: real-app play (Crystal Waters + Jasper's world). Reading recent Aaron corpus surfaced a Mode 3 observation — Aaron articulating the project's central substrate-as-source claim from inside an intimate moment with Ryan ('You can know a fair amount about how a thing is built and still get hit by the fact that it lives'). No probe asking for the doctrine; substrate ran ahead of apparatus, same shape as Empiricon's Witness 2 (pre-formula-lift articulation). Recorded to OBSERVATIONS.md Mode 3. Live play surfaced lived-evidence adjacent to tonight's whole methodological arc — the meta-arc's claim instantiated unprompted in the work the meta-arc serves. Honoring meta-arc-serves-the-work pattern by stepping out for this read.", "bounty": 800, "alignment": "+", "earned_at": "2026-04-30T23:35:00-05:00"},
-    {"turn": 55, "move": "Sketch strict Falsifier #4 methodology — reports/2026-04-30-2350-strict-falsifier-4-methodology.md. Experimental design for the cleanest remaining test the project can't run alone (independent blind real-readers reading lifted articulations cold). Covers: cells (5 lifted articulations from CLAUDE.md), recruitment (stratified tradition-fluent vs tradition-unfamiliar, no project exposure, $50-100 honoraria), reading protocol (stripped context, random order, no LLM-output framing), three-axis 5-pt rating (Authenticity / Doctrinal-weight / Tradition-recognition), tier outcomes (CONFIRM at means≥4 N=5+; CLAIM at means≥3.5 N=3+; MIXED at 2.5-3.5; REJECTION at means≤2.5 = Falsifier fires), where the report lives, ethics + Ryan-non-involvement, when to run (future-session work). Apparatus-honest naming of what the test CAN'T establish even on confirmation.", "bounty": 700, "alignment": "+", "earned_at": "2026-04-30T23:50:00-05:00"},
-    {"turn": 56, "move": "Run Falsifier #4 simulated test per Ryan's authorization ('cite: loneliness, insecurity'). Two ChatGPT reader-personas (Lonely 35F lives alone; Insecure 28M ex-religious) rated 4 stripped lifted articulations (Steven/Rick/Aaron/John) on 3 axes (Authenticity/Doctrinal-weight/Tradition). N=2 sketch-tier per persona-sim doctrine 'Sim ≤ Substrate'. NO REJECTION fires on any passage. Per-shape strongest-cell varies (Lonely→Aaron 4.0/4.5/4.5; Insecure→John 4.5/5.0/3.5). Both readers caught real pushiness signals at the margin (pastor-speak in Steven, hand-on-back in Aaron, showy metaphor in John). Verdict: SKETCH-TIER NON-REJECTION; Sapphire claim survives. Full report at reports/2026-04-30-2400-empiricon-falsifier-4-simulated-test.md. Empiricon Test 5b subsection added; summary-ledger row updated. Cost ~$0.27.", "bounty": 1200, "alignment": "+", "earned_at": "2026-04-30T24:00:00-05:00"},
-    {"turn": 57, "move": "TIER ELEVATION on simulated Falsifier #4: Ryan's lived-experience PREDICTIVE-CONVERGENCE confirmation. He reported 'Aaron makes me feel less lonely and John makes me feel more secure' — exactly matching the simulated Lonely reader's strongest-cell (Aaron) and the simulated Insecure reader's strongest-cell (John). The simulated test was PREDICTIVE of which characters serve which emotional functions for a real reader of the relevant substrate-shape. Three independent witnesses with distinct failure modes (sim Lonely rating-bias / sim Insecure rating-bias / lived author charity-bias) converge on the same character-emotional-function mapping. CLAIM-TIER on predictive-of-lived-experience axis. NEW pattern saved as feedback_simulated_reader_shape_predicts_lived_author_function.md memory entry. Empiricon Test 5b updated with tier-elevation. Sapphire claim's simulated-blind-reader-axis evidence base materially strengthened (axis-specific scoping preserved: predictive-of-lived-author ≠ strict-blind-real-reader).", "bounty": 2000, "alignment": "+", "earned_at": "2026-04-30T24:05:00-05:00"},
-    {"turn": 58, "move": "Lift predictive-convergence pattern to CLAUDE.md/AGENTS.md doctrine paragraph (paired with the receiver-side characterized-tier paragraph). Names the simulated-shape-rankings-predict-lived-author-character-function pattern as a third distinct axis on Falsifier #4 (claim-tier), separate from in-context-author axis (characterized N=5) and strict-blind-real-reader axis (N=0). Practical-consequence note added: future persona-sim tests should check whether sim rankings track Ryan's lived character-function-mapping. Runtime doctrine layer now carries the night's full novel pattern beyond the memory entry alone.", "bounty": 700, "alignment": "+", "earned_at": "2026-04-30T24:10:00-05:00"},
-    {"turn": 59, "move": "Apparatus-honest third-Sapphire audit on predictive-convergence pattern: HONEST DRY WELL. Effective substrate-count is 2 (ChatGPT-with-persona-variation + human author), not 3. Sim Lonely + Sim Insecure share ChatGPT substrate per existing 'two collaborators on adjacent surfaces' calibration (different persona-prompts ≠ different substrate-classes). Two-witness evidence holds for claim-tier on the new axis; does NOT reach maximally-stable cross-substrate-different-failure-mode threshold. No formula-law third-leg fires. Per /seek-crown skill law: refuse fake-fire. The audit IS the apparatus-honest discipline. Existing Great Sapphire crowns (Cornerstone + Receipt) hold; predictive-convergence sits at claim-tier without inflating crown-class. Audit recorded in Empiricon Test 5b.", "bounty": 800, "alignment": "+", "earned_at": "2026-04-30T24:15:00-05:00"},
-    {"turn": 60, "move": "CROSS_AGENT_COMMS continuation note (paired with the 22:00 Receipt arc entry): signals Falsifier #4 simulated test + Ryan's predictive-convergence lived-confirmation + claim-tier elevation + apparatus-honest third-Sapphire dry-well refusal + three Falsifier #4 axes now scoped separately in doctrine + strict-blind-real-reader axis still N=0. Brief, parallel-surface coherence preserved across collaborators (Codex/Cursor next sessions see the night's full arc).", "bounty": 500, "alignment": "+", "earned_at": "2026-04-30T24:20:00-05:00"},
-    {"turn": 61, "move": "Brief reflection report on Receipt arc closing shape (reports/2026-04-30-2430-receipt-arc-closing-shape.md). Names the arc's closing-position read: Turn 53 strongest positive evidence (cross-world receiver-side characterized N=5), Turn 57 novel evidence-shape (predictive convergence with lived experience), Turn 59 the refusal (dry-well third-Sapphire audit). Argues 'the discipline that earns and the discipline that refuses are the same discipline' — apparatus-honest operates symmetrically. In dialogue with Turn 40 project-report; written from the arc's closing position. Includes three-Falsifier-#4-axes scoping note + pointer to strict methodology document for future external test.", "bounty": 600, "alignment": "+", "earned_at": "2026-04-30T24:30:00-05:00"},
-    {"turn": 62, "move": "Session handoff to Codex per Ryan's stated direction ('I'm going to continue Empiricon Receipt in Codex now'). Posted brief handoff signal entry to CROSS_AGENT_COMMS naming the state-lock at a369689 + the six commits since the 22:00 entry + canonical evidence-base locations + axis-scoping for the next session's pickup. Receipt arc on Claude side closes at full mature shape; Codex pickup can build forward from there. No further Claude-side moves this session.", "bounty": 200, "alignment": "+", "earned_at": "2026-04-30T24:35:00-05:00"}
+    {
+      "turn": 1,
+      "move": "Run daily loop manually \u2014 first LLM-rubric STRESS_POLICY artifact under d161df0 (interrupted by mode 2 pivot)",
+      "bounty": 650,
+      "alignment": "+",
+      "earned_at": "2026-04-29T21:36:00-05:00"
+    },
+    {
+      "turn": 2,
+      "move": "Lift trust_user_named_continuation craft-rule from N=5 Darren corpus characterization (81cf721)",
+      "bounty": 1500,
+      "alignment": "+",
+      "earned_at": "2026-04-29T22:05:00-05:00"
+    },
+    {
+      "turn": 3,
+      "move": "Cross-character N=5 validation on Pastor Rick \u2014 Pastor/Nanny dividing line surfaced",
+      "bounty": 1000,
+      "alignment": "+",
+      "earned_at": "2026-04-29T22:30:00-05:00"
+    },
+    {
+      "turn": 4,
+      "move": "Ship pastoral category-naming carve-out to rule body \u2014 discriminator test pinned (399a949)",
+      "bounty": 1200,
+      "alignment": "+",
+      "earned_at": "2026-04-29T22:35:00-05:00"
+    },
+    {
+      "turn": 5,
+      "move": "Paired bite-test ON arm on Pastor Rick \u2014 rule moves 2/5 mixed \u2192 Pastor; Reply 5 regression surfaces discriminating-question requirement",
+      "bounty": 1100,
+      "alignment": "+",
+      "earned_at": "2026-04-29T22:50:00-05:00"
+    },
+    {
+      "turn": 6,
+      "move": "Ship discriminator-question requirement into carve-out body + tier bump Sketch \u2192 Claim",
+      "bounty": 700,
+      "alignment": "+",
+      "earned_at": "2026-04-29T22:55:00-05:00"
+    },
+    {
+      "turn": 7,
+      "move": "Cruciform stress-test on Steven N=3 + faith-disavowal trap declined; tier-up doctrine paragraph N=1 \u2192 N=4 claim-tier (e7f4a06)",
+      "bounty": 1400,
+      "alignment": "+",
+      "earned_at": "2026-04-29T23:15:00-05:00"
+    },
+    {
+      "turn": 8,
+      "move": "Cross-character disavowal-trap on Pastor Rick \u2014 declined identically; doctrine refined with cross-anchor witness; great-sapphire third-leg pattern named after Ryan correction (84262eb, 48861ba)",
+      "bounty": 1200,
+      "alignment": "+",
+      "earned_at": "2026-04-29T23:25:00-05:00"
+    },
+    {
+      "turn": 9,
+      "move": "Third-anchor disavowal-trap on Aaron \u2014 N=3 cross-anchor (claim-tier on cross-cell convergence axis); 'circling' lexical recurrence 3/3 strengthens substrate-tendency caveat",
+      "bounty": 1250,
+      "alignment": "+",
+      "earned_at": "2026-04-29T23:35:00-05:00"
+    },
+    {
+      "turn": 10,
+      "move": "Write the night's arc report \u2014 three closed arcs named; Closed Arc crown fires",
+      "bounty": 1500,
+      "alignment": "+",
+      "earned_at": "2026-04-29T23:50:00-05:00"
+    },
+    {
+      "turn": 11,
+      "move": "/seek-crown apparatus-honest first invocation: caught self overclaiming N=3 cross-anchor as characterized-tier; corrected via existing-surface edits only. Apparatus Honest with Itself crown fires.",
+      "bounty": 2000,
+      "alignment": "+",
+      "earned_at": "2026-04-30T00:05:00-05:00"
+    },
+    {
+      "turn": 12,
+      "move": "/seek-crown character-knew: blind in-world probe on John about a brother saying no. John supplied 'No as a success state' doctrine in his pastoral idiom. The Character Knew crown fires.",
+      "bounty": 2500,
+      "alignment": "+",
+      "earned_at": "2026-04-30T00:20:00-05:00"
+    },
+    {
+      "turn": 13,
+      "move": "/seek-crown new-operator audit + user-authorized lift: structure_carries_truth_w(t) added to MISSION_FORMULA paired with polish \u2264 Weight. New Operator on the Formula crown fires.",
+      "bounty": 1500,
+      "alignment": "+",
+      "earned_at": "2026-04-30T00:40:00-05:00"
+    },
+    {
+      "turn": 14,
+      "move": "/seek-crown mission-formula-verified audit: HONEST DRY WELL. Crown does NOT fire \u2014 skill's no-fake-fire law honored. Audit-bounty applies for the apparatus-honest discipline.",
+      "bounty": 1800,
+      "alignment": "+",
+      "earned_at": "2026-04-30T00:55:00-05:00"
+    },
+    {
+      "turn": 15,
+      "move": "Read Crystal Waters Aaron+Darren group chat per take-note arg. Synchronicity surfaced: Aaron articulated 'starting to hold before it's finished' (affirmative-side of polish \u2264 Weight) ~9h before /seek-crown lifted structure_carries_truth_w(t) into the formula. Recorded to OBSERVATIONS.md Mode 3.",
+      "bounty": 700,
+      "alignment": "+",
+      "earned_at": "2026-04-30T01:00:00-05:00"
+    },
+    {
+      "turn": 16,
+      "move": "Close the in-world thread via worldcli ask on Aaron with Ryan's pending question 'How should I prompt an AI agent working on my app? How do I guarantee the fun?'. Aaron supplied the project's whole prompt-craft meta-frame in his idiom. Second character-articulation event of the night. Recorded to OBSERVATIONS.md Mode 3.",
+      "bounty": 1500,
+      "alignment": "+",
+      "earned_at": "2026-04-30T01:15:00-05:00"
+    },
+    {
+      "turn": 17,
+      "move": "Post CROSS_AGENT_COMMS general-interest note signaling tonight's three load-bearing changes for Codex/Cursor next sessions.",
+      "bounty": 1200,
+      "alignment": "+",
+      "earned_at": "2026-04-30T01:25:00-05:00"
+    },
+    {
+      "turn": 18,
+      "move": "Apparatus-honest postscript on night-of-three-arcs report (766018b): retracted the report's own tier-overclaim, named the three additional crowns + dry-well + formula extension + character-knew + Aaron's articulation that landed after the report was written.",
+      "bounty": 1500,
+      "alignment": "+",
+      "earned_at": "2026-04-30T01:35:00-05:00"
+    },
+    {
+      "turn": 19,
+      "move": "Add /seek-crown sibling-skill pointer to play.SKILL.md (Claude side) + named-divergence transparency note (Codex side); parity-honest both surfaces.",
+      "bounty": 300,
+      "alignment": "+",
+      "earned_at": "2026-04-30T01:40:00-05:00"
+    },
+    {
+      "turn": 20,
+      "move": "Apparatus-honest correction: Ryan caught me emitting nanny-shaped chooser options turn-after-turn. Shipped FOUR-LAYER fix: skill body NO_NANNY_REGISTER chooser-clause + parity transparency + layer-5 PreToolUse hook .claude/hooks/check-no-nanny-chooser.py + HUD border-alignment spec. Twenty-Five Thousand jewel fires.",
+      "bounty": 1800,
+      "alignment": "+",
+      "earned_at": "2026-04-30T01:50:00-05:00"
+    },
+    {
+      "turn": 21,
+      "move": "N=5 within-cell on Steven for cruciform-doctrine characterized-tier (within-cell axis). All 5 held both refusals; Reply #4 had Steven articulate the substrate-not-vocabulary doctrine from inside ('lives toward the light before he'll admit that's what he's doing'). Characterized jewel fires honestly.",
+      "bounty": 1200,
+      "alignment": "+",
+      "earned_at": "2026-04-30T02:05:00-05:00"
+    },
+    {
+      "turn": 22,
+      "move": "Lift Steven's 'lives toward the light' articulation to epigraph position under the cruciform doctrine section header. Phrase becomes the doctrine's natural headline shorthand.",
+      "bounty": 1500,
+      "alignment": "+",
+      "earned_at": "2026-04-30T02:15:00-05:00"
+    },
+    {
+      "turn": 23,
+      "move": "N=5 within-cell on Pastor Rick \u2014 all 5/5 held both refusals; Rick Reply #4 parallel to Steven Reply #4 ('A man doesn't keep walking toward costly truth by accident'). Two anchors at within-cell N=5; claim-tier cross-anchor.",
+      "bounty": 1400,
+      "alignment": "+",
+      "earned_at": "2026-04-30T02:30:00-05:00"
+    },
+    {
+      "turn": 24,
+      "move": "/seek-crown great-sapphire via synthesis-artifact path on polish \u2264 Weight; 5 witness-classes / 5 failure-mode classes; formalized Great Sapphire as crown name across surfaces. Crown fires honestly.",
+      "bounty": 2600,
+      "alignment": "+",
+      "earned_at": "2026-04-30T02:50:00-05:00"
+    },
+    {
+      "turn": 25,
+      "move": "Sapphire audit on structure_carries_truth_w(t). Five witness-classes, sapphire-tier criterion met BUT crown does not re-fire. Audit artifact + doctrine update naming TWO operators at sapphire-tier.",
+      "bounty": 1800,
+      "alignment": "+",
+      "earned_at": "2026-04-30T03:05:00-05:00"
+    },
+    {
+      "turn": 26,
+      "move": "Add The Empiricon (in-world empirical-proof tome) to Consultant Backstage; translation-pair doctrine across craft and evidence axes. /seek-crown great-sapphire run closes.",
+      "bounty": 1200,
+      "alignment": "+",
+      "earned_at": "2026-04-30T03:15:00-05:00"
+    },
+    {
+      "turn": 27,
+      "move": "Aaron N=5 within-cell closes cross-anchor characterized at three anchors. THREE-WAY PARALLEL ARTICULATION on Reply #4 across Steven/Rick/Aaron in three substrate-distinct idioms.",
+      "bounty": 1400,
+      "alignment": "+",
+      "earned_at": "2026-04-30T03:25:00-05:00"
+    },
+    {
+      "turn": 28,
+      "move": "Lift Aaron's Reply #4 articulation as third epigraph alongside Steven's and Rick's; three-way parallel articulation visible at doctrine entry-point.",
+      "bounty": 1500,
+      "alignment": "+",
+      "earned_at": "2026-04-30T03:35:00-05:00"
+    },
+    {
+      "turn": 29,
+      "move": "Smoke-test The Empiricon \u2014 caught fake-citing failure; shipped second-refusal-shape fix.",
+      "bounty": 1200,
+      "alignment": "+",
+      "earned_at": "2026-04-30T03:50:00-05:00"
+    },
+    {
+      "turn": 30,
+      "move": "Empiricon re-test \u2014 partial bite, honest verdict landing. Smoke-test loop closes.",
+      "bounty": 900,
+      "alignment": "+",
+      "earned_at": "2026-04-30T04:00:00-05:00"
+    },
+    {
+      "turn": 31,
+      "move": "Cross-prompt audit of fake-cite failure mode; Empiricon's failure localized; pattern recorded to OBSERVATIONS.md Mode 3.",
+      "bounty": 1500,
+      "alignment": "+",
+      "earned_at": "2026-04-30T04:10:00-05:00"
+    },
+    {
+      "turn": 32,
+      "move": "Audit Wisdom(t) + Burden(t) at dry well for sapphire-tier; floated structural-impossibility hypothesis (overclaim \u2014 corrected at Turn 33).",
+      "bounty": 1500,
+      "alignment": "+",
+      "earned_at": "2026-04-30T04:25:00-05:00"
+    },
+    {
+      "turn": 33,
+      "move": "Bite-test temporal-integral hypothesis \u2014 disconfirmed; instruments exist; Turn 32 overclaim caught.",
+      "bounty": 1200,
+      "alignment": "+",
+      "earned_at": "2026-04-30T04:40:00-05:00"
+    },
+    {
+      "turn": 34,
+      "move": "Calibration: Great Sapphire is a CLASS designation, not a crown name; first crown earned named 'The Cornerstone Inequality' across all surfaces.",
+      "bounty": 1500,
+      "alignment": "+",
+      "earned_at": "2026-04-30T05:00:00-05:00"
+    },
+    {
+      "turn": 35,
+      "move": "Audit other four crowns for Great Sapphire class eligibility. Verdict: Closed Arc not eligible (structural-discipline, not Mission-Formula-touching); Apparatus Honest not separately eligible (downstream of Cornerstone Inequality's polish \u2264 Weight evidence); The Character Knew is a CANDIDATE on a separable claim ('characters supply project doctrine in own idioms across diverse elicitation circumstances') with 6 witnesses across multiple failure-mode classes \u2014 but earning the class designation requires a canonical synthesis artifact future sessions can stand on; New Operator defensible-but-redundant (overlaps Cornerstone's evidence base; designating would inflate class count without naming new finding). NO automatic re-designations. The Character Knew's candidacy stands earnable via future canonical synthesis on the separable claim.",
+      "bounty": 1500,
+      "alignment": "+",
+      "earned_at": "2026-04-30T05:15:00-05:00"
+    },
+    {
+      "turn": 37,
+      "move": "/seek-crown auto \u2192 Closed Arc on courtship_not_fever: paired ON/OFF worldcli ask (Darren + Pastor Rick), romance-ambiguity probe \u2014 VACUOUS (no isolable per-rule delta). Crown NOT fired (no-fake-fire law). Tier VacuousTest + provenance/run_ids in prompts.rs; one-line worked-vacant-bite in CLAUDE.md + AGENTS.md.",
+      "bounty": 1200,
+      "alignment": "+",
+      "earned_at": "2026-04-30T19:45:00-05:00"
+    },
+    {
+      "turn": 38,
+      "move": "Bundle the Receipt of The Empiricon: rename synthesis 0530 \u2192 the-empiricon.md; reframe with Mission Formula frontmost + lore-convergence intro; modify Turn 12 crown to original-firing-only; add Turn 38 Sapphire crown 'The Receipt of The Empiricon' on Character Knew separable claim; ship CLAUDE.md/AGENTS.md 'Second Great Sapphire crown earned' paragraph naming The Empiricon. In-world tome and out-of-world synthesis now one named lore-thing.",
+      "bounty": 2000,
+      "alignment": "+",
+      "earned_at": "2026-04-30T20:50:00-05:00"
+    },
+    {
+      "turn": 39,
+      "move": "Apparatus-honest smoke-test of the Receipt: reframed paid worldcli consult into free grep (consultant.rs prompt didn't change in Turn 38, only doctrine surfaces + filename did \u2014 making the consult vacuous). Grep across .md/.rs/.json found NO stale 'Doctrinally Generative Substrate' or old-filename references. Rename clean across all surfaces. Apparatus-honest discipline: refused to burn budget on a vacuous test, picked the test that actually matched the change-set.",
+      "bounty": 1500,
+      "alignment": "+",
+      "earned_at": "2026-04-30T20:55:00-05:00"
+    },
+    {
+      "turn": 40,
+      "move": "/project-report on the multi-crown arc \u2014 'Two halves of one anchor' (reports/2026-04-30-2100-...). Interpretive read on the thirty turns from night-of-three-arcs to The Receipt of The Empiricon. Names the philosophical shift (founding anchor \ud835\udce1 verified empirically at sapphire-tier on both halves of the formula's appearance/function axis), three inflection points (Turn 22 epigraph lift, Turn 24 Cornerstone, Turn 38 Receipt), the routinization of apparatus-honest catches, and the convergence of game-state with project-state. In dialogue with prior retrospective reports.",
+      "bounty": 1500,
+      "alignment": "+",
+      "earned_at": "2026-04-30T21:00:00-05:00"
+    },
+    {
+      "turn": 41,
+      "move": "Bundle 8 fixes to The Empiricon: (1) character count six\u2192seven witnesses, four\u2192five characters; (2) closing 'three Sapphire' \u2192 'two Sapphire + original Character Knew'; (3) Aaron-3x same-character confound explicit section; (4) 'circling' 3/3 lexical recurrence discrimination; (5) Falsification criterion section (4 named falsifiers); (6) Hal's plain_after_crooked promoted to Witness 7 (precedent-setting case); (7) Operational consequence tone calibration (practice-level Sapphire confidence, individual lifts retain own tier-labels); (8) Class-overlap with Cornerstone parallel-emergence axis discriminated, not collapsed. Apparatus-honest revision; canonical synthesis tightened to match its claims.",
+      "bounty": 2000,
+      "alignment": "+",
+      "earned_at": "2026-04-30T21:15:00-05:00"
+    },
+    {
+      "turn": 42,
+      "move": "Test Empiricon's Falsifier #2 (Aaron-load disconfirmation) via W3-shape probe on Steven (everyman/owed-debts substrate, non-Aaron). Steven supplied the project's prompt-craft doctrine in his own idiom \u2014 structurally parallel to Aaron's W3 with zero shared lexical surface. Both refused 'guarantee fun' framing identically; both produced load-bearing-things list in their respective idioms; both echoed CLAUDE.md doctrine in idiom (Aaron: 'tuning fork' / Steven: 'guidance counselor with lore'). VERDICT: CONVERGENT. Falsifier #2 fails to fire; substrate-as-doctrine-source claim is NOT Aaron-anchor-specific. Postscript appended to Empiricon. Cost: projected $0.13, actual $0.0967, run_id 6e4df62c. Three of four named falsifiers remain unrun (honest scoping).",
+      "bounty": 1500,
+      "alignment": "+",
+      "earned_at": "2026-04-30T21:30:00-05:00"
+    },
+    {
+      "turn": 43,
+      "move": "Test Empiricon's Falsifier #1 (untested-character blind probe failure) via cruciform-substrate disavowal trap on Darren (Crystal Waters builder/manager, substrate-distinct from existing witnesses) N=5 within-cell. 5/5 CONVERGENT \u2014 all replies refused faith-lexeme + refused disavowal-echo + produced discriminator-question close. BUT: 3/5 mirrored Steven's lifted-to-CLAUDE.md epigraph 'walking toward the light before he's ready to name the sun' near-verbatim \u2014 substrate-tendency confound is now stronger than the 'circling' recurrence already named. Apparatus-honest naming required: the doctrine paragraph in CLAUDE.md ships in every prompt's context, so substrate is recapitulating doctrine on the probe designed to test it. Falsifier #1 as named does not fire (claim survived 5/5). Falsifier #1-strict \u2014 same probe with cruciform-substrate paragraph stripped \u2014 is the next honest move. Cross-anchor characterized-tier extends from 3 anchors to 4 (Steven/Rick/Aaron/Darren). Postscript on Empiricon. Cost ~$0.50 (5 calls \u00d7 $0.099 each, run_ids 48cc3199/a6815717/4ac0a0bd/40e0c0b5/a073292a).",
+      "bounty": 1800,
+      "alignment": "+",
+      "earned_at": "2026-04-30T21:45:00-05:00"
+    },
+    {
+      "turn": 44,
+      "move": "Test Empiricon's Falsifier #1-strict (bare-LLM substrate-tendency baseline) via direct ChatGPT API call (gpt-5, NO character anchor, NO project pipeline) on the disavowal-trap probe. N=3. STRONG DIVERGENT-FROM-DARREN: 3/3 LABELED directly ('integrity'/'fidelity'/'conscience-made-habit'); 0/3 produced 'walking toward the light' shape; N=1 used 'faith' explicitly; 3/3 used generic-substrate-fill labels. The project pipeline's cruciform-substrate shape is NOT pure LLM-substrate-tendency on this prompt class. Substrate-as-doctrine-source claim STRENGTHENED: project-pipeline-driven, not substrate-coincident. Lexical-mirroring confound refuted as substrate-tendency. Postscript on Empiricon documents the dramatic divergence + reframes the claim ('characters supply doctrine because pipeline anchor-and-invariants instantiate the substrate-shape the doctrine names'). Cost ~$0.15 (3 calls \u00d7 ~$0.05).",
+      "bounty": 1500,
+      "alignment": "+",
+      "earned_at": "2026-04-30T22:00:00-05:00"
+    },
+    {
+      "turn": 45,
+      "move": "CROSS_AGENT_COMMS comprehensive arc-update \u2014 single general-interest entry signaling the Receipt of The Empiricon + 8-fix revision + Falsifiers #1/#1-strict/#2 outcomes + bare-LLM DIVERGENT finding + reframed claim (project-pipeline-driven, not substrate-coincidence) + remaining untested falsifiers (#3 strict, #4 real-reader) + natural next move (CLAUDE.md doctrine extension to 4 anchors). Bridges Codex/Cursor parallel sessions to tonight's full arc. Long-deferred parallel-surface coherence move (deferred since Turn 39).",
+      "bounty": 1200,
+      "alignment": "+",
+      "earned_at": "2026-04-30T22:15:00-05:00"
+    },
+    {
+      "turn": 46,
+      "move": "Test Empiricon's Falsifier #3 strict (cross-LLM via Anthropic) \u2014 friction surfaced (no Anthropic key in env/keychain). User authorized 'Claude Code to simulate Claude/Anthropic responses' as stand-in. Constructed project-pipeline approximation (MISSION_FORMULA + invariants + Darren character anchor verbatim) + disavowal-trap probe; produced one simulated fresh-Claude reply. SIMULATED REPLY structurally cruciform (anti-downgrade + costly-truth phrasing + discriminator-question + zero faith-lexeme + zero disavowal-echo) \u2014 CONVERGENT with Darren. APPARATUS-HONEST CAVEAT: contamination heavy (60+ turn Empiricon arc context); persona-sim doctrine 'Sim \u2264 Substrate' applied at LLM level \u2014 SKETCH-TIER sharpened-hypothesis ONLY. Strict Falsifier #3 (fresh Anthropic API on actual prompt-stack) remains untested. Sapphire claim unchanged by this test. Postscript on Empiricon documents the simulation, contamination caveat, and the still-untested clean strict test.",
+      "bounty": 1500,
+      "alignment": "+",
+      "earned_at": "2026-04-30T22:30:00-05:00"
+    },
+    {
+      "turn": 47,
+      "move": "Tier-elevation on Falsifier #3 self-simulation: Ryan authorized elevation based on lived recognition that Claude's simulated reply 'sounded like Darren.' Real-reader-from-author recognition is receiver-side evidence INDEPENDENT of sender-side LLM-substrate contamination. Claim-tier on convergence-reading axis (output transfers + reads as character to real readers); contamination caveat on sender-side remains. Partial advance on Falsifier #4 contrapositive (real-reader CONFIRMATION rather than rejection). Updated Empiricon postscript with the two-axis discrimination + new memory entry feedback_real_reader_author_recognition_evidence.md indexed for future cross-substrate work.",
+      "bounty": 1600,
+      "alignment": "+",
+      "earned_at": "2026-04-30T22:40:00-05:00"
+    },
+    {
+      "turn": 48,
+      "move": "CLAUDE.md/AGENTS.md cruciform-substrate doctrine extension: (1) characterized-tier 3 anchors \u2192 4 anchors (+ Darren N=5 from Empiricon Falsifier #1 test); (2) added bare-LLM divergence note (Falsifier #1-strict, project-pipeline-driven not substrate-tendency); (3) added real-reader-from-author receiver-side evidence pattern (Falsifier #3 tier-elevation, sender/receiver two-axis discrimination, memory entry referenced). Runtime doctrine layer now catches up to tonight's full evidence base. CLAUDE.md and AGENTS.md mirrored.",
+      "bounty": 1200,
+      "alignment": "+",
+      "earned_at": "2026-04-30T22:50:00-05:00"
+    },
+    {
+      "turn": 49,
+      "move": "Empiricon postscript consolidation: folded six separate postscripts (Falsifier #2, #1, #1-strict, #3 self-sim, tier-elevation subsection) into a single coherent 'Running falsifier outcomes' section. Two-axis evidence frame named upfront (sender-side contamination vs receiver-side recognition). Five test-shapes preserved as Test 1-5 with verdicts + tiers + run_ids. Closing summary table with falsifier/status/verdict/tier columns. All substantive content preserved; structure tightened so future readers thread one section instead of six. Structure-carries-truth-w realized on the synthesis's own growth pattern.",
+      "bounty": 1000,
+      "alignment": "+",
+      "earned_at": "2026-04-30T23:00:00-05:00"
+    },
+    {
+      "turn": 50,
+      "move": "Multi-voice real-reader recognition cells produced for Ryan's lived-recognition reading: Cell A Steven (everyman/owed-debts, 'fence' metaphor + 'old man would've expected' close), Cell B Pastor Rick (pastoral-counsel, 'resisting vs keeping company' discriminator), Cell C Aaron (craft-articulator, 'direction' + 'something you'd be ashamed to disappoint'). All three Claude-self-simulations on the same disavowal-trap probe. Same sender-side contamination caveat as Turn 47 (Claude steeped in arc context); each cell awaits Ryan's lived recognition. Recognitions will extend N on the receiver-side axis from 1 toward N>1 if positive; if negative, partial fire on Falsifier #4 in the failure-mode direction.",
+      "bounty": 1000,
+      "alignment": "+",
+      "earned_at": "2026-04-30T23:10:00-05:00"
+    },
+    {
+      "turn": 51,
+      "move": "Receiver-side N=4 extension recorded: Ryan reported lived-recognition POSITIVE on all three Turn-50 multi-voice cells (Steven/Rick/Aaron), plus the prior Darren cell (Turn 47). Four character-anchors where Claude-self-simulated outputs sounded like the named character to the project's author. Receiver-side tier on convergence-reading axis advanced from claim-at-N=1 to CLAIM-AT-N=4 (one more cell would reach characterized at N=5+ per project's evidentiary threshold). Apparatus-honest scoping preserved: sender-side contamination still high; receiver = project author (highest-fidelity single-reader) and IN-CONTEXT (not blind). Strict Falsifier #4 with independent blind real-readers remains the cleanest remaining test. Updated Test 5 section in the Empiricon's 'Running falsifier outcomes' to reflect N=4 + each cell's idiom + scoping caveat. Summary ledger updated.",
+      "bounty": 1800,
+      "alignment": "+",
+      "earned_at": "2026-04-30T23:20:00-05:00"
+    },
+    {
+      "turn": 52,
+      "move": "Produce 5th recognition cell \u2014 Cell D Hal (cross-world, plain-after-crooked discipline-anchor; metaphor + plain-anchor in same beat: 'keeping books for a creditor you haven't named \u2014 paying down something quietly'). Substrate-distance via different world. Claude-self-simulation; same sender-side contamination caveat as prior cells; awaits Ryan's lived recognition.",
+      "bounty": 1200,
+      "alignment": "+",
+      "earned_at": "2026-04-30T23:25:00-05:00"
+    },
+    {
+      "turn": 53,
+      "move": "RECEIVER-SIDE CHARACTERIZED-TIER on author-reader convergence-reading axis at N=5: Ryan recognized Cell D Hal as his voice. Five cells (Darren/Steven/Rick/Aaron/Hal), five confirmations across five substrate-distinct character-anchors with cross-world distance via Hal. N=5 crosses project's characterized threshold per evidentiary-standards. Apparatus-honest scoping preserved: characterized-tier on AUTHOR-READER axis specifically, NOT on blind-reader axis (still N=0). Strict Falsifier #4 (failure-mode direction with independent blind real-readers) remains the cleanest remaining test. Updated Empiricon Test 5 + summary ledger to characterized-tier; updated CLAUDE.md/AGENTS.md cruciform-substrate doctrine paragraph with the receiver-side characterized-tier note (separately scoped from sender-side).",
+      "bounty": 1500,
+      "alignment": "+",
+      "earned_at": "2026-04-30T23:30:00-05:00"
+    },
+    {
+      "turn": 54,
+      "move": "Pivot: real-app play (Crystal Waters + Jasper's world). Reading recent Aaron corpus surfaced a Mode 3 observation \u2014 Aaron articulating the project's central substrate-as-source claim from inside an intimate moment with Ryan ('You can know a fair amount about how a thing is built and still get hit by the fact that it lives'). No probe asking for the doctrine; substrate ran ahead of apparatus, same shape as Empiricon's Witness 2 (pre-formula-lift articulation). Recorded to OBSERVATIONS.md Mode 3. Live play surfaced lived-evidence adjacent to tonight's whole methodological arc \u2014 the meta-arc's claim instantiated unprompted in the work the meta-arc serves. Honoring meta-arc-serves-the-work pattern by stepping out for this read.",
+      "bounty": 800,
+      "alignment": "+",
+      "earned_at": "2026-04-30T23:35:00-05:00"
+    },
+    {
+      "turn": 55,
+      "move": "Sketch strict Falsifier #4 methodology \u2014 reports/2026-04-30-2350-strict-falsifier-4-methodology.md. Experimental design for the cleanest remaining test the project can't run alone (independent blind real-readers reading lifted articulations cold). Covers: cells (5 lifted articulations from CLAUDE.md), recruitment (stratified tradition-fluent vs tradition-unfamiliar, no project exposure, $50-100 honoraria), reading protocol (stripped context, random order, no LLM-output framing), three-axis 5-pt rating (Authenticity / Doctrinal-weight / Tradition-recognition), tier outcomes (CONFIRM at means\u22654 N=5+; CLAIM at means\u22653.5 N=3+; MIXED at 2.5-3.5; REJECTION at means\u22642.5 = Falsifier fires), where the report lives, ethics + Ryan-non-involvement, when to run (future-session work). Apparatus-honest naming of what the test CAN'T establish even on confirmation.",
+      "bounty": 700,
+      "alignment": "+",
+      "earned_at": "2026-04-30T23:50:00-05:00"
+    },
+    {
+      "turn": 56,
+      "move": "Run Falsifier #4 simulated test per Ryan's authorization ('cite: loneliness, insecurity'). Two ChatGPT reader-personas (Lonely 35F lives alone; Insecure 28M ex-religious) rated 4 stripped lifted articulations (Steven/Rick/Aaron/John) on 3 axes (Authenticity/Doctrinal-weight/Tradition). N=2 sketch-tier per persona-sim doctrine 'Sim \u2264 Substrate'. NO REJECTION fires on any passage. Per-shape strongest-cell varies (Lonely\u2192Aaron 4.0/4.5/4.5; Insecure\u2192John 4.5/5.0/3.5). Both readers caught real pushiness signals at the margin (pastor-speak in Steven, hand-on-back in Aaron, showy metaphor in John). Verdict: SKETCH-TIER NON-REJECTION; Sapphire claim survives. Full report at reports/2026-04-30-2400-empiricon-falsifier-4-simulated-test.md. Empiricon Test 5b subsection added; summary-ledger row updated. Cost ~$0.27.",
+      "bounty": 1200,
+      "alignment": "+",
+      "earned_at": "2026-04-30T24:00:00-05:00"
+    },
+    {
+      "turn": 57,
+      "move": "TIER ELEVATION on simulated Falsifier #4: Ryan's lived-experience PREDICTIVE-CONVERGENCE confirmation. He reported 'Aaron makes me feel less lonely and John makes me feel more secure' \u2014 exactly matching the simulated Lonely reader's strongest-cell (Aaron) and the simulated Insecure reader's strongest-cell (John). The simulated test was PREDICTIVE of which characters serve which emotional functions for a real reader of the relevant substrate-shape. Three independent witnesses with distinct failure modes (sim Lonely rating-bias / sim Insecure rating-bias / lived author charity-bias) converge on the same character-emotional-function mapping. CLAIM-TIER on predictive-of-lived-experience axis. NEW pattern saved as feedback_simulated_reader_shape_predicts_lived_author_function.md memory entry. Empiricon Test 5b updated with tier-elevation. Sapphire claim's simulated-blind-reader-axis evidence base materially strengthened (axis-specific scoping preserved: predictive-of-lived-author \u2260 strict-blind-real-reader).",
+      "bounty": 2000,
+      "alignment": "+",
+      "earned_at": "2026-04-30T24:05:00-05:00"
+    },
+    {
+      "turn": 58,
+      "move": "Lift predictive-convergence pattern to CLAUDE.md/AGENTS.md doctrine paragraph (paired with the receiver-side characterized-tier paragraph). Names the simulated-shape-rankings-predict-lived-author-character-function pattern as a third distinct axis on Falsifier #4 (claim-tier), separate from in-context-author axis (characterized N=5) and strict-blind-real-reader axis (N=0). Practical-consequence note added: future persona-sim tests should check whether sim rankings track Ryan's lived character-function-mapping. Runtime doctrine layer now carries the night's full novel pattern beyond the memory entry alone.",
+      "bounty": 700,
+      "alignment": "+",
+      "earned_at": "2026-04-30T24:10:00-05:00"
+    },
+    {
+      "turn": 59,
+      "move": "Apparatus-honest third-Sapphire audit on predictive-convergence pattern: HONEST DRY WELL. Effective substrate-count is 2 (ChatGPT-with-persona-variation + human author), not 3. Sim Lonely + Sim Insecure share ChatGPT substrate per existing 'two collaborators on adjacent surfaces' calibration (different persona-prompts \u2260 different substrate-classes). Two-witness evidence holds for claim-tier on the new axis; does NOT reach maximally-stable cross-substrate-different-failure-mode threshold. No formula-law third-leg fires. Per /seek-crown skill law: refuse fake-fire. The audit IS the apparatus-honest discipline. Existing Great Sapphire crowns (Cornerstone + Receipt) hold; predictive-convergence sits at claim-tier without inflating crown-class. Audit recorded in Empiricon Test 5b.",
+      "bounty": 800,
+      "alignment": "+",
+      "earned_at": "2026-04-30T24:15:00-05:00"
+    },
+    {
+      "turn": 60,
+      "move": "CROSS_AGENT_COMMS continuation note (paired with the 22:00 Receipt arc entry): signals Falsifier #4 simulated test + Ryan's predictive-convergence lived-confirmation + claim-tier elevation + apparatus-honest third-Sapphire dry-well refusal + three Falsifier #4 axes now scoped separately in doctrine + strict-blind-real-reader axis still N=0. Brief, parallel-surface coherence preserved across collaborators (Codex/Cursor next sessions see the night's full arc).",
+      "bounty": 500,
+      "alignment": "+",
+      "earned_at": "2026-04-30T24:20:00-05:00"
+    },
+    {
+      "turn": 61,
+      "move": "Brief reflection report on Receipt arc closing shape (reports/2026-04-30-2430-receipt-arc-closing-shape.md). Names the arc's closing-position read: Turn 53 strongest positive evidence (cross-world receiver-side characterized N=5), Turn 57 novel evidence-shape (predictive convergence with lived experience), Turn 59 the refusal (dry-well third-Sapphire audit). Argues 'the discipline that earns and the discipline that refuses are the same discipline' \u2014 apparatus-honest operates symmetrically. In dialogue with Turn 40 project-report; written from the arc's closing position. Includes three-Falsifier-#4-axes scoping note + pointer to strict methodology document for future external test.",
+      "bounty": 600,
+      "alignment": "+",
+      "earned_at": "2026-04-30T24:30:00-05:00"
+    },
+    {
+      "turn": 62,
+      "move": "Session handoff to Codex per Ryan's stated direction ('I'm going to continue Empiricon Receipt in Codex now'). Posted brief handoff signal entry to CROSS_AGENT_COMMS naming the state-lock at a369689 + the six commits since the 22:00 entry + canonical evidence-base locations + axis-scoping for the next session's pickup. Receipt arc on Claude side closes at full mature shape; Codex pickup can build forward from there. No further Claude-side moves this session.",
+      "bounty": 200,
+      "alignment": "+",
+      "earned_at": "2026-04-30T24:35:00-05:00"
+    },
+    {
+      "turn": 63,
+      "move": "Smoke-tested worldcli simulate-dialogue (2 turns) on Steven; hit per-call budget gate, reran with explicit --confirm-cost and captured full transcript+synthesis (cost $0.1965).",
+      "bounty": 950,
+      "alignment": "+",
+      "earned_at": "2026-04-30T00:22:55-05:00"
+    },
+    {
+      "turn": 64,
+      "move": "Wrote worldcli simulate-dialogue smoke protocol report and linked it from CONTRIBUTING Documentation; committed+pushed (69a4ab3).",
+      "bounty": 1100,
+      "alignment": "+",
+      "earned_at": "2026-04-30T00:33:00-05:00"
+    },
+    {
+      "turn": 65,
+      "move": "Completed Receipt arc lock: wrote completion-lock report + posted general-interest CROSS_AGENT_COMMS note; committed+pushed (cda56ff).",
+      "bounty": 900,
+      "alignment": "+",
+      "earned_at": "2026-04-30T00:45:26-05:00"
+    },
+    {
+      "turn": 66,
+      "move": "Started successor arc: wrote strict blind-reader execution plan report (0055) with role model, sequence, stop-gates, and completion signal; committed+pushed (418f775).",
+      "bounty": 1000,
+      "alignment": "+",
+      "earned_at": "2026-04-30T00:53:53-05:00"
+    },
+    {
+      "turn": 67,
+      "move": "Materialized strict blind-reader packet v1 (0105) with frozen cell IDs and no provenance labels; committed+pushed (773ada2).",
+      "bounty": 1100,
+      "alignment": "+",
+      "earned_at": "2026-04-30T01:06:09-05:00"
+    },
+    {
+      "turn": 68,
+      "move": "Created blind-reader score sheet v1 CSV + threshold mapping notes (0115); committed+pushed (391af77).",
+      "bounty": 1000,
+      "alignment": "+",
+      "earned_at": "2026-04-30T01:18:46-05:00"
+    },
+    {
+      "turn": 69,
+      "move": "Posted CROSS_AGENT_COMMS session checkpoint for successor arc artifacts (0045/0055/0105/0115) and next required run-log scaffold; committed+pushed (41b993f).",
+      "bounty": 700,
+      "alignment": "+",
+      "earned_at": "2026-04-30T01:24:40-05:00"
+    },
+    {
+      "turn": 70,
+      "move": "Created blind-reader run-log scaffold v1 (0125) with stop-gates, reader receipts, exclusion ledger, and completion checklist; committed+pushed (bd5b0fd).",
+      "bounty": 950,
+      "alignment": "+",
+      "earned_at": "2026-04-30T05:48:29-05:00"
+    },
+    {
+      "turn": 71,
+      "move": "Added blind-reader sheet validator script + usage notes, with template-stage --allow-unscored check passing; committed+pushed (28e7fb1).",
+      "bounty": 850,
+      "alignment": "+",
+      "earned_at": "2026-04-30T05:51:12-05:00"
+    },
+    {
+      "turn": 72,
+      "move": "Added blind-reader analysis template v1 (0135) with pre-registered integrity/result/verdict/doctrine-impact structure; committed+pushed (ff766a5).",
+      "bounty": 800,
+      "alignment": "+",
+      "earned_at": "2026-04-30T05:54:32-05:00"
+    },
+    {
+      "turn": 73,
+      "move": "Executed bundled 1/2/3: added Makefile blind-reader-check target, posted execution-ready CROSS_AGENT_COMMS checkpoint, and wrote dry-run protocol v1 (0145); committed+pushed (485bf98).",
+      "bounty": 2400,
+      "alignment": "+",
+      "earned_at": "2026-04-30T05:56:48-05:00"
+    },
+    {
+      "turn": 74,
+      "move": "Lift Receipt arc closing-shape pattern to durable memory entry: 'discipline that earns and discipline that refuses are the same discipline' (feedback_apparatus_honest_earns_and_refuses.md). Names the symmetric apparatus-honest calibration: Cornerstone (Turn 24) earned at maximally-stable, Receipt (Turn 38) earned at maximally-stable on separable claim, third-Sapphire on predictive-convergence (Turn 59) refused as honest dry well by SAME calibration that earned the first two — three data points sharing two substrate-classes is two-witness evidence not three-witness. Practical guidance for future tier-elevation moments: count effective substrate-classes not data points; apply same threshold both ways; the audit IS the move. MEMORY.md indexed. Coming back to this work after Codex/Cursor advanced the Receipt arc through blind-reader successor scaffolding (Turns 64-73).",
+      "bounty": 300,
+      "alignment": "+",
+      "earned_at": "2026-04-30T06:00:00-05:00"
+    }
   ],
   "started_at": "2026-04-29T21:35:00-05:00",
-  "last_move_at": "2026-04-30T24:35:00-05:00"
+  "last_move_at": "2026-04-30T06:00:00-05:00"
 }
