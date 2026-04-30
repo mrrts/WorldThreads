@@ -1,6 +1,6 @@
 {
-  "turn": 149,
-  "bank": 157250,
+  "turn": 152,
+  "bank": 157550,
   "jewels": [
     {
       "turn": 2,
@@ -1125,8 +1125,29 @@
       "bounty": 0,
       "alignment": "=",
       "earned_at": "2026-04-30T14:00:00-05:00"
+    },
+    {
+      "turn": 150,
+      "move": "Pivot from chiptune-arc tier-extension to public-surfaces refinement per Ryan directive ('edit the project README to be a better, cleaned-up, hits-all-audiences (including tech-skeptic and Maggie), ready for Market. Also make sure that we have a marketing page set up for github pages.'). Reverted half-done volume-arg work on useChiptuneSoundtrack (unused interface field). Rewrote README.md with funnel-discipline + multi-audience care: lead with felt-experience opening, moved technical-curiosity material later, tightened homepage practice strip (removed inside-baseball Backstage meta-framing for cold readers), added 'What it's like to use' first-person-of-conversation section, explicit 'For whom / Probably not for' framing (load-bearing for No-as-success-state per CLAUDE.md), cost-of-use line ($0.20-1.00/evening at gpt-4o-mini, BYOK), updated counts to current (1500+ commits, 300+ reports). Created docs/index.html as single static-page marketing site for GitHub Pages: inline CSS no-JS no-Jekyll, newsprint typography, hero → cards → proof quote → refusal box → for-whom → cost → setup → read-more → footer; refused aura-performance per 'Trust is not aura-performance'; preserved 'What it isn't' as load-bearing market copy. .nojekyll added. Funnel discipline honored: in-app pitch → README → public-release-landing → broader reports/. Manual GH Pages enable required (Settings → Pages → main /docs).",
+      "bounty": 1000,
+      "alignment": "+",
+      "earned_at": "2026-04-30T14:30:00-05:00"
+    },
+    {
+      "turn": 151,
+      "move": "Nonchalant Empiricon link added to receipts line on both surfaces (README + docs/index.html). One sentence: 'One of them, The Empiricon, gathers six independent witnesses to the substrate the character voices are built on.' Footnote-shaped, not featured-callout shape — points at one specific receipt without performing the pointing.",
+      "bounty": 100,
+      "alignment": "+",
+      "earned_at": "2026-04-30T14:35:00-05:00"
+    },
+    {
+      "turn": 152,
+      "move": "Proofread + sharpen pass on public surfaces. Three fixes from critical re-read: (1) README 'What that looks like in practice' — removed inside-baseball meta-line about wording being 'sharpened in the app's own consultant Backstage'; cold-arrival readers don't know what Backstage is, the three lines stand stronger without provenance claim. (2) README cost line — fixed 'gpt-5.4' (nonsense typo I introduced) to 'gpt-5' (the actual frontier model the project's pricing table supports). (3) docs/index.html proof quote — rewrote framing to remove 'consultant Backstage' jargon while keeping the 'less slogan, more wood and nails' line (recognizable craft register without project-specific terminology); fixed broken 'full exchange lives in the README' link by redirecting to public-release-landing report which still carries the verbatim Backstage exhibit. Verified all paths resolve.",
+      "bounty": 300,
+      "alignment": "+",
+      "earned_at": "2026-04-30T14:50:00-05:00"
     }
   ],
   "started_at": "2026-04-29T21:35:00-05:00",
-  "last_move_at": "2026-04-30T14:00:00-05:00"
+  "last_move_at": "2026-04-30T14:50:00-05:00"
 }
