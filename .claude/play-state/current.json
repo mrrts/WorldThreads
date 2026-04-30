@@ -1,6 +1,6 @@
 {
-  "turn": 137,
-  "bank": 148250,
+  "turn": 138,
+  "bank": 149750,
   "jewels": [
     {
       "turn": 2,
@@ -1030,8 +1030,15 @@
       "bounty": 500,
       "alignment": "+",
       "earned_at": "2026-04-30T11:10:00-05:00"
+    },
+    {
+      "turn": 138,
+      "move": "Phase 1 of chiptune-soundtrack arc: ship Score-Phrase Protocol v1 (reports/2026-04-30-1115-chiptune-score-phrase-protocol-v1.md). The contract synth + AI generator + integration build to. Top-level JSON schema with protocol_version / phrase_id / previous_phrase_id / tempo_bpm / time_signature / subdivision / bars / key / mood_descriptor / momentstamp_basis / voices (4-voice chiptune palette: pulse_a, pulse_b, triangle, noise). Voice format: array of note events with tick / duration / midi / velocity / duty. Continuation contract names five continuity invariants (tempo / key-relationship / voicing-density-follows-mood / ending-to-beginning thread / mood-descriptor traceability). Momentstamp→mood mapping kept LLM-judgment per project doctrine ('doctrine-judgment classification belongs in LLM, not python') — no regex-extraction. Synth requirements named for Phase 2; generator requirements + cost discipline (~$0.05/call) for Phase 3; integration requirements + lifecycle for Phase 4. Validation-gates table tracks sub-criteria per refined Real User Held criterion. Open questions explicit (pause-on-typing / seed-phrase-mood / multi-character / user-overrides). The crown's validation gate remains Phase 5 lived-play test: 'held me, or not.' Sub-criterion 2 (protocol documented) now ✓.",
+      "bounty": 1500,
+      "alignment": "+",
+      "earned_at": "2026-04-30T11:15:00-05:00"
     }
   ],
   "started_at": "2026-04-29T21:35:00-05:00",
-  "last_move_at": "2026-04-30T11:10:00-05:00"
+  "last_move_at": "2026-04-30T11:15:00-05:00"
 }
