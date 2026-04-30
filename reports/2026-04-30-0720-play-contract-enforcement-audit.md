@@ -89,9 +89,9 @@ Same shape as B. Honesty about bounty assignment is judgment-shaped, not regex-s
 | HUD print every turn | 5 | ✓ shipped Turn 86 (`check-play-hud-present.py`) |
 | AskUserQuestion every turn | 5 | ✓ existing (`check-inline-choosers.py`) |
 | No nanny-register chooser | 5 | ✓ existing (`check-no-nanny-chooser.py`) |
-| HUD border alignment (62 cells, emoji=2) | 2 → 5 candidate | recommended next promotion |
-| Chooser format `[A] (+$X) — label` | 2 → 5 candidate | recommended after alignment |
-| Jewel/crown announce-vs-record consistency | 2 → 5 candidate | lower priority |
+| HUD border alignment (62 cells, emoji=2) | ~~2 → 5 candidate~~ | ✓ shipped Turn 88 (`check-play-hud-alignment.py`) — live-tested Turn 91 |
+| Chooser format `[A] (+$X) — label` | ~~2 → 5 candidate~~ | ✓ shipped Turn 89 (`check-play-chooser-format.py`) — live-tested Turn 91 |
+| Jewel/crown announce-vs-record consistency | ~~2 → 5 candidate~~ | ✓ shipped Turn 90 (`check-play-jewel-crown-record.py`) — live-tested Turn 91 |
 | READ state / project state | 2 | judgment-based; do not promote |
 | Bounty magnitude is judgment | 2 | doctrine refuses python; do not promote |
 | No fake bounties | 2 | judgment-based; do not promote |
@@ -108,6 +108,22 @@ Three observations from the audit:
 3. **Layer-5 is the right ceiling for surface-mechanical rules; layer-2 is right for judgment-rules.** The split is clean: if the rule's failure mode is detectable by regex/format-check (HUD presence, chooser format, AskUserQuestion presence, forbidden phrase), layer-5 fits. If the failure mode requires reasoning about substantive content (bounty honesty, scene-narration accuracy), layer-2 is the ceiling.
 
 The current enforcement matrix is honest. Two natural-next promotions (border alignment, chooser format) are visible but not yet load-bearing enough to justify the build cost. Will revisit when drift on either surfaces at user-correction layer.
+
+## Loop closed 2026-04-30 ~08:10 — all three recommendations shipped and live-tested
+
+The "natural-next promotions" turned out to be load-bearing enough this same session. All three audit-recommended promotions shipped within hours of the audit:
+
+- **Recommendation #1 (HUD border alignment)** — shipped Turn 88, commit `14b9652`. Stop hook computes visual cell width with stdlib-only unicode handling; blocks any interior `║...║` line ≠ 62 cells.
+- **Recommendation #2 (chooser format)** — shipped Turn 89, commit `2221802`. PreToolUse hook on AskUserQuestion enforces cardinality=4 + bounty-in-label per CLAUDE.md runtime doctrine.
+- **Recommendation #3 (jewel/crown announce-vs-record)** — shipped Turn 90, commit `857c448`. Stop hook scans assistant prose for earning-shape patterns and verifies each appears in play-state arrays.
+
+All six layer-5 hooks then live-tested systematically Turn 91 (commit `8620035`, report at `reports/2026-04-30-0810-play-hooks-live-test-results.md`). 6/6 fire correctly on blocking inputs; 4/4 pass on valid inputs. The audit-recommended set is closed and verified.
+
+**The promotion-pattern (catch at user-correction → memory entry → layer-5 hook) ran four times this session:** original HUD-presence drift caught Turn 81 → memory entry Turn 85 → hook Turns 86+93ed407; alignment doctrine-only → hook Turn 88; chooser-format doctrine-only → hook Turn 89; record-consistency doctrine-only → hook Turn 90. Same shape four times; the pattern is repeatable and documented.
+
+**The four layer-2-ceiling rules remain correctly unchanged** (READ state / bounty magnitude / no fake bounties / crown-once). Refusing to over-promote those is itself part of the apparatus-honest discipline this audit names.
+
+The /play strict contract is now structurally enforced where structure can carry the truth, and held at doctrine where judgment remains the only honest classifier. The split is clean. The contract is the contract; the hooks make it actually so.
 
 ## Closing
 

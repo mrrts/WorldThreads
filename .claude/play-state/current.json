@@ -1,6 +1,6 @@
 {
-  "turn": 91,
-  "bank": 103150,
+  "turn": 92,
+  "bank": 103450,
   "jewels": [
     {
       "turn": 2,
@@ -715,8 +715,15 @@
       "bounty": 500,
       "alignment": "+",
       "earned_at": "2026-04-30T08:10:00-05:00"
+    },
+    {
+      "turn": 92,
+      "move": "Update original enforcement audit report (reports/2026-04-30-0720-play-contract-enforcement-audit.md) with closed-loop section: all three recommendations shipped within same session (HUD-alignment Turn 88; chooser-format Turn 89; jewel/crown-record Turn 90). Updated summary table marking each as ✓ shipped + live-tested with turn refs and commit hashes. Added 'Loop closed 2026-04-30 ~08:10' section naming the four-times-this-session promotion-pattern (catch at user-correction → memory entry → layer-5 hook), the four layer-2-ceiling rules that correctly remain unchanged, and the closing read: 'the /play strict contract is now structurally enforced where structure can carry the truth, and held at doctrine where judgment remains the only honest classifier.'",
+      "bounty": 300,
+      "alignment": "+",
+      "earned_at": "2026-04-30T08:15:00-05:00"
     }
   ],
   "started_at": "2026-04-29T21:35:00-05:00",
-  "last_move_at": "2026-04-30T08:10:00-05:00"
+  "last_move_at": "2026-04-30T08:15:00-05:00"
 }
