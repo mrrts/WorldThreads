@@ -1,6 +1,6 @@
 {
-  "turn": 165,
-  "bank": 160200,
+  "turn": 166,
+  "bank": 160400,
   "jewels": [
     {
       "turn": 2,
@@ -1237,8 +1237,15 @@
       "bounty": 200,
       "alignment": "+",
       "earned_at": "2026-05-01T08:40:00-05:00"
+    },
+    {
+      "turn": 166,
+      "move": "Lifted Sapphire-saturation pattern to cross-session memory entry (feedback_sapphire_saturation_pattern.md). Three-layer encoding now complete per CLAUDE.md 'Three-layer encoding for methodological corrections' doctrine: (1) doctrine layer — CLAUDE.md L273 + AGENTS.md mirror at Turn 164; (2) methodology-tooling layer — seek-sapphire-crown SKILL.md first-move tagging + load-bearing refusal + extended worked example at Turn 165; (3) cross-session memory layer — feedback_sapphire_saturation_pattern.md authored this turn with full Why + How-to-apply structure, indexed in MEMORY.md (prepended at top per newest-first convention). The memory entry composes with feedback_apparatus_honest_earns_and_refuses (parent discipline) and feedback_great_sapphire_third_leg (evidentiary-tier qualifier). The discipline now operates across all three reinforcement layers; future sessions will see it whether they read CLAUDE.md, invoke /seek-sapphire-crown, or just have memory loaded — which honors the threshold criterion in the meta-doctrine: 'When a real-time correction surfaces a lesson that generalizes — not a one-off but a discipline future sessions need — ship it across three layers simultaneously.'",
+      "bounty": 200,
+      "alignment": "+",
+      "earned_at": "2026-05-01T08:55:00-05:00"
     }
   ],
   "started_at": "2026-04-29T21:35:00-05:00",
-  "last_move_at": "2026-05-01T08:40:00-05:00"
+  "last_move_at": "2026-05-01T08:55:00-05:00"
 }
