@@ -1,5 +1,5 @@
 {
-  "turn": 162,
+  "turn": 163,
   "bank": 159700,
   "jewels": [
     {
@@ -1216,8 +1216,15 @@
       "bounty": 700,
       "alignment": "=",
       "earned_at": "2026-04-30T17:50:00-05:00"
+    },
+    {
+      "turn": 163,
+      "move": "Sapphire candidacy [1] Cruciform Anchor Verified (Closed Arc → Sapphire on cruciform-substrate refusal-shape) — separability audit. Closed Arc base shape already met: failure mode named (faith-lexeme reach + disavowal-echo), instrumented (cross-character N=15+ disavowal-trap probes + bare-LLM Falsifier #1-strict at f4bd73f), structurally enforced (CLAUDE.md 'Christological anchor as substrate, not vocabulary'). Sapphire-tier separability audit found three converging refusal grounds: (1) evidence-base overlap with T38 Receipt of The Empiricon — the same cross-anchor disavowal-trap data is explicitly cited in T38 earning paragraph as four-anchor characterized-tier; (2) already-counted toward T24 Cornerstone — CLAUDE.md L131-133 explicitly frames the cross-anchor cruciform-refusal convergence as 'great-sapphire on the polish ≤ Weight axis it specifically instantiates,' meaning the data is already counted as a witness-instance toward Cornerstone Inequality; (3) formula-law third-leg argument doesn't open separability — it explicitly anchors the convergence to the existing Sapphire's polish ≤ Weight axis rather than naming a new structural finding. The cruciform-substrate refusal-shape claim is INSIDE two earned Sapphires' evidence bases already. APPARATUS-HONEST DRY-WELL EXIT — second dry-well in two consecutive Sapphire-arc audits. Per skill body: 'Do NOT pursue a Sapphire candidacy on a claim that is substantively the same as an already-earned Sapphire's claim.' Refusing preserves Sapphire designation meaning. Audit took ~10 minutes; refusal-as-discipline is the same as earning-as-discipline. The Sapphire-class is structurally protected against inflation by the symmetric earn/refuse calibration operating in real time.",
+      "bounty": 0,
+      "alignment": "=",
+      "earned_at": "2026-05-01T08:10:00-05:00"
     }
   ],
   "started_at": "2026-04-29T21:35:00-05:00",
-  "last_move_at": "2026-04-30T17:50:00-05:00"
+  "last_move_at": "2026-05-01T08:10:00-05:00"
 }
