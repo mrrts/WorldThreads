@@ -1,4 +1,6 @@
 # Build desktop installers on demand; download ZIPs from the workflow run's Artifacts.
+#
+# Optional macOS signing + notarization: same secrets as Desktop release workflow (see tauri-release.yml header).
 name: Desktop bundle (artifacts)
 
 on:
@@ -49,12 +51,24 @@ jobs:
             pkg-config \
             build-essential
 
+      - name: Import Apple Developer ID certificate (macOS)
+        if: matrix.platform == 'macos-latest'
+        env:
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
+        run: ./scripts/ci/macos-import-cert-for-tauri.sh
+
       - name: Cache Rust
         uses: Swatinem/rust-cache@v2
         with:
           workspaces: src-tauri
 
       - name: Build Tauri bundles
+        env:
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         run: npm run tauri:build
 
       - name: Upload installers

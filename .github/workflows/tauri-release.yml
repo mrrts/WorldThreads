@@ -1,4 +1,13 @@
-# Push tag v* (e.g. v0.1.0) to publish installers on GitHub Releases.
+# Push tag v* (e.g. v1.2.0) to publish installers on GitHub Releases.
+#
+# macOS signing + notarization (repository secrets — Settings → Secrets and variables → Actions):
+#   APPLE_CERTIFICATE          base64-encoded .p12 (Developer ID Application)
+#   APPLE_CERTIFICATE_PASSWORD password for that .p12 export
+#   KEYCHAIN_PASSWORD          arbitrary string for the ephemeral CI keychain
+#   APPLE_ID                   Apple ID email (notarization)
+#   APPLE_PASSWORD             app-specific password (appleid.apple.com → Sign-In and Security)
+#   APPLE_TEAM_ID              Team ID from developer.apple.com membership details
+#
 name: Desktop release
 
 on:
@@ -54,6 +63,14 @@ jobs:
             pkg-config \
             build-essential
 
+      - name: Import Apple Developer ID certificate (macOS)
+        if: matrix.platform == 'macos-latest'
+        env:
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
+        run: ./scripts/ci/macos-import-cert-for-tauri.sh
+
       - name: Cache Rust
         uses: Swatinem/rust-cache@v2
         with:
@@ -62,14 +79,17 @@ jobs:
       - uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         with:
           projectPath: src-tauri
           tagName: ${{ github.ref_name }}
           releaseName: WorldThreads ${{ github.ref_name }}
           releaseBody: |
-            Installers for macOS (.dmg / .app), Windows (.msi / .exe), and Linux (.deb / .AppImage / .rpm).
+            Installers for macOS (.dmg), Windows (.msi / .exe), and Linux (.deb / .AppImage / .rpm).
 
-            **macOS:** Gatekeeper may block unsigned builds — right-click the app, choose Open, or allow in System Settings → Privacy & Security.
+            **macOS** builds are Developer ID signed and notarized when repository secrets are configured.
           releaseDraft: true
           prerelease: false
           includeUpdaterJson: false
