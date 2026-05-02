@@ -35,7 +35,12 @@
       "icons/128x128@2x.png",
       "icons/icon.icns",
       "icons/icon.ico"
-    ]
+    ],
+    "macOS": {
+      "entitlements": "entitlements/macos/WorldThreads.entitlements",
+      "hardenedRuntime": true,
+      "minimumSystemVersion": "10.15"
+    }
   },
   "plugins": {}
 }
