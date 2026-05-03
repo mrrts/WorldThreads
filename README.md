@@ -56,14 +56,16 @@ The app is free and open-source. You bring your own OpenAI API key (BYOK), so pe
 
 ## Setup
 
+From the repository root (the directory that contains `package.json` and `src-tauri/`):
+
 ```bash
-bun install
-cd src-tauri && cargo build
-bun run tauri dev
+npx tauri dev
 ```
 
+On a fresh clone, run `npm install` once in the same directory so `node_modules` exists, then use the command above.
+
 You'll need:
-- [Bun](https://bun.sh/) for the frontend
+- [Node.js](https://nodejs.org/) (LTS is fine) — for `npx` and the frontend dev server Tauri starts
 - A Rust toolchain for the backend
 - An OpenAI API key (entered through the first-run wizard)
 
