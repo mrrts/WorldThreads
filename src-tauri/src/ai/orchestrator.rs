@@ -380,7 +380,15 @@ pub async fn run_dialogue_with_base(
                         && m.formula_signature.as_deref().map(|s| !s.trim().is_empty()).unwrap_or(false)
                 })
                 .and_then(|m| m.formula_signature.as_deref());
-            if let Some(block) = prompts::wrap_character_formula_invariant_with_momentstamp(deriv, latest_stamp) {
+            // User-side relational anchor: the per-world user_profile's
+            // derived_formula. Renders inside the character block as
+            // `You are: {char} / speaking to → / {user}` so the model
+            // reads the inner-register as relational from the open.
+            let user_deriv: Option<&str> = user_profile
+                .and_then(|p| p.derived_formula.as_deref())
+                .map(|s| s.trim())
+                .filter(|s| !s.is_empty());
+            if let Some(block) = prompts::wrap_character_formula_invariant_full(deriv, user_deriv, latest_stamp) {
                 elevated_parts.push(block);
             }
         }

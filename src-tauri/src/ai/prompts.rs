@@ -559,31 +559,52 @@ const _: () = {
 /// system prompt (see orchestrator::run_dialogue_with_base for the
 /// env-gated injection point).
 pub fn wrap_character_formula_invariant(derived_formula: &str) -> Option<String> {
-    wrap_character_formula_invariant_with_momentstamp(derived_formula, None)
+    wrap_character_formula_invariant_full(derived_formula, None, None)
 }
 
-/// Same as `wrap_character_formula_invariant` but with an optional latest
-/// momentstamp from this character's most recent assistant reply in the
-/// conversation. When present, appended below the derivation with a
-/// brief framing line so the model reads the character's *current
-/// chat-state instantiation* of their tuning-frame, not just the
-/// out-of-band derivation.
-///
-/// The pairing makes the top-of-stack block carry both halves: the
-/// stable register-anchor (derived_formula, computed offline against
-/// the character's persistent identity) AND the dynamic register-state
-/// (latest momentstamp, computed turn-by-turn against 𝓕 := (𝓡, 𝓒) for
-/// THIS conversation's most recent moment). The two-row read is
-/// sometimes called the static-anchor-plus-live-pulse pattern.
+/// Back-compat shim: character + optional momentstamp, no user.
 pub fn wrap_character_formula_invariant_with_momentstamp(
     derived_formula: &str,
     latest_momentstamp: Option<&str>,
 ) -> Option<String> {
-    let trimmed = derived_formula.trim();
-    if trimmed.is_empty() {
+    wrap_character_formula_invariant_full(derived_formula, None, latest_momentstamp)
+}
+
+/// Full elevation wrapper: character derivation + optional user (human's
+/// per-world derivation) + optional latest momentstamp. The user
+/// derivation is rendered as a relational pair *inside* the character
+/// block — `You are: {char} / speaking to → / {user}` — so the model
+/// reads the inner-register as relational from the open: this character
+/// in this conversation IS speaking to THIS particular user-shape, not
+/// to a generic listener.
+///
+/// The static-anchor-plus-live-pulse pattern still holds: char + user
+/// are the stable relational anchors; momentstamp is the dynamic
+/// register-state pulse computed turn-by-turn.
+///
+/// Each layer (user / momentstamp) is independently optional — empty
+/// or missing inputs are skipped gracefully and the block degrades to
+/// whatever subset is present.
+pub fn wrap_character_formula_invariant_full(
+    char_derived_formula: &str,
+    user_derived_formula: Option<&str>,
+    latest_momentstamp: Option<&str>,
+) -> Option<String> {
+    let trimmed_char = char_derived_formula.trim();
+    if trimmed_char.is_empty() {
         return None;
     }
-    let mut out = format!("{}\n\n{}", CHARACTER_FORMULA_INVARIANT_FRAMING, trimmed);
+    let mut out = String::new();
+    out.push_str(CHARACTER_FORMULA_INVARIANT_FRAMING);
+    out.push_str("\n\nYou are:\n\n");
+    out.push_str(trimmed_char);
+    if let Some(user_d) = user_derived_formula {
+        let user_t = user_d.trim();
+        if !user_t.is_empty() {
+            out.push_str("\n\nspeaking to →\n\n");
+            out.push_str(user_t);
+        }
+    }
     if let Some(stamp) = latest_momentstamp {
         let stamp = stamp.trim();
         if !stamp.is_empty() {
