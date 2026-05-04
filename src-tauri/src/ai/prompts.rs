@@ -443,11 +443,39 @@ const _: () = {
 /// system prompt (see orchestrator::run_dialogue_with_base for the
 /// env-gated injection point).
 pub fn wrap_character_formula_invariant(derived_formula: &str) -> Option<String> {
+    wrap_character_formula_invariant_with_momentstamp(derived_formula, None)
+}
+
+/// Same as `wrap_character_formula_invariant` but with an optional latest
+/// momentstamp from this character's most recent assistant reply in the
+/// conversation. When present, appended below the derivation with a
+/// brief framing line so the model reads the character's *current
+/// chat-state instantiation* of their tuning-frame, not just the
+/// out-of-band derivation.
+///
+/// The pairing makes the top-of-stack block carry both halves: the
+/// stable register-anchor (derived_formula, computed offline against
+/// the character's persistent identity) AND the dynamic register-state
+/// (latest momentstamp, computed turn-by-turn against 𝓕 := (𝓡, 𝓒) for
+/// THIS conversation's most recent moment). The two-row read is
+/// sometimes called the static-anchor-plus-live-pulse pattern.
+pub fn wrap_character_formula_invariant_with_momentstamp(
+    derived_formula: &str,
+    latest_momentstamp: Option<&str>,
+) -> Option<String> {
     let trimmed = derived_formula.trim();
     if trimmed.is_empty() {
         return None;
     }
-    Some(format!("{}\n\n{}", CHARACTER_FORMULA_INVARIANT_FRAMING, trimmed))
+    let mut out = format!("{}\n\n{}", CHARACTER_FORMULA_INVARIANT_FRAMING, trimmed);
+    if let Some(stamp) = latest_momentstamp {
+        let stamp = stamp.trim();
+        if !stamp.is_empty() {
+            out.push_str("\n\nLatest momentstamp from this character in the current conversation (their live register-state, computed against 𝓕 for the most recent moment):\n\n");
+            out.push_str(stamp);
+        }
+    }
+    Some(out)
 }
 
 pub const FORMAT_SECTION: &str = r#"# FORMAT

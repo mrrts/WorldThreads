@@ -309,7 +309,22 @@ pub async fn run_dialogue_with_base(
         .map(|v| v == "1").unwrap_or(false);
     if elevate_character_formula {
         if let Some(deriv) = character.derived_formula.as_deref() {
-            if let Some(block) = prompts::wrap_character_formula_invariant(deriv) {
+            // Find the LATEST momentstamp from THIS character in the
+            // conversation history — scan effective_msgs from newest to
+            // oldest for an assistant message authored by this
+            // character that carries a formula_signature. This pairs
+            // the stable derivation anchor with the live register-state
+            // computed turn-by-turn (see ai::momentstamp).
+            let latest_stamp: Option<&str> = effective_msgs
+                .iter()
+                .rev()
+                .find(|m| {
+                    m.role == "assistant"
+                        && m.sender_character_id.as_deref() == Some(character.character_id.as_str())
+                        && m.formula_signature.as_deref().map(|s| !s.trim().is_empty()).unwrap_or(false)
+                })
+                .and_then(|m| m.formula_signature.as_deref());
+            if let Some(block) = prompts::wrap_character_formula_invariant_with_momentstamp(deriv, latest_stamp) {
                 let mut prefixed = String::with_capacity(block.len() + system.len() + 4);
                 prefixed.push_str(&block);
                 prefixed.push_str("\n\n");
