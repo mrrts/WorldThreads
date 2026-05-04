@@ -308,6 +308,19 @@ pub async fn run_dialogue_with_base(
     let elevate_character_formula = std::env::var("CHARACTER_FORMULA_AT_TOP")
         .map(|v| v == "1").unwrap_or(false);
     if elevate_character_formula {
+        // Compose the elevated top-of-stack register-anchor block as a
+        // zoom-from-world read: WORLD (outer register) → CHARACTER
+        // (inner register) → LATEST MOMENTSTAMP (live register-state).
+        // Same env flag gates both world and character elevation
+        // because the elevation is one architectural move — partial
+        // application would re-introduce the same divergence between
+        // same-shape claim and placement that the elevation closes.
+        let mut elevated_parts: Vec<String> = Vec::new();
+        if let Some(deriv) = world.derived_formula.as_deref() {
+            if let Some(block) = prompts::wrap_world_formula_invariant(deriv) {
+                elevated_parts.push(block);
+            }
+        }
         if let Some(deriv) = character.derived_formula.as_deref() {
             // Find the LATEST momentstamp from THIS character in the
             // conversation history — scan effective_msgs from newest to
@@ -325,12 +338,16 @@ pub async fn run_dialogue_with_base(
                 })
                 .and_then(|m| m.formula_signature.as_deref());
             if let Some(block) = prompts::wrap_character_formula_invariant_with_momentstamp(deriv, latest_stamp) {
-                let mut prefixed = String::with_capacity(block.len() + system.len() + 4);
-                prefixed.push_str(&block);
-                prefixed.push_str("\n\n");
-                prefixed.push_str(&system);
-                system = prefixed;
+                elevated_parts.push(block);
             }
+        }
+        if !elevated_parts.is_empty() {
+            let elevated = elevated_parts.join("\n\n");
+            let mut prefixed = String::with_capacity(elevated.len() + system.len() + 4);
+            prefixed.push_str(&elevated);
+            prefixed.push_str("\n\n");
+            prefixed.push_str(&system);
+            system = prefixed;
         }
     }
 

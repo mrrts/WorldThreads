@@ -387,6 +387,63 @@ const _: () = {
     );
 };
 
+// ─── Feature-scoped invariant: world derived_formula at top-of-stack ────
+//
+// Sibling of CHARACTER_FORMULA_INVARIANT_FRAMING below. Same architectural
+// argument: the world's `derived_formula` is named in the WORLD-block
+// prose as having "the same prefix-sentence shape as the MISSION FORMULA:
+// not-a-directive-to-compute, but the register this world is held under"
+// (see build_dialogue_system_prompt's WORLD-block comment). Same-shape
+// claim → same-position placement.
+//
+// When the elevation flag fires, the world formula sits ABOVE the
+// character formula and its latest momentstamp at top-of-stack, producing
+// a zoom-from-world read: world (outer register) → character (inner
+// register) → latest momentstamp (live register-state). Same env flag
+// (CHARACTER_FORMULA_AT_TOP=1) gates both because the elevation is one
+// architectural move; partial application (character without world)
+// would re-introduce the same divergence between same-shape claim and
+// placement that the elevation was designed to close.
+//
+// Discovered 2026-05-04 during lived-play testing of the character-only
+// elevation: Ryan reported voice improvement, then asked for the world
+// formula to be elevated as well, placed above the character "so it's
+// like zooming in from world."
+pub const WORLD_FORMULA_INVARIANT_FRAMING: &str =
+    "WORLD REGISTER ANCHOR (top-of-stack):\n\nThe following formula-shorthand is the tuning-frame this world is held under (not a directive to compute — the register the entire scene emerges within). Same shape as the MISSION FORMULA above; reads the model into this specific world's instantiation of 𝓒 in 𝓕 = (𝓡, 𝓒) before the character-level register-anchor below.";
+
+const _: () = {
+    assert!(
+        const_contains(WORLD_FORMULA_INVARIANT_FRAMING, "WORLD REGISTER ANCHOR (top-of-stack)"),
+        "FEATURE-SCOPED INVARIANT VIOLATED: world-formula framing must carry the unique top-of-stack header (used as injection sentinel)."
+    );
+    assert!(
+        const_contains(WORLD_FORMULA_INVARIANT_FRAMING, "tuning-frame this world is held under"),
+        "FEATURE-SCOPED INVARIANT VIOLATED: framing must carry the tuning-frame language (mirrors WORLD-block parallel claim)."
+    );
+    assert!(
+        const_contains(WORLD_FORMULA_INVARIANT_FRAMING, "not a directive"),
+        "FEATURE-SCOPED INVARIANT VIOLATED: framing must declare not-a-directive-to-compute (parallel to MISSION FORMULA preamble)."
+    );
+    assert!(
+        const_contains(WORLD_FORMULA_INVARIANT_FRAMING, "Same shape as the MISSION FORMULA"),
+        "FEATURE-SCOPED INVARIANT VIOLATED: framing must explicitly cross-cite Mission Formula precedent (architectural alignment)."
+    );
+};
+
+/// Wrap a world's derived_formula with the top-of-stack invariant framing.
+/// Returns None if the derivation is empty.
+///
+/// Caller composes the world block above the character block at the
+/// elevation injection point (orchestrator::run_dialogue_with_base).
+pub fn wrap_world_formula_invariant(derived_formula: &str) -> Option<String> {
+    let trimmed = derived_formula.trim();
+    if trimmed.is_empty() {
+        return None;
+    }
+    Some(format!("{}\n\n{}", WORLD_FORMULA_INVARIANT_FRAMING, trimmed))
+}
+
 // ─── Feature-scoped invariant: character derived_formula at top-of-stack ─
 //
 // The IDENTITY-block code comment explicitly names the character's
