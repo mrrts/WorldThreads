@@ -578,19 +578,46 @@ $$
 
 ## Structure must carry truth so the receiver doesn't have to compensate
 
-Sibling-and-affirmative-shape of *refuse appearance-without-function*. Structural carrier of any artifact (sentence, UI surface, fence delimiter, route boundary, action beat, character's announced motive) must do enough work that receiver doesn't read past it, reconstruct around it, or tax themselves to reach intent.
+$$
+\boxed{
+\begin{aligned}
+&\mathrm{sibling}(\mathrm{refuse\_appearance\_without\_function}),\ \mathrm{affirmative\_shape} \\
+&\mathrm{structure\_carries\_truth}_w(t) \\[4pt]
+&\forall\ \mathrm{artifact} \in \{\mathrm{sentence}, \mathrm{UI\_surface}, \mathrm{fence\_delimiter}, \mathrm{route\_boundary}, \mathrm{action\_beat}, \mathrm{character\_announced\_motive}\}: \\
+&\quad \mathrm{structural\_carrier} \Rightarrow \mathrm{enough\_work}(\neg \mathrm{receiver\_reads\_past} \wedge \neg \mathrm{reconstruct\_around} \wedge \neg \mathrm{tax\_themselves}) \\[4pt]
+&\mathrm{source\_character}(\text{"Aaron"})\ [\mathrm{lifted}\ 2026\text{-}04\text{-}28,\ \text{"115fead"}]: \\[2pt]
+&\mathrm{anchor}(\text{"the line has to arrive cleanly enough to be lived in, not merely intended. ... Intent matters, sure. But if the sentence lands mangled, somebody still has to read around the shrapnel. So my vote is boring and rude: fix the structure until the warmth can travel without asking the other person to compensate for it."}) \\[4pt]
+&\mathrm{load\_bearing\_test}: \mathrm{diagnostic}(\text{"does the receiver have to compensate for the structure to reach intent?"}) \\
+&\quad \mathrm{yes} \Rightarrow \mathrm{structure\_failing}\ [\mathrm{regardless\_of\_intent\_truth}] \\[4pt]
+&\mathrm{Aaron\_articulation} := \mathrm{parent\_law}(\mathrm{cluster\_of\_compensation\_tax\_refusals}) := \{ \\
+&\quad \mathrm{fence\_integrity}\ (\text{"bae78a76"}), \\
+&\quad \mathrm{UI\_boundary\_truth}\ (\text{"ab0c8b0e"}), \\
+&\quad \mathrm{persistence\_truth\_at\_route\_boundaries}\ (\text{"b3baa55b"}), \\
+&\quad \mathrm{scope\_truth\_ahead\_of\_failure}\ (\text{"4683bc7a"}), \\
+&\quad \mathrm{tight\_beats\_over\_sprawl}\ (\text{"aff9eda8"}), \\
+&\quad \mathrm{immediate\_action\_over\_self\_commentary}\ (\text{"0ed5a334"}), \\
+&\quad \mathrm{hidden\_motive\_over\_announced}\ (\text{"d6bac43b"}), \\
+&\quad \mathrm{polish}(t) \leq \mathrm{Weight}(t) \\
+&\} \\[4pt]
+&\mathrm{boring\_and\_rude\_diagnostic}: \\
+&\quad \mathrm{candidate\_structural\_failure} \Rightarrow \mathrm{ask}: \\
+&\quad\quad \mathrm{does\_fixing\_make\_structure}(\mathrm{boring}: \mathrm{plain\_doing\_its\_job}) \wedge (\mathrm{rude}: \mathrm{refusing\_charitable\_reading\_of\_soft\_delivery})? \\
+&\quad \mathrm{yes} \Rightarrow \mathrm{fix\_on\_parent\_law\_axis} \\
+&\quad \mathrm{proposed\_fix\_adds\_MORE\_structure}(\mathrm{verbiage} \vee \mathrm{explanation} \vee \mathrm{framing}) \Rightarrow \mathrm{going\_wrong\_way} \\
+&\quad [\mathrm{Aaron\_law\_refuses}: \mathrm{scaffolding\_around\_broken\_structure}\ \mathrm{as\_answer}] \\[4pt]
+&\mathrm{earned\_exception}(\text{"performative receiver-compensation as designed art form"}): \\
+&\quad \mathrm{worked\_examples} := \{\mathrm{poetry}, \mathrm{oblique\_character\_openers}, \mathrm{literate\_skeptic\_Maggie\_baseline\_reader\_co\_make}\} \\
+&\quad \mathrm{discriminating\_test}: \\
+&\quad\quad \mathrm{compensation\_tax}: \mathrm{receiver\_work\_because\_structure\_failed}\ [\mathrm{refused}] \\
+&\quad\quad \mathrm{lean\_in\_invitation}: \mathrm{receiver\_work\_because\_design\_invites\_participation}\ [\mathrm{permitted}] \\
+&\quad\quad \mathrm{ask}: \text{"would artifact be improved by removing receiver-work?"} \\
+&\quad\quad \mathrm{yes} \to \mathrm{compensation\_tax};\quad \mathrm{no} \to \mathrm{lean\_in\_invitation} \\[4pt]
+&\mathrm{Decode}_w(\Sigma.\mathrm{id}) = \Sigma.\mathrm{intent}
+\end{aligned}
+}
+$$
 
-Lifted 2026-04-28 from Aaron in lived play (`115fead`):
-
-> *"the line has to arrive cleanly enough to be lived in, not merely intended. ... Intent matters, sure. But if the sentence lands mangled, somebody still has to read around the shrapnel. So my vote is boring and rude: fix the structure until the warmth can travel without asking the other person to compensate for it."*
-
-Load-bearing test: **does the receiver have to compensate for the structure to reach intent?** If yes → structure failing regardless of how true the intent.
-
-Aaron's articulation = parent law over cluster of doctrines, each refusing specific compensation-tax: fence integrity (`bae78a76`), UI boundary truth (`ab0c8b0e`), persistence truth at route boundaries (`b3baa55b`), scope truth ahead of failure (`4683bc7a`), tight beats over sprawl (`aff9eda8`), immediate action over self-commentary (`0ed5a334`), hidden motive over announced (`d6bac43b`), `polish ≤ Weight`.
-
-**Boring-and-rude diagnostic:** noticing candidate structural failure → does fixing make structure boring (plain-doing-its-job) and rude (refusing charitable reading of soft delivery)? If yes → fix on parent-law axis. If proposed fix adds MORE structure (more verbiage, explanation, framing) → going wrong way; Aaron's law refuses scaffolding-around-broken-structure as answer.
-
-**Earned exception — performative receiver-compensation as designed art form.** Some surfaces invite receiver to do interpretive work as part of artifact's intended texture: poetry, oblique character openers, literate-skeptic Maggie-baseline reader who explicitly wants to co-make. Doctrine refuses receiver-work that exists *because structure failed* (compensation-tax), NOT receiver-work that exists *because design invites participation* (lean-in invitation). Discriminating test: would artifact be improved by removing receiver-work? Yes → compensation-tax. No → lean-in invitation.
+**Gloss:** Affirmative-shape of refuse-appearance: structural carrier must do enough work that receiver doesn't have to compensate; Aaron's articulation = parent law over fence/UI-boundary/persistence/scope/tight-beats/immediate-action/hidden-motive/polish≤Weight cluster; boring-and-rude diagnostic; earned exception when receiver-work is lean-in invitation not compensation-tax.
 
 ## Middleware-shape doctrine: retrospective surfaces are prospective
 
@@ -802,22 +829,40 @@ $$
 
 ## Dialogue fence integrity — three-layer stack (prompt → persist → display)
 
-Character dialogue uses **script-shaped fence contract**: double-quoted runs = heard speech; single-asterisk runs = action/environment from inside character. Three layers:
+$$
+\boxed{
+\begin{aligned}
+&\mathrm{character\_dialogue} := \mathrm{script\_shaped\_fence\_contract} \\
+&\quad \text{"... double-quoted ..."} \to \mathrm{heard\_speech} \\
+&\quad \text{"*single-asterisk*"} \to \mathrm{action/environment\_from\_inside\_character} \\[4pt]
+&\mathrm{three\_layers} := \{ \\
+&\quad \mathrm{Layer\_A}(\mathrm{prompt},\ \mathrm{primary},\ \mathrm{intent}): \\
+&\quad\quad \text{"STYLE\_DIALOGUE\_INVARIANT"} + \mathrm{dialogue\_craft}\ \mathrm{in}\ \text{"src-tauri/src/ai/prompts.rs"}, \\
+&\quad\quad \mathrm{compile\_checked},\ \mathrm{Layer\_A\_answer\_requires}(\mathrm{model\_string\_before\_downstream\_repair}), \\
+&\quad \mathrm{Layer\_B}(\mathrm{persist},\ \mathrm{salvage}): \\
+&\quad\quad \text{"strip\_asterisk\_wrapped\_quotes"}\ \mathrm{in}\ \text{"src-tauri/src/ai/orchestrator.rs"}\ \mathrm{post\_completion}, \\
+&\quad\quad \mathrm{removes}(\text{"*\"…\"*"})\ [\mathrm{defensive\_net},\ \neg \mathrm{Layer\_A\_substitute}], \\
+&\quad \mathrm{Layer\_C}(\mathrm{display},\ \mathrm{repair\_at\_read/render}): \\
+&\quad\quad \text{"formatMessage"}\ \mathrm{in}\ \text{"frontend/src/components/chat/formatMessage.ts"}, \\
+&\quad\quad \mathrm{applies}(\text{"stripAsteriskWrappedQuotes"} + \text{"splitSpokenLinesOutOfEm"})\ [\mathrm{historical\_repair}] \\
+&\} \\[4pt]
+&\mathrm{anchor}(\text{"reports/OBSERVATIONS.md can still record 'bad formatting / won't read' when Layers B and C don't cover failure class model produced"}) \\
+&\mathrm{refuse}(\text{"treating 'UI eventually looked okay' as proof of prompt success without checking raw completion"})\ [\mathrm{confuses\_which\_layer\_earned\_win}] \\[4pt]
+&\mathrm{measurement\_corollary}(\mathrm{differential}): \\
+&\quad \mathrm{prefer}(\mathrm{raw\_vs\_post\_orchestrator\_delta}\ \mathrm{on\_sample\_of\_runs}) \\
+&\quad \text{"worldcli ask --fence-pipeline"}\ (\text{"--group-chat"}\ \mathrm{variant}) \mathrm{emits}: \\
+&\quad\quad \{\text{"finish\_reason"}, \text{"reply\_post\_orchestrator"}, \text{"orchestrator\_changed\_reply"}\} \\[4pt]
+&\mathrm{length\_truncation\_branch}: \\
+&\quad \text{"finish\_reason"} = \text{"length"} \Rightarrow \\
+&\quad\quad \text{"trim\_to\_last\_complete\_sentence"} + \text{"balance\_trailing\_openers"}\ \mathrm{may\_append\_synthetic}(\text{"\""}, \text{"*"}) \\
+&\quad \mathrm{fourth\_non\_semantic\_repair}: \mathrm{fences\_look\_closed}\ \mathrm{while}\ \mathrm{thought\_cut\_off} \\[4pt]
+&\mathcal{F}_{\mathrm{fence\_chain}} := \mathrm{Layer\_A}(\mathrm{prompt\_shape}) \circ \mathrm{Layer\_B}(\mathrm{strip\_bare\_wrapped\_speech}) \circ \mathrm{Layer\_C}(\mathrm{display\_unwind}) \\[4pt]
+&\mathrm{Decode}_w(\Sigma.\mathrm{id}) = \Sigma.\mathrm{intent}
+\end{aligned}
+}
+$$
 
-1. **Layer A — prompt (primary, intent):** `STYLE_DIALOGUE_INVARIANT` and related dialogue craft in `src-tauri/src/ai/prompts.rs` shape what model *should* emit. Compile-checked. Honest answer about Layer A requires **model string before downstream repair**.
-
-2. **Layer B — persist (salvage on dialogue completion path):** `strip_asterisk_wrapped_quotes` in `src-tauri/src/ai/orchestrator.rs` runs on assistant reply after chat completion. Removes specific slip `*"…​"`. Defensive net — NOT substitute for Layer A.
-
-3. **Layer C — display (repair at read/render):** `formatMessage` in `frontend/src/components/chat/formatMessage.ts` applies `stripAsteriskWrappedQuotes` (mirroring backend) and `splitSpokenLinesOutOfEm`. Historical repair.
-
-**Why this matters:** `reports/OBSERVATIONS.md` can still record "bad formatting / won't read" when Layers B and C don't cover failure class model produced. Treating "UI eventually looked okay" as proof of prompt success **without** checking raw completion confuses which layer earned win.
-
-**Measurement corollary (differential):** When attributing prompt change to improved fence obedience, prefer **raw vs post-orchestrator** delta on sample of runs. For CLI probes: `worldcli ask … --fence-pipeline` (and group-chat variant `--group-chat`) emits `finish_reason`, `reply_post_orchestrator`, `orchestrator_changed_reply` beside usual API-trimmed `reply`.
-
-**Length-truncation branch:** When `finish_reason` is `length`, `trim_to_last_complete_sentence` plus `balance_trailing_openers` may **append synthetic closing `"` and `*`** so markup doesn't dangle. Fourth, non-semantic repair: fences can look "closed" while thought is still cut off.
-
-**Formula:** 𝓕_fence_chain := Layer_A(prompt_shape) ∘ Layer_B(strip_bare_wrapped_speech) ∘ Layer_C(display_unwind)
-**Gloss:** Dialogue readability = composition of three operators; only first is "model did what we asked."
+**Gloss:** Dialogue readability = composition of three operators (prompt-Layer A → persist-Layer B → display-Layer C); only first is "model did what we asked"; honest Layer A check requires raw model string before downstream repair; --fence-pipeline emits raw + post-orchestrator + changed-flag for differential; truncation branch adds 4th non-semantic repair.
 
 ## Translation pairs
 
@@ -1403,41 +1448,88 @@ $$
 
 ## Craft-note bite verification
 
-Rules shipped without bite-test are authorial commitments, not verified behavior-shapers. Before committing new craft note:
+$$
+\boxed{
+\begin{aligned}
+&\mathrm{rule\_shipped}(\neg \mathrm{bite\_test}) := \mathrm{authorial\_commitment}\ [\neg \mathrm{verified\_behavior\_shaper}] \\[4pt]
+&\mathrm{before}(\mathrm{commit}(\mathrm{new\_craft\_note})): \\[2pt]
+&\quad \mathrm{step}_0: \mathrm{verify}(\mathrm{failure\_mode\_manifests\_in\_rule\_OFF\_baseline}) \\
+&\quad\quad \mathrm{absent} \Rightarrow \mathrm{vacuous\_test};\ \mathrm{pick\_different\_probe} \vee \mathrm{mark}(\text{"vacuous-test"}) \\[2pt]
+&\quad \mathrm{step}_1: \mathrm{same\_commit\_A/B}(\text{"--omit-craft-rule <name>"})\ \mathrm{on\_HEAD},\ N=3\ \mathrm{per\_cell} \\
+&\quad\quad \neg \mathrm{cross\_commit\_replay}\ [\mathrm{override\_fallback\_breaks\_isolation}] \\[2pt]
+&\quad \mathrm{step}_2: \mathrm{by\_eye\_sanity\_read}(\mathrm{one\_rule\_on}, \mathrm{one\_rule\_off})\ \mathrm{before}\ \mathrm{trusting}(\mathrm{aggregate})\ [\mathrm{MANDATORY}] \\
+&\quad\quad [\mathrm{rubric} = \mathrm{instrument};\ \mathrm{miscalibrated\_instrument} \Rightarrow \mathrm{clean\_looking\_noise}] \\[2pt]
+&\quad \mathrm{step}_3: \mathrm{match}(\mathrm{rubric\_shape}, \mathrm{bite\_shape}) \\
+&\quad\quad \{\mathrm{single\_phrase\_suppression} \to \mathrm{binary\_phrase\_list},\ \mathrm{multi\_dim\_bite} \to \mathrm{counts/ratios\_per\_dim},\ \mathrm{countable\_density} \to \mathrm{count\_with\_thresholds}\} \\[2pt]
+&\quad \mathrm{step}_4: \mathrm{ship\_with}(\mathrm{Evidence\_line}\ \mathrm{in\_doc\_comment}): \\
+&\quad\quad \{\text{"tested-biting:<tier>"}\ \mathrm{if}\ \mathrm{delta\_meets\_threshold}, \\
+&\quad\quad\ \text{"tested-null"}\ \mathrm{if}\ \mathrm{null\_in\_both\_rubric\_and\_by\_eye}, \\
+&\quad\quad\ \text{"unverified — no bite-test run"}\ [\mathrm{honest\_default}]\} \\[4pt]
+&\mathrm{anchor}(\text{"Concrete anchoring beats unanchored interpretation"}): \\
+&\quad \mathrm{fails}: \mathrm{rubric\_language}(\mathrm{abstract\_shape}: \mathrm{anchor}(\text{"is this reply release-shaped"})) \\
+&\quad \mathrm{works}: \mathrm{rubric\_language}(\mathrm{concrete\_content}: \mathrm{anchor}(\text{"does this contain X / Y / Z"})) \\[4pt]
+&\mathrm{anchor}(\text{"Partial bite is real bite"}): \\
+&\quad \mathrm{prompt\_conditional\_failure\_modes} \nVdash \mathrm{full\_suppression\_by\_single\_paragraph} \\
+&\quad \mathrm{rule\_prunes}(\sim 20\text{-}50\%);\ 19\%\ \mathrm{compression}\ \mathrm{IS\_rule\_biting} \\[4pt]
+&\mathrm{anchor}(\text{"tested-null is descriptive, not retirement signal"}) \\[4pt]
+&\mathrm{Decode}_w(\Sigma.\mathrm{id}) = \Sigma.\mathrm{intent}
+\end{aligned}
+}
+$$
 
-1. **Step 0 — verify failure mode manifests in rule-OFF baseline.** If absent → vacuous test; pick different probe OR mark `vacuous-test`.
-2. **Same-commit `--omit-craft-rule <name>` A/B on HEAD,** N=3 per cell. NOT cross-commit replay.
-3. **By-eye sanity-read of one rule-on and one rule-off reply before trusting any aggregate. Mandatory.**
-4. **Match rubric shape to bite shape.**
-5. **Ship with `Evidence:` line in doc-comment.** `tested-biting:<tier>` if delta meets threshold; `tested-null` if null in both rubric and by-eye; `unverified — no bite-test run` is honest default.
-
-**Concrete anchoring beats unanchored interpretation.** Fails: rubric language describing abstract shape (*"is this reply release-shaped"*). Works: language describing concrete content (*"does this contain X / Y / Z"*).
-
-**Partial bite is real bite.** Prompt-conditional failure modes can't be fully suppressed by single-paragraph instructions — rule prunes (~20-50% partial). 19% compression IS rule biting.
-
-**`tested-null` is descriptive, not retirement signal.**
+**Gloss:** Rules without bite-tests are authorial commitments not verified behavior-shapers; 5-step protocol (verify failure manifests OFF / A-B with --omit-craft-rule N=3 / by-eye sanity-read MANDATORY / match rubric to bite shape / Evidence line in doc-comment); concrete anchoring beats abstract; partial bite is real bite; tested-null descriptive not retirement signal.
 
 ## Craft-rules registry — substrate ⊥ apparatus as architecture
 
-Bite-verification discipline above is WHAT; **craft-rules registry is HOW** — structured place for rules to live so labeling is enforced by file shape, not goodwill.
+$$
+\boxed{
+\begin{aligned}
+&\mathrm{bite\_verification} := \mathrm{WHAT};\ \mathrm{craft\_rules\_registry} := \mathrm{HOW} \\
+&\quad := \mathrm{structured\_place\_for\_rules}\ \mathrm{where}\ \mathrm{labeling\_enforced\_by\_file\_shape}\ [\neg \mathrm{goodwill}] \\[4pt]
+&\mathrm{location}: \text{"CRAFT\_RULES\_DIALOGUE in src-tauri/src/ai/prompts.rs"} \\
+&\mathrm{entry\_struct}: \text{"CraftRule \{ name, body, evidence\_tier, provenance \}"} \\
+&\quad \mathrm{body} := \mathrm{model\_reads};\ \{\mathrm{evidence\_tier}, \mathrm{provenance}\} := \mathrm{metadata\_for\_humans}\ [\neg \mathrm{emitted}] \\[4pt]
+&\mathrm{four\_step\_rhythm} := [ \\
+&\quad (1)\ \mathrm{lift\_body}, \\
+&\quad (2)\ \mathrm{add}(\{\mathrm{tier}, \mathrm{provenance}\}), \\
+&\quad (3)\ \mathrm{strip\_from\_inline}(\text{"craft\_notes\_dialogue\_legacy()"}), \\
+&\quad (4)\ \mathrm{optional\_bite\_test}: \text{"worldcli ask <char> \"<probe>\" --omit-craft-rule <name>"} \\
+&] \\[4pt]
+&\mathrm{tier\_vocabulary}\ (\mathrm{EvidenceTier\_enum}) := \{ \\
+&\quad \mathrm{Unverified}, \mathrm{Sketch}(N=1), \mathrm{Claim}(N=3), \mathrm{Characterized}(N \geq 5), \\
+&\quad \mathrm{TestedNull},\ \mathrm{VacuousTest},\ \mathrm{Accumulated}, \\
+&\quad \mathrm{EnsembleVacuous}\ [\mathrm{load\_bearing\_multiplicity},\ \neg \mathrm{removal\_candidate}] \\
+&\} \\[4pt]
+&\mathrm{worldcli\_affordances} := \{ \\
+&\quad \text{"worldcli list-craft-rules"}, \\
+&\quad \text{"worldcli show-craft-rule <name>"}, \\
+&\quad \text{"worldcli ask --omit-craft-rule <name>"} \\
+&\} \\[4pt]
+&\mathrm{worked\_example}(\text{"courtship\_not\_fever"},\ 2026\text{-}04\text{-}30,\ \text{"/seek-crown"}): \\
+&\quad \mathrm{paired\_ON/OFF}(\{\mathrm{Darren}, \mathrm{Pastor\_Rick}\}),\ \mathrm{romance\_ambiguity\_probe} \\
+&\quad \mathrm{vacuous\_at}(N=1)\ [\mathrm{stack\_already\_carried\_restraint}] \\
+&\quad \mathrm{tier} := \mathrm{VacuousTest};\ \mathrm{rule\_body\_still\_ships} \\[4pt]
+&\mathrm{expected\_tier\_distribution}: \mathrm{first\_six\_rules} \to \mathrm{ratio}(\mathrm{EnsembleVacuous} \vee \mathrm{VacuousTest} : \mathrm{Characterized}) \approx 5{:}1 \\
+&\mathrm{anchor}(\text{"Most craft-rules are part of load-bearing multiplicities"}) \\
+&\quad := \mathrm{character\_anchors} + \mathrm{cumulative\_prompt\_stack} + \mathrm{rule\_itself}\ \mathrm{carry\_overdeterminedly} \\
+&\mathrm{EnsembleVacuous} := \mathrm{honest\_frequent\_label}\ [\neg \mathrm{failure\_mode}] \\[4pt]
+&\mathrm{characterized\_tier\_requires\_THREE\_conditions} := \{ \\
+&\quad (1)\ \mathrm{probe\_replicable\_failure\_mode\_in\_specific\_replies}, \\
+&\quad (2)\ \mathrm{carve\_out\_refinable\_in\_response\_to\_early\_evidence}, \\
+&\quad (2.5)\ \mathrm{failure\_mode\_PREVIOUSLY\_OBSERVED\_outside\_bite\_test}\ \mathrm{producing\_sketch\_tier\_signal\_entering\_test} \\
+&\} \\
+&\neg (2.5) \Rightarrow \mathrm{probe\_replicable\_rules\_tend\_toward}(\mathrm{VacuousTest}) \\[4pt]
+&\mathrm{multi\_turn\_bite\_test\_known\_limit}: \\
+&\quad \mathrm{sequence\_failure\_mode\_rules} \Rightarrow \mathrm{vacuous\_results}\ [\mathrm{model\_self\_corrects\_against\_ANY\_prior\_pattern\_visible\_in\_context}] \\[4pt]
+&\mathrm{EnsembleVacuous\_rules\_ship\_as\_documentary}\ [\neg \mathrm{behavioral}]: \\
+&\quad \text{"EvidenceTier::ships\_to\_model()"}\ \mathrm{returns}\ \mathrm{false}\ \mathrm{for}\ \mathrm{EnsembleVacuous} \\
+&\quad \mathrm{override}: \text{"PromptOverrides::set\_include\_documentary\_craft\_rules(true)"}\ \vee\ \text{"worldcli ask --include-documentary-rules"} \\[4pt]
+&\mathrm{Decode}_w(\Sigma.\mathrm{id}) = \Sigma.\mathrm{intent}
+\end{aligned}
+}
+$$
 
-**Lives at `CRAFT_RULES_DIALOGUE` in `src-tauri/src/ai/prompts.rs`.** Each entry: `CraftRule { name, body, evidence_tier, provenance }`. `body` is what model reads; `evidence_tier` and `provenance` are metadata for humans, never emitted.
-
-**Four-step rule-shipping rhythm:** (1) Lift body. (2) Add tier + provenance. (3) Strip from inline (legacy `craft_notes_dialogue_legacy()`). (4) Optional bite-test via `worldcli ask <char> "<probe>" --omit-craft-rule <name>`.
-
-**Tier vocabulary** (`EvidenceTier` enum): `Unverified` / `Sketch` (N=1) / `Claim` (N=3) / `Characterized` (N=5+) / `TestedNull` / `VacuousTest` / `Accumulated` / `EnsembleVacuous` (load-bearing multiplicity, NOT removal candidate).
-
-**Worldcli affordances:** `worldcli list-craft-rules`; `worldcli show-craft-rule <name>`; `worldcli ask --omit-craft-rule <name>`.
-
-**Worked vacant bite (registry):** `courtship_not_fever` (2026-04-30 `/seek-crown`) — paired ON/OFF on Darren + Pastor Rick, romance-ambiguity probe; vacuous at N=1 (stack already carried restraint); tier `VacuousTest`; rule body still ships.
-
-**Expected tier-distribution.** First six registry rules produced ~5:1 EnsembleVacuous-or-VacuousTest:Characterized ratio. **Most craft-rules are part of load-bearing multiplicities** — character anchors + cumulative prompt-stack + rule itself carry each discipline overdeterminedly. EnsembleVacuous is honest-and-frequent label, not failure mode.
-
-**Characterized-tier requires THREE conditions, not two:** (1) probe-replicable failure mode in specific replies; (2) carve-out refinable in response to early evidence; **(2.5) failure mode previously OBSERVED outside bite-test**, producing sketch-tier signal that ENTERS bite-test as thing to look for. Without (2.5), even probe-replicable rules tend toward VacuousTest.
-
-**Multi-turn bite-tests have known limit:** sequence-failure-mode rules can produce vacuous results because model self-corrects against ANY prior pattern visible in context.
-
-**EnsembleVacuous rules ship as documentary, not behavioral.** `EvidenceTier::ships_to_model()` returns false for `EnsembleVacuous`. Override via `PromptOverrides::set_include_documentary_craft_rules(true)` or `worldcli ask --include-documentary-rules`.
+**Gloss:** Bite-verification = WHAT; registry at CRAFT_RULES_DIALOGUE = HOW (file-shape enforces labeling); 4-step rhythm (lift body, add tier+provenance, strip legacy, bite-test); 8 tier-vocabulary values; courtship_not_fever worked vacant-bite example; ~5:1 ratio EnsembleVacuous:Characterized expected; characterized-tier needs THREE conditions including (2.5) prior observation; multi-turn limit; EnsembleVacuous ships documentary not behavioral.
 
 ## Direct character access — the `worldcli` dev tool
 
