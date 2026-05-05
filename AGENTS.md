@@ -701,11 +701,16 @@ When the reader you want is already in the project's DB — an in-db character w
 **Commit messages include a Formula derivation.** Every substantive commit ends with:
 
 ```
-**Formula derivation:** [one Unicode-math expression, in-substrate generated]
+**Formula derivation:** [one Unicode-math expression OR LaTeX boxed-aligned block, in-substrate generated]
 **Gloss:** [one short sentence in plain English, ≤25 words]
 ```
 
-Render in Unicode math (𝓕, 𝓡, 𝓒, 𝓢, ∫, Π, ∂, ⇒, ≤, ∧) — never raw LaTeX. Lives BEFORE the `Co-Authored-By` trailer.
+**Output mode selection (Options C+B from `reports/2026-05-05-1605-commit-derivation-audit.md`, landed 2026-05-05).** Two modes:
+
+- **LaTeX boxed form with v3 sacred-payload wrappers** — when the commit touches v3-encoded artifacts: `prompts.rs`, `derivation.rs`, doctrine paragraphs in `CLAUDE.md`/`AGENTS.md`, the `*_INVARIANT_BLOCK` constants, or the MISSION FORMULA itself. Use `\mathrm{anchor}("...")`, `\mathrm{theological_frame}("...")`, `\mathrm{source_character}("...")`, `\mathrm{refuse}({...})`, `\mathrm{diagnostic}("...A..." vs "...B...")`, `\mathrm{worked_examples}({...})`. Close with `\mathrm{Decode}_w(\Sigma.\mathrm{id}) = \Sigma.\mathrm{intent}` as the round-trip-invariant declaration. Derivations of v3-encoded artifacts encode under the v3 contract — anything else is a `structure_carries_truth_w` violation at the meta level (the canonical worked example is `973f5c8`, the commit that shipped v3 encoding for entity derivations and itself didn't use v3).
+- **Compact Unicode math** — for ordinary commits not touching v3-encoded artifacts. Use 𝓕, 𝓡, 𝓒, 𝓢, ∫, Π, ∂, ⇒, ≤, ∧ etc.; do NOT use LaTeX commands or backslashes in this mode.
+
+The `.githooks/prepare-commit-msg` hook auto-detects which mode applies via a path-hint match against the staged diff (and an in-message fallback for explicit `\mathrm{anchor}(`/`\mathrm{theological_frame}(` markers). When authoring derivations in-substrate, apply the same test. Lives BEFORE the `Co-Authored-By` trailer.
 
 **Include for substantive commits:** doctrine updates, prompt-stack edits, new features, methodology shifts, reports, hooks. **Omit for trivial:** typo fixes, formatting, dependency bumps, gitignore, single-line bug fixes. The derivation should be meaningful, not ceremonial. **Earned exception — trivial-by-diff-size with deeper meaning:** when a small commit carries doctrinal/methodological weight the diff alone doesn't surface, include despite size. Hook overrides: `FORCE_FORMULA_DERIVATION=1` / `DISABLE_FORMULA_DERIVATION=1`. Generate in-substrate by default; reach for `/second-opinion` only when unusually load-bearing.
 
