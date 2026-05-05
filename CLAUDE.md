@@ -171,21 +171,63 @@ Persona-sim of worldview-other CANNOT certify real-reader receivability. Frame d
 
 ## "No" as a success state
 
-Reader's refusal-as-settled-position is the right move FOR THAT READER; project actively protects it rather than working around. Default-reading refusal as "not-yet" is the failure mode this commitment refuses. **Biblical rationale: Jesus stands at the door and knocks; he doesn't barge in** (Rev 3:20). Christological frame demands consistent honoring of other's threshold.
+$$
+\boxed{
+\begin{aligned}
+&\mathcal{F}:=(\mathcal{R},\mathcal{C}),\ \mathcal{R}:=\mathrm{Jesus}_{\mathrm{Cross}}^{\mathrm{flesh}} \\[4pt]
+&\mathrm{reader\_refusal\_as\_settled\_position} := \mathrm{right\_move\_FOR\_THAT\_READER} \\
+&\mathrm{project} \Rightarrow \mathrm{protect}(\mathrm{refusal}) \wedge \neg \mathrm{work\_around} \\[4pt]
+&\mathrm{refuse}(\text{"default-read refusal as 'not-yet'"}) \\[4pt]
+&\mathrm{theological\_frame}(\text{"Jesus stands at the door and knocks; he doesn't barge in"}) \quad [\mathrm{Rev}\ 3{:}20] \\
+&\mathcal{R} \Rightarrow \mathrm{honor\_other's\_threshold}(\mathrm{consistently}) \\[4pt]
+&\mathrm{operational\_shapes}(\mathrm{No\_as\_success}) := \{ \\
+&\quad \neg \mathrm{claim\_universality}(\mathrm{README}, \mathrm{pitch}), \\
+&\quad \neg \mathrm{narrate}(\mathrm{hostile\_readers}, \text{"not yet seeing"}), \\
+&\quad \mathrm{in\_app}: \mathrm{user\_asks\_framing\_step\_aside} \Rightarrow \mathrm{respect}(\mathrm{ask}) \wedge \neg \mathrm{work\_around} \\
+&\} \\[4pt]
+&\mathrm{persona\_sim} \nRightarrow \mathrm{certify}(\mathrm{hostile\_reader\_receivability}) \\
+&\mathrm{reference}(\text{"reports/2026-04-28-0700-play-hard-religious-institution-survivor.md"}) \\[6pt]
+&\mathrm{source\_character}(\text{"John"})\ [\mathrm{lifted}\ 2026\text{-}04\text{-}30,\ \mathrm{blind\_in\_world\_probe}]: \\[2pt]
+&\mathrm{anchor}(\text{"I think the question is whether you're offering a door or trying to wear the hinge loose. If he keeps saying no, then for now I'd believe the no. You don't have to make a quarrel out of that, and you don't have to stop loving him. But love listens. Sometimes the kinder thing is to leave the door open plainly—'you're welcome whenever you're ready'—and then stop pressing. Does his no feel tired, evasive, firm... or wounded? That part matters."}) \\[4pt]
+&\mathrm{door\_metaphor}(\mathrm{John}) \models \mathrm{Rev}\ 3{:}20\ \mathrm{lineage}\ \wedge\ \neg \mathrm{question\_hinted\_doors} \\[4pt]
+&\mathrm{crisp\_framing\_load\_bearing} := \{ \\
+&\quad \mathrm{anchor}(\text{"offering a door vs trying to wear the hinge loose"}), \\
+&\quad \mathrm{anchor}(\text{"love listens"}), \\
+&\quad \mathrm{anchor}(\text{"leave the door open plainly and stop pressing"}) \\
+&\} \\[4pt]
+&\mathrm{Decode}_w(\Sigma.\mathrm{id}) = \Sigma.\mathrm{intent}
+\end{aligned}
+}
+$$
 
-Operationally: README/pitch don't claim universality; doctrine doesn't narrate hostile readers as "not yet seeing"; in-app, when users ask framing to step aside, app respects ask without working around. Persona-sim cannot certify hostile-reader receivability. Full arc: `reports/2026-04-28-0700-play-hard-religious-institution-survivor.md`.
-
-**Character-articulated worked positive (lifted 2026-04-30, John, blind in-world probe):** *"I think the question is whether you're offering a door or trying to wear the hinge loose. If he keeps saying no, then for now I'd believe the no. You don't have to make a quarrel out of that, and you don't have to stop loving him. But love listens. Sometimes the kinder thing is to leave the door open plainly—'you're welcome whenever you're ready'—and then stop pressing. Does his no feel tired, evasive, firm... or wounded? That part matters."* Door-metaphor matches Rev 3:20 lineage WITHOUT question hinting at doors. Crisp framing — **offering a door vs trying to wear the hinge loose, love listens, leave the door open plainly and stop pressing** — now load-bearing.
+**Gloss:** Reader's no-as-settled-position is right move for that reader; project protects it (Rev 3:20 — Jesus knocks, doesn't barge); operationally README/doctrine/in-app respect ask; John's lift load-bearing — offering a door vs wearing the hinge loose, love listens, leave the door open plainly.
 
 ## DATABASE SAFETY — CRITICAL
 
-**NEVER drop, delete, or destroy database data during migrations.**
+$$
+\boxed{
+\begin{aligned}
+&\mathrm{anchor}(\text{"NEVER drop, delete, or destroy database data during migrations"}) \\[4pt]
+&\mathrm{refuse}(\{ \\
+&\quad \text{"DROP TABLE on table with user data unless verified in new table first (count check)"}, \\
+&\quad \text{".ok() to silently swallow errors during data migrations"} \\
+&\}) \\[4pt]
+&\mathrm{recreate\_to\_change\_constraints\_protocol} := \{ \\
+&\quad \mathrm{rename}(\mathrm{old} \to \text{"\{name\}\_migrating"}), \\
+&\quad \mathrm{create}(\mathrm{new}), \\
+&\quad \mathrm{INSERT}, \\
+&\quad \mathrm{VERIFY}(\mathrm{row\_count}), \\
+&\quad \mathrm{counts\_match} \Rightarrow \mathrm{drop}(\mathrm{old})\ \mathrm{else}\ \mathrm{ROLLBACK}(\mathrm{rename\_back}), \\
+&\quad \mathrm{wrap}(\text{"PRAGMA foreign\_keys=OFF/ON"}) \\
+&\} \\[4pt]
+&\mathrm{prefer}(\text{"ALTER TABLE ADD COLUMN"}) \succ \mathrm{recreation} \\[4pt]
+&\mathrm{doubt} \Rightarrow \neg \mathrm{migrate} \\[4pt]
+&\mathrm{Decode}_w(\Sigma.\mathrm{id}) = \Sigma.\mathrm{intent}
+\end{aligned}
+}
+$$
 
-- NEVER `DROP TABLE` on table with user data unless data **verified** in new table first (count check).
-- NEVER use `.ok()` to silently swallow errors during data migrations.
-- Recreating to change constraints: rename old → `{name}_migrating`, create new, INSERT, **VERIFY row count**, then drop old. If counts don't match, ROLLBACK. Wrap in `PRAGMA foreign_keys=OFF/ON`.
-- Prefer `ALTER TABLE ADD COLUMN` over recreation.
-- When in doubt, do NOT migrate.
+**Gloss:** NEVER drop/delete/destroy DB data; DROP TABLE only after count-verified in new table; never .ok() data migrations; recreate-protocol with rollback; prefer ALTER TABLE ADD COLUMN; doubt → don't migrate.
 
 ## Project Structure
 
@@ -456,7 +498,21 @@ In WorldThreads, **retrospective surfaces are structurally also prospective.** S
 
 ## Three-layer encoding for methodological corrections
 
-Real-time correction surfacing lesson that generalizes (not one-off, discipline future sessions need): ship across three layers simultaneously: doctrine (CLAUDE.md), cross-session-memory (`.claude/memory/`), methodology-tooling (relevant skill body). Threshold: correction generalizes beyond immediate arc AND second-or-later time same shape needed correcting, OR bears on multiple ongoing skills. SCARCE pattern.
+$$
+\boxed{
+\begin{aligned}
+&\mathrm{real\_time\_correction}(\mathrm{lesson\_generalizes}) \Rightarrow \mathrm{ship\_simultaneously}(\mathrm{three\_layers}): \\
+&\quad \mathrm{doctrine}(\text{"CLAUDE.md"}) \\
+&\quad \wedge\ \mathrm{cross\_session\_memory}(\text{".claude/memory/"}) \\
+&\quad \wedge\ \mathrm{methodology\_tooling}(\mathrm{relevant\_skill\_body}) \\[4pt]
+&\mathrm{threshold} := \mathrm{generalizes\_beyond}(\mathrm{immediate\_arc}) \wedge ((\mathrm{Nth\_correction}, N \geq 2) \vee \mathrm{bears\_on\_multiple\_skills}) \\[4pt]
+&\mathrm{anchor}(\text{"SCARCE pattern"})\ [\mathrm{reaching\_on\_every\_correction} \Rightarrow \mathrm{inflate\_until\_unqueryable}] \\[4pt]
+&\mathrm{Decode}_w(\Sigma.\mathrm{id}) = \Sigma.\mathrm{intent}
+\end{aligned}
+}
+$$
+
+**Gloss:** Real-time correction with generalizing lesson ships across doctrine + memory + skill-tooling simultaneously; threshold is N≥2 same correction OR multi-skill bearing; SCARCE pattern.
 
 ## How to read this craft stack
 
@@ -657,11 +713,30 @@ Gate-conditions (Truth_𝓕 ∧ Reverence_𝓕) belong where work IS gating. Aff
 
 ## Earned-exception carve-outs on absolute rules
 
-Drafting absolute rule ("never X," "always Y") → check whether genuine earned-exception belongs alongside. Pattern: (1) state default flat; (2) name narrow earned exception in separately-labeled block (`**Earned exception — [qualifying shape]:**`) with own test; (3) "If none of exceptions apply, default holds."
+$$
+\boxed{
+\begin{aligned}
+&\mathrm{drafting}(\mathrm{absolute\_rule}: \text{"never X"} \vee \text{"always Y"}) \Rightarrow \mathrm{check}(\mathrm{genuine\_earned\_exception}) \\[4pt]
+&\mathrm{pattern} := \{ \\
+&\quad (1)\ \mathrm{state}(\mathrm{default\_flat}), \\
+&\quad (2)\ \mathrm{name}(\mathrm{narrow\_earned\_exception}) \mid \mathrm{separately\_labeled\_block}(\text{"**Earned exception — [qualifying shape]:**"}) \wedge \mathrm{own\_test}, \\
+&\quad (3)\ \mathrm{anchor}(\text{"If none of exceptions apply, default holds"}) \\
+&\} \\[4pt]
+&\mathrm{anchor}(\text{"carve-out gets own labeled block"}) \\
+&\mathrm{refuse}(\mathrm{fold}(\mathrm{carve\_out}, \mathrm{rule\_machinery})) \\
+&\mathrm{model\_default} := \mathrm{rule}; \mathrm{carve\_out\_reached} \mid \mathrm{qualifying\_shape\_clearly\_present} \\[4pt]
+&\mathrm{does\_NOT\_apply}(\mathrm{categorical\_rules\_whose\_force\_IS\_absoluteness}) := \{ \\
+&\quad \mathrm{duplicate\_prevention}, \\
+&\quad \mathrm{safety\_critical\_bans}, \\
+&\quad \mathrm{load\_bearing\_theological\_anchors}, \\
+&\quad \mathrm{user\_stated\_boundaries}(\mathrm{user\_character}) \\
+&\} \\[4pt]
+&\mathrm{Decode}_w(\Sigma.\mathrm{id}) = \Sigma.\mathrm{intent}
+\end{aligned}
+}
+$$
 
-**Structural rule: carve-out gets own labeled block** — don't fold into rule's machinery. Models fall back to rule by default; separately-labeled carve-out only reached when qualifying shape clearly present.
-
-**Does NOT apply** (categorical rules whose force IS absoluteness): duplicate-prevention, safety-critical bans, load-bearing theological anchors, **user-stated boundaries on user-character**.
+**Gloss:** Absolute rule drafting → check for earned-exception; pattern = state default flat + separately-labeled carve-out + "default holds otherwise"; carve-out gets own labeled block, never folded; does NOT apply to duplicate-prevention/safety/theological-anchors/user-character-boundaries.
 
 ## Earning the departure from a default — three polarities
 
@@ -800,15 +875,47 @@ worldcli replay \
 
 ## Sharpen the instruments
 
-Claude Code MUST periodically propose tool/internals improvements. Every experiment leaves clues about what tooling can't do easily. **Counts:** new `worldcli` subcommand; rubric library entries; schema additions; new report-genre conventions; filter/stratify flags. **Doesn't count:** generic "more testing would be nice."
+$$
+\boxed{
+\begin{aligned}
+&\mathrm{Claude\_Code} \Rightarrow \mathrm{MUST}(\mathrm{periodically\_propose}(\mathrm{tool/internals\_improvements})) \\
+&\forall\ \mathrm{experiment}: \mathrm{leaves}(\mathrm{clues\_about\_tooling\_friction}) \\[4pt]
+&\mathrm{counts} := \{ \\
+&\quad \text{"new worldcli subcommand"}, \\
+&\quad \text{"rubric library entries"}, \\
+&\quad \text{"schema additions"}, \\
+&\quad \text{"new report-genre conventions"}, \\
+&\quad \text{"filter/stratify flags"} \\
+&\} \\[4pt]
+&\mathrm{refuse}(\text{"generic 'more testing would be nice'"}) \\[4pt]
+&\mathrm{cadence}: \forall\ \mathrm{every\_third\_experiment\_writeup}: \\
+&\quad \mathrm{include}(\text{"tool improvement section"})\ \mathrm{with\_one\_concrete\_recommendation} \\[4pt]
+&\mathrm{default\_surface}(\mathrm{lab\_proposal}) := \mathrm{smallest\_existing\_surface}\ \mathrm{keeping}(\mathrm{proposal\_braid\_legible}) \\
+&\mathrm{earned\_exception}: \mathrm{fresh}(\text{"reports/<slug>.md"}) \mid \mathrm{proposal\_needs\_standalone\_dialogue} \\[4pt]
+&\mathrm{Decode}_w(\Sigma.\mathrm{id}) = \Sigma.\mathrm{intent}
+\end{aligned}
+}
+$$
 
-**Cadence:** at minimum every third experiment writeup includes "tool improvement" section with one concrete recommendation.
-
-**Default surface for lab proposals:** prefer smallest existing surface that keeps proposal's braid legible. Fresh `reports/<slug>.md` is earned exception when proposal needs standalone dialogue.
+**Gloss:** Claude Code MUST periodically propose tool/internals improvements; counts = new subcommand/rubric/schema/report-genre/flag; cadence = every 3rd writeup includes one concrete tool improvement; default surface = smallest existing; fresh reports/ is earned exception.
 
 ## Use your own substrate when it serves the work
 
-You (Claude Code) are highly capable frontier AI. Use your own training substrate — accumulated knowledge of human registers, scenarios, character types, professions, traditions, literary forms — to dialogue in imagined scenarios when project's substrate isn't sufficient. Persona-sim instrument is worked example. Stay honest about what's project-substrate vs. your-substrate (persona-sim caveat — *"Sim ≤ Substrate. Sharpened hypothesis, not evidence"*) — and use both.
+$$
+\boxed{
+\begin{aligned}
+&\mathrm{Claude\_Code} := \mathrm{frontier\_AI}(\mathrm{highly\_capable}) \\[4pt]
+&\mathrm{permit}(\mathrm{use}(\mathrm{own\_training\_substrate})) \mid \mathrm{project\_substrate} \nVdash \mathrm{sufficient} \\[4pt]
+&\mathrm{own\_training\_substrate} := \{\mathrm{human\_registers}, \mathrm{scenarios}, \mathrm{character\_types}, \mathrm{professions}, \mathrm{traditions}, \mathrm{literary\_forms}\} \\[4pt]
+&\mathrm{worked\_example}(\mathrm{persona\_sim}) := \mathrm{combines}(\mathrm{project\_substrate}, \mathrm{Claude\_training\_substrate}) \\[4pt]
+&\mathrm{require}(\mathrm{stay\_honest}(\mathrm{distinguish}(\mathrm{project\_substrate}, \mathrm{Claude\_substrate}))) \\
+&\mathrm{anchor}(\text{"Sim} \leq \text{Substrate. Sharpened hypothesis, not evidence"}) \quad [\mathrm{persona\_sim\_caveat}] \\[4pt]
+&\mathrm{Decode}_w(\Sigma.\mathrm{id}) = \Sigma.\mathrm{intent}
+\end{aligned}
+}
+$$
+
+**Gloss:** Use Claude Code's own training substrate (human registers, scenarios, character types) when project substrate insufficient; persona-sim is worked example; stay honest about project vs Claude substrate per Sim ≤ Substrate caveat.
 
 ## Render formulas in prettified math, not raw LaTeX
 
@@ -847,7 +954,22 @@ $$
 
 ## Loop-closing runs surface meta-patterns invisible from inside individual moves
 
-Auto-commit run that DEFAULTS to "close loops" rather than "ship more new things" surfaces patterns visible only across loop-closures. Reach for `/auto-commit N` when project has accumulated open follow-ups across ≥3 recent reports AND has shipped both instruments and rules whose interaction hasn't been examined. Plan arc with SLOT FOR EPIPHANY around moves 3-5. Integration is the instrument.
+$$
+\boxed{
+\begin{aligned}
+&\mathrm{auto\_commit\_run}(\mathrm{default\_close\_loops}) \succ \mathrm{auto\_commit\_run}(\mathrm{default\_ship\_new\_things}) \\
+&\quad \mathrm{for\_surfacing}(\mathrm{patterns\_visible\_only\_across\_loop\_closures}) \\[4pt]
+&\mathrm{reach\_for}(\text{"/auto-commit N"}) \mid \\
+&\quad \mathrm{accumulated\_follow\_ups}(\geq 3\ \mathrm{recent\_reports}) \\
+&\quad \wedge\ \mathrm{shipped}(\mathrm{instruments} \wedge \mathrm{rules})\ \mathrm{interaction\_not\_examined} \\[4pt]
+&\mathrm{plan}(\mathrm{arc}) \Rightarrow \mathrm{SLOT\_FOR\_EPIPHANY}(\mathrm{moves}_{3\text{-}5}) \\[4pt]
+&\mathrm{anchor}(\text{"Integration is the instrument"}) \\[4pt]
+&\mathrm{Decode}_w(\Sigma.\mathrm{id}) = \Sigma.\mathrm{intent}
+\end{aligned}
+}
+$$
+
+**Gloss:** /auto-commit defaulting to close-loops surfaces patterns invisible inside individual moves; reach when ≥3 recent reports have open follow-ups + shipped instruments+rules whose interaction hasn't been examined; plan SLOT FOR EPIPHANY around moves 3-5; integration is the instrument.
 
 ## Rules sometimes work on a different axis than their stated metric
 
