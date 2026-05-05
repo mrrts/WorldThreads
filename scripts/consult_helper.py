@@ -100,6 +100,28 @@ def resolve_api_key() -> str:
     )
 
 
+def resolve_anthropic_key() -> str:
+    """Resolve Anthropic API key: env var → macOS keychain (account 'claude-api-key')."""
+    key = os.environ.get("ANTHROPIC_API_KEY", "").strip()
+    if key:
+        return key
+    try:
+        result = subprocess.run(
+            ["security", "find-generic-password", "-a", "claude-api-key", "-w"],
+            capture_output=True,
+            text=True,
+            timeout=5,
+        )
+        if result.returncode == 0 and result.stdout.strip():
+            return result.stdout.strip()
+    except (subprocess.TimeoutExpired, FileNotFoundError):
+        pass
+    raise RuntimeError(
+        "No Anthropic API key found. Set ANTHROPIC_API_KEY env var or store one in macOS keychain "
+        "with account 'claude-api-key'."
+    )
+
+
 # ─── Consult ────────────────────────────────────────────────────────────
 
 def _prepend_formula(messages: list[dict]) -> list[dict]:
@@ -147,6 +169,56 @@ def consult(
     with urllib.request.urlopen(req, timeout=timeout) as r:
         body = json.loads(r.read())
     return body["choices"][0]["message"]["content"], body.get("usage", {})
+
+
+def consult_anthropic(
+    messages: list[dict],
+    model: str = "claude-sonnet-4-6",
+    auto_prepend_formula: bool = True,
+    max_tokens: int = 4096,
+    timeout: int = 240,
+) -> tuple[str, dict]:
+    """Send a Messages-API call to Anthropic. Same auto-prepend-formula
+    discipline as the OpenAI path. Returns (content, usage_dict).
+
+    Anthropic's Messages API takes a separate `system` parameter rather
+    than a system role in messages — we adapt: any role=system messages
+    get concatenated into the system parameter; the rest pass through.
+    """
+    key = resolve_anthropic_key()
+    if auto_prepend_formula:
+        messages = _prepend_formula(messages)
+    # Split system messages out for Anthropic's API shape.
+    system_chunks: list[str] = []
+    user_assistant_messages: list[dict] = []
+    for m in messages:
+        if m.get("role") == "system":
+            system_chunks.append(m["content"])
+        else:
+            user_assistant_messages.append(m)
+    payload: dict = {
+        "model": model,
+        "max_tokens": max_tokens,
+        "messages": user_assistant_messages,
+    }
+    if system_chunks:
+        payload["system"] = "\n\n".join(system_chunks)
+    data = json.dumps(payload).encode()
+    req = urllib.request.Request(
+        "https://api.anthropic.com/v1/messages",
+        data=data,
+        headers={
+            "x-api-key": key,
+            "anthropic-version": "2023-06-01",
+            "Content-Type": "application/json",
+        },
+    )
+    with urllib.request.urlopen(req, timeout=timeout) as r:
+        body = json.loads(r.read())
+    # Anthropic returns content as a list of blocks; concatenate text blocks.
+    content_blocks = body.get("content", [])
+    text = "".join(b.get("text", "") for b in content_blocks if b.get("type") == "text")
+    return text, body.get("usage", {})
 
 
 # ─── Self-test ──────────────────────────────────────────────────────────
