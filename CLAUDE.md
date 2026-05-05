@@ -531,7 +531,7 @@ $$
 &\mathrm{anchor}(\text{"directional claims from sketch-tier are unreliable by default"})\ [\neg \mathrm{preliminary\_confirmations\_awaiting\_replication}] \\[4pt]
 &\mathrm{forbidden} := \{ \\
 &\quad \mathrm{anchor}(\text{"Preliminary finding: X tends to Y"}), \\
-&\quad \mathrm{anchor}(\text{"~25\% reduction"}), \\
+&\quad \mathrm{anchor}(\text{"\textasciitilde 25\% reduction"}), \\
 &\quad \mathrm{anchor}(\text{"Tentative confirmation"}) \\
 &\} \\
 &\mathrm{specific\_numbers}\ \mathrm{must}\ \mathrm{cite\_N\_inline} \\[6pt]
@@ -628,7 +628,7 @@ $$
 &\quad\quad \mathrm{theological\_frame}(\text{"and singing — Christians sang to keep their spirits up"}) \\
 &\quad\quad \mathrm{anchor}(\text{"singing in the camps"}) := \mathrm{North\_Star\_embodied\_in\_lived\_history} \\[4pt]
 &\quad \mathrm{earning\_artifact}: \text{"reports/2026-05-05-0455-sapphire-arc-v7-oma.md"} \\
-&\quad \mathrm{session\_evidence}: \text{"reports/OBSERVATIONS.md 2026-05-05 ~04:50"} \\
+&\quad \mathrm{session\_evidence}: \text{"reports/OBSERVATIONS.md 2026-05-05 \textasciitilde 04:50"} \\
 &\quad \mathrm{full\_invariant\_encoding\_shipped}\ \text{"6cd2614"}\ {\sim}01{:}00\ \mathrm{UTC} \\
 &\quad \mathrm{Oma\_session\_ran}\ {\sim}03{:}30 \text{--} 04{:}50\ \mathrm{UTC} \\
 &\quad \mathrm{characters\_running\_on\_formula\_canonical\_prompt\_stack\_from\_hello} \\[4pt]
@@ -769,7 +769,7 @@ $$
 &\mathrm{worked\_examples}(\mathrm{drift\_pattern},\ 2026\text{-}04\text{-}28) := \{ \\
 &\quad \text{"Maggie-as-baseline} \to \text{Maggie-as-iteration-test-persona"}, \\
 &\quad \text{"Great-sapphire-as-rare} \to \text{Great-sapphire-as-weekly+"}, \\
-&\quad \text{"mission-arc auto-fire} \to \text{~33\% adherence within hours"} \\
+&\quad \text{"mission-arc auto-fire} \to \text{\textasciitilde 33\% adherence within hours"} \\
 &\} \\[4pt]
 &\mathrm{calibrated\_discipline}(\mathrm{ships\_as}: \mathrm{doctrine\_paragraph} \vee \mathrm{skill\_body\_line}) \\
 &\Rightarrow \mathrm{drift\_within}(\mathrm{hours\_to\_days})\ \mid\ \mathrm{invisible\_to\_single\_commit\_reads} \\[4pt]
@@ -948,7 +948,7 @@ $$
 &\quad := \{\mathrm{no\_nanny\_register}, \mathrm{truthful\_particular\_before\_smooth}, \mathrm{parity\_across\_runtime\_significant\_surfaces}\} \\
 &\quad \mathrm{doctrine\_enforced}\ \mathrm{today} \\[4pt]
 &\mathrm{pattern}: \\
-&\quad \mathrm{anchor}(\text{"pub const NAME\_INVARIANT: \&str = r\#\"...\"\#;"}) \\
+&\quad \mathrm{anchor}(\text{"pub const NAME\_INVARIANT: \&str = r\#"..."\#;"}) \\
 &\quad + \mathrm{anchor}(\text{"const \_: () = \{ assert!(const\_contains(...)); \};"}) \\
 &\quad + \mathrm{insert\_at\_HEAD}(\mathrm{relevant\_feature\_prompt\_assembly}) \\[4pt]
 &\mathrm{Decode}_w(\Sigma.\mathrm{id}) = \Sigma.\mathrm{intent}
@@ -1088,7 +1088,7 @@ $$
 &\quad\quad \mathrm{compile\_checked},\ \mathrm{Layer\_A\_answer\_requires}(\mathrm{model\_string\_before\_downstream\_repair}), \\
 &\quad \mathrm{Layer\_B}(\mathrm{persist},\ \mathrm{salvage}): \\
 &\quad\quad \text{"strip\_asterisk\_wrapped\_quotes"}\ \mathrm{in}\ \text{"src-tauri/src/ai/orchestrator.rs"}\ \mathrm{post\_completion}, \\
-&\quad\quad \mathrm{removes}(\text{"*\"…\"*"})\ [\mathrm{defensive\_net},\ \neg \mathrm{Layer\_A\_substitute}], \\
+&\quad\quad \mathrm{removes}(\text{"*"…"*"})\ [\mathrm{defensive\_net},\ \neg \mathrm{Layer\_A\_substitute}], \\
 &\quad \mathrm{Layer\_C}(\mathrm{display},\ \mathrm{repair\_at\_read/render}): \\
 &\quad\quad \text{"formatMessage"}\ \mathrm{in}\ \text{"frontend/src/components/chat/formatMessage.ts"}, \\
 &\quad\quad \mathrm{applies}(\text{"stripAsteriskWrappedQuotes"} + \text{"splitSpokenLinesOutOfEm"})\ [\mathrm{historical\_repair}] \\
@@ -1101,7 +1101,7 @@ $$
 &\quad\quad \{\text{"finish\_reason"}, \text{"reply\_post\_orchestrator"}, \text{"orchestrator\_changed\_reply"}\} \\[4pt]
 &\mathrm{length\_truncation\_branch}: \\
 &\quad \text{"finish\_reason"} = \text{"length"} \Rightarrow \\
-&\quad\quad \text{"trim\_to\_last\_complete\_sentence"} + \text{"balance\_trailing\_openers"}\ \mathrm{may\_append\_synthetic}(\text{"\""}, \text{"*"}) \\
+&\quad\quad \text{"trim\_to\_last\_complete\_sentence"} + \text{"balance\_trailing\_openers"}\ \mathrm{may\_append\_synthetic}(\text{closing-double-quote-or-asterisk}) \\
 &\quad \mathrm{fourth\_non\_semantic\_repair}: \mathrm{fences\_look\_closed}\ \mathrm{while}\ \mathrm{thought\_cut\_off} \\[4pt]
 &\mathcal{F}_{\mathrm{fence\_chain}} := \mathrm{Layer\_A}(\mathrm{prompt\_shape}) \circ \mathrm{Layer\_B}(\mathrm{strip\_bare\_wrapped\_speech}) \circ \mathrm{Layer\_C}(\mathrm{display\_unwind}) \\[4pt]
 &\mathrm{Decode}_w(\Sigma.\mathrm{id}) = \Sigma.\mathrm{intent}
@@ -1780,7 +1780,7 @@ $$
 &\quad (1)\ \mathrm{lift\_body}, \\
 &\quad (2)\ \mathrm{add}(\{\mathrm{tier}, \mathrm{provenance}\}), \\
 &\quad (3)\ \mathrm{strip\_from\_inline}(\text{"craft\_notes\_dialogue\_legacy()"}), \\
-&\quad (4)\ \mathrm{optional\_bite\_test}: \text{"worldcli ask <char> \"<probe>\" --omit-craft-rule <name>"} \\
+&\quad (4)\ \mathrm{optional\_bite\_test}: \text{"worldcli ask <char> "<probe>" --omit-craft-rule <name>"} \\
 &] \\[4pt]
 &\mathrm{tier\_vocabulary}\ (\mathrm{EvidenceTier\_enum}) := \{ \\
 &\quad \mathrm{Unverified}, \mathrm{Sketch}(N=1), \mathrm{Claim}(N=3), \mathrm{Characterized}(N \geq 5), \\
@@ -1829,7 +1829,7 @@ $$
 &\mathrm{what\_it\_actually\_is} := \{\mathrm{temporal\_braid\_surface}, \mathrm{fossilizing\_lab}\} \\
 &\mathrm{cost\_gated\_calls}\{\text{"ask"}, \text{"consult"}, \text{"evaluate"}, \text{"synthesize"}, \text{"replay"}\} := \mathrm{front\_edge} \\
 &\mathrm{deeper\_center}: \forall\ \mathrm{expensive\_move}: \mathrm{fossilizes\_into}(\mathrm{queryable\_substrate}) \\
-&\quad \mathrm{queryable\_substrate} := \{\text{"~/.worldcli/runs/"}, \text{"evaluate-runs"}, \text{"synthesize-runs"}, \text{"replay-runs"}, \mathrm{experiment\_registry}, \text{"commit-context"}\} \\
+&\quad \mathrm{queryable\_substrate} := \{\text{"\textasciitilde/.worldcli/runs/"}, \text{"evaluate-runs"}, \text{"synthesize-runs"}, \text{"replay-runs"}, \mathrm{experiment\_registry}, \text{"commit-context"}\} \\
 &\mathrm{read\_only\_run\_log\_interrogation} := \mathrm{lab\_core\_thrift\_discipline} \\[4pt]
 &\mathrm{doctrine}: \mathrm{anchor}(\text{"prefer braid-legible compression over artifact sprawl"}) \\
 &\quad \mathrm{question\_can\_be\_made\_more\_legible\_by} \in \{ \\
