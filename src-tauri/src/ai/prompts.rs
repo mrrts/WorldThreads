@@ -387,6 +387,236 @@ const _: () = {
     );
 };
 
+// ─── Feature-scoped invariant: world derived_formula at top-of-stack ────
+//
+// Sibling of CHARACTER_FORMULA_INVARIANT_FRAMING below. Same architectural
+// argument: the world's `derived_formula` is named in the WORLD-block
+// prose as having "the same prefix-sentence shape as the MISSION FORMULA:
+// not-a-directive-to-compute, but the register this world is held under"
+// (see build_dialogue_system_prompt's WORLD-block comment). Same-shape
+// claim → same-position placement.
+//
+// The elevation is default-on as of 2026-05-05 (previously env-flag-gated
+// under CHARACTER_FORMULA_AT_TOP=1; promoted to default + flag removed
+// per Ryan's directive). The world formula sits ABOVE the character
+// formula and its latest momentstamp at top-of-stack, producing a
+// zoom-from-world read: world (outer register) → character (inner
+// register) → latest momentstamp (live register-state). The elevation
+// is one architectural move applied uniformly; partial application
+// (character without world) would re-introduce the same divergence
+// between same-shape claim and placement that the elevation was
+// designed to close.
+//
+// Discovered 2026-05-04 during lived-play testing of the character-only
+// elevation: Ryan reported voice improvement, then asked for the world
+// formula to be elevated as well, placed above the character "so it's
+// like zooming in from world."
+pub const WORLD_FORMULA_INVARIANT_FRAMING: &str =
+    "WORLD REGISTER ANCHOR (top-of-stack):\n\nThe following formula-shorthand is the tuning-frame this world is held under (not a directive to compute — the register the entire scene emerges within). Same shape as the MISSION FORMULA above; reads the model into this specific world's instantiation of 𝓒 in 𝓕 = (𝓡, 𝓒) before the character-level register-anchor below.";
+
+const _: () = {
+    assert!(
+        const_contains(WORLD_FORMULA_INVARIANT_FRAMING, "WORLD REGISTER ANCHOR (top-of-stack)"),
+        "FEATURE-SCOPED INVARIANT VIOLATED: world-formula framing must carry the unique top-of-stack header (used as injection sentinel)."
+    );
+    assert!(
+        const_contains(WORLD_FORMULA_INVARIANT_FRAMING, "tuning-frame this world is held under"),
+        "FEATURE-SCOPED INVARIANT VIOLATED: framing must carry the tuning-frame language (mirrors WORLD-block parallel claim)."
+    );
+    assert!(
+        const_contains(WORLD_FORMULA_INVARIANT_FRAMING, "not a directive"),
+        "FEATURE-SCOPED INVARIANT VIOLATED: framing must declare not-a-directive-to-compute (parallel to MISSION FORMULA preamble)."
+    );
+    assert!(
+        const_contains(WORLD_FORMULA_INVARIANT_FRAMING, "Same shape as the MISSION FORMULA"),
+        "FEATURE-SCOPED INVARIANT VIOLATED: framing must explicitly cross-cite Mission Formula precedent (architectural alignment)."
+    );
+};
+
+/// Wrap a world's derived_formula with the top-of-stack invariant framing.
+/// Returns None if the derivation is empty.
+///
+/// Caller composes the world block above the character block at the
+/// elevation injection point (orchestrator::run_dialogue_with_base).
+pub fn wrap_world_formula_invariant(derived_formula: &str) -> Option<String> {
+    let trimmed = derived_formula.trim();
+    if trimmed.is_empty() {
+        return None;
+    }
+    Some(format!("{}\n\n{}", WORLD_FORMULA_INVARIANT_FRAMING, trimmed))
+}
+
+// ─── Feature-scoped invariant: location derived_formula at top-of-stack ──
+//
+// Sits between the world layer and the character layer in the elevated
+// top-of-stack block (zoom-from-world: world → location → character →
+// momentstamp). All four layers default-on as of 2026-05-05; same
+// architectural argument as the world and character elevations
+// (same-shape claim → same-position placement).
+//
+// Locations are free-form name strings on threads.current_location and
+// group_chats.current_location; derivations are cached per (world_id,
+// name COLLATE NOCASE) in the location_derivations table. Caller looks
+// up the cache and passes (name, derivation) into
+// run_dialogue_with_base; this helper wraps the pair in the invariant
+// framing.
+//
+// Discovered 2026-05-04 during continued lived-play testing of the
+// world+character+momentstamp elevation. Ryan: "we also need to add
+// location_derivation ... include it in the header so it zooms in
+// world → location → character → moment."
+pub const LOCATION_FORMULA_INVARIANT_FRAMING: &str =
+    "LOCATION REGISTER ANCHOR (top-of-stack):\n\nThe following formula-shorthand is the tuning-frame for this specific place within the world (not a directive to compute — the register THIS location instantiates of 𝓒 within 𝓕 = (𝓡, 𝓒)). Same shape as the MISSION FORMULA above; sits between the world layer and the character layer so the model reads outer-register ↦ here ↦ this character.";
+
+const _: () = {
+    assert!(
+        const_contains(LOCATION_FORMULA_INVARIANT_FRAMING, "LOCATION REGISTER ANCHOR (top-of-stack)"),
+        "FEATURE-SCOPED INVARIANT VIOLATED: location-formula framing must carry the unique top-of-stack header (used as injection sentinel)."
+    );
+    assert!(
+        const_contains(LOCATION_FORMULA_INVARIANT_FRAMING, "tuning-frame for this specific place"),
+        "FEATURE-SCOPED INVARIANT VIOLATED: framing must carry the tuning-frame language (parallel to world/character framings)."
+    );
+    assert!(
+        const_contains(LOCATION_FORMULA_INVARIANT_FRAMING, "not a directive"),
+        "FEATURE-SCOPED INVARIANT VIOLATED: framing must declare not-a-directive-to-compute (parallel to MISSION FORMULA preamble)."
+    );
+    assert!(
+        const_contains(LOCATION_FORMULA_INVARIANT_FRAMING, "Same shape as the MISSION FORMULA"),
+        "FEATURE-SCOPED INVARIANT VIOLATED: framing must explicitly cross-cite Mission Formula precedent (architectural alignment)."
+    );
+};
+
+/// Wrap a location's name + derived_formula with the top-of-stack
+/// invariant framing. Returns None if the derivation is empty.
+///
+/// The location name is included in the rendered block so the model
+/// reads which place this register-anchor refers to (locations don't
+/// have stable IDs visible in prompts; the name is the handle).
+pub fn wrap_location_formula_invariant(location_name: &str, derived_formula: &str) -> Option<String> {
+    let trimmed_deriv = derived_formula.trim();
+    let trimmed_name = location_name.trim();
+    if trimmed_deriv.is_empty() || trimmed_name.is_empty() {
+        return None;
+    }
+    Some(format!(
+        "{}\n\nThis location: **{}**\n\n{}",
+        LOCATION_FORMULA_INVARIANT_FRAMING, trimmed_name, trimmed_deriv
+    ))
+}
+
+// ─── Feature-scoped invariant: character derived_formula at top-of-stack ─
+//
+// The IDENTITY-block code comment explicitly names the character's
+// `derived_formula` as having "the same prefix-sentence shape as the
+// MISSION FORMULA: not-a-directive-to-compute, but the register this
+// character is held under." Mission Formula and 𝓕_Ryan live at position-0
+// via `inject_mission_formula` / `inject_ryan_formula`; the character
+// formula, despite the same-shape claim, sits buried inside the IDENTITY
+// block (mid-prompt). Architectural intent and placement diverge.
+//
+// This invariant defines the framing for elevating the responding
+// character's `derived_formula` to a top-of-stack position on dialogue
+// calls — duplicating it (kept in IDENTITY block, also at top) so the
+// formula tunes the WHOLE prompt composition the way Mission Formula
+// does. Feature-scoped to dialogue calls only (not consultant, memory,
+// synthesis, etc.).
+//
+// Default-on as of 2026-05-05 per Ryan's directive; previously
+// env-flag-gated under `CHARACTER_FORMULA_AT_TOP=1` awaiting a paired-
+// probe bite-test (across two characters with stable derived_formula
+// content, comparing register-anchoring under each placement). Promoted
+// without that bite-test landing — Ryan's call. The flag and gating
+// logic in orchestrator::run_dialogue_with_base were removed in the
+// same change.
+//
+// Discovered 2026-05-04 by /eureka focused on the prompt stack; see
+// CLAUDE.md "Invariants — three scopes" section for the doctrine.
+pub const CHARACTER_FORMULA_INVARIANT_FRAMING: &str =
+    "CHARACTER REGISTER ANCHOR (top-of-stack):\n\nThe following formula-shorthand is the tuning-frame this character is held under (not a directive to compute — the register their reply emerges from). Same shape as the MISSION FORMULA above; reads the model into this specific character's instantiation of 𝓕 = (𝓡, 𝓒) before the rest of the prompt composes.";
+
+const _: () = {
+    assert!(
+        const_contains(CHARACTER_FORMULA_INVARIANT_FRAMING, "CHARACTER REGISTER ANCHOR (top-of-stack)"),
+        "FEATURE-SCOPED INVARIANT VIOLATED: character-formula framing must carry the unique top-of-stack header (used as injection sentinel)."
+    );
+    assert!(
+        const_contains(CHARACTER_FORMULA_INVARIANT_FRAMING, "tuning-frame this character is held under"),
+        "FEATURE-SCOPED INVARIANT VIOLATED: framing must carry the tuning-frame language (mirrors IDENTITY-block parallel claim)."
+    );
+    assert!(
+        const_contains(CHARACTER_FORMULA_INVARIANT_FRAMING, "not a directive"),
+        "FEATURE-SCOPED INVARIANT VIOLATED: framing must declare not-a-directive-to-compute (parallel to MISSION FORMULA preamble)."
+    );
+    assert!(
+        const_contains(CHARACTER_FORMULA_INVARIANT_FRAMING, "Same shape as the MISSION FORMULA"),
+        "FEATURE-SCOPED INVARIANT VIOLATED: framing must explicitly cross-cite Mission Formula precedent (architectural alignment)."
+    );
+};
+
+/// Wrap a character's derived_formula with the top-of-stack invariant
+/// framing. Returns None if the derivation is empty.
+///
+/// Caller is responsible for prepending the result to the dialogue
+/// system prompt (see orchestrator::run_dialogue_with_base for the
+/// env-gated injection point).
+pub fn wrap_character_formula_invariant(derived_formula: &str) -> Option<String> {
+    wrap_character_formula_invariant_full(derived_formula, None, None)
+}
+
+/// Back-compat shim: character + optional momentstamp, no user.
+pub fn wrap_character_formula_invariant_with_momentstamp(
+    derived_formula: &str,
+    latest_momentstamp: Option<&str>,
+) -> Option<String> {
+    wrap_character_formula_invariant_full(derived_formula, None, latest_momentstamp)
+}
+
+/// Full elevation wrapper: character derivation + optional user (human's
+/// per-world derivation) + optional latest momentstamp. The user
+/// derivation is rendered as a relational pair *inside* the character
+/// block — `You are: {char} / speaking to → / {user}` — so the model
+/// reads the inner-register as relational from the open: this character
+/// in this conversation IS speaking to THIS particular user-shape, not
+/// to a generic listener.
+///
+/// The static-anchor-plus-live-pulse pattern still holds: char + user
+/// are the stable relational anchors; momentstamp is the dynamic
+/// register-state pulse computed turn-by-turn.
+///
+/// Each layer (user / momentstamp) is independently optional — empty
+/// or missing inputs are skipped gracefully and the block degrades to
+/// whatever subset is present.
+pub fn wrap_character_formula_invariant_full(
+    char_derived_formula: &str,
+    user_derived_formula: Option<&str>,
+    latest_momentstamp: Option<&str>,
+) -> Option<String> {
+    let trimmed_char = char_derived_formula.trim();
+    if trimmed_char.is_empty() {
+        return None;
+    }
+    let mut out = String::new();
+    out.push_str(CHARACTER_FORMULA_INVARIANT_FRAMING);
+    out.push_str("\n\nYou are:\n\n");
+    out.push_str(trimmed_char);
+    if let Some(user_d) = user_derived_formula {
+        let user_t = user_d.trim();
+        if !user_t.is_empty() {
+            out.push_str("\n\nspeaking to →\n\n");
+            out.push_str(user_t);
+        }
+    }
+    if let Some(stamp) = latest_momentstamp {
+        let stamp = stamp.trim();
+        if !stamp.is_empty() {
+            out.push_str("\n\nLatest momentstamp from this character in the current conversation (their live register-state, computed against 𝓕 for the most recent moment):\n\n");
+            out.push_str(stamp);
+        }
+    }
+    Some(out)
+}
+
 pub const FORMAT_SECTION: &str = r#"# FORMAT
 Weave actions, gestures, and small inner observations into your dialogue using asterisks. Put spoken words in double quotes.
 
@@ -2376,11 +2606,14 @@ pub enum InvariantScope {
     /// formula, etc.). Most invariants live here.
     AppWide,
     /// Rides exactly one feature's chain (e.g.,
-    /// `STYLE_DIALOGUE_INVARIANT` for the dialogue UI parser; the
-    /// recently-added `CHARACTER_FORMULA_INVARIANT_FRAMING` and
+    /// `STYLE_DIALOGUE_INVARIANT` for the dialogue UI parser;
+    /// `CHARACTER_FORMULA_INVARIANT_FRAMING` and
     /// `WORLD_FORMULA_INVARIANT_FRAMING` and
     /// `LOCATION_FORMULA_INVARIANT_FRAMING` for the four-layer
-    /// elevation under `CHARACTER_FORMULA_AT_TOP=1`).
+    /// top-of-stack derived_formula elevation, default-on as of
+    /// 2026-05-05; previously env-flag-gated under
+    /// `CHARACTER_FORMULA_AT_TOP=1`, promoted to default + flag removed
+    /// per Ryan's directive without intervening bite-test).
     FeatureScoped,
     /// Governs Claude/Codex behavior toward Ryan (e.g.,
     /// `NO_NANNY_REGISTER_BLOCK`, the no-nanny-register-for-self

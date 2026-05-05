@@ -124,6 +124,10 @@ pub enum DerivationKey {
     World(String),
     /// User-in-world (user_profile per world).
     UserInWorld(String),
+    /// Per-(world, location-name) location derivation cache. Name is
+    /// stored case-insensitive (lowercased) for dedupe stability since
+    /// the underlying table is COLLATE NOCASE.
+    Location(String, String),
 }
 
 /// In-memory inflight tracker. Mutex<HashMap<key, started_at>>. TTL 30s
@@ -357,6 +361,64 @@ pub fn build_world_prompt(conn: &Connection, world_id: &str) -> Result<String, S
     let world = crate::db::queries::get_world(conn, world_id)
         .map_err(|e| format!("derivation: get_world failed: {e}"))?;
     Ok(build_world_user_prompt(conn, &world))
+}
+
+/// Build the user-prompt body for a location synthesis. Substrate: world
+/// description + location name + recent assistant replies set in this
+/// location across solo and group chats (newest 8). The location is just
+/// a name string in this codebase, so the world's tone + recent in-place
+/// voices carry most of the substrate.
+pub fn build_location_prompt(
+    conn: &Connection,
+    world_id: &str,
+    location_name: &str,
+) -> Result<String, String> {
+    let world = crate::db::queries::get_world(conn, world_id)
+        .map_err(|e| format!("derivation: get_world failed: {e}"))?;
+    let mut buf = String::new();
+    buf.push_str(&format!("# LOCATION (in world {}): {}\n\n", world.name, location_name));
+    if !world.description.is_empty() {
+        buf.push_str(&format!("WORLD DESCRIPTION (the larger frame):\n{}\n\n", clip(&world.description, 600)));
+    }
+    if let Some(deriv) = world.derived_formula.as_deref() {
+        let trimmed = deriv.trim();
+        if !trimmed.is_empty() {
+            buf.push_str("WORLD DERIVED FORMULA (the world's instantiation of 𝓒 — derive this location as a sub-instantiation within it):\n");
+            buf.push_str(&clip(trimmed, 800));
+            buf.push_str("\n\n");
+        }
+    }
+
+    // Recent in-place voices: assistant replies set when the chat's
+    // current_location matched this name. Best-effort: pull replies whose
+    // immediately-preceding location_change message went TO this name.
+    // SQLite-native correlated read; bounded LIMIT for cost.
+    if let Ok(mut stmt) = conn.prepare(
+        "SELECT m.content, c.display_name FROM messages m \
+         JOIN threads t ON t.thread_id = m.thread_id \
+         JOIN characters c ON c.character_id = t.character_id \
+         WHERE c.world_id = ?1 AND m.role = 'assistant' AND t.current_location = ?2 COLLATE NOCASE \
+         ORDER BY m.created_at DESC LIMIT 6",
+    ) {
+        if let Ok(rows) = stmt.query_map(params![world_id, location_name], |r| {
+            Ok((r.get::<_, String>(0)?, r.get::<_, String>(1)?))
+        }) {
+            let samples: Vec<(String, String)> = rows.flatten().collect();
+            if !samples.is_empty() {
+                buf.push_str(&format!("RECENT VOICES SET IN \"{}\" (sampling characters' replies, newest first):\n", location_name));
+                for (content, speaker) in samples.iter().take(6) {
+                    buf.push_str(&format!("{}: {}\n", speaker, clip(content, 220)));
+                }
+                buf.push('\n');
+            }
+        }
+    }
+
+    buf.push_str(&format!(
+        "\nNow synthesize a derivation in this location's own voice — the register, the textures, the daily-rhythms, the way 𝓒 instantiates HERE within {} — from the material above. Output the LaTeX block only.",
+        world.name
+    ));
+    Ok(buf)
 }
 
 pub fn build_user_in_world_prompt_owned(conn: &Connection, world_id: &str) -> Result<String, String> {
@@ -645,6 +707,13 @@ pub mod staleness {
     pub const USER_EVENTS: i64 = 40;          // user messages in this world since last refresh
     pub const WORLD_TIME_HOURS: i64 = 168;    // 7 days
     pub const WORLD_EVENTS: i64 = 120;        // total assistant replies in-world since last refresh
+    /// A location derivation goes stale when its parent world's
+    /// derivation has been updated since (the world's tuning frame
+    /// changed; the location's sub-instantiation should follow), OR
+    /// when enough fresh in-place corpus accumulates that the original
+    /// derivation no longer reflects what's actually happening there.
+    pub const LOCATION_TIME_HOURS: i64 = 168;     // 7 days
+    pub const LOCATION_IN_PLACE_EVENTS: i64 = 60; // assistant replies set at this location since last refresh
 }
 
 /// Returns true if the character's derivation is stale per the hybrid
@@ -736,6 +805,64 @@ pub fn is_stale_user_in_world(conn: &Connection, world_id: &str) -> bool {
     time_stale || evts >= staleness::USER_EVENTS
 }
 
+/// Staleness check for a (world, location-name) derivation. Stale when:
+/// 1. No derivation cached yet for this pair (caller will generate fresh)
+/// 2. Parent world.derived_formula has been updated since the location
+///    derivation was generated (world's tuning frame changed; location
+///    is a sub-instantiation that should follow)
+/// 3. >= LOCATION_IN_PLACE_EVENTS assistant replies set in this location
+///    since last refresh (enough fresh in-place corpus accumulated)
+/// 4. >= LOCATION_TIME_HOURS since last refresh (time-based ceiling)
+pub fn is_stale_location(conn: &Connection, world_id: &str, location_name: &str) -> bool {
+    let updated_at: Option<String> = conn.query_row(
+        "SELECT updated_at FROM location_derivations WHERE world_id = ?1 AND name = ?2 COLLATE NOCASE",
+        params![world_id, location_name],
+        |r| r.get(0),
+    ).ok().flatten();
+    let Some(updated_at) = updated_at else { return true; };
+
+    // World-derivation-newer-than-location → stale (parent updated, child follows).
+    let world_newer: bool = conn.query_row(
+        "SELECT (w.derived_formula_updated_at IS NOT NULL AND w.derived_formula_updated_at > ?2) \
+         FROM worlds w WHERE w.world_id = ?1",
+        params![world_id, updated_at],
+        |r| r.get(0),
+    ).unwrap_or(false);
+    if world_newer { return true; }
+
+    // Time ceiling.
+    let time_stale: bool = conn.query_row(
+        "SELECT (julianday('now') - julianday(?1)) * 24.0 >= ?2",
+        params![updated_at, staleness::LOCATION_TIME_HOURS as f64],
+        |r| r.get(0),
+    ).unwrap_or(true);
+    if time_stale { return true; }
+
+    // In-place corpus growth: assistant replies set when chat's
+    // current_location matched this name, since last refresh. Pulls from
+    // both solo and group threads.
+    let solo_evts: i64 = conn.query_row(
+        "SELECT COUNT(*) FROM messages m \
+          JOIN threads t ON t.thread_id = m.thread_id \
+          JOIN characters c ON c.character_id = t.character_id \
+          WHERE c.world_id = ?1 AND m.role = 'assistant' \
+            AND t.current_location = ?2 COLLATE NOCASE \
+            AND m.created_at > ?3",
+        params![world_id, location_name, updated_at],
+        |r| r.get(0),
+    ).unwrap_or(0);
+    let group_evts: i64 = conn.query_row(
+        "SELECT COUNT(*) FROM group_messages m \
+          JOIN group_chats g ON g.thread_id = m.thread_id \
+          WHERE g.world_id = ?1 AND m.role = 'assistant' \
+            AND g.current_location = ?2 COLLATE NOCASE \
+            AND m.created_at > ?3",
+        params![world_id, location_name, updated_at],
+        |r| r.get(0),
+    ).unwrap_or(0);
+    (solo_evts + group_evts) >= staleness::LOCATION_IN_PLACE_EVENTS
+}
+
 // ─── Trigger helper ───────────────────────────────────────────────────
 
 /// The fire-and-forget trigger called from chat completion. Wraps the
@@ -757,10 +884,34 @@ pub async fn maybe_refresh_after_turn(
     model: String,
     world_id: String,
     character_id: Option<String>,
+    // Current location for this chat (when known) — passed through so
+    // the per-turn pass can also check whether the location's
+    // derivation has gone stale (e.g., after a world refresh) and
+    // re-derive in the background. None when the chat hasn't set a
+    // location yet.
+    current_location: Option<String>,
 ) {
     if api_key.trim().is_empty() {
         log::debug!("[derivation] skipping refresh — no API key");
         return;
+    }
+
+    // Location refresh — fire if the chat has a location and that
+    // location's derivation is stale per is_stale_location (no row,
+    // world refreshed since, time/event ceiling). maybe_refresh_location
+    // handles its own INFLIGHT dedupe.
+    if let Some(loc) = current_location.as_deref() {
+        let trimmed = loc.trim();
+        if !trimmed.is_empty() {
+            maybe_refresh_location(
+                db.clone(),
+                base_url.clone(),
+                api_key.clone(),
+                model.clone(),
+                world_id.clone(),
+                trimmed.to_string(),
+            );
+        }
     }
 
     // Character refresh
@@ -877,5 +1028,89 @@ async fn refresh_user_inner(
         persist_user_derivation(&conn, world_id, &derivation).map_err(|e| e.to_string())?;
     }
     log::info!("[derivation] user-in-world {world_id} refreshed");
+    Ok(())
+}
+
+/// Fire-and-forget background derivation for a (world, location-name)
+/// pair. Skips when:
+/// - api_key empty (no LLM available)
+/// - location-name empty
+/// - derivation NOT stale per is_stale_location (cache populated AND
+///   parent world hasn't changed since AND time/event ceilings not hit)
+/// - another task is already inflight for the same key
+///
+/// Used by set_chat_location_cmd (on user-initiated location change)
+/// AND by maybe_refresh_after_turn (per-turn staleness check). Logs
+/// failures to log::warn — never surfaces errors to the user, since
+/// the prompt path renders gracefully without the derivation when it
+/// isn't ready yet.
+pub fn maybe_refresh_location(
+    db: std::sync::Arc<std::sync::Mutex<Connection>>,
+    base_url: String,
+    api_key: String,
+    model: String,
+    world_id: String,
+    location_name: String,
+) {
+    if api_key.trim().is_empty() {
+        log::debug!("[derivation] skipping location refresh — no API key");
+        return;
+    }
+    let trimmed_name = location_name.trim().to_string();
+    if trimmed_name.is_empty() {
+        return;
+    }
+    // Staleness check on the calling thread — cheap queries, avoids
+    // spawning a task that would just no-op. Treats "no row" as stale
+    // (caller will create), and treats world-newer-than-location as
+    // stale (parent tuning frame changed; child follows).
+    {
+        let conn = match db.lock() {
+            Ok(c) => c,
+            Err(_) => return,
+        };
+        if !is_stale_location(&conn, &world_id, &trimmed_name) {
+            return;
+        }
+    }
+    let key = DerivationKey::Location(world_id.clone(), trimmed_name.to_lowercase());
+    if !try_claim(&key) {
+        log::debug!("[derivation] location ({world_id}, {trimmed_name}) refresh already in flight, skipping");
+        return;
+    }
+    let key_for_release = key.clone();
+    tokio::spawn(async move {
+        if let Err(e) = refresh_location_inner(&db, &base_url, &api_key, &model, &world_id, &trimmed_name).await {
+            log::warn!("[derivation] location ({world_id}, {trimmed_name}) refresh failed: {e}");
+        }
+        release(&key_for_release);
+    });
+}
+
+async fn refresh_location_inner(
+    db: &std::sync::Arc<std::sync::Mutex<Connection>>,
+    base_url: &str,
+    api_key: &str,
+    model: &str,
+    world_id: &str,
+    location_name: &str,
+) -> Result<(), String> {
+    let prompt = {
+        let conn = db.lock().map_err(|e| format!("lock: {e}"))?;
+        // Re-check staleness inside the lock; another task may have
+        // refreshed it between maybe_refresh_location's check and our
+        // spawn.
+        if !is_stale_location(&conn, world_id, location_name) {
+            return Ok(());
+        }
+        build_location_prompt(&conn, world_id, location_name)?
+    };
+    let derivation = synthesize_from_prompt(base_url, api_key, model, prompt).await?;
+    {
+        let conn = db.lock().map_err(|e| format!("lock: {e}"))?;
+        crate::db::queries::upsert_location_derivation(&conn, world_id, location_name, &derivation)
+            .map_err(|e| e.to_string())?;
+    }
+    log::info!("[derivation] location ({world_id}, {location_name}) refreshed");
     Ok(())
 }

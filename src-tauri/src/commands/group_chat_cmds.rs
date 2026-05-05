@@ -1194,10 +1194,13 @@ pub async fn send_group_message_cmd(
             (None, None)
         };
 
-        let current_loc = {
+        let (current_loc, location_pair) = {
             let conn = db.conn.lock().map_err(|e| e.to_string())?;
-            get_group_chat_location(&conn, &gc.group_chat_id).ok().flatten()
+            let cl = get_group_chat_location(&conn, &gc.group_chat_id).ok().flatten();
+            let lp = orchestrator::resolve_location_derivation_pair(&conn, &world.world_id, cl.as_deref(), &dialogue_msgs);
+            (cl, lp)
         };
+        let location_arg: Option<(&str, &str)> = location_pair.as_ref().map(|(n, d)| (n.as_str(), d.as_str()));
         let (raw_reply, usage) = orchestrator::run_dialogue_with_base(
             &model_config.chat_api_base(), &api_key, &model_config.dialogue_model,
             if !model_config.is_local() { Some(&model_config.memory_model) } else { None },
@@ -1224,6 +1227,7 @@ pub async fn send_group_message_cmd(
             anchor_text.as_deref(),
         current_loc.as_deref(),
         formula_momentstamp_text.as_deref(),
+        location_arg,
         ).await?;
 
         // Strip own prefix and truncate any other-character dialogue
@@ -1286,6 +1290,7 @@ pub async fn send_group_message_cmd(
                                 anchor_text.as_deref(),
                             current_loc.as_deref(),
                             formula_momentstamp_text.as_deref(),
+                            location_arg,
                             ).await {
                                 Ok((corrected_raw, corrected_usage)) => {
                                     log::info!("[Conscience] {} (group) reply corrected after drift", character.display_name);
@@ -1384,6 +1389,10 @@ pub async fn send_group_message_cmd(
     // For group, fan out to refresh EACH responding character + the
     // user-in-world + the world. INFLIGHT dedupe in derivation::
     // maybe_refresh_after_turn handles duplicate user/world calls.
+    let group_loc_for_refresh = {
+        let conn = db.conn.lock().map_err(|e| e.to_string())?;
+        get_group_chat_location(&conn, &gc.group_chat_id).ok().flatten()
+    };
     for resp in &responses {
         crate::ai::derivation::maybe_refresh_after_turn(
             db.conn.clone(),
@@ -1392,6 +1401,7 @@ pub async fn send_group_message_cmd(
             model_config.memory_model.clone(),
             world.world_id.clone(),
             resp.sender_character_id.clone(),
+            group_loc_for_refresh.clone(),
         ).await;
     }
     // If no responders (silent turn), still refresh user + world via
@@ -1404,6 +1414,7 @@ pub async fn send_group_message_cmd(
             model_config.memory_model.clone(),
             world.world_id.clone(),
             None,
+            group_loc_for_refresh.clone(),
         ).await;
     }
 
@@ -1644,10 +1655,13 @@ pub async fn prompt_group_character_cmd(
         (None, None)
     };
 
-    let current_loc = {
+    let (current_loc, location_pair) = {
         let conn = db.conn.lock().map_err(|e| e.to_string())?;
-        get_group_chat_location(&conn, &group_chat_id).ok().flatten()
+        let cl = get_group_chat_location(&conn, &group_chat_id).ok().flatten();
+        let lp = orchestrator::resolve_location_derivation_pair(&conn, &world.world_id, cl.as_deref(), &dialogue_msgs);
+        (cl, lp)
     };
+    let location_arg: Option<(&str, &str)> = location_pair.as_ref().map(|(n, d)| (n.as_str(), d.as_str()));
     let dialogue_fut = orchestrator::run_dialogue_with_base(
         &base, &api_key, &model_config.dialogue_model,
         if !model_config.is_local() { Some(&model_config.memory_model) } else { None },
@@ -1674,6 +1688,7 @@ pub async fn prompt_group_character_cmd(
         anchor_text.as_deref(),
     current_loc.as_deref(),
     formula_momentstamp_text2.as_deref(),
+    location_arg,
     );
     let (dialogue_res, reaction_res) = if reactions_mode != "off" {
         let reaction_fut = orchestrator::pick_character_reaction_via_llm(
@@ -1739,6 +1754,7 @@ pub async fn prompt_group_character_cmd(
                             anchor_text.as_deref(),
                         current_loc.as_deref(),
                         formula_momentstamp_text2.as_deref(),
+                        location_arg,
                         ).await {
                             Ok((corrected_raw, corrected_usage)) => {
                                 log::info!("[Conscience] {} (group-prompt) reply corrected after drift", character.display_name);

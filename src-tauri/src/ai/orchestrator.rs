@@ -198,6 +198,31 @@ pub fn save_model_config(conn: &Connection, config: &ModelConfig) -> Result<(), 
     Ok(())
 }
 
+/// Resolve the (name, derivation) pair to pass into
+/// `run_dialogue_with_base`'s `location_derivation` parameter. Looks up
+/// the chat's effective current location via the same precedence rule
+/// the dialogue messages already use, then queries the
+/// `location_derivations` cache. Returns None when:
+/// - no current location can be derived, OR
+/// - no derivation is cached yet for this (world, name) pair (the
+///   background task may still be running, or the user hasn't yet
+///   triggered set_chat_location_cmd against this name).
+///
+/// Centralizing the lookup here keeps the elevation contract uniform
+/// across solo and group dialogue paths.
+pub fn resolve_location_derivation_pair(
+    conn: &Connection,
+    world_id: &str,
+    current_location_override: Option<&str>,
+    recent_messages: &[Message],
+) -> Option<(String, String)> {
+    let name = prompts::effective_current_location(current_location_override, recent_messages)?;
+    match crate::db::queries::get_location_derivation(conn, world_id, &name) {
+        Ok(Some(d)) => Some((name, d.derived_formula)),
+        _ => None,
+    }
+}
+
 pub async fn run_dialogue_with_base(
     base_url: &str,
     api_key: &str,
@@ -233,6 +258,14 @@ pub async fn run_dialogue_with_base(
     // reactions_mode is "off" — see ai::momentstamp::build_formula_
     // momentstamp. None when reactions are enabled (no injection).
     formula_momentstamp: Option<&str>,
+    // Pre-resolved (location_name, derivation) pair for the elevated
+    // top-of-stack injection (default-on as of 2026-05-05; previously
+    // env-flag-gated under CHARACTER_FORMULA_AT_TOP=1, removed when
+    // promoted to default). Caller looks up the location_derivations
+    // cache; when no derivation is ready yet the caller passes None and
+    // the elevation block simply skips the location layer. Keeping the
+    // orchestrator DB-free matches the formula_momentstamp pattern.
+    location_derivation: Option<(&str, &str)>,
 ) -> Result<(String, Option<openai::Usage>), String> {
     // When the user has disabled conversation history for this chat, strip
     // prior turns, semantic memories, and moment markers — the character
@@ -294,6 +327,75 @@ pub async fn run_dialogue_with_base(
             system = prefixed;
         }
     }
+
+    // Feature-scoped invariant — derived_formula at top-of-stack as a
+    // zoom-from-world read: WORLD (outer register) → LOCATION (mid
+    // register) → CHARACTER (inner register, paired with USER as
+    // relational anchor) → LATEST MOMENTSTAMP (live register-state).
+    //
+    // Default-on as of 2026-05-05 per Ryan's directive. Previously
+    // env-flag-gated under CHARACTER_FORMULA_AT_TOP=1 awaiting bite-test;
+    // promoted to default and the flag removed without the test landing
+    // — Ryan's call. Discovered 2026-05-04 by /eureka: the IDENTITY-
+    // block code comment claims same-shape parity with the MISSION
+    // FORMULA, but pre-elevation placement diverged (Mission Formula at
+    // position-0; character formula buried in IDENTITY block). Elevation
+    // honors the architectural intent. See
+    // prompts::CHARACTER_FORMULA_INVARIANT_FRAMING + CLAUDE.md
+    // "Invariants — three scopes" section.
+    let mut elevated_parts: Vec<String> = Vec::new();
+    if let Some(deriv) = world.derived_formula.as_deref() {
+        if let Some(block) = prompts::wrap_world_formula_invariant(deriv) {
+            elevated_parts.push(block);
+        }
+    }
+    // Location derivation between world and character. Caller
+    // pre-resolves the (name, derivation) pair from the
+    // location_derivations cache; when no derivation is ready yet
+    // (first use of a free-form name, or background task still
+    // running) caller passes None and this layer simply skips.
+    if let Some((loc_name, loc_deriv)) = location_derivation {
+        if let Some(block) = prompts::wrap_location_formula_invariant(loc_name, loc_deriv) {
+            elevated_parts.push(block);
+        }
+    }
+    if let Some(deriv) = character.derived_formula.as_deref() {
+        // Find the LATEST momentstamp from THIS character in the
+        // conversation history — scan effective_msgs from newest to
+        // oldest for an assistant message authored by this
+        // character that carries a formula_signature. This pairs
+        // the stable derivation anchor with the live register-state
+        // computed turn-by-turn (see ai::momentstamp).
+        let latest_stamp: Option<&str> = effective_msgs
+            .iter()
+            .rev()
+            .find(|m| {
+                m.role == "assistant"
+                    && m.sender_character_id.as_deref() == Some(character.character_id.as_str())
+                    && m.formula_signature.as_deref().map(|s| !s.trim().is_empty()).unwrap_or(false)
+            })
+            .and_then(|m| m.formula_signature.as_deref());
+        // User-side relational anchor: the per-world user_profile's
+        // derived_formula. Renders inside the character block as
+        // `You are: {char} / speaking to → / {user}` so the model
+        // reads the inner-register as relational from the open.
+        let user_deriv: Option<&str> = user_profile
+            .and_then(|p| p.derived_formula.as_deref())
+            .map(|s| s.trim())
+            .filter(|s| !s.is_empty());
+        if let Some(block) = prompts::wrap_character_formula_invariant_full(deriv, user_deriv, latest_stamp) {
+            elevated_parts.push(block);
+        }
+    }
+    if !elevated_parts.is_empty() {
+        let elevated = elevated_parts.join("\n\n");
+        let mut prefixed = String::with_capacity(elevated.len() + system.len() + 4);
+        prefixed.push_str(&elevated);
+        prefixed.push_str("\n\n");
+        prefixed.push_str(&system);
+        system = prefixed;
+    }
+
     // Conscience-pass retry path: a prior draft drifted on an invariant,
     // and the grader returned a concrete correction note. Append it at the
     // end of the system block so it sits in the high-attention tail right
