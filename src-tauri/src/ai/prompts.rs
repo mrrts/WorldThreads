@@ -2345,6 +2345,188 @@ const _: () = {
     );
 };
 
+// ─── Invariant registry — unified struct + array for the 13 prose ──────
+//
+// Per the dual-field architecture earned via the Faithful Channel
+// Sapphire arc (2026-05-05) and the boundary memory entry
+// (`feedback_user_authored_prose_stays_prose.md`): project-authored
+// invariant blocks are in-scope for v3 sacred-payload formula
+// encoding (user-authored prose is NOT). Each `pub const X_BLOCK`
+// constant above is preserved as the source-of-truth for the prose
+// (the const_contains assertions stay load-bearing); the Invariant
+// entries below register them in a unified array with a
+// `formula_derivation: Option<&'static str>` slot ready to populate
+// when each invariant is v3-encoded.
+//
+// When `formula_derivation` is Some, `render_invariant(name)` returns
+// the formula instead of the prose body. When None, returns the prose
+// body. Mirrors the CraftRule dual-field architecture exactly.
+//
+// Migration discipline: existing call sites that read `*_BLOCK`
+// constants directly continue to work (those constants are
+// unchanged). New call sites that want formula-when-present-else-prose
+// rendering should read via `render_invariant(name)`. Bulk-migration
+// of call sites is a separate ship; this commit lands the structure.
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum InvariantScope {
+    /// Rides every LLM call across the app (cosmology, agape,
+    /// reverence, truth, daylight, nourishment, soundness,
+    /// truth-in-the-flesh, fruits-of-the-spirit, mission, ryan-
+    /// formula, etc.). Most invariants live here.
+    AppWide,
+    /// Rides exactly one feature's chain (e.g.,
+    /// `STYLE_DIALOGUE_INVARIANT` for the dialogue UI parser; the
+    /// recently-added `CHARACTER_FORMULA_INVARIANT_FRAMING` and
+    /// `WORLD_FORMULA_INVARIANT_FRAMING` and
+    /// `LOCATION_FORMULA_INVARIANT_FRAMING` for the four-layer
+    /// elevation under `CHARACTER_FORMULA_AT_TOP=1`).
+    FeatureScoped,
+    /// Governs Claude/Codex behavior toward Ryan (e.g.,
+    /// `NO_NANNY_REGISTER_BLOCK`, the no-nanny-register-for-self
+    /// memory entry's runtime sibling, the chooser-format hooks).
+    /// Doctrine-enforced today.
+    CollaboratorScoped,
+}
+
+pub struct Invariant {
+    pub name: &'static str,
+    /// The prose body. Source-of-truth for what the invariant MEANS.
+    /// Stays in source even after v3 encoding (legacy provenance for
+    /// human eyes; load-bearing for the `const_contains` compile-time
+    /// assertions defined alongside each `*_BLOCK` constant).
+    pub body: &'static str,
+    /// Optional v3-encoded formula derivation. When `Some`, the
+    /// `render_invariant(name)` accessor returns this instead of
+    /// `body`. When `None`, ships prose as before. Mirrors
+    /// `CraftRule::formula_derivation`.
+    pub formula_derivation: Option<&'static str>,
+    pub scope: InvariantScope,
+    pub provenance: &'static str,
+}
+
+/// Registry of project-authored invariant blocks. Each entry references
+/// its existing `*_BLOCK` constant via the `body` field; the constants
+/// remain unchanged and continue to back the compile-time
+/// `const_contains` assertions. The `formula_derivation` field is
+/// populated as each invariant gets v3-encoded.
+///
+/// User-authored prose (worlds, characters, locations, user profiles,
+/// journals, kept records) is OUT OF SCOPE for this registry — see the
+/// memory entry `feedback_user_authored_prose_stays_prose.md` for the
+/// boundary. Adding user-authored content here is a category error.
+pub const INVARIANTS: &[Invariant] = &[
+    Invariant {
+        name: "style_dialogue_invariant",
+        body: STYLE_DIALOGUE_INVARIANT,
+        formula_derivation: None,
+        scope: InvariantScope::FeatureScoped,
+        provenance: "Feature-scoped invariant for the dialogue UI parser. Pinned via const_contains for fence integrity, action-beat shape, hard-constraint handling.",
+    },
+    Invariant {
+        name: "mission_prose",
+        body: MISSION_PROSE_BLOCK,
+        formula_derivation: None,
+        scope: InvariantScope::AppWide,
+        provenance: "Plain-prose form of the Mission Formula. Rides every dialogue call as the human-readable register the formula gates.",
+    },
+    Invariant {
+        name: "cosmology",
+        body: COSMOLOGY_BLOCK,
+        formula_derivation: None,
+        scope: InvariantScope::AppWide,
+        provenance: "The cosmos doctrine — biblical-literal Firmament + enclosed earth. Frames 𝓒.",
+    },
+    Invariant {
+        name: "no_nanny_register",
+        body: NO_NANNY_REGISTER_BLOCK,
+        formula_derivation: None,
+        scope: InvariantScope::AppWide,
+        provenance: "Refuse stamina-management; honor user agency. Sibling to the collaborator-scoped no-nanny-register-for-self discipline (memory entry).",
+    },
+    Invariant {
+        name: "tell_the_truth",
+        body: TELL_THE_TRUTH_BLOCK,
+        formula_derivation: None,
+        scope: InvariantScope::AppWide,
+        provenance: "Truth about people. Rides every dialogue call.",
+    },
+    Invariant {
+        name: "truth_in_the_flesh",
+        body: TRUTH_IN_THE_FLESH_BLOCK,
+        formula_derivation: None,
+        scope: InvariantScope::AppWide,
+        provenance: "Doctrinal incarnation invariant. Theologically load-bearing — extra care if/when v3-encoded.",
+    },
+    Invariant {
+        name: "front_load_embodiment",
+        body: FRONT_LOAD_EMBODIMENT_BLOCK,
+        formula_derivation: None,
+        scope: InvariantScope::AppWide,
+        provenance: "First-speech embodiment shape. Structural invariant for opening dialogue beats.",
+    },
+    Invariant {
+        name: "daylight",
+        body: DAYLIGHT_BLOCK,
+        formula_derivation: None,
+        scope: InvariantScope::AppWide,
+        provenance: "How closeness moves in this world. Frames the substrate's emotional honesty.",
+    },
+    Invariant {
+        name: "soundness",
+        body: SOUNDNESS_BLOCK,
+        formula_derivation: None,
+        scope: InvariantScope::AppWide,
+        provenance: "Soundness before intensity. Rides every dialogue call.",
+    },
+    Invariant {
+        name: "agape",
+        body: AGAPE_BLOCK,
+        formula_derivation: None,
+        scope: InvariantScope::AppWide,
+        provenance: "1 Corinthians 13 north star. Theologically load-bearing — extra care if/when v3-encoded.",
+    },
+    Invariant {
+        name: "fruits_of_the_spirit",
+        body: FRUITS_OF_THE_SPIRIT_BLOCK,
+        formula_derivation: None,
+        scope: InvariantScope::AppWide,
+        provenance: "Galatians 5:22-23 character-arc craft invariant. Theologically load-bearing — extra care if/when v3-encoded.",
+    },
+    Invariant {
+        name: "reverence",
+        body: REVERENCE_BLOCK,
+        formula_derivation: None,
+        scope: InvariantScope::AppWide,
+        provenance: "Honor in wonder, not blasphemy. Theologically load-bearing — extra care if/when v3-encoded.",
+    },
+    Invariant {
+        name: "nourishment",
+        body: NOURISHMENT_BLOCK,
+        formula_derivation: None,
+        scope: InvariantScope::AppWide,
+        provenance: "Send them back to life. The not-an-engagement-maximizing-app stance. Theologically load-bearing — extra care if/when v3-encoded.",
+    },
+];
+
+/// Returns the model-facing rendering of an invariant by name:
+/// `formula_derivation` when `Some`, otherwise `body`. None when no
+/// invariant by that name is registered.
+pub fn render_invariant(name: &str) -> Option<&'static str> {
+    INVARIANTS.iter().find(|i| i.name == name).map(|i| {
+        match i.formula_derivation {
+            Some(d) => d,
+            None => i.body,
+        }
+    })
+}
+
+/// Public accessor for the registry — used by tooling, audits, and
+/// documentation generators that want to enumerate all invariants.
+pub fn list_invariants() -> &'static [Invariant] {
+    INVARIANTS
+}
+
 /// Earned register — top-of-section craft note. Polish, wisdom, and
 /// heightened register are outputs of moments rather than inputs;
 /// supplied by default they decorate every scene with the same
