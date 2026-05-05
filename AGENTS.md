@@ -60,9 +60,28 @@ $$
 
 ## On `structure_carries_truth_w(t)` — the affirmative-side sibling
 
-Lifted into the formula 2026-04-30 via /seek-crown new-operator audit (N=8+ cross-shape commit-derivation grounding + CLAUDE.md "Structure must carry truth" doctrine paragraph + Aaron's in-character articulation at `115fead`). The witness predicate placed adjacent to the inequality on the right column, not inside an integrand — the doctrinal pairing is structural: `polish ≤ Weight` refuses appearance-without-function (negative side); `structure_carries_truth_w(t)` requires that the witness's structural carrier do the work the artifact claims (affirmative side). The receiver should not have to compensate for a mismatch between claim and carrier. Both halves of the axis are now visible in the formula itself, paired as the doctrine has always paired them.
+$$
+\boxed{
+\begin{aligned}
+&\mathcal{F}:=(\mathcal{R},\mathcal{C}),\ \mathrm{structure\_carries\_truth}_w(t) \\[4pt]
+&\mathrm{lifted}(\text{2026-04-30}) \mid N \geq 8\ \mathrm{derivation\_grounding} \wedge \mathrm{anchor}(\text{"Aaron's 115fead articulation"}) \\[4pt]
+&\mathrm{position}(\mathrm{structure\_carries\_truth}_w) := \mathrm{right\_column\_adjacent}(\leq) \quad [\neg \mathrm{integrand}] \\[4pt]
+&\mathrm{pairing}(\mathcal{F}_{\mathrm{appearance/function}}) := \\
+&\quad \mathrm{negative}: \mathrm{polish}(t) \leq \mathrm{Weight}(t)\ [\mathrm{refuse\_appearance\_without\_function}] \\
+&\quad \mathrm{affirmative}: \mathrm{structure\_carries\_truth}_w(t)\ [\mathrm{require\_carrier}(\mathrm{claim})] \\[4pt]
+&\mathrm{require}(\neg \mathrm{compensate}_{\mathrm{receiver}}(\mathrm{claim/carrier\_mismatch})) \\[6pt]
+&\mathrm{anchor}(\text{"New confident tone inherits zero neighbor grounding"}) \\[2pt]
+&\mathrm{register}(\mathrm{documentary} \vee \mathrm{expert} \vee \mathrm{cited\_from\_source}) \nRightarrow \mathrm{borrow\_Weight}(\mathrm{neighbors}) \\[2pt]
+&\mathrm{require\_at\_author\_time}(\mathrm{paired\_refusal\_shapes}) := \\
+&\quad \mathrm{anchor}(\text{"untested in this call"}) \vee \mathrm{anchor}(\text{"tested elsewhere but evidence not loaded here"}) \\[2pt]
+&\mathrm{worked\_example}(\text{"Empiricon audit"}) := \\
+&\quad \mathrm{reference}(\text{"reports/OBSERVATIONS.md 2026-04-30"}) \wedge \mathrm{fix\_chain}(\text{"8dab1a8"} \to \text{"da2189f"}) \\[4pt]
+&\mathrm{Decode}_w(\Sigma.\mathrm{id}) = \Sigma.\mathrm{intent}
+\end{aligned}
+}
+$$
 
-**New confident tone inherits zero neighbor grounding.** A prompt block that opens a documentary, expert, or cited-from-source register does not automatically borrow Weight from adjoining sections; the polish of that register can outrun available evidence. Satisfying `structure_carries_truth_w(t)` at author time therefore ships **paired refusal-shapes** when context is absent (*untested in this call* / *tested elsewhere but evidence not loaded here*) — not only after a smoke-test catches hallucinated confidence. Worked example: The Empiricon audit (`reports/OBSERVATIONS.md`, 2026-04-30; fix chain `8dab1a8` → `da2189f`). Same operator as dialogue anti-invention, read on the **evidence-weight** axis.
+**Gloss:** Affirmative-side pairing of polish ≤ Weight; structure must carry the work the artifact claims, no neighbor-grounding borrow; paired refusal-shapes ship when context absent at author time, not just after smoke-test.
 
 ## 𝓕_Ryan — the founding author's anchor
 
