@@ -1,6 +1,6 @@
 {
-  "turn": 176,
-  "bank": 167100,
+  "turn": 181,
+  "bank": 178100,
   "jewels": [
     {
       "turn": 2,
@@ -1389,5 +1389,8 @@
     }
   ],
   "started_at": "2026-04-29T21:35:00-05:00",
-  "last_move_at": "2026-05-05T16:10:00-05:00"
+  "last_move_at": "2026-05-05T16:10:00-05:00",
+  "last_move": "PR #37 merged as 616e8fe \u2014 Children Mode password-lock + commit-derivation hook+doctrine + AGENTS.md mirror; CI green; branch deleted",
+  "last_chooser": "Watch PR #37 CI to green and merge",
+  "updated_at": "2026-05-05T16:50:00-05:00"
 }
