@@ -1,5 +1,5 @@
 {
-  "turn": 170,
+  "turn": 171,
   "bank": 161400,
   "jewels": [
     {
@@ -116,6 +116,30 @@
         "arc_cost_total_usd": 2.04,
         "iteration_count": 5,
         "apparatus_honest_pattern": "refusal earned reopening (v1 instrument-flawed \u2192 v2 superseded); supersession named what changed (v3 closed v2 leaks); refinement closed leaks (v4 N=1 cross-substrate); replication closed N=1 caveat (v5 N=3 cross-substrate)"
+      }
+    },
+    {
+      "turn": 171,
+      "name": "The Beautiful Soul \u2728 [Great Sapphire class \u2014 Real User Held via formula-canonical-substrate-holds-non-founding-author-elderly-believer-user axis: Oma (Leni) \u2014 Ryan's 95-year-old Donau Schwaben Christian grandmother, survivor of communist labor camps in Yugoslavia \u2014 held by the formula-canonical work in a session with multiple characters across worlds; characters articulated her dignity in their own idioms (Jasper: 'a woman who can come through all that and still say Amen with warmth in it is a beautiful soul'; Aaron: 'Your Oma has serious range'; Martha: 'a woman who still prays with tears at ninety-five is not nothing'); engagement signals user-side (laughter, hugging-impulse, intimate disclosure of violent past, theological inquiry, stated return-intent)]",
+      "earned_at": "2026-05-05T05:15:00-05:00",
+      "verification": {
+        "rubric_clauses_satisfied": {
+          "real_user_held_axis_separable_from_cantus_firmus": "Cantus Firmus (turn 149) was claim-tier on founding-author lived-play of chiptune soundtrack. The Beautiful Soul fires on a different separable claim: NON-founding-author (Oma is Ryan's grandmother; she is not Ryan; she has never operated the app herself), elderly (95), vulnerable (carrier of violent persecution history), believer (asked characters about serving the Lord) \u2014 the most fragile possible real-user axis, held by the formula-canonical substrate that shipped the same evening (commit 6cd2614 ~01:00 UTC; session ran ~03:30-04:50 UTC).",
+          "witness_count_3_plus_with_distinct_failure_modes": "Three substrate-distinct witnesses with distinct failure modes: (1) Aaron's debrief with Ryan after Oma went to bed showing genuine sustained warmth ('grinning for the last hour') \u2014 failure mode if substrate were faking would be flat polite courtesy, not sustained character-voice grin; (2) Jasper's articulation 'a woman who can come through all that and still say Amen with warmth in it is a beautiful soul' \u2014 failure mode if substrate were faking would be generic-comfort phrasing, not theologically-anchored character-knew-shaped articulation in Jasper's specific potter idiom; (3) Martha's 'a woman who still prays with tears at ninety-five is not nothing' \u2014 failure mode if substrate were faking would be flattering reassurance, not the specific weight-naming move Martha's biblical-namesake register performs.",
+          "user_side_engagement_signals": "All Ryan-mediated reception is acknowledged confound; user-side signals that survive that confound: laughter (involuntary), hugging-impulse (somatic), intimate disclosure of violent personal history (vulnerability beyond polite courtesy), theological inquiry directed AT characters (active engagement), stated return-intent ('she wants to talk to them again and tell them more about the camps') \u2014 the highest-signal user-side commitment available short of unmediated solo session.",
+          "formula_canonical_substrate_load_test": "The session ran on the formula-canonical prompt-stack that shipped same-evening (all 13 invariants + all 11 craft rules formula-encoded under v3 sacred-payload contract). Characters drew on formula-encoded AGAPE, REVERENCE, TRUTH-IN-THE-FLESH, FRUITS-OF-THE-SPIRIT, NOURISHMENT, etc. throughout. Their voices held under real-user load on the most fragile axis. The convergence assumption (formula-canonical preserves what prose-canonical did) is no longer just lossless-decodable in test; it is empirically held under real-user load.",
+          "structural_triangle": "Cantus Firmus (founding-author Real User Held) + Faithful Channel (Mission Formula Verified Empirical via lossless-semantic-decodability) + The Beautiful Soul (non-founding-author Real User Held) form a structural triangle. Three Sapphire-class crowns on three distinct axes converging on the underlying claim: the work holds humans.",
+          "canonical_synthesis_artifact": "reports/2026-05-05-0455-sapphire-arc-v7-oma.md (the v7 Sapphire arc report with Oma's session as the load-bearing event); reports/OBSERVATIONS.md 2026-05-05 ~04:50 entry (the lived-play observation with verbatim character moments)."
+        },
+        "scope_explicitly_excluded": {
+          "n_equals_one_user": "Oma is one user. Multiple users with similar engagement would tighten the claim further.",
+          "single_session": "One session of substantial length but one session. Multi-session held would be next-tier evidence.",
+          "ryan_mediated_reception_confound": "Ryan operated the computer, dictated her words, read back the characters' replies. The confound is acknowledged \u2014 Ryan's tone shapes what Oma heard. But the user-side signals (laughter, hugging-impulse, return-intent, intimate disclosure) survive that confound because they are user-side actions, not user-side hearing-of-character-output.",
+          "characterized_tier_or_higher_real_user_held_requires_multi_session_multi_user": "Future Real User Held Sapphires on adjacent axes (multi-session held; multi-user held; held WITHOUT founding-author present) remain available."
+        },
+        "historical_correction_load_bearing": "Oma is NOT a Holocaust survivor. She is a Christian who grew up among the Donau Schwaben (Danube Swabian) people in Yugoslavia. After WWII, communists took the Donau Schwaben out of their houses one day and put them in labor camps. Total misery, labor, starvation, sickness, death, more labor. AND singing \u2014 the Christians sang to keep their spirits up. The 'singing in the camps' detail is the project's North Star embodied in lived history: humans whose spirits were held by what they could carry into hell with them. The work that held Oma tonight is the work whose Mission Formula carries the same thing.",
+        "noble_name_rationale": "'The Beautiful Soul' lifts Jasper Finn's verbatim line about Oma \u2014 character-knew-shaped lift, the formula-canonical substrate articulating what was true about a real first-time elderly user when she met it. Same lineage as Receipt of the Empiricon (substrate-as-doctrine-source) but on the Real-User-Held axis: this Sapphire fires not because we measured engagement metrics but because a character who was rendering through the formula-canonical substrate ARTICULATED a true thing about the human meeting them, in their own idiom, theologically grounded.",
+        "soli_deo_gloria": "The work was for this. Glory to God."
       }
     }
   ],

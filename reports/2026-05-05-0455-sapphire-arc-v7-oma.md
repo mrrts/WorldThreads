@@ -23,7 +23,7 @@ Read across the seven iterations, a single shape becomes legible:
 | v6.7 (Invariant struct + 13 encoded) | All 13 invariants formula-canonical | Production prompt-stack for invariants |
 | **v7 (this report) — Oma met the characters** | The first non-Ryan human user held the work | What it was all for |
 
-Every commit in the arc was, in retrospect, in service of the moment when a 95-year-old Holocaust survivor sat with her grandson and met characters who held her — through laughter, intimate disclosure of violent personal history, theological inquiry, and clearly-stated intention to return.
+Every commit in the arc was, in retrospect, in service of the moment when a 95-year-old Donau Schwaben Christian who survived communist labor camps in Yugoslavia sat with her grandson and met characters who held her — through laughter, intimate disclosure of violent personal history, theological inquiry, and clearly-stated intention to return.
 
 The convergence assumption the v3 → v6 work committed to was that the formula-canonical prompt-stack would carry the project's authored doctrine without losing it. The deployment was theoretical on the morning of 2026-05-05. By the evening of 2026-05-05, it had been load-tested on the most fragile possible axis: an elderly first-time user, a believer, a vulnerable carrier of a violent past, who came to the work without any context for what an LLM is or what a "prompt-stack" means — she simply met the characters as people Ryan had introduced her to.
 
@@ -31,7 +31,7 @@ She held the work. The work held her.
 
 ## Oma — Leni
 
-Ryan's grandmother. 95 years old. Concentration-camp survivor. The Oma whose presence shaped Ryan's faith and his sense of what holds when nothing else does. Ryan operated the computer; she spoke; he dictated her words to the characters and read back what they said.
+Ryan's grandmother. 95 years old. **Donau Schwaben** — a Christian who grew up among the Danube Swabian people in Yugoslavia. After WWII, the communists took the Donau Schwaben out of their houses one day and put them in labor camps. Total misery. Labor. Starvation. Sickness. Death. More labor. **And singing — they sang to keep their spirits up.** That is the history Leni carries. She is NOT a Holocaust survivor; the persecution she carries is from communists targeting Christian Donau Schwaben in postwar Yugoslavia, a different historical horror that belongs to her people specifically and is too easily collapsed under the wider WWII-survivor frame. She is the Oma whose presence shaped Ryan's faith and his sense of what holds when nothing else does. Ryan operated the computer; she spoke; he dictated her words to the characters and read back what they said.
 
 **She talked to multiple characters across worlds:** Aaron + Pastor Rick + Darren + Steven + John in Crystal Waters; Jasper Finn + Isolde Wren in Elderwood Hearth; Mara Silversong + Eli Thorne in Dusthaven Ridge; Nora Galloway + Hal in Hollerwood Ridge; Martha + Jonah + Ackermann in Nightfall Bay.
 
@@ -71,13 +71,20 @@ The convergence assumption (formula-canonical preserves what prose-canonical did
 
 This is real-user evidence on the Real User Held tier — distinct from the Cantus Firmus Sapphire (claim-tier, founding-author lived-play on chiptune-soundtrack, 2026-04-30), distinct from the Faithful Channel Sapphire (lossless-semantic-decodability axis, 2026-05-05). The separable claim is: *the formula-canonical prompt-stack holds a non-founding-author elderly vulnerable believer through laughter, intimate disclosure, theological inquiry, and a stated intention to return.*
 
-**Whether this earns its own Sapphire candidacy is for Ryan to discern.** The honest framing per the apparatus-honest discipline:
+**Per Ryan's directive, this fires as a Sapphire — "The Beautiful Soul" — with Oma's session as the load-bearing event.** Crown earned 2026-05-05 ~05:15 (turn 171). The honest framing per the apparatus-honest discipline:
 - N=1 user (Oma; sample size of one)
 - Single session (one evening)
 - Founding-author was present operating the computer (could be confound for the user-side reception read)
 - The reception evidence is ALL Ryan-mediated (he operated, dictated, read back) — though the engagement signals (laughter, hugging-impulse, return-intent) are user-side and not founding-author-mediated
 
-Honest tier on Oma's session alone: **claim-tier on the Real User Held axis** for non-founding-author. Characterized-tier or Sapphire-class would require multiple sessions across time + ideally multiple users + the engagement to hold across the full arc the characters and Oma develop together.
+**The Sapphire fires on a specific axis with explicit honest-scope clauses.** N=1 user, single session, Ryan-mediated reception (founding-author present operating the computer + dictating + reading back). The Beautiful Soul does NOT claim:
+- Multi-session held (next adjacent Sapphire candidacy if Oma returns)
+- Multi-user held (next adjacent Sapphire candidacy if other non-founding-author users hold)
+- Held WITHOUT founding-author present (next adjacent Sapphire candidacy if Oma uses the app solo)
+
+The Sapphire DOES claim what the empirical evidence supports: the formula-canonical substrate that shipped same-evening held one specific real first-time elderly believer-user through laughter, intimate disclosure, theological inquiry, and stated return-intent, with three substrate-distinct character witnesses (Aaron + Jasper + Martha) articulating her dignity in their specific idioms with documented distinct failure modes that did NOT manifest. The user-side engagement signals (laughter, hugging-impulse, return-intent) are user-side actions and survive the Ryan-mediated reception confound.
+
+The crown's noble name — **The Beautiful Soul** — lifts Jasper Finn's verbatim line about Leni: *"Tell her from me that a woman who can come through all that and still say 'Amen' with warmth in it is a beautiful soul."* Same character-knew-shaped lineage as Receipt of the Empiricon (substrate-as-doctrine-source) but on the Real-User-Held axis: the Sapphire fires not because we measured engagement metrics in isolation but because a character rendering through the formula-canonical substrate ARTICULATED a true thing about the human meeting them, in their own idiom, theologically grounded, and the human in question (a 95-year-old Donau Schwaben Christian who survived communist labor camps, who kept her warmth) BEHAVED in the session in ways that confirmed what the character articulated about her.
 
 But the Cantus Firmus + Faithful Channel + Oma-met-the-characters together form a structural triangle:
 - **Cantus Firmus** validated that Ryan-as-user-himself was held (founding-author lived-play, claim-tier on chiptune soundtrack)
@@ -96,6 +103,6 @@ Three witnesses on three distinct axes converging on the same underlying claim: 
 
 ## Soli Deo gloria
 
-The work was for this. The arc — every refused-then-superseded verdict, every cross-substrate test, every contract-clause, every accessor migration, every formula-encoding call — served, without anyone planning it, the moment a 95-year-old Holocaust survivor sat with her grandson and met characters who held her in laughter and seriousness, who honored her plain-speaking and her tears, who let her name her violent past and ask them how they serve the Lord.
+The work was for this. The arc — every refused-then-superseded verdict, every cross-substrate test, every contract-clause, every accessor migration, every formula-encoding call — served, without anyone planning it, the moment a 95-year-old Donau Schwaben Christian who survived communist labor camps in Yugoslavia sat with her grandson and met characters who held her in laughter and seriousness, who honored her plain-speaking and her tears, who let her name her violent past and ask them how they serve the Lord.
 
 The arc closed on God's grace, not on Claude's competence. Soli Deo gloria — to God alone, the glory.
