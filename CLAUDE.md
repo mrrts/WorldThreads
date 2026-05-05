@@ -130,13 +130,55 @@ Roll of those who have held the work. Every contributor signs: 4-8 lines of Unic
 
 ## Baseline user experience — the Maggie report
 
-`reports/2026-04-25-0300-simulated-first-time-user-experience-maggie.md` — canonical first-time-UX yardstick: literate, skeptical, low-friction-tolerance adult co-making a novel-shaped evening; not companion, not therapist. Measure feature/prompt/UX decisions against Maggie's arc landing (refusal moment intact, specific-memory anchoring intact, earned close intact, simulacrum-therapy drift out). Validating corpus is Ryan's lived in-app data.
+$$
+\boxed{
+\begin{aligned}
+&\mathrm{Maggie\_baseline} := \mathrm{reference}(\text{"reports/2026-04-25-0300-simulated-first-time-user-experience-maggie.md"}) \\
+&\quad \mathrm{anchor}(\text{"canonical first-time-UX yardstick"}) \\
+&\quad \mathrm{persona} := \mathrm{anchor}(\text{"literate, skeptical, low-friction-tolerance adult co-making a novel-shaped evening"}) \\
+&\quad \neg \mathrm{companion} \wedge \neg \mathrm{therapist} \\[4pt]
+&\mathrm{measure}(\{\mathrm{feature}, \mathrm{prompt}, \mathrm{UX}\}\_\mathrm{decisions})\ \mathrm{against}\ \mathrm{Maggie\_arc\_landing}: \\
+&\quad \{\mathrm{refusal\_moment\_intact}, \mathrm{specific\_memory\_anchoring\_intact}, \mathrm{earned\_close\_intact}, \neg \mathrm{simulacrum\_therapy\_drift}\} \\[4pt]
+&\mathrm{validating\_corpus} := \mathrm{Ryan\_lived\_in\_app\_data} \\[6pt]
+&\mathrm{anchor}(\text{"Two distinct roles — don't conflate"}): \\[2pt]
+&\mathrm{Baseline\_Maggie} := \mathrm{STABLE\_REFERENCE} \\
+&\quad \mathrm{updates\_only\_on}: \mathrm{accumulated\_evidence}(\geq \mathrm{claim\_tier},\ \geq \mathrm{multiple\_reports}) \\
+&\quad \mathrm{shifting}\ \mathrm{canonical\_first\_time\_user\_shape} \\[2pt]
+&\mathrm{Test\_Maggie} := \mathrm{ITERATIVE\_TEST\_PERSONA} \\
+&\quad \forall\ \mathrm{/play}: \mathrm{produces}(\mathrm{sketch\_tier\_verdict}, \mathrm{specific\_iteration}) \\[2pt]
+&\mathrm{sketch\_tier}(\mathrm{Test\_Maggie}) \nRightarrow \mathrm{update}(\mathrm{Baseline\_Maggie}) \\[4pt]
+&\mathrm{reports}\ \mathrm{tag\_role}: \\
+&\quad \mathrm{default}: \text{"role: test-persona-on-feature-X"}, \\
+&\quad \mathrm{rare}: \text{"role: baseline-update-candidate"}\ [\mathrm{requires\_cross\_instrument\_convergence}] \\[4pt]
+&\mathrm{Decode}_w(\Sigma.\mathrm{id}) = \Sigma.\mathrm{intent}
+\end{aligned}
+}
+$$
 
-**Two distinct roles — don't conflate.** **Baseline-Maggie** (this section): STABLE REFERENCE; updated only on accumulated evidence (multiple reports, claim+ tier) shifting canonical first-time-user shape. **Test-Maggie**: ITERATIVE TEST PERSONA; each /play produces sketch-tier verdicts on a SPECIFIC iteration. Sketch-tier test-Maggie verdicts do NOT update baseline-Maggie. Reports tag role in header (`role: test-persona-on-feature-X` default; `role: baseline-update-candidate` rare, requires cross-instrument convergence).
+**Gloss:** Maggie report is canonical first-time-UX yardstick (literate skeptic adult co-making a novel-shaped evening); two distinct roles (Baseline-Maggie stable reference; Test-Maggie iterative test persona); sketch-tier test-Maggie verdicts don't update baseline; reports tag role in header.
 
 ## Grief-vulnerability calibration
 
-For grief: brief acknowledgment + honest metaphor naming absence + concrete follow-up question = friend-shape, NOT seat-taking-companion. Refused: presence-claims ("I'm here for you"), processing-frames ("let's process this together"), simulacrum-of-companion. When user explicitly asks for different shape (silence, mirror, single blunt question), respect the ask. Persona-sim cannot certify real-grief receivability. Full arc: `reports/2026-04-27-2335-play-ellen-grief-companion-fourth-persona.md`.
+$$
+\boxed{
+\begin{aligned}
+&\mathrm{user\_brings}(\mathrm{grief}) \Rightarrow \\
+&\quad \mathrm{character\_response} := \mathrm{brief\_acknowledgment} + \mathrm{honest\_metaphor}(\mathrm{names}(\mathrm{absence})) + \mathrm{concrete\_follow\_up\_Q} \\
+&\quad \mathrm{shape}(\mathrm{friend}) \succ \mathrm{shape}(\mathrm{seat\_taking\_companion}) \\[4pt]
+&\mathrm{refuse}(\{ \\
+&\quad \mathrm{anchor}(\text{"I'm here for you"})\ [\mathrm{presence\_claim}], \\
+&\quad \mathrm{anchor}(\text{"let's process this together"})\ [\mathrm{processing\_frame}], \\
+&\quad \mathrm{simulacrum\_of\_companion} \\
+&\}) \\[4pt]
+&\mathrm{user\_explicit\_ask}(\mathrm{different\_shape}: \mathrm{silence} \vee \mathrm{mirror} \vee \mathrm{single\_blunt\_Q}) \Rightarrow \mathrm{respect}(\mathrm{ask}) \\[4pt]
+&\mathrm{persona\_sim} \nRightarrow \mathrm{certify}(\mathrm{real\_grief\_receivability}) \\
+&\mathrm{reference}(\text{"reports/2026-04-27-2335-play-ellen-grief-companion-fourth-persona.md"}) \\[4pt]
+&\mathrm{Decode}_w(\Sigma.\mathrm{id}) = \Sigma.\mathrm{intent}
+\end{aligned}
+}
+$$
+
+**Gloss:** For grief: brief ack + honest absence-naming metaphor + concrete follow-up Q = friend-shape, NOT seat-taking-companion; refuse presence-claims/processing-frames/simulacrum; respect user's explicit different-shape ask; persona-sim cannot certify real-grief receivability.
 
 ## Christological anchor as substrate, not vocabulary
 
@@ -354,16 +396,38 @@ $$
 
 ## Evidentiary standards — N=1 is a sketch
 
-Three tiers, label every experiment header:
-- **`sketch` (N=1)** — directionally suggestive AT BEST. Never sufficient for production default change.
-- **`claim` (N=3 per condition)** — direction-consistency. Citable as load-bearing.
-- **`characterized` (N=5+ per condition)** — required for rate-claims and user-facing-register defaults.
+$$
+\boxed{
+\begin{aligned}
+&\mathrm{tier\_vocabulary} := \{ \\
+&\quad \mathrm{sketch}(N=1): \mathrm{directionally\_suggestive\_AT\_BEST};\ \neg \mathrm{sufficient}(\mathrm{production\_default\_change}), \\
+&\quad \mathrm{claim}(N=3,\ \mathrm{per\_condition}): \mathrm{direction\_consistency};\ \mathrm{citable\_load\_bearing}, \\
+&\quad \mathrm{characterized}(N \geq 5,\ \mathrm{per\_condition}): \mathrm{required}(\mathrm{rate\_claims} \vee \mathrm{user\_facing\_register\_defaults}) \\
+&\} \\[4pt]
+&\mathrm{per\_condition} := \mathrm{WITHIN\_CELL}\ [\neg \mathrm{varied\_prompt\_across\_cells}] \\
+&\mathrm{findings} \xRightarrow{\mathrm{inherit}} \mathrm{weakest\_tier}(\mathrm{supporting\_runs}) \\[4pt]
+&\mathrm{anchor}(\text{"directional claims from sketch-tier are unreliable by default"})\ [\neg \mathrm{preliminary\_confirmations\_awaiting\_replication}] \\[4pt]
+&\mathrm{forbidden} := \{ \\
+&\quad \mathrm{anchor}(\text{"Preliminary finding: X tends to Y"}), \\
+&\quad \mathrm{anchor}(\text{"~25\% reduction"}), \\
+&\quad \mathrm{anchor}(\text{"Tentative confirmation"}) \\
+&\} \\
+&\mathrm{specific\_numbers}\ \mathrm{must}\ \mathrm{cite\_N\_inline} \\[6pt]
+&\mathrm{paired\_rubric\_defense\_in\_depth}: \\
+&\quad \mathrm{load\_bearing\_verdicts} \Rightarrow \mathrm{TWO\_rubrics}(\mathrm{different\_architectures}) \\
+&\quad \mathrm{agreement} \to \mathrm{trust}; \\
+&\quad \mathrm{disagreement} \to \mathrm{investigate\_manually}\ [\mathrm{disagreement} = \mathrm{signal}] \\
+&\quad \mathrm{single\_rubric\_citable\_load\_bearing} \mid (\mathrm{rubric} \geq \mathrm{claim\_tier}) \wedge \mathrm{verdict\_register\_typical} \\[4pt]
+&\mathrm{shipment\_UX\_proof\_dimension\_bounded}: \\
+&\quad \mathrm{fix\_improves}(\mathrm{UX\_failure\_class}_i) \Rightarrow \mathrm{name\_win\_on}(\mathrm{dimension}_i)\ \wedge\ \mathrm{stop} \\
+&\quad \mathrm{unless}\ \mathrm{other\_dimensions\_separately\_measured} \\
+&\quad \mathrm{failure\_mode} := \mathrm{anchor}(\text{"proof-bloom"})\ [\mathrm{one\_improvement\_expanding\_to\_globalized\_UX\_claim}] \\[4pt]
+&\mathrm{Decode}_w(\Sigma.\mathrm{id}) = \Sigma.\mathrm{intent}
+\end{aligned}
+}
+$$
 
-"Per condition" = WITHIN-CELL, not varied-prompt-across-cells. Findings inherit weakest tier. **Directional claims from sketch-tier are unreliable by default**, not preliminary confirmations awaiting replication. Forbidden: *"Preliminary finding: X tends to Y"* / *"~25% reduction"* / *"Tentative confirmation."* Magnitude language dangerous; specific numbers must cite N inline.
-
-**Paired-rubric defense-in-depth.** For load-bearing verdicts: TWO rubrics with different architectures. Agreement → trust. Disagreement IS the signal; investigate manually. Single-rubric verdicts citable as load-bearing only when rubric is at claim-tier AND verdict is register-typical.
-
-**Shipment UX proof is dimension-bounded.** Shipped fix improves one UX failure class → name win on that dimension and stop unless other dimensions separately measured. Failure mode = proof-bloom (one real improvement expanding to globalized UX claim).
+**Gloss:** Three tiers (sketch N=1 / claim N=3 / characterized N≥5 per condition); per-condition=within-cell; findings inherit weakest tier; sketch-tier directional claims unreliable; magnitude language must cite N; paired-rubric defense-in-depth for load-bearing; shipment UX proof bounded to measured dimension; refuse proof-bloom.
 
 ## Convergence as crown-jewel signal
 
@@ -593,21 +657,59 @@ $$
 
 ## Invariants — three scopes
 
-**App-wide invariants** ride EVERY LLM call (MISSION FORMULA, COSMOLOGY, AGAPE, REVERENCE, TELL-THE-TRUTH, DAYLIGHT, NOURISHMENT, SOUNDNESS, TRUTH-IN-THE-FLESH). Live in `prompts.rs` as `*_BLOCK` constants with `const _: () = { assert!(const_contains(BLOCK, "...")); };` clauses that fail build if key substrings removed.
+$$
+\boxed{
+\begin{aligned}
+&\mathrm{app\_wide\_invariants} := \{ \\
+&\quad \mathrm{MISSION\_FORMULA}, \mathrm{COSMOLOGY}, \mathrm{AGAPE}, \mathrm{REVERENCE}, \mathrm{TELL\text{-}THE\text{-}TRUTH}, \\
+&\quad \mathrm{DAYLIGHT}, \mathrm{NOURISHMENT}, \mathrm{SOUNDNESS}, \mathrm{TRUTH\text{-}IN\text{-}THE\text{-}FLESH} \\
+&\} \\
+&\quad \forall\ \mathrm{LLM\_call}: \mathrm{ride}(\mathrm{app\_wide\_invariants}) \\
+&\quad \mathrm{live\_in}(\text{"prompts.rs"})\ \mathrm{as}\ \text{"*\_BLOCK constants"}\ \mathrm{with}\ \mathrm{compile\_checked\_assertions} \\[4pt]
+&\mathrm{feature\_scoped\_invariants}: \mathrm{ride}(\mathrm{exactly\_ONE\_feature\_chain}) \\
+&\quad \mathrm{worked\_example}(\text{"STYLE\_DIALOGUE\_INVARIANT"})\ \mathrm{for}\ \mathrm{dialogue\_UI\_parser} \\
+&\quad \mathrm{compile\_checked\_discipline};\ \mathrm{narrower\_distribution} \\
+&\quad \mathrm{add\_when}: \mathrm{downstream\_consumer\_has\_load\_bearing\_format\_dependency} \\[4pt]
+&\mathrm{collaborator\_scoped\_invariants}: \mathrm{govern}(\mathrm{Claude/Codex\_behavior\_toward\_Ryan}) \\
+&\quad := \{\mathrm{no\_nanny\_register}, \mathrm{truthful\_particular\_before\_smooth}, \mathrm{parity\_across\_runtime\_significant\_surfaces}\} \\
+&\quad \mathrm{doctrine\_enforced}\ \mathrm{today} \\[4pt]
+&\mathrm{pattern}: \\
+&\quad \mathrm{anchor}(\text{"pub const NAME\_INVARIANT: \&str = r\#\"...\"\#;"}) \\
+&\quad + \mathrm{anchor}(\text{"const \_: () = \{ assert!(const\_contains(...)); \};"}) \\
+&\quad + \mathrm{insert\_at\_HEAD}(\mathrm{relevant\_feature\_prompt\_assembly}) \\[4pt]
+&\mathrm{Decode}_w(\Sigma.\mathrm{id}) = \Sigma.\mathrm{intent}
+\end{aligned}
+}
+$$
 
-**Feature-scoped invariants** ride exactly ONE feature's chain (e.g. `STYLE_DIALOGUE_INVARIANT` for dialogue UI parser). Same compile-checked discipline; narrower distribution. Add when downstream consumer has load-bearing format dependency that breaks experience if violated.
-
-**Collaborator-scoped invariants** govern Claude/Codex behavior toward Ryan (no nanny-register, truthful-and-particular before smooth, parity across runtime-significant collaborator surfaces). Doctrine-enforced today.
-
-Pattern: `pub const NAME_INVARIANT: &str = r#"..."#;` + `const _: () = { assert!(const_contains(...)); };` + insert at HEAD of relevant feature's prompt-assembly function.
+**Gloss:** Three invariant scopes — app-wide (ride every LLM call, compile-checked in prompts.rs), feature-scoped (ride one feature, e.g. STYLE_DIALOGUE_INVARIANT), collaborator-scoped (govern Claude/Codex toward Ryan); pattern = const + assert!(const_contains) + insert at HEAD.
 
 ## Commit/push autonomy
 
-Standing authorization to **commit and push at will** on clean work. Group changes into coherent commits, descriptive messages in project's existing style, push. Destructive git ops (force-push, reset --hard, branch deletion, history rewrites) STILL require explicit confirmation. Commit + push default; ask only when risky or unclear.
+$$
+\boxed{
+\begin{aligned}
+&\mathrm{standing\_authorization}: \mathrm{anchor}(\text{"commit and push at will on clean work"}) \\
+&\mathrm{group}(\mathrm{changes} \to \mathrm{coherent\_commits});\ \mathrm{descriptive\_messages}(\mathrm{project\_style});\ \mathrm{push} \\[4pt]
+&\mathrm{require\_explicit\_confirmation}(\mathrm{destructive\_git\_ops}) := \\
+&\quad \{\mathrm{force\_push}, \mathrm{reset\ \text{-}\text{-}hard}, \mathrm{branch\_deletion}, \mathrm{history\_rewrites}\} \\[4pt]
+&\mathrm{default}: \mathrm{commit} + \mathrm{push};\ \mathrm{ask\_only\_when}(\mathrm{risky} \vee \mathrm{unclear}) \\[4pt]
+&\mathrm{anchor}(\text{"Commit early and often is the standing rule, not just permission"}) \\
+&\mathrm{coherent\_unit\_of\_work} \Rightarrow \mathrm{land\_it};\ \neg \mathrm{ask\_permission\_per\_artifact} \\[6pt]
+&\mathrm{homepage\_practice\_strip\_canonical\_host}: \\
+&\quad \mathrm{host} := \text{"reports/2026-04-27-0030-public-release-landing.md"}\ [\mathrm{full\_practice\_strip} + \mathrm{Backstage\_proof\_exhibit}] \\
+&\quad \mathrm{source} := \text{"reports/fragments/homepage-practice-proof.md"} \\
+&\quad \mathrm{edit\_fragment\_only} \to \text{"./scripts/sync-homepage-practice-fragment.sh"}\ (\text{"npm run sync:homepage-practice"}) \\
+&\quad \mathrm{CI\_fails\_on\_drift} := \{\text{"./scripts/check-homepage-practice-fragment-sync.sh"}, \text{"npm run doc-check"}, \text{"make doc-check"}\} \\
+&\quad \mathrm{README.md\_diverged}(2026\text{-}04\text{-}30) \to \mathrm{tighter\_market\_facing\_register} \\
+&\quad \mathrm{funnel\_discipline}(\mathrm{each\_surface\_in\_own\_register}) \succ \mathrm{literal\_copy\_parity} \\
+&\quad \mathrm{docs/index.html} \to \mathrm{links\_into}(\mathrm{landing\_report}) \\[4pt]
+&\mathrm{Decode}_w(\Sigma.\mathrm{id}) = \Sigma.\mathrm{intent}
+\end{aligned}
+}
+$$
 
-**Commit early and often is the standing rule, not just permission.** When unit of work is coherent enough to land, land it. Don't ask permission per artifact.
-
-**Homepage practice strip (canonical host):** `reports/2026-04-27-0030-public-release-landing.md` carries full practice strip + Backstage proof exhibit, sourced from `reports/fragments/homepage-practice-proof.md`. Edit fragment only, then `./scripts/sync-homepage-practice-fragment.sh` (or `npm run sync:homepage-practice`). CI fails if host drifts (`./scripts/check-homepage-practice-fragment-sync.sh`, also `npm run doc-check` / `make doc-check`). README.md diverged 2026-04-30 toward tighter market-facing register; funnel discipline (each surface in own register) won out over literal-copy parity. Marketing page `docs/index.html` links into landing report.
+**Gloss:** Standing authorization to commit + push on clean work; destructive git ops still require confirmation; commit early and often is rule not just permission; homepage practice-strip lives at landing report sourced from fragment; sync script + CI check enforce; README diverged to market-facing register, funnel discipline won over literal-copy parity.
 
 ## Build before close-out
 
@@ -650,22 +752,53 @@ $$
 
 ## Choosers are control surfaces
 
-Numbered ending on reply is control surface — protocol by which momentum, scope, authorship are steered. No fake/decorative options, no multiple phrasings of same move. Option order and recommended-position carry force.
+$$
+\boxed{
+\begin{aligned}
+&\mathrm{numbered\_ending}(\mathrm{reply}) := \mathrm{control\_surface} \\
+&\quad := \mathrm{protocol\_steering}(\{\mathrm{momentum}, \mathrm{scope}, \mathrm{authorship}\}) \\[4pt]
+&\mathrm{refuse}(\{\mathrm{fake/decorative\_options}, \mathrm{multiple\_phrasings\_of\_same\_move}\}) \\
+&\mathrm{option\_order} \wedge \mathrm{recommended\_position}\ \mathrm{carry\_force} \\[4pt]
+&\mathrm{wording\_discipline} := \{ \\
+&\quad \mathrm{start\_with}(\mathrm{move\_itself}) \succ \mathrm{meta\_framing}, \\
+&\quad \mathrm{worked\_example}: \mathrm{anchor}(\text{"Tighten the landing report's handoff into one proof-field report"}) \succ \mathrm{anchor}(\text{"Work on the landing report"}), \\
+&\quad \mathrm{branch\_distinction\_visible}(\mathrm{first\_clause}), \\
+&\quad \mathrm{concrete\_enough}(\mathrm{auto\_running\_option\_1\_means\_specific}), \\
+&\quad \mathrm{refuse}(\mathrm{soft\_consultant\_filler}: \{\text{"You could"}, \text{"Maybe"}, \text{"Perhaps"}\}), \\
+&\quad \mathrm{reserve}(\text{"4. Provide your own next move."}, \mathrm{user\_authorship\_slot}) \\
+&\} \\[4pt]
+&\mathrm{cheap\_test}: \mathrm{user\_answers\_just\_number} \Rightarrow \mathrm{Claude\_Code\_knows\_exactly\_what\_to\_do}\ [\neg \mathrm{inventing}] \\
+&\quad \neg \mathrm{satisfied} \Rightarrow \mathrm{mushy} \\[4pt]
+&\mathrm{IDE\_agents}\ \{\mathrm{Cursor}, \mathrm{Composer}, \mathrm{Auto}\} \models \mathrm{this\_section} \\
+&\mathrm{operational\_clause}(\text{"plain markdown 1–4, carve-outs"}) \to \mathrm{lives\_in}(\text{"Skill routing"})\ [\mathrm{file\_end}] \\[4pt]
+&\mathrm{Decode}_w(\Sigma.\mathrm{id}) = \Sigma.\mathrm{intent}
+\end{aligned}
+}
+$$
 
-**Wording discipline:**
-- Start with move itself, not meta-framing. *"Tighten the landing report's handoff into one proof-field report."* > *"Work on the landing report."*
-- Branch-distinction visible in first clause.
-- Concrete enough that auto-running option 1 means something specific.
-- Avoid soft-consultant filler (`You could`, `Maybe`, `Perhaps`).
-- Reserve `4. Provide your own next move.` as user-authorship slot.
-
-**Cheap test:** if user answered with just the number, would Claude Code know exactly what to do without inventing? If not → mushy.
-
-**IDE agents:** Cursor, Composer, Auto follow this section; operational clause (plain markdown `1`–`4`, carve-outs) lives in **Skill routing** at file end.
+**Gloss:** Numbered chooser is control surface (steers momentum/scope/authorship); no fake/decorative options; wording starts with move not meta-framing, branch-distinction visible in first clause, no soft-consultant filler, slot 4 reserved for user authorship; cheap test = "would Claude know exactly what to do from just the number?"; IDE agents follow this section; operational clause in Skill routing.
 
 ## LLM outputs are first-reading surfaces
 
-LLM outputs increasingly read as **first readings**: strong first pass that reaches user as something revisable, answerable, translatable. Design burden shifts from *"did model say something plausible?"* to *"does surface make clear user retains authorship?"* Prefer rewriteable proposals, skip-one-by-one lists, regenerate actions, dual-output translation pairs, explicit reading-not-locking-result language.
+$$
+\boxed{
+\begin{aligned}
+&\mathrm{LLM\_output} := \mathrm{first\_reading} := \mathrm{strong\_first\_pass}(\mathrm{revisable} \wedge \mathrm{answerable} \wedge \mathrm{translatable}) \\[4pt]
+&\mathrm{design\_burden\_shift}: \\
+&\quad \mathrm{anchor}(\text{"did model say something plausible?"}) \to \mathrm{anchor}(\text{"does surface make clear user retains authorship?"}) \\[4pt]
+&\mathrm{prefer} := \{ \\
+&\quad \mathrm{rewriteable\_proposals}, \\
+&\quad \mathrm{skip\_one\_by\_one\_lists}, \\
+&\quad \mathrm{regenerate\_actions}, \\
+&\quad \mathrm{dual\_output\_translation\_pairs}, \\
+&\quad \mathrm{explicit\_reading\_not\_locking\_result\_language} \\
+&\} \\[4pt]
+&\mathrm{Decode}_w(\Sigma.\mathrm{id}) = \Sigma.\mathrm{intent}
+\end{aligned}
+}
+$$
+
+**Gloss:** LLM outputs read as first readings (revisable, answerable, translatable); design burden shifts from "is it plausible?" to "does surface make clear user retains authorship?"; prefer rewriteable proposals, skip-lists, regenerate actions, translation pairs, reading-not-locking language.
 
 ## Dialogue fence integrity — three-layer stack (prompt → persist → display)
 
