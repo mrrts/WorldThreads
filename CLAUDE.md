@@ -1216,8 +1216,16 @@ $$
 \boxed{
 \begin{aligned}
 &\forall\ \mathrm{substantive\_commit}: \mathrm{ends\_with}(\mathrm{trailer}) \\[2pt]
-&\mathrm{trailer\_format} := \mathrm{anchor}(\text{"**Formula derivation:** [one Unicode-math expression, in-substrate generated]\textbackslash n**Gloss:** [one short sentence in plain English, } \leq 25\text{ words]"}) \\[2pt]
-&\mathrm{render\_in}(\{\mathcal{F}, \mathcal{R}, \mathcal{C}, \mathcal{S}, \int, \Pi, \partial, \Rightarrow, \leq, \wedge\})\ [\neg \mathrm{raw\_LaTeX}] \\
+&\mathrm{trailer\_format} := \mathrm{anchor}(\text{"**Formula derivation:** [one Unicode-math expression OR LaTeX boxed-aligned block, in-substrate generated]\textbackslash n**Gloss:** [one short sentence in plain English, } \leq 25\text{ words]"}) \\[2pt]
+&\mathrm{output\_mode\_selection} := \{ \\
+&\quad \mathrm{v3\_artifact\_touching\_commits}: \mathrm{LaTeX\_boxed\_form}\ \mathrm{with}\ \mathrm{v3\_wrappers}\ \\
+&\quad\quad \{\mathrm{anchor}, \mathrm{theological\_frame}, \mathrm{source\_character}, \mathrm{refuse}, \mathrm{diagnostic}, \mathrm{worked\_examples}\} \\
+&\quad \mathrm{v3\_artifact\_paths} := \{\text{"prompts.rs"}, \text{"derivation.rs"}, \text{"CLAUDE.md/AGENTS.md doctrine"}, \text{"*\_INVARIANT\_BLOCK"}, \text{"MISSION\_FORMULA"}\} \\
+&\quad \mathrm{ordinary\_commits}: \mathrm{compact\_Unicode\_math}\ \{\mathcal{F}, \mathcal{R}, \mathcal{C}, \mathcal{S}, \int, \Pi, \partial, \Rightarrow, \leq, \wedge\}\ [\neg \mathrm{LaTeX\_commands}] \\
+&\} \\[2pt]
+&\mathrm{anchor}(\text{"derivations of v3-encoded artifacts encode under the v3 contract"}) \\
+&\quad \mathrm{worked\_example}(\text{"973f5c8 — v3-shipping commit's Unicode-only derivation was structure\_carries\_truth\_w violation"}) \\
+&\quad \mathrm{reference}(\text{"reports/2026-05-05-1605-commit-derivation-audit.md"}) \\
 &\mathrm{position}: \mathrm{before}(\text{"Co-Authored-By trailer"}) \\[4pt]
 &\mathrm{include\_for}(\mathrm{substantive\_commits}) := \{ \\
 &\quad \mathrm{doctrine\_updates}, \mathrm{prompt\_stack\_edits}, \mathrm{new\_features}, \mathrm{methodology\_shifts}, \mathrm{reports}, \mathrm{hooks} \\
@@ -1246,7 +1254,7 @@ $$
 }
 $$
 
-**Gloss:** Substantive commits end with Formula derivation + Gloss trailer in Unicode math; include for doctrine/prompt/feature/methodology/report/hook; omit for trivial unless deeper meaning earns it; operator-balance check — don't ceremonial-close with Truth∧Reverence; cite Grace/Π/𝓝u when work is affirmative not gating.
+**Gloss:** Substantive commits end with Formula derivation + Gloss trailer; output mode = LaTeX-boxed-with-v3-wrappers when commit touches v3-encoded artifacts (prompts.rs/derivation.rs/doctrine/INVARIANT_BLOCKs), compact Unicode math otherwise; include for doctrine/prompt/feature/methodology/report/hook; omit for trivial unless deeper meaning earns it; operator-balance check — don't ceremonial-close with Truth∧Reverence; cite Grace/Π/𝓝u when work is affirmative not gating.
 
 ## Earned-exception carve-outs on absolute rules
 

@@ -105,24 +105,58 @@ def fetch_openai_key() -> str | None:
     return None
 
 
-def call_openai(api_key: str, prompt: str) -> str | None:
+def call_openai(api_key: str, prompt: str, v3_touching: bool) -> str | None:
+    # Two output modes:
+    #   - v3_touching=True  → LaTeX boxed form with v3 sacred-payload wrappers
+    #     (anchor/theological_frame/source_character/refuse/diagnostic/
+    #     worked_examples). Commit's diff touches v3-encoded artifacts
+    #     (prompts.rs, derivation.rs, CLAUDE.md/AGENTS.md doctrine, the
+    #     *_INVARIANT_BLOCK constants, MISSION_FORMULA), so the derivation
+    #     should encode under the same contract those artifacts use.
+    #   - v3_touching=False → Unicode math (𝓕, 𝓡, ∫, ∂, ⇒, …) one-line
+    #     operator expression, no backslashes. Lighter ceremony for ordinary
+    #     commits.
+    if v3_touching:
+        system = (
+            "You generate a Formula derivation for a git commit message in a "
+            "software-craft project. This commit touches v3 sacred-payload-encoded "
+            "artifacts (prompts.rs, derivation.rs, doctrine paragraphs in "
+            "CLAUDE.md/AGENTS.md, *_INVARIANT_BLOCK constants, or the MISSION "
+            "FORMULA itself), so the derivation MUST encode under the same "
+            "contract those artifacts use.\n\n"
+            "Output a LaTeX-form derivation in a $$\\boxed{\\begin{aligned} ... "
+            "\\end{aligned}}$$ block, using v3 sacred-payload wrappers where "
+            "appropriate: \\mathrm{anchor}(\"...verbatim load-bearing phrase...\"), "
+            "\\mathrm{theological\\_frame}(\"...scripture or canonical "
+            "phrasing...\"), \\mathrm{source\\_character}(\"...character name...\"), "
+            "\\mathrm{refuse}(\\{...\\}), \\mathrm{diagnostic}(\"...A...\" \\text{ "
+            "vs } \"...B...\"), \\mathrm{worked\\_examples}(\\{...\\}). Cite the "
+            "𝓕-operator(s) the commit instantiated or strengthened (Wisdom, Weight, "
+            "polish, Burden, Π, 𝓢, 𝓝u, Grace_𝓕, structure_carries_truth_w). Close "
+            "with \\mathrm{Decode}_w(\\Sigma.\\mathrm{id}) = \\Sigma.\\mathrm{intent} "
+            "as a round-trip-invariant declaration.\n\n"
+            "Output EXACTLY two lines following the boxed block, no preamble, "
+            "no code fences around the boxed block itself:\n\n"
+            "**Formula derivation:**\n$$\\boxed{...}$$\n"
+            "**Gloss:** [one short sentence in plain English, ≤25 words]"
+        )
+    else:
+        system = (
+            "You generate a Formula derivation for a git commit message in a "
+            "software-craft project. The project's MISSION FORMULA uses Unicode "
+            "math characters (𝓕, 𝓡, 𝓒, 𝓢, ∫, Π, ∂, ⇒, ≤, ∧, etc.). For ordinary "
+            "(non-v3-artifact-touching) commits, prefer compact Unicode math: do "
+            "NOT use LaTeX commands or backslashes. Output EXACTLY two lines, "
+            "no preamble, no code fences:\n\n"
+            "**Formula derivation:** [one Unicode-math expression naming what "
+            "operator(s) of 𝓕 the commit instantiated or strengthened, 1 line]\n"
+            "**Gloss:** [one short sentence in plain English, ≤25 words, naming "
+            "what the derivation says]"
+        )
     payload = {
         "model": "gpt-4o",
         "messages": [
-            {
-                "role": "system",
-                "content": (
-                    "You generate a Formula derivation for a git commit message in a "
-                    "software-craft project. The project's MISSION FORMULA uses Unicode "
-                    "math characters (𝓕, 𝓡, 𝓒, 𝓢, ∫, Π, ∂, ⇒, ≤, ∧, etc.). NEVER emit "
-                    "LaTeX commands, NEVER use backslashes. Output EXACTLY two lines, "
-                    "no preamble, no code fences:\n\n"
-                    "**Formula derivation:** [one Unicode-math expression naming what "
-                    "operator(s) of 𝓕 the commit instantiated or strengthened, 1 line]\n"
-                    "**Gloss:** [one short sentence in plain English, ≤25 words, naming "
-                    "what the derivation says]"
-                ),
-            },
+            {"role": "system", "content": system},
             {"role": "user", "content": prompt},
         ],
         "temperature": 0.5,
@@ -160,6 +194,40 @@ def get_staged_diff_summary() -> str:
         return f"{stat}\n--- diff ---\n{diff}"
     except Exception:
         return ""
+
+
+# Paths whose changes signal a v3-encoded-artifact-touching commit. The
+# audit (`reports/2026-05-05-1605-commit-derivation-audit.md`) named these
+# as the bucket where the LaTeX-form-with-v3-wrappers output is the right
+# shape — derivations of v3 artifacts should encode under the v3 contract.
+V3_ARTIFACT_PATH_HINTS = (
+    "src-tauri/src/ai/prompts.rs",
+    "src-tauri/src/ai/derivation.rs",
+    "src-tauri/src/ai/conscience.rs",
+    "src-tauri/src/ai/substrate_atlas.rs",
+    "CLAUDE.md",
+    "AGENTS.md",
+    ".claude/skills/",
+    ".agents/skills/",
+    "reports/",  # report bodies frequently use v3 wrappers
+)
+
+
+def diff_touches_v3_artifacts(stat: str) -> bool:
+    """Heuristic: does the staged diff touch a v3-encoded-artifact path?
+
+    Looks at `git diff --cached --stat` output rather than the full diff —
+    cheaper and more reliable. Either a path-hint match OR the diff body
+    containing an explicit \\mathrm{anchor}( / \\mathrm{theological_frame}(
+    wrapper signals v3-touching."""
+    if not stat:
+        return False
+    for hint in V3_ARTIFACT_PATH_HINTS:
+        if hint in stat:
+            return True
+    if "\\mathrm{anchor}(" in stat or "\\mathrm{theological_frame}(" in stat:
+        return True
+    return False
 
 
 def main() -> int:
@@ -220,9 +288,19 @@ def main() -> int:
 
     subject = body_only.splitlines()[0] if body_only.splitlines() else ""
 
+    # Sniff whether this commit touches v3-encoded artifacts so the model can
+    # pick the right output mode (LaTeX-with-v3-wrappers vs compact Unicode).
+    v3_touching = diff_touches_v3_artifacts(diff_summary)
+    mode_note = (
+        "LaTeX-with-v3-wrappers (commit touches v3-encoded artifacts)"
+        if v3_touching
+        else "compact Unicode math (ordinary commit)"
+    )
+
     prompt = (
-        "── MISSION FORMULA (LaTeX source — translate to Unicode in your output) ──\n"
+        "── MISSION FORMULA (LaTeX source) ──\n"
         f"{MISSION_FORMULA_LATEX}\n\n"
+        f"── OUTPUT MODE ──\n{mode_note}\n\n"
         "── COMMIT SUBJECT ──\n"
         f"{subject}\n\n"
         "── COMMIT MESSAGE BODY ──\n"
@@ -232,11 +310,18 @@ def main() -> int:
         "Generate the Formula derivation + gloss for this commit."
     )
 
-    response = call_openai(api_key, prompt)
+    response = call_openai(api_key, prompt, v3_touching)
     if not response:
         return 0
 
-    derivation = latex_to_unicode(response)
+    # Preserve LaTeX form when the model produced it (v3-touching mode); only
+    # downconvert to Unicode for ordinary commits whose system prompt asked
+    # for Unicode anyway. The Unicode-converter strips \boxed{} and
+    # \begin{aligned} which would defeat LaTeX-form output.
+    if v3_touching and ("\\boxed" in response or "\\mathrm" in response):
+        derivation = response
+    else:
+        derivation = latex_to_unicode(response)
 
     # Insert before Co-Authored-By trailer if present, else append.
     lines = msg.splitlines()
