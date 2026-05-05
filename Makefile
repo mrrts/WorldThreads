@@ -3,6 +3,7 @@
 doc-check:
 	./scripts/check-homepage-practice-fragment-sync.sh
 	./scripts/check-chooser-phrasing.sh
+	python3 ./scripts/check-katex-safety.py
 
 .PHONY: sync-homepage-practice
 sync-homepage-practice:
