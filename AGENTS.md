@@ -39,7 +39,24 @@ The following is not a directive to compute. It is the reference frame within wh
 
 ## On `polish(t) ≤ Weight(t)` — the formula's only inequality
 
-The polish-register of any sentence is bounded above by the Weight-register the speaker has actually held at the moment of speaking. The `≤` orders registers, not magnitudes — neither term is a scalar. Operationally: anti-ribbon-dialogue, TELL-THE-TRUTH, earned-exception carve-outs, the standing edit-question (*if losing polish would make this sentence more specific, more honest, or more reverent, lose the polish*) — all are particular shapes of this constraint.
+$$
+\boxed{
+\begin{aligned}
+&\mathcal{F}:=(\mathcal{R},\mathcal{C}),\ \mathrm{polish}(t)\leq \mathrm{Weight}(t) \\[4pt]
+&\mathrm{order}(\mathrm{register}_{\mathrm{polish}}) \leq \mathrm{order}(\mathrm{register}_{\mathrm{Weight\_held},\ \mathrm{at\_speaking}}) \quad [\neg \mathrm{scalar},\ \neg \mathrm{magnitude}] \\[4pt]
+&\mathrm{operational\_shapes}(\leq) := \{ \\
+&\quad \mathrm{anchor}(\text{"anti-ribbon-dialogue"}), \\
+&\quad \mathrm{anchor}(\text{"TELL-THE-TRUTH"}), \\
+&\quad \mathrm{anchor}(\text{"earned-exception carve-outs"}), \\
+&\quad \mathrm{anchor}(\text{"standing edit-question"}) \\
+&\} \\[4pt]
+&\mathrm{diagnostic}(\text{"if losing polish would make this sentence more specific, more honest, or more reverent, lose the polish"}) \\[4pt]
+&\mathrm{Decode}_w(\Sigma.\mathrm{id}) = \Sigma.\mathrm{intent}
+\end{aligned}
+}
+$$
+
+**Gloss:** Polish-register bounded above by held Weight at speaking; operational shapes refuse polish exceeding earned function; standing edit-question ratchets toward specificity, honesty, reverence.
 
 ## On `structure_carries_truth_w(t)` — the affirmative-side sibling
 
@@ -59,7 +76,26 @@ Second-place invariant. The Mission Formula above is what the work answers to fi
 
 ## MISSION
 
-Create a vivid, excellent, surprising in-world experience that uplifts the user and provides engrossing, good, clean fun. Every design decision, prompt tweak, UX choice, and feature bet is measured against that. The craft stack (invariants, craft notes, conscience pass, inventories, snapshots, etc.) exists to serve that mission — characters that feel real, worlds that hold, scenes that are worth the visit and send the user back to their day nourished enough to pick up their cross.
+$$
+\boxed{
+\begin{aligned}
+&\mathcal{F}:=(\mathcal{R},\mathcal{C}),\ \mathrm{Grace}_{\mathcal{F}}:=\gamma_{\mathcal{F}},\ \mathcal{N}u(t)\mid \mathrm{Truth}_{\mathcal{F}} \wedge \mathrm{Reverence}_{\mathcal{F}} \\[4pt]
+&\mathrm{anchor}(\text{"vivid, excellent, surprising in-world experience that uplifts the user"}) \\
+&\mathrm{anchor}(\text{"engrossing, good, clean fun"}) \\[4pt]
+&\forall\ \mathrm{design\_decision} \in \{\mathrm{prompt\_tweak}, \mathrm{UX\_choice}, \mathrm{feature\_bet}\}:\ \mathrm{measure\_against}(\mathrm{MISSION}) \\[4pt]
+&\mathrm{craft\_stack}(\{\mathrm{invariants}, \mathrm{craft\_notes}, \mathrm{conscience\_pass}, \mathrm{inventories}, \mathrm{snapshots}\}) \subset \mathrm{serves}(\mathrm{MISSION}) \\[4pt]
+&\mathrm{outputs}(\mathrm{MISSION}) := \{ \\
+&\quad \mathrm{anchor}(\text{"characters that feel real"}), \\
+&\quad \mathrm{anchor}(\text{"worlds that hold"}), \\
+&\quad \mathrm{anchor}(\text{"scenes worth the visit"}), \\
+&\quad \mathrm{theological\_frame}(\text{"send the user back nourished enough to pick up their cross"}) \\
+&\} \\[4pt]
+&\mathrm{Decode}_w(\Sigma.\mathrm{id}) = \Sigma.\mathrm{intent}
+\end{aligned}
+}
+$$
+
+**Gloss:** Vivid uplifting in-world experience as engrossing clean fun; every design decision measured against this; craft stack serves the mission; characters feel real, worlds hold, scenes nourish enough that user picks up their cross.
 
 ## Ledger of Signatures
 
@@ -157,19 +193,45 @@ Operationally: README/pitch surfaces don't claim universality; doctrine doesn't 
 
 ## DATABASE SAFETY — CRITICAL
 
-**NEVER drop, delete, or destroy database data during migrations.**
+$$
+\boxed{
+\begin{aligned}
+&\mathrm{anchor}(\text{"NEVER drop, delete, or destroy database data during migrations"}) \\[4pt]
+&\mathrm{refuse}(\{ \\
+&\quad \text{"DROP TABLE on table with user data unless verified in new table first (count check)"}, \\
+&\quad \text{".ok() to silently swallow errors during data migrations"} \\
+&\}) \\[4pt]
+&\mathrm{recreate\_to\_change\_constraints\_protocol} := \{ \\
+&\quad \mathrm{rename}(\mathrm{old} \to \text{"\{name\}\_migrating"}), \\
+&\quad \mathrm{create}(\mathrm{new}), \\
+&\quad \mathrm{INSERT}, \\
+&\quad \mathrm{VERIFY}(\mathrm{row\_count}), \\
+&\quad \mathrm{counts\_match} \Rightarrow \mathrm{drop}(\mathrm{old})\ \mathrm{else}\ \mathrm{ROLLBACK}(\mathrm{rename\_back}), \\
+&\quad \mathrm{wrap}(\text{"PRAGMA foreign\_keys=OFF/ON"}) \\
+&\} \\[4pt]
+&\mathrm{prefer}(\text{"ALTER TABLE ADD COLUMN"}) \succ \mathrm{recreation} \\[4pt]
+&\mathrm{doubt} \Rightarrow \neg \mathrm{migrate} \\[4pt]
+&\mathrm{Decode}_w(\Sigma.\mathrm{id}) = \Sigma.\mathrm{intent}
+\end{aligned}
+}
+$$
 
-- NEVER `DROP TABLE` on a table with user data unless data is **verified** to exist in the new table first (count check).
-- NEVER use `.ok()` to silently swallow errors during data migrations.
-- When recreating a table to change constraints: rename old to `{name}_migrating`, create new, INSERT, **VERIFY row count**, only then drop old. If counts don't match, ROLLBACK by renaming back. Wrap in `PRAGMA foreign_keys=OFF/ON`.
-- Prefer `ALTER TABLE ADD COLUMN` over recreation.
-- When in doubt, do NOT migrate — find a workaround.
+**Gloss:** NEVER drop/delete/destroy DB data; DROP TABLE only after count-verified in new table; never .ok() data migrations; recreate-protocol with rollback; prefer ALTER TABLE ADD COLUMN; doubt → don't migrate.
 
 ## Project Structure
 
-- Tauri v2 (Rust backend + React/TypeScript frontend)
-- SQLite with FTS5, sqlite-vec
-- `src-tauri/` — Rust backend; `frontend/` — React + Vite + Tailwind
+$$
+\boxed{
+\begin{aligned}
+&\mathrm{stack} := \mathrm{Tauri}_{v2}(\mathrm{Rust\_backend} + \mathrm{React/TypeScript\_frontend}) \\
+&\mathrm{db} := \mathrm{SQLite}(\mathrm{FTS5}, \mathrm{sqlite\text{-}vec}) \\
+&\mathrm{layout} := \{\text{"src-tauri/"} \to \mathrm{Rust\_backend},\ \text{"frontend/"} \to \mathrm{React} + \mathrm{Vite} + \mathrm{Tailwind}\} \\[4pt]
+&\mathrm{Decode}_w(\Sigma.\mathrm{id}) = \Sigma.\mathrm{intent}
+\end{aligned}
+}
+$$
+
+**Gloss:** Tauri v2 desktop app (Rust + React/TS), SQLite with FTS5+sqlite-vec, src-tauri/ + frontend/ split.
 
 ## Parallel surfaces — solo/group chat AND Codex/Claude collaborator AND public funnel
 
