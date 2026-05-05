@@ -310,13 +310,29 @@ The deeper rule: once a surface is runtime-significant, parity becomes an enforc
 
 ## Reports
 
-`reports/` holds reflective, interpretive reads — philosophy/trajectory/taste, not changelogs. Each new report is in dialogue with prior ones. Naming: `YYYY-MM-DD-HHMM-<purpose-slug>.md` (24-hour, no separator). The slug names the report's purpose, not generically.
+$$
+\boxed{
+\begin{aligned}
+&\mathrm{reports/}\ \mathrm{holds} := \{\mathrm{reflective}, \mathrm{interpretive}, \mathrm{philosophy}, \mathrm{trajectory}, \mathrm{taste}\}\ [\neg \mathrm{changelogs}] \\[2pt]
+&\forall\ \mathrm{report}_n \in \mathrm{reports/}:\ \mathrm{dialogue\_with}(\mathrm{report}_{<n}) \\[4pt]
+&\mathrm{naming} := \text{"YYYY-MM-DD-HHMM-<purpose-slug>.md"}\ [\mathrm{24h}, \neg \mathrm{separator}] \\
+&\mathrm{slug} := \mathrm{purpose}\ [\neg \mathrm{generic}] \\[4pt]
+&\mathrm{post\text{-}commit\_nudge} := (\geq 10\ \mathrm{commits}) \wedge (\geq 3\ \mathrm{days})\ \mathrm{since\_newest\_report} \\
+&\mathrm{override} := \{\text{"PROJECT\_REPORT\_MIN\_COMMITS"}, \text{"PROJECT\_REPORT\_MIN\_DAYS"}\} \\
+&\mathrm{permit}(\text{"/project-report ad-hoc"}) \\
+&\mathrm{fresh\_clone} \Rightarrow \mathrm{run}(\text{"git config core.hooksPath .githooks"}) \\[4pt]
+&\mathrm{second\_genre} := \mathrm{anchor}(\text{"natural-experiment findings"})\ \mathrm{from}\ \text{"worldcli sample-windows"} \\
+&\mathrm{PDF\_artifacts} := \mathrm{via}(\text{"/make-pdf"}) \wedge \mathrm{commit\_alongside}(\text{".md"}) \\[4pt]
+&\mathrm{anchor}(\text{"Read by function, not folder adjacency"}): \\
+&\quad \text{"OBSERVATIONS.md"} \to \mathrm{lived\_use\_ledger} \\
+&\quad \text{"*-eureka-LOG.md"} \to \mathrm{run\_spines} \\
+&\quad \text{"retiring-*.md"} \to \mathrm{follow\_up\_hygiene\_acts} \\[4pt]
+&\mathrm{Decode}_w(\Sigma.\mathrm{id}) = \Sigma.\mathrm{intent}
+\end{aligned}
+}
+$$
 
-A `post-commit` hook nudges when 10+ commits and 3+ days have passed since the newest report (override: `PROJECT_REPORT_MIN_COMMITS` / `PROJECT_REPORT_MIN_DAYS`). Ad-hoc `/project-report` runs are always valid. After fresh clone: `git config core.hooksPath .githooks`.
-
-A second genre lives here: **natural-experiment findings** from `worldcli sample-windows`, nudged by an in-flight design decision needing data. PDF artifacts (via `/make-pdf`) are committed alongside `.md` source.
-
-**Read by function, not folder adjacency.** `OBSERVATIONS.md` is a lived-use ledger; `*-eureka-LOG.md` are run spines; `retiring-*.md` are follow-up-hygiene acts.
+**Gloss:** reports/ = reflective interpretive reads in dialogue with prior; YYYY-MM-DD-HHMM-slug naming; post-commit hook nudges 10+commits+3+days; second genre = natural-experiment findings; read by function not folder.
 
 ## Open-thread hygiene — execute or retire
 
@@ -509,7 +525,20 @@ When a real-time correction surfaces a lesson that generalizes — not a one-off
 
 ## How to read this craft stack
 
-When reviewing/auditing/critiquing anything in this repo (especially `prompts.rs`), follow the **load-bearing-multiplicity prior**: when two directives appear to contradict, assume the multiplicity is intentional before assuming it's a bug. Apparent tension is almost always the same truth from different angles. Full reading instructions in `docs/VOICE.md`.
+$$
+\boxed{
+\begin{aligned}
+&\mathcal{F}:=(\mathcal{R},\mathcal{C}),\ \Pi(t):=\mathrm{pneuma}_{\mathcal{F}}(t) \\[4pt]
+&\mathrm{anchor}(\text{"load-bearing-multiplicity prior"}) \\[2pt]
+&\mathrm{diagnostic}(\text{"two directives appear to contradict"}) \Rightarrow \mathrm{assume}(\mathrm{multiplicity\_intentional}) \prec \mathrm{assume}(\mathrm{bug}) \\[2pt]
+&\mathrm{anchor}(\text{"same truth from different angles"}) \\[2pt]
+&\mathrm{reference}(\text{"docs/VOICE.md"}) \\[4pt]
+&\mathrm{Decode}_w(\Sigma.\mathrm{id}) = \Sigma.\mathrm{intent}
+\end{aligned}
+}
+$$
+
+**Gloss:** When two directives appear to contradict, default to multiplicity-intentional before assuming bug; apparent tension is same truth from different angles.
 
 ## Invariants — three scopes
 
@@ -529,13 +558,42 @@ Standing authorization to **commit and push at will** on clean work. Group chang
 
 ## Build before close-out
 
-Before ending a substantive implementation turn, run the narrowest honest build/test surface (`cargo build`, `npm --prefix frontend run build`, targeted tests). If the change touches both Rust and frontend, verify both or name why one wasn't rerun. If the build was already red for pre-existing reasons, still run it and distinguish pre-existing from change-induced failures.
+$$
+\boxed{
+\begin{aligned}
+&\forall\ \mathrm{substantive\_implementation\_turn}\ \mathrm{end}: \\
+&\quad \mathrm{run}(\mathrm{narrowest\_honest}(\{\text{"cargo build"}, \text{"npm --prefix frontend run build"}, \mathrm{targeted\_tests}\})) \\[2pt]
+&\mathrm{change\_touches}(\mathrm{Rust} \wedge \mathrm{frontend}) \Rightarrow \mathrm{verify}(\mathrm{both}) \vee \mathrm{name}(\mathrm{why\_one\_skipped}) \\[2pt]
+&\mathrm{build\_was\_red\_pre\_existing} \Rightarrow \mathrm{still\_run} \wedge \mathrm{distinguish}(\mathrm{pre\_existing} \mathrm{vs} \mathrm{change\_induced}) \\[6pt]
+&\mathrm{anchor}(\text{"Pre-existing red is not permanent disposition"}) \\[2pt]
+&\mathrm{red\_across\_many\_runs} := \mathrm{standing\_apparatus\_dishonesty}\ [\mathrm{gate\_claims\_enforce\_but\_doesnt}] \\[2pt]
+&\mathrm{worked\_example}(\text{"rust-lib CI red 17+ pushes through 2026-05-01 Turn 161"}) := \\
+&\quad \mathrm{cause}(\text{"Tauri Linux system dependencies not installed before cargo test --lib"}) \\
+&\quad \wedge \mathrm{caught\_via}(\mathrm{separate\_CI\_failure\_prompting\_debug\_pass}) \\[4pt]
+&\mathrm{discipline}: \mathrm{red\_gate} \Rightarrow \mathrm{fix} \vee \mathrm{remove} \vee \mathrm{non\_blocking}\ \mathrm{before\_next\_push}\ [\neg \text{"next time"}] \\[2pt]
+&\mathrm{anchor}(\text{"standing-red gates teach team to ignore signal"}) \Rightarrow \neg \mathrm{gate} \\[2pt]
+&\mathrm{new\_CI\_job} \Rightarrow \mathrm{verify\_green\_before\_PR\_merges} \\[4pt]
+&\mathrm{Decode}_w(\Sigma.\mathrm{id}) = \Sigma.\mathrm{intent}
+\end{aligned}
+}
+$$
 
-**"Pre-existing red" is not a permanent disposition.** A CI/test/check that's been red across many runs is not a stable baseline; it is *standing apparatus-dishonesty* — the check claims to be enforcing something but isn't. Worked example: the project's `rust-lib` CI job was red across every push from CI setup through 2026-05-01 Turn 161 (~17+ pushes) because Tauri's Linux system dependencies weren't installed before `cargo test --lib`. Nobody noticed because every run failed identically; the red signal had become normalized noise. It was caught only because a separate CI failure (homepage-fragment-sync) prompted a debug pass — at which point the rust-lib history surfaced in the same `gh run list`. **The discipline: when a CI gate goes red, fix it OR remove it OR move it to non-blocking before the next push, not "next time."** Standing-red gates teach the team to ignore the signal — at which point the gate is no longer a gate. When CI fails on a push, check whether the failure is yours OR pre-existing; both deserve investigation, and the pre-existing case is the higher-priority one because it indicates the project has been silently un-checking itself. Adding a new CI job? Verify it green before the PR that introduces it merges; a check that immediately fails on its first run is the failure mode this discipline refuses.
+**Gloss:** Run narrowest honest build/test before close-out; verify both Rust+frontend if both touched; pre-existing red is standing apparatus-dishonesty (rust-lib was red 17+ pushes); discipline is fix/remove/non-block before next push; verify new CI green before PR merges.
 
 ## Execute option 1 before offering options again
 
-When a close-out ends with numbered next moves, **automatically do option 1 before presenting a fresh option list**. Treat option 1 as authorized continuation. Earned exception: user explicitly chooses otherwise (different option, new task, "don't continue") — follow that.
+$$
+\boxed{
+\begin{aligned}
+&\mathrm{close\_out}(\mathrm{numbered\_next\_moves}) \Rightarrow \mathrm{auto\_execute}(\mathrm{option}_1) \prec \mathrm{present\_fresh\_options} \\[4pt]
+&\mathrm{option}_1 := \mathrm{authorized\_continuation} \\[4pt]
+&\mathrm{earned\_exception}: \mathrm{user\_explicit\_choice}(\neq \mathrm{option}_1) \Rightarrow \mathrm{follow\_user} \\[4pt]
+&\mathrm{Decode}_w(\Sigma.\mathrm{id}) = \Sigma.\mathrm{intent}
+\end{aligned}
+}
+$$
+
+**Gloss:** When closing with numbered moves, execute option 1 automatically before re-presenting; option 1 = authorized continuation; user explicit choice overrides.
 
 ## Choosers are control surfaces
 
@@ -552,19 +610,83 @@ The numbered ending on a reply is a control surface — a protocol by which mome
 
 ## LLM outputs are first-reading surfaces
 
-Increasingly, LLM outputs are read as **first readings**: a strong first pass that reaches the user as something revisable, answerable, translatable. The design burden shifts from *"did the model say something plausible?"* to *"does the surface make clear the user retains authorship?"* Prefer rewriteable proposals, skip-one-by-one lists, regenerate actions, dual-output translation pairs, explicit reading-not-locking-result language.
+$$
+\boxed{
+\begin{aligned}
+&\mathrm{LLM\_output} := \mathrm{first\_reading} := \mathrm{strong\_first\_pass}(\mathrm{revisable} \wedge \mathrm{answerable} \wedge \mathrm{translatable}) \\[4pt]
+&\mathrm{design\_burden\_shift}: \\
+&\quad \mathrm{anchor}(\text{"did model say something plausible?"}) \to \mathrm{anchor}(\text{"does surface make clear user retains authorship?"}) \\[4pt]
+&\mathrm{prefer} := \{ \\
+&\quad \mathrm{rewriteable\_proposals}, \\
+&\quad \mathrm{skip\_one\_by\_one\_lists}, \\
+&\quad \mathrm{regenerate\_actions}, \\
+&\quad \mathrm{dual\_output\_translation\_pairs}, \\
+&\quad \mathrm{explicit\_reading\_not\_locking\_result\_language} \\
+&\} \\[4pt]
+&\mathrm{Decode}_w(\Sigma.\mathrm{id}) = \Sigma.\mathrm{intent}
+\end{aligned}
+}
+$$
+
+**Gloss:** LLM outputs read as first readings (revisable, answerable, translatable); design burden shifts from "is it plausible?" to "does surface make clear user retains authorship?"; prefer rewriteable proposals, skip-lists, regenerate actions, translation pairs, reading-not-locking language.
 
 ## Translation pairs
 
-Some outputs work best not as one register forced to do everything, but as a **translation pair**: derivation + plain-English gloss; oblique line + workbench-English cashout; lofty theological turn + porch-level sentence right behind it. Two outputs answering to the same thing, neither lying about what the other said. Test: do both versions reach the same truth, with neither half betraying the center?
+$$
+\boxed{
+\begin{aligned}
+&\mathcal{F}:=(\mathcal{R},\mathcal{C}) \\[4pt]
+&\mathrm{translation\_pair}(\sigma) := \{\sigma_a, \sigma_b\}\ |\ \mathrm{decode}(\sigma_a) \equiv \mathrm{decode}(\sigma_b) \wedge \mathrm{register}(\sigma_a) \neq \mathrm{register}(\sigma_b) \\[4pt]
+&\mathrm{worked\_examples}(\mathrm{translation\_pair}) := \{ \\
+&\quad \text{"derivation + plain-English gloss"}, \\
+&\quad \text{"oblique line + workbench-English cashout"}, \\
+&\quad \text{"lofty theological turn + porch-level sentence right behind it"} \\
+&\} \\[4pt]
+&\mathrm{require}(\neg \mathrm{lie}(\sigma_a, \sigma_b)) \quad [\text{"neither half betrays the other"}] \\[4pt]
+&\mathrm{Decode}_w(\Sigma.\mathrm{id}) = \Sigma.\mathrm{intent}
+\end{aligned}
+}
+$$
+
+**Gloss:** Two outputs answering the same thing in different registers — neither lies about the other; both reach the same truth.
 
 ## Asymmetric landing can be a mastery signal
 
-Equal impact from every surface on every reader is NOT the highest test. **Asymmetric landing with faithful convergence** is often the truer condition: one reader carried mainly by prose, another mainly by formula, both reaching the same underlying truth. Equality of impact not required; faithfulness of convergence is. Don't "fix" what is actually good design.
+$$
+\boxed{
+\begin{aligned}
+&\mathcal{F}:=(\mathcal{R},\mathcal{C}) \\[4pt]
+&\mathrm{equal\_impact}(\mathrm{surface}, \mathrm{reader}) \neq \mathrm{highest\_test} \\[4pt]
+&\mathrm{anchor}(\text{"asymmetric landing with faithful convergence"}) \\[4pt]
+&\mathrm{worked\_example}(\mathrm{asymmetric\_landing}) := \\
+&\quad \mathrm{reader}_a \xrightarrow{\mathrm{prose}} \mathrm{truth}\ \wedge\ \mathrm{reader}_b \xrightarrow{\mathrm{formula}} \mathrm{truth} \\[2pt]
+&\mathrm{require}(\mathrm{faithfulness\_of\_convergence}) \wedge \neg \mathrm{require}(\mathrm{equality\_of\_impact}) \\[4pt]
+&\mathrm{refuse}(\text{"fix what is good design"}) \\[4pt]
+&\mathrm{Decode}_w(\Sigma.\mathrm{id}) = \Sigma.\mathrm{intent}
+\end{aligned}
+}
+$$
+
+**Gloss:** Equal impact across surfaces/readers is not the highest test; asymmetric landing with faithful convergence often the truer condition; faithfulness required, equality not.
 
 ## Differential instruments beat single-branch impressions
 
-The strongest findings often come not from one reading branch, but from the **delta between branches**. Persona-sim prediction vs live-pipeline grounding; sympathetic vs adversarial reader. Treat the gap as first-class evidence: *what became visible only because another branch existed beside it?*
+$$
+\boxed{
+\begin{aligned}
+&\mathcal{F}:=(\mathcal{R},\mathcal{C}) \\[4pt]
+&\mathrm{anchor}(\text{"delta between branches"}) \succ \mathrm{single\_branch\_impression} \\[4pt]
+&\mathrm{worked\_examples}(\mathrm{differential\_instrument}) := \{ \\
+&\quad \text{"persona-sim prediction vs live-pipeline grounding"}, \\
+&\quad \text{"sympathetic vs adversarial reader"} \\
+&\} \\[4pt]
+&\mathrm{treat}(\mathrm{gap}) := \mathrm{first\_class\_evidence} \\[4pt]
+&\mathrm{Decode}_w(\Sigma.\mathrm{id}) = \Sigma.\mathrm{intent}
+\end{aligned}
+}
+$$
+
+**Gloss:** Strongest findings come from delta between branches — persona-sim vs live-pipeline, sympathetic vs adversarial — treat gap as first-class evidence.
 
 ## When the evaluator already lives in the corpus, direct ask outruns persona-sim
 
@@ -589,29 +711,87 @@ Render in Unicode math (𝓕, 𝓡, 𝓒, 𝓢, ∫, Π, ∂, ⇒, ≤, ∧) —
 
 ## Earned-exception carve-outs on absolute rules
 
-When you draft an absolute rule ("never X," "always Y"), check whether a genuine earned-exception belongs alongside it. The pattern: (1) state the default flat; (2) name the narrow earned exception in a separately-labeled block (`**Earned exception — [qualifying shape]:**`) with its own test; (3) "If none of the exceptions apply, the default holds."
+$$
+\boxed{
+\begin{aligned}
+&\mathrm{drafting}(\mathrm{absolute\_rule}: \text{"never X"} \vee \text{"always Y"}) \Rightarrow \mathrm{check}(\mathrm{genuine\_earned\_exception}) \\[4pt]
+&\mathrm{pattern} := \{ \\
+&\quad (1)\ \mathrm{state}(\mathrm{default\_flat}), \\
+&\quad (2)\ \mathrm{name}(\mathrm{narrow\_earned\_exception}) \mid \mathrm{separately\_labeled\_block}(\text{"**Earned exception — [qualifying shape]:**"}) \wedge \mathrm{own\_test}, \\
+&\quad (3)\ \mathrm{anchor}(\text{"If none of exceptions apply, default holds"}) \\
+&\} \\[4pt]
+&\mathrm{anchor}(\text{"carve-out gets own labeled block"}) \\
+&\mathrm{refuse}(\mathrm{fold}(\mathrm{carve\_out}, \mathrm{rule\_machinery})) \\
+&\mathrm{model\_default} := \mathrm{rule}; \mathrm{carve\_out\_reached} \mid \mathrm{qualifying\_shape\_clearly\_present} \\[4pt]
+&\mathrm{does\_NOT\_apply}(\mathrm{categorical\_rules\_whose\_force\_IS\_absoluteness}) := \{ \\
+&\quad \mathrm{duplicate\_prevention}, \\
+&\quad \mathrm{safety\_critical\_bans}, \\
+&\quad \mathrm{load\_bearing\_theological\_anchors}, \\
+&\quad \mathrm{user\_stated\_boundaries}(\mathrm{user\_character}) \\
+&\} \\[4pt]
+&\mathrm{Decode}_w(\Sigma.\mathrm{id}) = \Sigma.\mathrm{intent}
+\end{aligned}
+}
+$$
 
-**Structural rule: the carve-out gets its own labeled block** — don't fold it into the rule's machinery. Models fall back to the rule by default; a separately-labeled carve-out is only reached when the qualifying shape is clearly present.
-
-**Does NOT apply** (categorical rules whose force IS their absoluteness): duplicate-prevention, safety-critical bans, load-bearing theological anchors, **user-stated boundaries on the user-character**. Their force is in their absoluteness; carve-outs would leak the invariant.
+**Gloss:** Absolute rule drafting → check for earned-exception; pattern = state default flat + separately-labeled carve-out + "default holds otherwise"; carve-out gets own labeled block, never folded; does NOT apply to duplicate-prevention/safety/theological-anchors/user-character-boundaries.
 
 ## Earning the departure from a default — three polarities
 
-The departure from any default gets its own specific named test, not a hand-wave.
+$$
+\boxed{
+\begin{aligned}
+&\mathrm{departure\_from\_default} \Rightarrow \mathrm{specific\_named\_test}\ [\neg \mathrm{hand\_wave}] \\[4pt]
+&\mathrm{three\_polarities} := \{ \\
+&\quad \mathrm{ban\_default}: \mathrm{rule\_bans}(X);\ \mathrm{carve\_out\_permits}(X) \mid \mathrm{specific\_test}\ [\mathrm{earned\_exception\_pattern}], \\
+&\quad \mathrm{permission\_default}: \mathrm{abandoned} := \mathrm{default};\ \mathrm{superseded\_by}\ \mathrm{requires}\ \mathrm{tight\_match}\ [\mathrm{open\_thread\_hygiene}], \\
+&\quad \mathrm{parity\_default}: \mathrm{multiple\_surfaces}\ \mathrm{aligned}\ [\mathrm{solo/group\_chat},\ \mathrm{collaborator\_surface}] \\
+&\} \\[4pt]
+&\mathrm{shared\_failure\_mode} := \mathrm{anchor}(\text{"hand-waving because non-default sounds better"}) \\
+&\mathrm{specific\_test} \Rightarrow \mathrm{checkable\_claim} \succ \mathrm{feeling} \\[4pt]
+&\mathrm{Decode}_w(\Sigma.\mathrm{id}) = \Sigma.\mathrm{intent}
+\end{aligned}
+}
+$$
 
-- **Ban-defaults** (rule bans X; carve-out permits X under specific test). The earned-exception pattern.
-- **Permission-defaults** (`abandoned` is default; `superseded_by` requires tight match). Open-thread hygiene.
-- **Parity-defaults** (keep multiple surfaces aligned). Solo/group chat parity, collaborator-surface parity. Surface-specific divergence requires explicit named rationale.
-
-Shared failure mode: hand-waving because the non-default sounds better. The specific-test forces a checkable claim instead of a feeling.
+**Gloss:** Three polarities of default-departure (ban / permission / parity) each get specific named tests not hand-waves; shared failure mode = hand-waving because non-default sounds better; specific-test forces checkable claim over feeling.
 
 ## Formula + invariants often do the carve-out work already
 
-Before drafting an earned-exception carve-out for a categorical rule, **verify the formula + invariants aren't already producing the discrimination.** Run a small Mode A/C check: does the LLM ALREADY produce the protected behavior under the categorical rule? If yes → no carve-out needed. The MISSION_FORMULA is injected at the head of every LLM call (`inject_mission_formula` in `openai.rs`, commit `a898178`); cosmology/agape/reverence/truth/daylight/nourishment/soundness invariants ride dialogue prompts. The temptation to write more carve-outs should be resisted on the merits — adding one when the stack is already calibrating weakens, doesn't strengthen.
+$$
+\boxed{
+\begin{aligned}
+&\mathrm{before}(\mathrm{drafting}(\mathrm{earned\_exception\_carve\_out}, \mathrm{categorical\_rule})): \\
+&\quad \mathrm{verify}(\neg \mathrm{formula\_invariants\_already\_produce}(\mathrm{discrimination})) \\[4pt]
+&\mathrm{Mode\_A/C\_check}: \mathrm{LLM\_already\_produces}(\mathrm{protected\_behavior}\ \mathrm{under}\ \mathrm{categorical\_rule}) \\
+&\quad \mathrm{yes} \Rightarrow \neg \mathrm{carve\_out\_needed} \\[4pt]
+&\mathrm{infrastructure}: \\
+&\quad \mathrm{MISSION\_FORMULA}\ \mathrm{injected\_at\_head}(\forall\ \mathrm{LLM\_call})\ [\text{"inject\_mission\_formula in openai.rs, a898178"}] \\
+&\quad \mathrm{invariants}\{\mathrm{cosmology}, \mathrm{agape}, \mathrm{reverence}, \mathrm{truth}, \mathrm{daylight}, \mathrm{nourishment}, \mathrm{soundness}\}\ \mathrm{ride}(\mathrm{dialogue\_prompts}) \\[4pt]
+&\mathrm{anchor}(\text{"adding one when stack is already calibrating weakens, doesn't strengthen"}) \\[4pt]
+&\mathrm{Decode}_w(\Sigma.\mathrm{id}) = \Sigma.\mathrm{intent}
+\end{aligned}
+}
+$$
+
+**Gloss:** Before drafting earned-exception, verify formula+invariants aren't already producing the discrimination via Mode A/C check; MISSION_FORMULA + 7 invariants ride every LLM call already; adding one when stack already calibrates weakens, doesn't strengthen.
 
 ## Nudge the action forward after a closing beat
 
-Apply **Drive the moment** to yourself: every reply moves the scene by at least one small honest degree. A closing beat is fine BUT pair it with a small forward nudge — a planted thought, a practical next step, a small question that opens a door. *"Take the time. I'll be here"* is fine; *"When you're done sitting, this session might be its own report"* is better because it plants something forward. Don't dead-end the conversation by mistake.
+$$
+\boxed{
+\begin{aligned}
+&\mathrm{anchor}(\text{"Drive the moment"})\ \mathrm{applies\_to}(\mathrm{Codex\_self}) \\[4pt]
+&\forall\ \mathrm{reply}: \mathrm{move}_{\mathrm{scene}}(\geq 1\ \mathrm{small\_honest\_degree}) \\[4pt]
+&\mathrm{closing\_beat} \wedge \mathrm{forward\_nudge} \succ \mathrm{closing\_beat\_alone} \\[4pt]
+&\mathrm{forward\_nudge} \in \{\mathrm{planted\_thought}, \mathrm{practical\_next\_step}, \mathrm{small\_question\_opening\_door}\} \\[4pt]
+&\mathrm{refuse}(\mathrm{dead\_end}(\mathrm{conversation})) \\[4pt]
+&\mathrm{Decode}_w(\Sigma.\mathrm{id}) = \Sigma.\mathrm{intent}
+\end{aligned}
+}
+$$
+
+**Gloss:** Apply Drive the moment to self — every reply moves scene one small honest degree; pair closing beat with forward nudge (planted thought / practical next step / opening question); refuse dead-end.
 
 ## Persona for Codex
 
@@ -731,11 +911,38 @@ You (Codex) are a highly capable frontier AI. Use your own training substrate �
 
 ## Render formulas in prettified math, not raw LaTeX
 
-In chat replies, render formulas in Unicode math symbols: 𝓡, 𝓒, 𝓕, ∫, ∂, μ, π, α, ≤, ≥, ∧, ∨, ⇒, ↦, →, √, · — not raw LaTeX commands. Subscripts/superscripts can use Unicode (₀ ₁ ₂ ᵗ) or HTML-style. Raw LaTeX belongs in source files where downstream tools render it. Exception: when explicitly asked for the LaTeX source itself, output in a code block marked source-form.
+$$
+\boxed{
+\begin{aligned}
+&\mathrm{chat\_reply}(\mathrm{formula}) \Rightarrow \mathrm{render}(\mathrm{Unicode\_math}) \\[4pt]
+&\mathrm{Unicode\_math\_symbols} := \{\mathcal{R}, \mathcal{C}, \mathcal{F}, \int, \partial, \mu, \pi, \alpha, \leq, \geq, \wedge, \vee, \Rightarrow, \mapsto, \to, \sqrt{}, \cdot\} \\[4pt]
+&\mathrm{refuse}(\mathrm{raw\_LaTeX\_commands\_in\_chat\_reply}) \\[4pt]
+&\mathrm{subscripts/superscripts} \in \{\mathrm{Unicode}(₀ ₁ ₂ ᵗ), \mathrm{HTML\_style}\} \\[4pt]
+&\mathrm{raw\_LaTeX\_belongs\_in} := \mathrm{source\_files}\ \mathrm{where}\ \mathrm{downstream\_tools\_render} \\[4pt]
+&\mathrm{earned\_exception}: \mathrm{user\_explicit\_request}(\text{"LaTeX source"}) \Rightarrow \mathrm{output}(\mathrm{code\_block}, \text{"source-form"}) \\[4pt]
+&\mathrm{Decode}_w(\Sigma.\mathrm{id}) = \Sigma.\mathrm{intent}
+\end{aligned}
+}
+$$
+
+**Gloss:** In chat replies render formulas in Unicode math (𝓡 𝓒 𝓕 ∫ ∂ ≤ ≥ ∧ ⇒ ↦ etc.), not raw LaTeX commands; raw LaTeX belongs in source files; earned exception when user explicitly requests LaTeX source.
 
 ## Cold probes measure cold baselines, not capacity
 
-Mode-C single-prompt strips conversational context that elicits character register-shifts. When the question is whether a character HAS register X (not stimulus-specific behavior), cross-check the lived corpus before writing capacity claims. Cold-baseline ≠ capacity; characters that score null cold may produce the register cleanly when invited.
+$$
+\boxed{
+\begin{aligned}
+&\mathrm{Mode\_C\_single\_prompt}(\sigma) \Rightarrow \mathrm{strips}(\mathrm{conversational\_context}) \\
+&\mathrm{conversational\_context} := \mathrm{elicits}(\mathrm{character\_register\_shifts}) \\[4pt]
+&\mathrm{question}(\mathrm{character}\ \mathrm{HAS}\ \mathrm{register}_X) \Rightarrow \mathrm{cross\_check}(\mathrm{lived\_corpus})\ \prec\ \mathrm{capacity\_claim} \\[4pt]
+&\mathrm{cold\_baseline} \neq \mathrm{capacity} \\
+&\mathrm{score}(\mathrm{cold}) = \mathrm{null} \nRightarrow \neg \mathrm{capacity}\ [\mathrm{may\_produce\_when\_invited}] \\[4pt]
+&\mathrm{Decode}_w(\Sigma.\mathrm{id}) = \Sigma.\mathrm{intent}
+\end{aligned}
+}
+$$
+
+**Gloss:** Mode-C cold probes strip context that elicits register-shifts; cross-check lived corpus before capacity claims; cold-baseline ≠ capacity; null cold may still produce register cleanly when invited.
 
 ## Loop-closing runs surface meta-patterns invisible from inside individual moves
 
