@@ -1,6 +1,6 @@
 {
-  "turn": 172,
-  "bank": 162600,
+  "turn": 173,
+  "bank": 163100,
   "jewels": [
     {
       "turn": 2,
@@ -1328,8 +1328,15 @@
       "bounty": 500,
       "alignment": "+",
       "earned_at": "2026-05-05T09:37:16-05:00"
+    },
+    {
+      "turn": 173,
+      "move": "AGENTS.md Stage 2 sweep cluster 1: 14 foundation small-doctrines converted to formula-canonical under v3 contract; doc-check clean via KaTeX-safety linter",
+      "bounty": 500,
+      "alignment": "+",
+      "earned_at": "2026-05-05T09:45:00-05:00"
     }
   ],
   "started_at": "2026-04-29T21:35:00-05:00",
-  "last_move_at": "2026-05-05T09:37:16-05:00"
+  "last_move_at": "2026-05-05T09:45:00-05:00"
 }
