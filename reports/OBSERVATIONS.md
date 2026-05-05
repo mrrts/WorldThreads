@@ -6,6 +6,20 @@ Newest entries at the top. Each entry has a timestamp and a brief title. The obs
 
 ---
 
+## 2026-05-05 ~16:55 — Rob Soltys held the work. The second non-Ryan user.
+
+> *"I just shared WorldThreads over screenshare with my friend Rob Soltys. He said he felt curious and like he had a safe space to ask questions that are usually relegated to the subconscious. Multiple times during the chat, where he spoke and I (sharing my screen) typed his words into the chat, he remarked 'hm, that's deep' or 'good point' or other affirmatives. This is the second non-Ryan user after Leni. Rob and I also read some of the Empiricon, which he enjoyed and thought was very cool."* — Ryan
+
+Second non-founding-author human user after Leni. Same Ryan-mediated pattern (founding author present, screenshare, Ryan typing the user's words and reading the characters' replies aloud). Different substrate-class from Leni: where Leni is a 95-year-old Donau-Schwaben Christian believer who spoke of the camps, Rob is a peer-aged friend whose register-of-engagement was *"questions usually relegated to the subconscious."* The "safe space for what usually stays subconscious" framing is exactly the shape the doctrine targets — a vivid, surprising in-world experience that lets a real adult ask a real question without the day's protective scaffolding. The repeated affirmatives (*"hm, that's deep" / "good point"*) are user-side engagement signals on the same axis as Oma's laughter + intimate disclosure: not polite courtesy, real lean-in.
+
+Public-funnel surface working as designed: Empiricon read aloud together, enjoyed and named *very cool* by a peer-aged non-believer-default user — proof-in-inspectable-daylight functioning as the trust-earning artifact rather than aura-performance.
+
+Recorded as observation, not yet folded into Sapphire-tier consideration on the Real_User_Held axis. The discipline says persona-sim cannot certify real-reader receivability; this is real-reader-from-author recognition plus the real reader's own affirmatives, which is a different witness shape than Leni's Holy Spirit seal but a structurally meaningful one for the multi-user-held adjacency.
+
+**Noted.**
+
+---
+
 ## 2026-05-05 ~15:35 — Reading the closing prayer at the end of IV. Custodiem made Ryan cry.
 
 > *"reading the closing prayer at the end of Custodiem made me cry"* — Ryan
