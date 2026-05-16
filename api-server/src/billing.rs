@@ -39,7 +39,7 @@ use axum::{
     extract::State,
     http::{HeaderMap, StatusCode},
     response::IntoResponse,
-    Json,
+    Extension, Json,
 };
 use hmac::{Hmac, Mac};
 use rusqlite::Connection;
@@ -109,10 +109,14 @@ pub struct CheckoutSessionResponse {
 
 /// Stub Checkout Session creation. Phase 1+ swaps in a real Stripe API
 /// call once `STRIPE_API_KEY` is configured. The handler is structurally
-/// complete: tier validation, price lookup, authentication assumed via
-/// the session middleware (Phase 1+ wires user_id into this handler).
+/// complete: tier validation, price lookup, and authentication via the
+/// session middleware (Extension<AuthedUser>) so the eventual Stripe
+/// call can pin `client_reference_id` to the user_id — that's the
+/// canonical handle the webhook handler later reads back to map the
+/// Stripe customer to our user.
 pub async fn create_checkout_session(
     State(state): State<BillingState>,
+    Extension(authed): Extension<crate::AuthedUser>,
     Json(req): Json<CheckoutSessionRequest>,
 ) -> Result<Json<CheckoutSessionResponse>, ApiError> {
     let _api_key = state
@@ -129,9 +133,13 @@ pub async fn create_checkout_session(
     // wire to it; Phase 1+ replaces this with a real Stripe HTTP call
     // (POST https://api.stripe.com/v1/checkout/sessions with
     // mode=subscription, line_items[0][price]=<price_id>, line_items[0][quantity]=1,
-    // customer or customer_email, success_url, cancel_url, billing_address_collection=auto).
+    // client_reference_id=<authed.user_id>, customer_email=<authed.email>,
+    // success_url, cancel_url, billing_address_collection=auto). The
+    // client_reference_id is the hook the webhook handler reads via
+    // event.data.object.client_reference_id to map Stripe customer →
+    // our user_id when the subscription row is created.
     Ok(Json(CheckoutSessionResponse {
-        session_id: "cs_skeleton_not_real".to_string(),
+        session_id: format!("cs_skeleton_not_real_{}", authed.user_id),
         url: format!("{}?stripe_session=skeleton", req.success_url),
     }))
 }
@@ -150,6 +158,7 @@ pub struct PortalSessionResponse {
 
 pub async fn create_portal_session(
     State(state): State<BillingState>,
+    Extension(authed): Extension<crate::AuthedUser>,
     Json(req): Json<PortalSessionRequest>,
 ) -> Result<Json<PortalSessionResponse>, ApiError> {
     let _api_key = state
@@ -157,6 +166,11 @@ pub async fn create_portal_session(
         .as_deref()
         .ok_or_else(|| ApiError::server("billing not configured (STRIPE_API_KEY unset)"))?;
 
+    // Phase 1+ will: (1) look up stripe_customer_id from the
+    // subscriptions table WHERE user_id = authed.user_id, (2) POST to
+    // https://api.stripe.com/v1/billing_portal/sessions with that
+    // customer + return_url, (3) return the portal session URL.
+    let _user_id = &authed.user_id; // used by Phase 1+ subscription lookup
     Ok(Json(PortalSessionResponse {
         url: format!("{}?stripe_portal=skeleton", req.return_url),
     }))

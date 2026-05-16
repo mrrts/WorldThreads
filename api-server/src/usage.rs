@@ -37,6 +37,7 @@ use axum::{
     extract::{Query, State},
     http::StatusCode,
     response::IntoResponse,
+    Extension,
     Json,
 };
 use chrono::{DateTime, Datelike, Duration, NaiveDate, TimeZone, Timelike, Utc, Weekday};
@@ -321,8 +322,13 @@ pub struct UsageState {
 
 #[derive(Debug, Deserialize)]
 pub struct UsageQuery {
-    // Phase 1+ removes — user_id will come from authenticated session.
-    pub user_id: String,
+    /// Tier the caller's account is subscribed to. Travels as a query
+    /// parameter because the canonical source-of-truth for a user's
+    /// active tier is the `subscriptions` table (Stripe webhook
+    /// updates), not the session cookie. Frontend reads it from the
+    /// account-management surface (or defaults to "trial" pre-payment).
+    /// Phase 3+ removes this in favor of a server-side lookup against
+    /// the subscriptions table keyed on the authenticated user_id.
     #[serde(default = "default_tier")]
     pub tier: String,
 }
@@ -332,22 +338,21 @@ fn default_tier() -> String {
 }
 
 /// GET /api/v1/usage/current — returns the current usage snapshot for
-/// the queried user. Phase 1+ removes the query-param and reads
-/// user_id from the authenticated session cookie via the session
-/// middleware skeleton already in main.rs.
+/// the **authenticated** user. user_id comes from the session middleware
+/// (`auth_middleware` injects `AuthedUser` into request extensions);
+/// the user's timezone comes from the AuthedUser payload itself rather
+/// than a fresh DB lookup. Phase 1's `?user_id=` query param has been
+/// removed — passing one is now ignored.
 pub async fn get_usage_current(
     State(state): State<UsageState>,
+    Extension(authed): Extension<crate::AuthedUser>,
     Query(q): Query<UsageQuery>,
 ) -> Result<Json<UsageSnapshot>, ApiError> {
-    let conn = state.db.lock().map_err(|e| ApiError::server(format!("db lock: {e}")))?;
-    let user_tz: String = conn
-        .query_row(
-            "SELECT timezone FROM users WHERE id = ?1",
-            rusqlite::params![q.user_id],
-            |row| row.get(0),
-        )
-        .map_err(|_| ApiError::bad_request("user not found"))?;
-    let snapshot = compute_usage(&conn, &q.user_id, &q.tier, &user_tz)
+    let conn = state
+        .db
+        .lock()
+        .map_err(|e| ApiError::server(format!("db lock: {e}")))?;
+    let snapshot = compute_usage(&conn, &authed.user_id, &q.tier, &authed.timezone)
         .map_err(|e| ApiError::server(e.to_string()))?;
     Ok(Json(snapshot))
 }

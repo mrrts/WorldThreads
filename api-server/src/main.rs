@@ -43,11 +43,12 @@ use argon2::{
     Argon2,
 };
 use axum::{
-    extract::State,
+    extract::{Request, State},
     http::{HeaderMap, StatusCode},
-    response::IntoResponse,
+    middleware::{self, Next},
+    response::{IntoResponse, Response},
     routing::{get, post},
-    Json, Router,
+    Extension, Json, Router,
 };
 use chrono::{Duration, Utc};
 use rusqlite::Connection;
@@ -67,8 +68,8 @@ mod usage;
 /// or sqlx::SqlitePool) when concurrent route handling becomes the
 /// bottleneck; for the auth-only skeleton a single connection is fine.
 #[derive(Clone)]
-struct AppState {
-    db: Arc<Mutex<Connection>>,
+pub(crate) struct AppState {
+    pub(crate) db: Arc<Mutex<Connection>>,
 }
 
 // ── Cookie + token helpers ──────────────────────────────────────────────
@@ -302,16 +303,85 @@ fn set_session_cookie(cookies: &Cookies, token: &str, _expires_at_iso: &str) {
     cookies.add(cookie);
 }
 
-// ── Auth middleware (skeleton) ──────────────────────────────────────────
+// ── Auth middleware ─────────────────────────────────────────────────────
 
-/// Extract the current user from a session cookie. Returns None if no
-/// cookie or no matching session. Future content-route handlers use
-/// this to enforce auth + thread user_id through queries.
+/// Authenticated-user payload that `auth_middleware` injects into the
+/// request's extensions. Downstream protected route handlers extract it
+/// via `Extension<AuthedUser>` instead of taking a `user_id` query
+/// parameter or re-parsing cookies. This is the Phase 2 web-side
+/// analogue of `crate::auth::context::current_user_id(conn)` on the
+/// Tauri side — the canonical source for "whose data is this request
+/// allowed to read or write."
+///
+/// Cheap to clone (small struct of owned strings).
+#[derive(Debug, Clone)]
+pub struct AuthedUser {
+    pub user_id: String,
+    pub email: String,
+    pub display_name: String,
+    pub timezone: String,
+}
+
+impl From<User> for AuthedUser {
+    fn from(u: User) -> Self {
+        AuthedUser {
+            user_id: u.id,
+            email: u.email,
+            display_name: u.display_name,
+            timezone: u.timezone,
+        }
+    }
+}
+
+/// Tower middleware that gates protected routes. Extracts the session
+/// cookie, looks up the corresponding user, injects `AuthedUser` into
+/// request extensions, and forwards the request. Missing/invalid
+/// session ⇒ 401 Unauthorized.
+///
+/// Applied via `axum::middleware::from_fn_with_state(state, auth_middleware)`
+/// on the protected sub-router. Public routes (signup / login / logout /
+/// health / Stripe webhook) MUST NOT have this layer; they're
+/// pre-authentication or rely on a different verification mechanism
+/// (Stripe-signature HMAC).
+pub(crate) async fn auth_middleware(
+    State(state): State<AppState>,
+    cookies: Cookies,
+    mut req: Request,
+    next: Next,
+) -> Result<Response, ApiError> {
+    let token = cookies
+        .get(SESSION_COOKIE)
+        .map(|c| c.value().to_string())
+        .ok_or_else(|| ApiError::unauthorized("no session cookie"))?;
+    let token_hash = hash_token(&token);
+
+    let user = {
+        let conn = state
+            .db
+            .lock()
+            .map_err(|e| ApiError::server(format!("db lock: {e}")))?;
+        let storage = SqliteAuthStorage::new(&conn);
+        let session = storage
+            .find_session_by_token_hash(&token_hash)
+            .map_err(|e| ApiError::server(format!("session lookup: {e}")))?
+            .ok_or_else(|| ApiError::unauthorized("invalid or expired session"))?;
+        storage
+            .find_user_by_id(&session.user_id)
+            .map_err(|e| ApiError::server(format!("user lookup: {e}")))?
+            .ok_or_else(|| ApiError::unauthorized("session points to missing user"))?
+    };
+
+    req.extensions_mut().insert(AuthedUser::from(user));
+    Ok(next.run(req).await)
+}
+
+/// Convenience helper for tests and any non-middleware extraction site.
+/// Returns Some(User) when the cookie + session are valid. Used by
+/// nothing in the production path now that middleware exists, but
+/// retained so test-only code can mint a User without going through
+/// the full middleware stack.
 #[allow(dead_code)]
 async fn extract_user(state: &AppState, headers: &HeaderMap) -> Option<User> {
-    // Manual cookie parsing for the helper variant; the route handlers
-    // use tower_cookies::Cookies extractor instead. Both reach the same
-    // SqliteAuthStorage path.
     let cookie_header = headers.get("cookie")?.to_str().ok()?;
     let token = cookie_header
         .split(';')
@@ -409,27 +479,47 @@ async fn main() -> Result<()> {
 
     let state_for_usage = state.db.clone();
 
+    // Public auth routes — signup / login / logout — do NOT get the
+    // session middleware (they're how a session gets created in the
+    // first place; logout invalidates server-side and clears the cookie).
     let auth_routes = Router::new()
         .route("/api/v1/auth/signup", post(signup))
         .route("/api/v1/auth/login", post(login))
         .route("/api/v1/auth/logout", post(logout))
-        .with_state(state);
+        .with_state(state.clone());
 
-    let billing_routes = Router::new()
+    // Stripe webhook is public-but-verified-via-HMAC — different auth
+    // mechanism (signature header), so the session middleware would
+    // both fail and be incorrect here. Kept on its own router.
+    let webhook_routes = Router::new()
+        .route("/api/v1/billing/webhook", post(billing::webhook))
+        .with_state(billing_state.clone());
+
+    // Protected billing routes — checkout-session + portal-session need
+    // an authenticated user so we know which Stripe customer to attach
+    // the session to. Session middleware injects AuthedUser; handlers
+    // read it via Extension<AuthedUser>.
+    let billing_protected = Router::new()
         .route("/api/v1/billing/checkout-session", post(billing::create_checkout_session))
         .route("/api/v1/billing/portal-session", post(billing::create_portal_session))
-        .route("/api/v1/billing/webhook", post(billing::webhook))
-        .with_state(billing_state);
+        .with_state(billing_state)
+        .layer(middleware::from_fn_with_state(state.clone(), auth_middleware));
 
+    // Protected usage route — Phase 1 used a ?user_id= query param;
+    // Phase 2 reads user_id from the authenticated session via
+    // Extension<AuthedUser>. The query-param fallback was removed when
+    // this middleware landed.
     let usage_state = usage::UsageState { db: state_for_usage };
     let usage_routes = Router::new()
         .route("/api/v1/usage/current", get(usage::get_usage_current))
-        .with_state(usage_state);
+        .with_state(usage_state)
+        .layer(middleware::from_fn_with_state(state.clone(), auth_middleware));
 
     let app = Router::new()
         .route("/health", get(health))
         .merge(auth_routes)
-        .merge(billing_routes)
+        .merge(webhook_routes)
+        .merge(billing_protected)
         .merge(usage_routes)
         .layer(CookieManagerLayer::new());
 
