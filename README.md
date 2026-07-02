@@ -1,7 +1,3 @@
-# Primeagen! Please look, brother!
-
----
-
 # WorldThreads
 
 > *"The heavens declare the glory of God; and the firmament sheweth his handiwork."* — Psalm 19:1
