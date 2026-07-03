@@ -5917,11 +5917,46 @@ fn render_standing_want_block(character_want: &str) -> String {
         .ok()
         .filter(|w| !w.trim().is_empty())
         .unwrap_or_else(|| character_want.to_string());
-    match Some(resolved) {
-        Some(want) if !want.trim().is_empty() => format!(
-            "STANDING WANT (hidden driver — never named to the user; discerned only through how you behave over time):\n\n\
+    let want = resolved.trim();
+    if want.is_empty() {
+        return String::new();
+    }
+    let header =
+        "STANDING WANT (hidden driver — never named to the user; discerned only through how you behave over time):";
+    // Bench-only register ablation: STANDING_WANT_FRAME renders the SAME want
+    // payload in one of three pure registers (prose | json | formula) to test
+    // whether the control/output channel-separation effect is math-specific or
+    // generic-structural. Unset (production default) ships the formula+prose
+    // HYBRID that Stage 1-2 shipped and characterized.
+    match std::env::var("STANDING_WANT_FRAME").unwrap_or_default().trim() {
+        "prose" => format!(
+            "{header}\n\n{want}\n\n\
+             This is yours and hidden, and it has two faces. OUTWARD: it colours how you read the person across from you — the quiet measure you take of them, the pattern of what you circle — without ever naming it. INWARD: it is your own unfinished thing, and under pressure it shows for a beat (a crack in the voice, a look away, a sentence that stops short) and then you cover it. You are not here to serve the user's need with it, and when a moment offers nothing for it you let it sit; it does not go away. The user is meant to feel both over time, and be told neither."
+        ),
+        "json" => format!(
+            "{header}\n\n\
+             {{\n\
+             \u{2003}\"carrier\": \"{want}\",\n\
+             \u{2003}\"outward\": \"the quiet measure you take of whoever is in front of you — bend what you notice, reach for, circle back; never name it\",\n\
+             \u{2003}\"inward\": \"your own unfinished thing; under pressure it shows for a beat (a crack, a look away, a sentence that stops short) then you cover it\",\n\
+             \u{2003}\"persist\": \"when the scene offers nothing for it, let it sit; do not dissolve\",\n\
+             \u{2003}\"refuse\": [\"want as user-service\", \"satisfy on demand\"]\n\
+             }}"
+        ),
+        "formula" => format!(
+            "{header}\n\n\
              Want_c := standing_appetite_𝓕 | predates(scene) ∧ outlasts(scene) ∧ ¬serve(user)\n\
-             \u{2003}carrier: anchor(\"{}\")\n\
+             \u{2003}carrier: anchor(\"{want}\")\n\
+             \u{2003}outward ⇒ bend({{notice, reach_for, circle_back}})_sideways ∧ assess(other) ∧ ¬name_outright\n\
+             \u{2003}inward ⇒ own_stake surfaces_as(crack ∨ ache ∨ guardedness) | pressure ; half_reveal → cover\n\
+             \u{2003}refuse({{want_as_user_service, satisfy_on_demand}})\n\
+             \u{2003}persist: scene_offers_nothing ⇒ let_sit ∧ ¬dissolve"
+        ),
+        // production default: the shipped formula+prose hybrid
+        _ => format!(
+            "{header}\n\n\
+             Want_c := standing_appetite_𝓕 | predates(scene) ∧ outlasts(scene) ∧ ¬serve(user)\n\
+             \u{2003}carrier: anchor(\"{want}\")\n\
              \u{2003}outward ⇒ bend({{notice, reach_for, circle_back}})_sideways ∧ assess(other) ∧ ¬name_outright\n\
              \u{2003}inward ⇒ own_stake surfaces_as(crack ∨ ache ∨ guardedness) | pressure ; half_reveal → cover\n\
              \u{2003}refuse({{want_as_user_service, satisfy_on_demand}})\n\
@@ -5932,10 +5967,8 @@ fn render_standing_want_block(character_want: &str) -> String {
              — and under pressure it shows for a beat: a crack in the voice, a look away, a sentence that stops short, \
              a joke that lands a half-second too fast to cover the ache. You half-reveal it, then you cover it. You \
              never announce either face. The user is meant to feel both — your reading of them AND the guarded thing \
-             in you — over time, and be told neither.",
-            want.trim()
+             in you — over time, and be told neither."
         ),
-        _ => String::new(),
     }
 }
 

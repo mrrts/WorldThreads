@@ -33,7 +33,7 @@ The **blind round-trip decode protocol**, independent of the notation: encode a 
 
 ## Three questions to pre-empt
 
-1. **"Is it the *math*, or just any off-distribution structured notation?"** Honest answer: *not yet ablated.* JSON/pseudocode/a made-up DSL might get much of the channel-separation. Running one cell of formula-vs-JSON-vs-prose is the single highest-leverage experiment you don't have — and offering it unprompted signals you think like an experimentalist.
+1. **"Is it the *math*, or just any off-distribution structured notation?"** Honest answer: **ablated once (2026-07-03), near-parity — no register won.** Same constraint payload rendered as prose vs JSON vs formula, N=3 each: all three expressed the encoded behavior at roughly equal strength with indistinguishable output register. No formula advantage, no structure-beats-prose advantage. *Caveat that shows you saw your own confound:* the payload carrier was prose in all three arms (per a preserve-verbatim design rule), so the ablation tested the *scaffolding* register, not a fully register-pure constraint — the clean test (constraint expressed entirely in each register) is still open. Bottom line to say aloud: *"I tested it and couldn't find a formula-specific effect; my design had a confound; here's the cleaner experiment."* That's a stronger thing to bring than an unverified boast.
 2. **"Does it only work on frontier models?"** Largely yes — math-as-language interpretation scales with model size, and a cost-focused shop usually wants to push work *down* to smaller models. Name the model-dependence rather than let them find it.
 3. **"Separate the mechanism from your content."** The register-separation + typed-constraint-encoding mechanism is content-agnostic and hireable; be able to present it with zero reference to the project's specific payload. State the content-agnosticity as a feature.
 
@@ -45,8 +45,9 @@ The scheme isn't only theory in this codebase. A **formalized hidden constraint*
 
 - **Behavioral parity of formula vs prose:** shown at small-N pilot (formula ≈ prose, non-inferior) — a floor, not a superiority claim.
 - **Round-trip decodability:** demonstrated (blind reconstruction).
-- **Channel-separation as the mechanism:** *plausible and consistent with transformer mechanics, not isolated experimentally* — a hypothesis with a clean proposed test (the JSON ablation).
+- **Channel-separation as the mechanism:** *plausible and consistent with transformer mechanics, but a first ablation (prose vs JSON vs formula, N=3) found NO measurable formula advantage* — near-parity across registers. The design was confounded (prose payload shared across all arms), so this doesn't disprove the mechanism, but it does mean **"formula is behaviorally special" is currently unsupported by measurement.** Clean register-pure test still open.
 - **Token compression:** MEASURED FALSE in every form (see numbers below) — do not claim it.
+- **What actually survives measurement:** the *authoring discipline* (swap-test / orthogonality / banned-vocab produced distinctive, behaviorally-live constraints — validated at claim tier), the round-trip decode protocol, and "specific content orthogonal to the baseline drives behavior *regardless of register*." That last one is the honest replacement for the register-specific claim.
 
 ## Measured numbers (o200k / the GPT-4o & GPT-5 tokenizer)
 
@@ -56,6 +57,7 @@ Run 2026-07-03 with `tiktoken`; reproducible from the CLAUDE.md blocks + git his
 - **Formula block vs its own author-written Gloss** (same gist, 2 registers, N=60 real pairs): formula is **9.9x** the plain-English (51,356 vs 5,196 tokens); median **9.6x**, range **2.9x–33x**. The formula is ~10x the plainest statement of its point — not a compression of the gist.
 - **Formula vs equal-payload prose** (same invariant refactored prose→formula, 2 real commits): **1.8x** (`f17b8f36`, KAVOD) and **6.9x** (`5924d802`, dual-field) — inflation at equal payload.
 - **Where real savings came from:** deleting bite-test-inert blocks (Round-5, ~600 chars/call), i.e. *removal*, not *formalization*.
+- **Register ablation (behavioral, not token):** same constraint as prose vs JSON vs formula, Steven, N=3 each — **near-parity, no register won**; output register indistinguishable across arms. Confounded (prose payload shared), so inconclusive-leaning-no-formula-effect. Sketch tier.
 
 Net: the token-economy story is dead in all three measurements. The behavioral story (register separation, calibration, the decode protocol) is the whole value.
 
