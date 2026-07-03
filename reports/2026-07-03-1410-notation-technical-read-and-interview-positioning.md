@@ -15,7 +15,7 @@ That framing is both true and more interesting to someone who knows the field th
 
 **It is not token compression, and per-glyph it inflates.** The fancy Unicode math letters (𝓕 𝓡 𝓒 …) are 4-byte characters that tokenize to 2–4 tokens each vs. 1 for an ASCII word; the LaTeX scaffolding is pure overhead; and the design deliberately preserves load-bearing prose verbatim inside wrappers. If they run `tiktoken` on a block it will be *larger* than the equivalent prose. **Own this in your first breath** — measure it yourself beforehand and walk in with the number. Owning it reads as rigor; getting caught by it reads as naïveté.
 
-The honest compression claim, if you want one, is **redundancy elimination at the system level**, not per-string: formalizing instructions strips the connectives, hedges, and vertical restatement that natural-language instruction is structurally forced to carry — so the diff between *the prose you deleted* and *the formula that replaced it, at equal behavioral effect* can net out smaller. That's measurable from version control and is the defensible version.
+I *hypothesized* a fallback compression claim — *system-level redundancy elimination* (formalizing strips connectives/hedges/restatement). **I then measured it against two real prose→formula refactors in this codebase, and it does not hold:** the formula version of the same invariant cost **1.8x** (KAVOD block) and **6.9x** (dual-field block) the prose it replaced (o200k tokenizer). Formalization *inflates* even at equal payload. The project's genuine token savings came from a *different* discipline entirely — bite-testing prompt blocks and **deleting** the ones shown to be behaviorally inert (one pass cut ~600 chars/call). That's deletion, not formalization. **So don't claim compression in any form** — the value is behavioral, full stop. (Being the one who *measured and killed* your own appealing claim is worth more in the room than the claim would have been.)
 
 ## What it actually is (the strong claim)
 
@@ -46,6 +46,17 @@ The scheme isn't only theory in this codebase. A **formalized hidden constraint*
 - **Behavioral parity of formula vs prose:** shown at small-N pilot (formula ≈ prose, non-inferior) — a floor, not a superiority claim.
 - **Round-trip decodability:** demonstrated (blind reconstruction).
 - **Channel-separation as the mechanism:** *plausible and consistent with transformer mechanics, not isolated experimentally* — a hypothesis with a clean proposed test (the JSON ablation).
-- **Token compression:** false per-glyph; system-level redundancy-elimination is the real, measurable, unproven-in-magnitude claim.
+- **Token compression:** MEASURED FALSE in every form (see numbers below) — do not claim it.
+
+## Measured numbers (o200k / the GPT-4o & GPT-5 tokenizer)
+
+Run 2026-07-03 with `tiktoken`; reproducible from the CLAUDE.md blocks + git history.
+
+- **Per-glyph:** the script letters `𝓕` `𝓡` `𝓒` cost **3 tokens each** (4 UTF-8 bytes each); `𝓝u` is 3–4; vs **1 token** for the word `Weight`. Operator glyphs (`⇒ ≤ ∧ ∫ ∂`) run 1–3 tokens. The surface is token-expensive.
+- **Formula block vs its own author-written Gloss** (same gist, 2 registers, N=60 real pairs): formula is **9.9x** the plain-English (51,356 vs 5,196 tokens); median **9.6x**, range **2.9x–33x**. The formula is ~10x the plainest statement of its point — not a compression of the gist.
+- **Formula vs equal-payload prose** (same invariant refactored prose→formula, 2 real commits): **1.8x** (`f17b8f36`, KAVOD) and **6.9x** (`5924d802`, dual-field) — inflation at equal payload.
+- **Where real savings came from:** deleting bite-test-inert blocks (Round-5, ~600 chars/call), i.e. *removal*, not *formalization*.
+
+Net: the token-economy story is dead in all three measurements. The behavioral story (register separation, calibration, the decode protocol) is the whole value.
 
 Walk in claiming exactly this much and no more, and you'll be the most calibrated person in the room on your own work — which is the actual thing being interviewed.
