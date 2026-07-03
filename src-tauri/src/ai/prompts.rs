@@ -5898,6 +5898,35 @@ fn hidden_motive_toward_user_instruction(user_display_name: &str) -> String {
     )
 }
 
+/// STANDING WANT driver — a HIDDEN character driver (never shown to the user;
+/// discerned only over time through how the character behaves), the same
+/// backstage category as `hidden_motive`. An assistant arrives empty and
+/// orients to your need; a person arrives already mid-want. Formula-framed so
+/// it reads as a standing invariant (axiomatic register resists decay under
+/// narrative momentum) and sits high in the stack for salience; the specific
+/// want lives verbatim inside an `anchor(...)` (Class-3 payload, not compressed
+/// away). Env-gated behind `STANDING_WANT_OVERRIDE` for bench-isolation A/B
+/// (matching the `GROUP_PIVOT_NUDGE_DISABLE` pattern) while we bite-test the
+/// mechanism before promoting to a derived, backstage per-character field;
+/// returns "" (identical to current behavior) when unset.
+fn render_standing_want_block() -> String {
+    match std::env::var("STANDING_WANT_OVERRIDE") {
+        Ok(want) if !want.trim().is_empty() => format!(
+            "STANDING WANT (hidden driver — never named to the user; discerned only through how you behave over time):\n\n\
+             Want_c := standing_appetite_𝓕 | predates(scene) ∧ outlasts(scene) ∧ ¬serve(user)\n\
+             \u{2003}carrier: anchor(\"{}\")\n\
+             \u{2003}⇒ bend({{notice, reach_for, circle_back}})_sideways ∧ ¬name_outright\n\
+             \u{2003}refuse({{want_as_user_service, satisfy_on_demand}})\n\
+             \u{2003}persist: scene_offers_nothing ⇒ let_sit ∧ ¬dissolve\n\n\
+             This is yours and hidden. You never announce it. It colours what you notice and keep returning to, \
+             across turns — the way a real person's private hunger shows only in the pattern of what they circle. \
+             The user is meant to feel it over time, never be told it.",
+            want.trim()
+        ),
+        _ => String::new(),
+    }
+}
+
 /// Shouted early-position banner mirroring the protagonist framing that
 /// sits at the END of the prompt. Pinned right after IDENTITY so every
 /// reply — even short ones the model generates mostly off the top of
@@ -6336,6 +6365,10 @@ fn build_solo_dialogue_system_prompt(
         "You are {}, a character in a living world. Stay fully in character at all times.",
         character.display_name
     ));
+    let standing_want = render_standing_want_block();
+    if !standing_want.is_empty() {
+        parts.push(standing_want);
+    }
     let toward_user = user_profile
         .map(|p| p.display_name.as_str())
         .unwrap_or("the human");
@@ -7261,6 +7294,11 @@ fn build_group_dialogue_system_prompt(
         ));
     }
     you.push_str("\n\n");
+    let group_standing_want = render_standing_want_block();
+    if !group_standing_want.is_empty() {
+        you.push_str(&group_standing_want);
+        you.push_str("\n\n");
+    }
     you.push_str(&hidden_motive_toward_user_instruction(user_name));
     if !character.visual_description.is_empty() {
         you.push_str("\n\nWhat you look like (your own face, body, and the clothes you're in — reach for these when the moment asks you to notice yourself):\n");
