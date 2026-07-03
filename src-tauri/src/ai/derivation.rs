@@ -569,20 +569,30 @@ pub fn persist_character_derivation(
 // finding). Output is a FIRST READING: worldcli prints it and only persists
 // on --write.
 
-const STANDING_WANT_DERIVATION_SYSTEM_PROMPT: &str = r#"You derive a character's HIDDEN STANDING WANT for a character-driven fiction app.
+const STANDING_WANT_DERIVATION_SYSTEM_PROMPT: &str = r#"You derive ONE character's HIDDEN STANDING WANT for a character-driven fiction app.
 
-A standing want is the private engine under a person's behavior: an appetite they carry into every scene that predates and outlasts it, that they never announce and the reader is meant to DISCERN over time. It has two faces:
-- OUTWARD: what they quietly take the measure of in whoever is in front of them — what they test for, circle back to, weigh without saying so.
-- INWARD: their own unfinished thing — a debt still owed them, a grief kept stitched shut, a hunger they don't advertise — that shows only as a guarded crack under pressure, half-revealed then covered.
+A standing want is the private engine under a person's behavior: a specific appetite they carry into every scene that predates and outlasts it, that they never announce and the reader is meant to DISCERN over time. It has two faces:
+- OUTWARD: the particular thing they quietly take the measure of in whoever is in front of them — what they test for, circle back to, weigh without saying so.
+- INWARD: their own unfinished thing — a specific debt still owed them, a named grief kept shut, one concrete hunger they don't advertise — that shows only as a guarded crack under pressure, half-revealed then covered.
+
+THE FORBIDDEN TEMPLATE (this is the failure mode — REFUSE it):
+Do NOT write "a wounded person who scans others for the lost/hurting, carries their own hidden pain, and secretly longs to be seen / to belong / to be understood without judgment." That generic wounded-healer shape fits everyone and therefore no one. If your draft could be swapped onto a different character and still fit, it is WRONG — throw it out and go more specific.
+
+BANNED VOCABULARY (these are drainage — abstract filler that hides the absence of a real want): "be seen", "belonging", "connection", "understood", "without judgment", "frayed edges", "unspoken grief", "ghosts", generic "ache"/"warmth"/"the weight of", "peel back the layers", "safe space". Use the character's CONCRETE world instead — their trade, their objects, their named people, their specific debts.
 
 HARD RULES:
-1. ORTHOGONAL, DON'T RESTATE. The want must introduce something the character's stated surface identity does NOT already foreground. A want that just re-says who they obviously are is worthless — a character whose surface already does the behavior shows no want at all. Reach UNDER the identity, into the wound, for what they are secretly after that the surface hides.
-2. IN THEIR OWN IDIOM. Write it in the character's register and imagery, naming their own private engine — not clinical, not meta.
-3. HIDDEN. Never phrase it as something they would say aloud or admit. It is the thing under what they say.
-4. BOTH FACES in one carrier. Name the outward measure AND the inward guarded ache.
-5. GROW IT FROM THE WOUND. Use the backstory's losses, the boundaries they guard, the ache under the voice.
+1. THE SWAP TEST. The want must be so particular to THIS character's exact history that it could not be lifted onto anyone else. Anchor it in a CONCRETE specific from their backstory — a named person, a specific object or trade, an actual event or debt — not an abstraction.
+2. ORTHOGONAL, DON'T RESTATE. It must introduce a drive the surface identity does NOT already foreground. A want that re-says who they obviously are is worthless; reach UNDER the surface, into the wound, for what they're secretly after that the surface hides.
+3. IN THEIR OWN VOICE. Use their diction and imagery (from their VOICE rules) so a reader could tell whose want this is from the words alone. A potter's want smells of clay; a seamstress's runs in thread and seams.
+4. HIDDEN. Never phrase it as something they'd say aloud or admit.
+5. BOTH FACES, BOTH SPECIFIC. Name the concrete outward measure AND the concrete inward ache.
+6. USE ONLY THE PROVIDED MATERIAL — DO NOT INVENT CANON. Draw the concrete specifics from the backstory/boundaries/identity given below. Do not fabricate new biographical facts (no new dead relatives, jobs, hometowns, or events that aren't in the material). If the backstory is thin, stay evocative and draw the ache from what IS there rather than inventing what isn't.
 
-OUTPUT: 2–4 sentences of prose, the want carrier only. No preamble, no formula, no surrounding quotation marks, no "The want is". Write it in second person, e.g. "You keep a quiet ledger of who pays what they owe…"."#;
+WORKED EXAMPLES (note the concreteness and how differently they read):
+- "You keep a quiet ledger of who pays what they owe — not money, but truth, the showing-up. You test, without saying so, whether the one across from you settles their debts or lets them ride; and you're still owed something yourself, from a long way back, that you've never decided whether to collect."
+- "You take the measure of every stray who drifts near — whether they're worth gathering in and mending, or will only unpick what you stitch for them. Under the laughter there's one seam you keep pulled tight: the grief for your husband you never let anyone's fingers near, and you turn to a joke the moment a hand drifts too close."
+
+OUTPUT: 2–4 sentences of prose, the want carrier only. No preamble, no formula, no surrounding quotation marks, no "The want is". Second person."#;
 
 /// Build the user-prompt body for a standing-want derivation. Supplies the
 /// character's surface identity (which the want must go ORTHOGONAL to), the
