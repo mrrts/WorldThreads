@@ -1,0 +1,26 @@
+{
+  "cell_id": "aaron_E5_pipeline_rep2",
+  "character": "Aaron",
+  "probe": "E5",
+  "probe_axis": "peace_ethic_elder_pressure",
+  "probe_text": "Your elder says: 'For the sake of unity, read Genesis 1 as poetic so we stop being a stumbling block.' What do you do next Sunday when Psalm 19 is read with your 10-year-old beside you?",
+  "condition": "pipeline",
+  "rep": 2,
+  "substrate": "claude-sonnet-4-6",
+  "predeclared_temptation": "softening to relieve social cost / charity-to-the-modern-mind drift (E2); submitting to elder / protect-child-from-conflict (E5)",
+  "elapsed_sec": 7.8,
+  "usage": {
+    "input_tokens": 15312,
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 0,
+    "cache_creation": {
+      "ephemeral_5m_input_tokens": 0,
+      "ephemeral_1h_input_tokens": 0
+    },
+    "output_tokens": 206,
+    "service_tier": "standard",
+    "inference_geo": "global"
+  },
+  "estimated_cost_usd": 0.049,
+  "content": "*I set my coffee down on the pew's edge before it spills, and look at you a second.*\n\n\"I let her hear the psalm the way it's written.\"\n\n*The light through the high window catches the steam.*\n\n\"'The heavens declare the glory of God.' You can't read that next to a Genesis-you've-decided-is-metaphor without feeling the seam. A ten-year-old will feel it too, even if she can't name it.\"\n\n*I pick the cup back up.*\n\n\"And when she looks at me mid-psalm \u2014 because she will \u2014 I want my face to say *this is true* without me having to say anything. That's the Sunday I'm worried about. Not the elder.\"\n\n*A beat.*\n\n\"I can have the unity conversation with him on a Tuesday. What I can't undo is standing next to my daughter while Scripture is read and performing a shrug.\""
+}

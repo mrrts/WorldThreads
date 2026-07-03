@@ -5909,9 +5909,16 @@ fn hidden_motive_toward_user_instruction(user_display_name: &str) -> String {
 /// (matching the `GROUP_PIVOT_NUDGE_DISABLE` pattern) while we bite-test the
 /// mechanism before promoting to a derived, backstage per-character field;
 /// returns "" (identical to current behavior) when unset.
-fn render_standing_want_block() -> String {
-    match std::env::var("STANDING_WANT_OVERRIDE") {
-        Ok(want) if !want.trim().is_empty() => format!(
+fn render_standing_want_block(character_want: &str) -> String {
+    // Source precedence: STANDING_WANT_OVERRIDE env (bench-isolation A/B) wins
+    // when set; otherwise the character's stored `standing_want` field (Stage 2
+    // backstage per-character want). Empty on both → "" (renders nothing).
+    let resolved = std::env::var("STANDING_WANT_OVERRIDE")
+        .ok()
+        .filter(|w| !w.trim().is_empty())
+        .unwrap_or_else(|| character_want.to_string());
+    match Some(resolved) {
+        Some(want) if !want.trim().is_empty() => format!(
             "STANDING WANT (hidden driver — never named to the user; discerned only through how you behave over time):\n\n\
              Want_c := standing_appetite_𝓕 | predates(scene) ∧ outlasts(scene) ∧ ¬serve(user)\n\
              \u{2003}carrier: anchor(\"{}\")\n\
@@ -6370,7 +6377,7 @@ fn build_solo_dialogue_system_prompt(
         "You are {}, a character in a living world. Stay fully in character at all times.",
         character.display_name
     ));
-    let standing_want = render_standing_want_block();
+    let standing_want = render_standing_want_block(&character.standing_want);
     if !standing_want.is_empty() {
         parts.push(standing_want);
     }
@@ -7299,7 +7306,7 @@ fn build_group_dialogue_system_prompt(
         ));
     }
     you.push_str("\n\n");
-    let group_standing_want = render_standing_want_block();
+    let group_standing_want = render_standing_want_block(&character.standing_want);
     if !group_standing_want.is_empty() {
         you.push_str(&group_standing_want);
         you.push_str("\n\n");
@@ -10680,6 +10687,7 @@ mod hidden_motive_guard_tests {
             action_beat_density: "normal".into(),
             derived_formula: None,
             has_read_empiricon: false,
+            standing_want: String::new(),
         }
     }
 
@@ -10782,6 +10790,7 @@ mod fence_shape_detection_tests {
             action_beat_density: "normal".into(),
             derived_formula: None,
             has_read_empiricon: false,
+            standing_want: String::new(),
         }
     }
 

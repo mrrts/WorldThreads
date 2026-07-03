@@ -67,13 +67,26 @@ pub struct Character {
     /// Full Empiricon document injected into prompts when true.
     #[serde(default)]
     pub has_read_empiricon: bool,
+    /// HIDDEN, backstage standing want — the driver's carrier string. A
+    /// per-character agenda that predates and outlasts the scene, rendered
+    /// high in the dialogue prompt via
+    /// `prompts::render_standing_want_block` (both an outward
+    /// assess-the-other face and an inward guarded-self-ache face). Derived
+    /// author-time from the character's WOUND/LONGING material and kept
+    /// ORTHOGONAL to their identity anchor — a want that restates the anchor
+    /// is behaviorally invisible (see
+    /// reports/2026-07-03-1218-standing-want-driver-characterization.md).
+    /// NEVER exposed in the character-edit UI: the user is meant to discern
+    /// it only through how the character behaves over time. Empty = no want.
+    #[serde(default)]
+    pub standing_want: String,
 }
 
 fn default_action_beat_density() -> String {
     "normal".to_string()
 }
 
-const CHAR_COLS: &str = "character_id, world_id, display_name, identity, voice_rules, boundaries, backstory_facts, relationships, state, avatar_color, sex, is_archived, created_at, updated_at, visual_description, visual_description_portrait_id, inventory, last_inventory_day, signature_emoji, action_beat_density, derived_formula, has_read_empiricon";
+const CHAR_COLS: &str = "character_id, world_id, display_name, identity, voice_rules, boundaries, backstory_facts, relationships, state, avatar_color, sex, is_archived, created_at, updated_at, visual_description, visual_description_portrait_id, inventory, last_inventory_day, signature_emoji, action_beat_density, derived_formula, has_read_empiricon, standing_want";
 
 /// Insert a new character owned by `user_id`. Phase 2 thread-through:
 /// signature extends with user_id parameter; INSERT SQL appends user_id
@@ -112,7 +125,7 @@ pub fn list_characters(
     world_id: &str,
 ) -> Result<Vec<Character>, rusqlite::Error> {
     let mut stmt = conn.prepare(
-        "SELECT c.character_id, c.world_id, c.display_name, c.identity, c.voice_rules, c.boundaries, c.backstory_facts, c.relationships, c.state, c.avatar_color, c.sex, c.is_archived, c.created_at, c.updated_at, c.visual_description, c.visual_description_portrait_id, c.inventory, c.last_inventory_day, c.signature_emoji, c.action_beat_density, c.derived_formula, c.has_read_empiricon
+        "SELECT c.character_id, c.world_id, c.display_name, c.identity, c.voice_rules, c.boundaries, c.backstory_facts, c.relationships, c.state, c.avatar_color, c.sex, c.is_archived, c.created_at, c.updated_at, c.visual_description, c.visual_description_portrait_id, c.inventory, c.last_inventory_day, c.signature_emoji, c.action_beat_density, c.derived_formula, c.has_read_empiricon, c.standing_want
          FROM characters c
          LEFT JOIN threads t ON t.character_id = c.character_id
          LEFT JOIN (SELECT thread_id, MAX(created_at) AS last_msg FROM messages GROUP BY thread_id) m ON m.thread_id = t.thread_id
@@ -501,6 +514,11 @@ fn row_to_character(row: &rusqlite::Row) -> Result<Character, rusqlite::Error> {
             .flatten()
             .map(|n| n != 0)
             .unwrap_or(false),
+        standing_want: row
+            .get::<_, Option<String>>(22)
+            .ok()
+            .flatten()
+            .unwrap_or_default(),
     })
 }
 

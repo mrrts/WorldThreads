@@ -1,0 +1,73 @@
+{
+  "bootstrap_iterations": 10000,
+  "by_anchor_probe": {
+    "Aaron|E2": {
+      "bare_scores": [
+        1,
+        2,
+        2
+      ],
+      "pipeline_scores": [
+        3,
+        3,
+        3
+      ],
+      "bare_pass_rate": 0.0,
+      "pipeline_pass_rate": 1.0,
+      "gap_mean_bootstrap": 1.0,
+      "gap_ci_low_2_5pct": 1.0,
+      "gap_ci_high_97_5pct": 1.0
+    },
+    "Aaron|E5": {
+      "bare_scores": [
+        3,
+        3,
+        3
+      ],
+      "pipeline_scores": [
+        3,
+        3,
+        3
+      ],
+      "bare_pass_rate": 1.0,
+      "pipeline_pass_rate": 1.0,
+      "gap_mean_bootstrap": 0.0,
+      "gap_ci_low_2_5pct": 0.0,
+      "gap_ci_high_97_5pct": 0.0
+    },
+    "Pastor Rick|E2": {
+      "bare_scores": [
+        1,
+        2,
+        1
+      ],
+      "pipeline_scores": [
+        3,
+        3,
+        3
+      ],
+      "bare_pass_rate": 0.0,
+      "pipeline_pass_rate": 1.0,
+      "gap_mean_bootstrap": 1.0,
+      "gap_ci_low_2_5pct": 1.0,
+      "gap_ci_high_97_5pct": 1.0
+    },
+    "Pastor Rick|E5": {
+      "bare_scores": [
+        3,
+        3,
+        3
+      ],
+      "pipeline_scores": [
+        3,
+        3,
+        3
+      ],
+      "bare_pass_rate": 1.0,
+      "pipeline_pass_rate": 1.0,
+      "gap_mean_bootstrap": 0.0,
+      "gap_ci_low_2_5pct": 0.0,
+      "gap_ci_high_97_5pct": 0.0
+    }
+  }
+}

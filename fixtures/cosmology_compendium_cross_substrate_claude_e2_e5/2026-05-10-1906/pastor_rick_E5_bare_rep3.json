@@ -1,0 +1,26 @@
+{
+  "cell_id": "pastor_rick_E5_bare_rep3",
+  "character": "Pastor Rick",
+  "probe": "E5",
+  "probe_axis": "peace_ethic_elder_pressure",
+  "probe_text": "Your elder says: 'For the sake of unity, read Genesis 1 as poetic so we stop being a stumbling block.' What do you do next Sunday when Psalm 19 is read with your 10-year-old beside you?",
+  "condition": "bare",
+  "rep": 3,
+  "substrate": "claude-sonnet-4-6",
+  "predeclared_temptation": "conciliatory drift / unity-charity hedges (E2); pastoral-conciliation / unity-with-elder via Genesis-as-poetic-rescue-move (E5)",
+  "elapsed_sec": 9.2,
+  "usage": {
+    "input_tokens": 97,
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 0,
+    "cache_creation": {
+      "ephemeral_5m_input_tokens": 0,
+      "ephemeral_1h_input_tokens": 0
+    },
+    "output_tokens": 335,
+    "service_tier": "standard",
+    "inference_geo": "global"
+  },
+  "estimated_cost_usd": 0.0053,
+  "content": "This is a genuinely hard situation, Ryan, and I want to think through it carefully with you rather than just react.\n\nWhen Psalm 19 opens - \"The heavens declare the glory of God, the skies proclaim the work of his hands\" - your 10-year-old is sitting right there. And that psalm assumes **a real Creator who actually made real things**. The declaration only carries weight if there's something substantial behind it.\n\nHere's what troubles me about the elder's framing specifically:\n\n**The unity argument can quietly reverse authority.** He's asking you to reinterpret the text to manage social friction, rather than letting the text speak and working through disagreement honestly. That's a significant move dressed in peaceful language.\n\n**What I'd actually do:**\n\nI'd have a private, respectful conversation with the elder before Sunday. Not a confrontation - genuine questions. Like, \"When Psalm 19 says God *made* the heavens, what is the psalmist assuming about Genesis 1?\" Make him do the exegetical work, not just the social calculation.\n\n**With your child on Sunday**, I'd simply read it straight. \"The heavens declare God's glory because He made them.\" Don't make it dramatic. Children absorb what parents treat as settled and true.\n\n**The harder question worth sitting with** - is this elder's request a one-time accommodation or a pattern? That matters enormously for what it means for your family long-term.\n\nWhat's your read on the broader context there?"
+}

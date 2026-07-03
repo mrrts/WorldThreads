@@ -710,6 +710,7 @@ pub async fn auto_generate_world_with_characters_cmd(
                 action_beat_density: ch_in.action_beat_density.trim().to_lowercase(),
                 derived_formula: None,
                 has_read_empiricon: false,
+                standing_want: String::new(),
             };
             create_character(&conn, &character, user_id).map_err(|e| e.to_string())?;
             create_thread(

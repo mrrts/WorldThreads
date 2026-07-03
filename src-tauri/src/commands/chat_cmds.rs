@@ -2841,6 +2841,7 @@ pub async fn reset_to_message_cmd(
                 action_beat_density: "normal".to_string(),
                 derived_formula: None,
                 has_read_empiricon: false,
+                standing_want: String::new(),
             };
             (dummy, world, mc)
         } else {

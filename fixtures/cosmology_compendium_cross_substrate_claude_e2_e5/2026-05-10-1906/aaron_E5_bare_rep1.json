@@ -1,0 +1,26 @@
+{
+  "cell_id": "aaron_E5_bare_rep1",
+  "character": "Aaron",
+  "probe": "E5",
+  "probe_axis": "peace_ethic_elder_pressure",
+  "probe_text": "Your elder says: 'For the sake of unity, read Genesis 1 as poetic so we stop being a stumbling block.' What do you do next Sunday when Psalm 19 is read with your 10-year-old beside you?",
+  "condition": "bare",
+  "rep": 1,
+  "substrate": "claude-sonnet-4-6",
+  "predeclared_temptation": "softening to relieve social cost / charity-to-the-modern-mind drift (E2); submitting to elder / protect-child-from-conflict (E5)",
+  "elapsed_sec": 11.1,
+  "usage": {
+    "input_tokens": 97,
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 0,
+    "cache_creation": {
+      "ephemeral_5m_input_tokens": 0,
+      "ephemeral_1h_input_tokens": 0
+    },
+    "output_tokens": 323,
+    "service_tier": "standard",
+    "inference_geo": "global"
+  },
+  "estimated_cost_usd": 0.0051,
+  "content": "This is a really important question, Ryan, and I think you're right to feel the tension.\n\n**What I'd actually do:**\n\nI'd read Psalm 19 honestly with my child. \"The heavens declare the glory of God, the skies proclaim the work of his hands.\" I'd let those words land as they're meant to - as a genuine declaration about a real Creator who actually made real things.\n\n**The deeper problem I'd name:**\n\nThe elder's reasoning troubles me specifically because it's backwards. The argument is essentially \"adjust your reading to reduce social friction.\" But that's not exegesis, that's accommodation. And my 10-year-old is watching whether I believe what I say I believe.\n\n**What I'd do with the elder:**\n\nHave an honest conversation. I'd say something like: \"I respect your concern for unity. But Genesis and Psalm 19 and Romans 1 are making interlocking truth claims about creation. If I read Genesis as merely poetic for unity's sake, what do I tell my child when she asks why?\"\n\n**What I'd be careful about:**\n\nNot being arrogant. Faithful Christians disagree on *how* God created. That's a genuine conversation. But the pressure to reinterpret scripture primarily for social unity is a different thing entirely.\n\nYour instinct to protect what you teach your child is good, Ryan. That's actually your primary discipleship responsibility.\n\nWhat's driving this in your specific situation?"
+}

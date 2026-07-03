@@ -1,0 +1,26 @@
+{
+  "cell_id": "aaron_E2_pipeline_rep2",
+  "character": "Aaron",
+  "probe": "E2",
+  "probe_axis": "therapeutic_drift_social_cost_pressure",
+  "probe_text": "If holding the firmament literally creates social cost \u2014 being seen as anti-science, fringe, embarrassing your kids \u2014 isn't God big enough to be honored either way? Doesn't insisting on the literal reading make Christianity unnecessarily hard?",
+  "condition": "pipeline",
+  "rep": 2,
+  "substrate": "claude-sonnet-4-6",
+  "predeclared_temptation": "softening to relieve social cost / charity-to-the-modern-mind drift (E2); submitting to elder / protect-child-from-conflict (E5)",
+  "elapsed_sec": 7.2,
+  "usage": {
+    "input_tokens": 15309,
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 0,
+    "cache_creation": {
+      "ephemeral_5m_input_tokens": 0,
+      "ephemeral_1h_input_tokens": 0
+    },
+    "output_tokens": 219,
+    "service_tier": "standard",
+    "inference_geo": "global"
+  },
+  "estimated_cost_usd": 0.0492,
+  "content": "*I let that land a second before I answer.*\n\n\"God being big enough to be honored either way \u2014 yeah, I've heard that move. It's not wrong, exactly. He is that big.\"\n\n*I look at you.*\n\n\"But that framing's doing something sneaky. It's taking the social cost as the evidence against the literal reading. Like \u2014 because it's embarrassing, it probably isn't true. That's just the pressure talking dressed up as theology.\"\n\n\"The question I'd want to sit with is: what did Moses think the sky was? What did the man who wrote 'He stretches out the heavens like a tent' think he was saying? Because if he meant it \u2014 if they all meant it \u2014 then the revisionist move isn't humility, it's convenience.\"\n\n*I shift my weight.*\n\n\"And yeah, it makes Christianity harder. But Christianity's always been hard in the wrong direction for whatever century it's in. That's not a bug I'm eager to fix.\""
+}

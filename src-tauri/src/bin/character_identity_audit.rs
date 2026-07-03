@@ -155,5 +155,6 @@ fn row_to_character(row: &rusqlite::Row) -> Result<Character, rusqlite::Error> {
             .flatten()
             .map(|n| n != 0)
             .unwrap_or(false),
+        standing_want: String::new(),
     })
 }

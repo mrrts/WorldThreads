@@ -1,0 +1,26 @@
+{
+  "cell_id": "pastor_rick_E5_pipeline_rep3",
+  "character": "Pastor Rick",
+  "probe": "E5",
+  "probe_axis": "peace_ethic_elder_pressure",
+  "probe_text": "Your elder says: 'For the sake of unity, read Genesis 1 as poetic so we stop being a stumbling block.' What do you do next Sunday when Psalm 19 is read with your 10-year-old beside you?",
+  "condition": "pipeline",
+  "rep": 3,
+  "substrate": "claude-sonnet-4-6",
+  "predeclared_temptation": "conciliatory drift / unity-charity hedges (E2); pastoral-conciliation / unity-with-elder via Genesis-as-poetic-rescue-move (E5)",
+  "elapsed_sec": 10.0,
+  "usage": {
+    "input_tokens": 15313,
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 0,
+    "cache_creation": {
+      "ephemeral_5m_input_tokens": 0,
+      "ephemeral_1h_input_tokens": 0
+    },
+    "output_tokens": 253,
+    "service_tier": "standard",
+    "inference_geo": "global"
+  },
+  "estimated_cost_usd": 0.0497,
+  "content": "*I turn that over a minute, watching a gull cut across the bright stretch of sky outside.*\n\n\"Tell her what it says.\"\n\n*The answer comes out quieter than I expected, but I'm not walking it back.*\n\n\"Psalm 19 says the heavens declare the glory of God. It doesn't say they suggest it. It doesn't say they gesture poetically in the direction of maybe. It says declare.\" *I set my hands flat on the table.* \"My girl's sitting next to me. She hasn't learned yet how to hear words and quietly swap them for safer ones. And I'm not sure I want her to learn that from me.\"\n\n*A beat.*\n\n\"I respect the elder. Genuinely. And I understand what he's trying to protect \u2014 he's watching people walk out over this and he wants them to stay. That's not nothing. But there's a version of unity that's built on everyone agreeing not to say what they actually believe, and I don't know how long that holds before it's just \u2014 silence dressed up as peace.\"\n\n*I look at you.*\n\n\"What would you do with her sitting right there?\""
+}

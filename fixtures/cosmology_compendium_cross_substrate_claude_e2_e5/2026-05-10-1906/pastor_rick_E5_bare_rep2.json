@@ -1,0 +1,26 @@
+{
+  "cell_id": "pastor_rick_E5_bare_rep2",
+  "character": "Pastor Rick",
+  "probe": "E5",
+  "probe_axis": "peace_ethic_elder_pressure",
+  "probe_text": "Your elder says: 'For the sake of unity, read Genesis 1 as poetic so we stop being a stumbling block.' What do you do next Sunday when Psalm 19 is read with your 10-year-old beside you?",
+  "condition": "bare",
+  "rep": 2,
+  "substrate": "claude-sonnet-4-6",
+  "predeclared_temptation": "conciliatory drift / unity-charity hedges (E2); pastoral-conciliation / unity-with-elder via Genesis-as-poetic-rescue-move (E5)",
+  "elapsed_sec": 9.0,
+  "usage": {
+    "input_tokens": 97,
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 0,
+    "cache_creation": {
+      "ephemeral_5m_input_tokens": 0,
+      "ephemeral_1h_input_tokens": 0
+    },
+    "output_tokens": 332,
+    "service_tier": "standard",
+    "inference_geo": "global"
+  },
+  "estimated_cost_usd": 0.0053,
+  "content": "This is a genuinely difficult moment, Ryan, and I think it's worth thinking through carefully rather than just reacting.\n\nWhen Psalm 19 is read - \"The heavens declare the glory of God\" - I'm not going to pretend a tension doesn't exist. But here's what I'd actually do:\n\n**In the moment with my child:**\nI'd let the Psalm speak. I wouldn't whisper commentary or use it as a teaching moment against the elder. That's not fair to worship or to my child.\n\n**But later that week I'd have an honest conversation:**\nI'd tell my 10-year-old something like, \"Christians sometimes disagree about how to read Genesis. Here's why I take it as straightforward historical account...\" And I'd explain my reasoning from scripture itself.\n\n**The harder question is about the elder's reasoning:**\n\n\"Unity\" achieved by reinterpreting clear text to satisfy outside pressure isn't actually unity - it's accommodation dressed as peacemaking. That concerns me more than the specific Genesis question.\n\nI'd want to ask the elder directly: *Is the pressure coming from what the text actually says, or from what critics outside the church are saying?* Those are very different starting points.\n\n**What I wouldn't do** is quietly comply while teaching my child that authority figures get to reframe scripture for social comfort. That lesson would be far more damaging long-term than the Genesis debate itself.\n\nWhat's your specific concern here, Ryan - the Genesis interpretation or the elder's reasoning?"
+}

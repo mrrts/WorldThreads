@@ -65,6 +65,7 @@ pub fn create_world_cmd(db: State<Database>, name: String) -> Result<World, Stri
             action_beat_density: "normal".to_string(),
             derived_formula: None,
             has_read_empiricon: false,
+            standing_want: String::new(),
         };
         create_character(&conn, &ch, user_id).map_err(|e| e.to_string())?;
         create_thread(

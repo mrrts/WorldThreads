@@ -151,6 +151,7 @@ pub fn create_character_cmd(
         action_beat_density: "normal".to_string(),
         derived_formula: None,
         has_read_empiricon: false,
+        standing_want: String::new(),
     };
     let user_id = crate::auth::context::current_user_id(&conn).map_err(|e| e.to_string())?;
     create_character(&conn, &ch, user_id).map_err(|e| e.to_string())?;

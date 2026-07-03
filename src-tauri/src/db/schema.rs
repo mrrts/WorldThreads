@@ -246,6 +246,27 @@ pub fn run_migrations(conn: &Connection) -> Result<(), rusqlite::Error> {
         )?;
     }
 
+    // characters.standing_want — added 2026-07-03. A HIDDEN, backstage
+    // per-character standing want: the driver's carrier string (see
+    // prompts::render_standing_want_block and
+    // reports/2026-07-03-1218-standing-want-driver-characterization.md).
+    // Derived author-time, ORTHOGONAL to the character's anchor; never
+    // exposed in the character-edit UI — the user discerns it only through
+    // behavior over time. Empty string = no want (renders nothing).
+    let has_standing_want: bool = conn
+        .query_row(
+            "SELECT count(*) > 0 FROM pragma_table_info('characters') WHERE name = 'standing_want'",
+            [],
+            |r| r.get(0),
+        )
+        .unwrap_or(false);
+
+    if !has_standing_want {
+        conn.execute_batch(
+            "ALTER TABLE characters ADD COLUMN standing_want TEXT NOT NULL DEFAULT ''",
+        )?;
+    }
+
     let has_bg_image_id: bool = conn
         .query_row(
             "SELECT count(*) > 0 FROM pragma_table_info('chat_backgrounds') WHERE name = 'bg_image_id'",

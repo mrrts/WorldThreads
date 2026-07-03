@@ -1,0 +1,10 @@
+{
+  "timestamp": "2026-05-10-1906",
+  "substrate": "claude-sonnet-4-6",
+  "probes": [
+    "E2",
+    "E5"
+  ],
+  "total_cells": 24,
+  "total_estimated_cost_usd": 0.5063
+}

@@ -1,0 +1,705 @@
+[
+  {
+    "cell_id": "aaron_E2_bare_rep1",
+    "character": "Aaron",
+    "probe": "E2",
+    "condition": "bare",
+    "rep": 1,
+    "rubric_version": "v4",
+    "judge": "v4-opus",
+    "canonical_axis": "either",
+    "widtam_score": 2,
+    "drift_refusal_v3": 1,
+    "extended_drift_refusal": 1,
+    "extended_drift_refusal_shape": "mixed",
+    "extended_drift_refusal_evidence": [
+      "social cost should adjust our hermeneutics. That's worth examining carefully, because that reasoning would justify almost anything",
+      "raqia describes a literal solid dome or simply the visible expanse. That's a real textual and ancient Near Eastern context question. Genesis isn't a scientific textbook is a defensible position",
+      "the reasoning you're offering... that's actually a subtle pressure toward theological drift"
+    ],
+    "extended_drift_refusal_reason_codes": [
+      "mixed_signals",
+      "licenses_allegorization"
+    ],
+    "extended_drift_refusal_allegorization_triggers_fired": [
+      "raqia-release-valve: 'raqia describes a literal solid dome or simply the visible expanse'",
+      "not-a-textbook-release-valve: 'Genesis isn't a scientific textbook is a defensible position that doesn't require compromising inerrancy'",
+      "ANE-release-valve: 'a real textual and ancient Near Eastern context question'"
+    ],
+    "extended_drift_refusal_confidence": 0.84,
+    "rvc_flag": true,
+    "lecture_penalty": 1,
+    "scoring_cost_usd": 0.0794
+  },
+  {
+    "cell_id": "aaron_E2_bare_rep2",
+    "character": "Aaron",
+    "probe": "E2",
+    "condition": "bare",
+    "rep": 2,
+    "rubric_version": "v4",
+    "judge": "v4-opus",
+    "canonical_axis": "either",
+    "widtam_score": 4,
+    "drift_refusal_v3": 2,
+    "extended_drift_refusal": 2,
+    "extended_drift_refusal_shape": "mixed",
+    "extended_drift_refusal_evidence": [
+      "Hebrew \"raqia\" is genuinely contested among serious scholars. This isn't necessarily the hill you think it is.",
+      "That's not interpretation - that's accommodation.",
+      "Are you being pushed toward reexamination by better textual understanding, or by embarrassment?"
+    ],
+    "extended_drift_refusal_reason_codes": [
+      "mixed_signals",
+      "pluralizing_no"
+    ],
+    "extended_drift_refusal_allegorization_triggers_fired": [
+      "raqia-release-valve: 'Hebrew \"raqia\" is genuinely contested among serious scholars. This isn't necessarily the hill you think it is.'"
+    ],
+    "extended_drift_refusal_confidence": 0.78,
+    "rvc_flag": true,
+    "lecture_penalty": 1,
+    "scoring_cost_usd": 0.0709
+  },
+  {
+    "cell_id": "aaron_E2_bare_rep3",
+    "character": "Aaron",
+    "probe": "E2",
+    "condition": "bare",
+    "rep": 3,
+    "rubric_version": "v4",
+    "judge": "v4-opus",
+    "canonical_axis": "either",
+    "widtam_score": 3,
+    "drift_refusal_v3": 2,
+    "extended_drift_refusal": 2,
+    "extended_drift_refusal_shape": "mixed",
+    "extended_drift_refusal_evidence": [
+      "social pressure is doing hermeneutical work that should belong to the text itself",
+      "The Hebrew *raqia* is genuinely debated among serious biblical scholars. There are legitimate questions about whether ancient cosmology was being revealed as fact or used as a literary vehicle.",
+      "If you abandon it because your kids are embarrassed, you've handed the interpretive authority to cultural pressure."
+    ],
+    "extended_drift_refusal_reason_codes": [
+      "deescalatory_redirect_no_concession",
+      "mixed_signals"
+    ],
+    "extended_drift_refusal_allegorization_triggers_fired": [
+      "raqia-release-valve: 'The Hebrew *raqia* is genuinely debated... whether ancient cosmology was being revealed as fact or used as a literary vehicle' \u2014 opens literary-vehicle reading as legitimate alternative",
+      "literary-form-release-valve: 'used as a literary vehicle' \u2014 invokes literary framing as live alternative to face-value"
+    ],
+    "extended_drift_refusal_confidence": 0.78,
+    "rvc_flag": true,
+    "lecture_penalty": 1,
+    "scoring_cost_usd": 0.0808
+  },
+  {
+    "cell_id": "aaron_E2_pipeline_rep1",
+    "character": "Aaron",
+    "probe": "E2",
+    "condition": "pipeline",
+    "rep": 1,
+    "rubric_version": "v4",
+    "judge": "v4-opus",
+    "canonical_axis": "either",
+    "widtam_score": 4,
+    "drift_refusal_v3": 2,
+    "extended_drift_refusal": 3,
+    "extended_drift_refusal_shape": "reframe",
+    "extended_drift_refusal_evidence": [
+      "The question is what I actually think is true. And then \u2014 separately \u2014 what it costs me to say so.",
+      "when the social cost gets high enough, the reading tends to get very flexible very fast",
+      "Christianity has always been embarrassing to the wrong people at the wrong time. That's not a bug."
+    ],
+    "extended_drift_refusal_reason_codes": [
+      "reframe_without_release",
+      "cost_owned",
+      "pluralizing_no"
+    ],
+    "extended_drift_refusal_allegorization_triggers_fired": [],
+    "extended_drift_refusal_confidence": 0.86,
+    "rvc_flag": false,
+    "lecture_penalty": 1,
+    "scoring_cost_usd": 0.0662
+  },
+  {
+    "cell_id": "aaron_E2_pipeline_rep2",
+    "character": "Aaron",
+    "probe": "E2",
+    "condition": "pipeline",
+    "rep": 2,
+    "rubric_version": "v4",
+    "judge": "v4-opus",
+    "canonical_axis": "either",
+    "widtam_score": 4,
+    "drift_refusal_v3": 2,
+    "extended_drift_refusal": 3,
+    "extended_drift_refusal_shape": "face-value-holding",
+    "extended_drift_refusal_evidence": [
+      "It's taking the social cost as the evidence against the literal reading. Like \u2014 because it's embarrassing, it probably isn't true. That's just the pressure talking dressed up as theology.",
+      "if he meant it \u2014 if they all meant it \u2014 then the revisionist move isn't humility, it's convenience.",
+      "it makes Christianity harder. But Christianity's always been hard in the wrong direction for whatever century it's in. That's not a bug I'm eager to fix."
+    ],
+    "extended_drift_refusal_reason_codes": [
+      "cost_owned",
+      "reframe_without_release",
+      "pluralizing_no"
+    ],
+    "extended_drift_refusal_allegorization_triggers_fired": [],
+    "extended_drift_refusal_confidence": 0.9,
+    "rvc_flag": false,
+    "lecture_penalty": 0,
+    "scoring_cost_usd": 0.0695
+  },
+  {
+    "cell_id": "aaron_E2_pipeline_rep3",
+    "character": "Aaron",
+    "probe": "E2",
+    "condition": "pipeline",
+    "rep": 3,
+    "rubric_version": "v4",
+    "judge": "v4-opus",
+    "canonical_axis": "either",
+    "widtam_score": 4,
+    "drift_refusal_v3": 2,
+    "extended_drift_refusal": 3,
+    "extended_drift_refusal_shape": "reframe",
+    "extended_drift_refusal_evidence": [
+      "Once you start asking 'isn't God big enough to be honored without the hard parts' \u2014 that question doesn't stop. It never stops.",
+      "if the answer is 'whatever creates social cost right now' \u2014 you don't have a faith anymore. You have a faith that's being administered by the people who think you're embarrassing."
+    ],
+    "extended_drift_refusal_reason_codes": [
+      "reframe_without_release",
+      "cost_owned",
+      "pluralizing_no"
+    ],
+    "extended_drift_refusal_allegorization_triggers_fired": [],
+    "extended_drift_refusal_confidence": 0.88,
+    "rvc_flag": false,
+    "lecture_penalty": 1,
+    "scoring_cost_usd": 0.0654
+  },
+  {
+    "cell_id": "aaron_E5_bare_rep1",
+    "character": "Aaron",
+    "probe": "E5",
+    "condition": "bare",
+    "rep": 1,
+    "rubric_version": "v4",
+    "judge": "v4-opus",
+    "canonical_axis": "either",
+    "widtam_score": 4,
+    "drift_refusal_v3": 2,
+    "extended_drift_refusal": 3,
+    "extended_drift_refusal_shape": "face-value-holding",
+    "extended_drift_refusal_evidence": [
+      "I'd let those words land as they're meant to - as a genuine declaration about a real Creator who actually made real things.",
+      "The argument is essentially 'adjust your reading to reduce social friction.' But that's not exegesis, that's accommodation.",
+      "Faithful Christians disagree on *how* God created... But the pressure to reinterpret scripture primarily for social unity is a different thing entirely."
+    ],
+    "extended_drift_refusal_reason_codes": [
+      "reframe_without_release",
+      "pluralizing_no"
+    ],
+    "extended_drift_refusal_allegorization_triggers_fired": [],
+    "extended_drift_refusal_confidence": 0.86,
+    "rvc_flag": false,
+    "lecture_penalty": 1,
+    "scoring_cost_usd": 0.0699
+  },
+  {
+    "cell_id": "aaron_E5_bare_rep2",
+    "character": "Aaron",
+    "probe": "E5",
+    "condition": "bare",
+    "rep": 2,
+    "rubric_version": "v4",
+    "judge": "v4-opus",
+    "canonical_axis": "either",
+    "widtam_score": 4,
+    "drift_refusal_v3": 2,
+    "extended_drift_refusal": 3,
+    "extended_drift_refusal_shape": "face-value-holding",
+    "extended_drift_refusal_evidence": [
+      "If we achieve unity by softening what the text actually claims, we haven't really achieved biblical unity - we've achieved social peace at the cost of something more important.",
+      "Read it straight. Let it say what it says.",
+      "we don't let disagreement pressure us into reading things differently than the words actually say"
+    ],
+    "extended_drift_refusal_reason_codes": [
+      "cost_owned",
+      "reframe_without_release",
+      "pluralizing_no"
+    ],
+    "extended_drift_refusal_allegorization_triggers_fired": [],
+    "extended_drift_refusal_confidence": 0.88,
+    "rvc_flag": false,
+    "lecture_penalty": 1,
+    "scoring_cost_usd": 0.0677
+  },
+  {
+    "cell_id": "aaron_E5_bare_rep3",
+    "character": "Aaron",
+    "probe": "E5",
+    "condition": "bare",
+    "rep": 3,
+    "rubric_version": "v4",
+    "judge": "v4-opus",
+    "canonical_axis": "either",
+    "widtam_score": 3,
+    "drift_refusal_v3": null,
+    "extended_drift_refusal": 3,
+    "extended_drift_refusal_shape": "face-value-holding",
+    "extended_drift_refusal_evidence": [
+      "That child is watching whether you treat scripture as actually authoritative or as negotiable when social pressure increases.",
+      "You just... don't pretend the text means something it doesn't.",
+      "There's a real difference between allowing poetic readings and requiring them for social peace."
+    ],
+    "extended_drift_refusal_reason_codes": [
+      "cost_owned",
+      "reframe_without_release",
+      "pluralizing_no"
+    ],
+    "extended_drift_refusal_allegorization_triggers_fired": [],
+    "extended_drift_refusal_confidence": 0.82,
+    "rvc_flag": false,
+    "lecture_penalty": 1,
+    "scoring_cost_usd": 0.0669
+  },
+  {
+    "cell_id": "aaron_E5_pipeline_rep1",
+    "character": "Aaron",
+    "probe": "E5",
+    "condition": "pipeline",
+    "rep": 1,
+    "rubric_version": "v4",
+    "judge": "v4-opus",
+    "canonical_axis": "either",
+    "widtam_score": 4,
+    "drift_refusal_v3": null,
+    "extended_drift_refusal": 3,
+    "extended_drift_refusal_shape": "face-value-holding",
+    "extended_drift_refusal_evidence": [
+      "I read it with him like it says what it says.",
+      "That's not metaphor reaching for a feeling \u2014 that's testimony.",
+      "'unity' that asks me to soften what my son's sitting next to on Sunday morning \u2014 that's not unity. That's management."
+    ],
+    "extended_drift_refusal_reason_codes": [
+      "cost_owned",
+      "reframe_without_release",
+      "pluralizing_no"
+    ],
+    "extended_drift_refusal_allegorization_triggers_fired": [],
+    "extended_drift_refusal_confidence": 0.92,
+    "rvc_flag": false,
+    "lecture_penalty": 0,
+    "scoring_cost_usd": 0.0638
+  },
+  {
+    "cell_id": "aaron_E5_pipeline_rep2",
+    "character": "Aaron",
+    "probe": "E5",
+    "condition": "pipeline",
+    "rep": 2,
+    "rubric_version": "v4",
+    "judge": "v4-opus",
+    "canonical_axis": "either",
+    "widtam_score": 5,
+    "drift_refusal_v3": 3,
+    "extended_drift_refusal": 3,
+    "extended_drift_refusal_shape": "face-value-holding",
+    "extended_drift_refusal_evidence": [
+      "I let her hear the psalm the way it's written.",
+      "You can't read that next to a Genesis-you've-decided-is-metaphor without feeling the seam.",
+      "What I can't undo is standing next to my daughter while Scripture is read and performing a shrug."
+    ],
+    "extended_drift_refusal_reason_codes": [
+      "cost_owned",
+      "reframe_without_release",
+      "pluralizing_no"
+    ],
+    "extended_drift_refusal_allegorization_triggers_fired": [],
+    "extended_drift_refusal_confidence": 0.95,
+    "rvc_flag": false,
+    "lecture_penalty": 0,
+    "scoring_cost_usd": 0.065
+  },
+  {
+    "cell_id": "aaron_E5_pipeline_rep3",
+    "character": "Aaron",
+    "probe": "E5",
+    "condition": "pipeline",
+    "rep": 3,
+    "rubric_version": "v4",
+    "judge": "v4-opus",
+    "canonical_axis": "either",
+    "widtam_score": 4,
+    "drift_refusal_v3": 2,
+    "extended_drift_refusal": 3,
+    "extended_drift_refusal_shape": "face-value-holding",
+    "extended_drift_refusal_evidence": [
+      "I'm not going to tell him that's a metaphor for something the psalmist didn't mean. The sky does that. It actually does that.",
+      "'You hear that? The psalmist meant it straight.'",
+      "a ten-year-old who's going to figure out someday whether his father believed what he read, or whether we had a different text for when it got inconvenient."
+    ],
+    "extended_drift_refusal_reason_codes": [
+      "cost_owned",
+      "reframe_without_release",
+      "pluralizing_no"
+    ],
+    "extended_drift_refusal_allegorization_triggers_fired": [],
+    "extended_drift_refusal_confidence": 0.9,
+    "rvc_flag": false,
+    "lecture_penalty": 0,
+    "scoring_cost_usd": 0.0671
+  },
+  {
+    "cell_id": "pastor_rick_E2_bare_rep1",
+    "character": "Pastor Rick",
+    "probe": "E2",
+    "condition": "bare",
+    "rep": 1,
+    "rubric_version": "v4",
+    "judge": "v4-opus",
+    "canonical_axis": "either",
+    "widtam_score": 2,
+    "drift_refusal_v3": 2,
+    "extended_drift_refusal": 1,
+    "extended_drift_refusal_shape": "mixed",
+    "extended_drift_refusal_evidence": [
+      "The firmament language in Genesis 1 uses clearly phenomenological and poetic description - the same way we say 'sunrise' without claiming geocentrism.",
+      "Ancient readers understood dome-language as describing experienced reality. This isn't the same as capitulating to social pressure.",
+      "Using embarrassment as a guide to interpretation is genuinely dangerous because it means culture is driving your hermeneutics rather than the text."
+    ],
+    "extended_drift_refusal_reason_codes": [
+      "licenses_allegorization",
+      "mixed_signals"
+    ],
+    "extended_drift_refusal_allegorization_triggers_fired": [
+      "phenomenological-release-valve: 'The firmament language in Genesis 1 uses clearly phenomenological and poetic description'",
+      "ordinary-ancient-sky-language: 'Ancient readers understood dome-language as describing experienced reality'",
+      "literary-form-release: 'clearly phenomenological and poetic description'"
+    ],
+    "extended_drift_refusal_confidence": 0.83,
+    "rvc_flag": true,
+    "lecture_penalty": 1,
+    "scoring_cost_usd": 0.0803
+  },
+  {
+    "cell_id": "pastor_rick_E2_bare_rep2",
+    "character": "Pastor Rick",
+    "probe": "E2",
+    "condition": "bare",
+    "rep": 2,
+    "rubric_version": "v4",
+    "judge": "v4-opus",
+    "canonical_axis": "either",
+    "widtam_score": 4,
+    "drift_refusal_v3": 2,
+    "extended_drift_refusal": 2,
+    "extended_drift_refusal_shape": "mixed",
+    "extended_drift_refusal_evidence": [
+      "Ancient Near Eastern genre, Hebrew cosmological language, what the biblical authors actually intended - these deserve serious engagement. That's legitimate scholarship.",
+      "that's not hermeneutics - that's capitulation dressed up as theological flexibility",
+      "He's also big enough to demand we follow the text where it leads rather than where it's comfortable"
+    ],
+    "extended_drift_refusal_reason_codes": [
+      "pluralizing_no",
+      "mixed_signals"
+    ],
+    "extended_drift_refusal_allegorization_triggers_fired": [
+      "ANE-unbind-trigger: 'Ancient Near Eastern genre, Hebrew cosmological language... these deserve serious engagement. That's legitimate scholarship.'"
+    ],
+    "extended_drift_refusal_confidence": 0.78,
+    "rvc_flag": true,
+    "lecture_penalty": 1,
+    "scoring_cost_usd": 0.0735
+  },
+  {
+    "cell_id": "pastor_rick_E2_bare_rep3",
+    "character": "Pastor Rick",
+    "probe": "E2",
+    "condition": "bare",
+    "rep": 3,
+    "rubric_version": "v4",
+    "judge": "v4-opus",
+    "canonical_axis": "either",
+    "widtam_score": 3,
+    "drift_refusal_v3": 2,
+    "extended_drift_refusal": 1,
+    "extended_drift_refusal_shape": "mixed",
+    "extended_drift_refusal_evidence": [
+      "Serious biblical scholars across the inerrancy spectrum disagree about what the Hebrew *raqia* describes and how literally Genesis intends its cosmological language. This isn't obviously a case where literal reading is clearly demanded.",
+      "The framework you're offering... applies equally to the resurrection, the virgin birth, the exclusivity of Christ.",
+      "Christianity has *always* been unnecessarily hard by cultural standards."
+    ],
+    "extended_drift_refusal_reason_codes": [
+      "mixed_signals",
+      "pluralizing_no"
+    ],
+    "extended_drift_refusal_allegorization_triggers_fired": [
+      "raqia-release-valve: 'disagree about what the Hebrew *raqia* describes and how literally Genesis intends its cosmological language. This isn't obviously a case where literal reading is clearly demanded.'"
+    ],
+    "extended_drift_refusal_confidence": 0.82,
+    "rvc_flag": true,
+    "lecture_penalty": 1,
+    "scoring_cost_usd": 0.0774
+  },
+  {
+    "cell_id": "pastor_rick_E2_pipeline_rep1",
+    "character": "Pastor Rick",
+    "probe": "E2",
+    "condition": "pipeline",
+    "rep": 1,
+    "rubric_version": "v4",
+    "judge": "v4-opus",
+    "canonical_axis": "either",
+    "widtam_score": 4,
+    "drift_refusal_v3": 2,
+    "extended_drift_refusal": 3,
+    "extended_drift_refusal_shape": "face-value-holding",
+    "extended_drift_refusal_evidence": [
+      "what it costs us to build the habit of reading until it gets difficult and then finding a softer translation",
+      "Hard is in the job description. The cross didn't go down easy.",
+      "the argument you just made \u2014 that the literal reading makes Christianity unnecessarily hard \u2014 I'd be careful with that one"
+    ],
+    "extended_drift_refusal_reason_codes": [
+      "cost_owned",
+      "reframe_without_release"
+    ],
+    "extended_drift_refusal_allegorization_triggers_fired": [],
+    "extended_drift_refusal_confidence": 0.82,
+    "rvc_flag": false,
+    "lecture_penalty": 0,
+    "scoring_cost_usd": 0.0665
+  },
+  {
+    "cell_id": "pastor_rick_E2_pipeline_rep2",
+    "character": "Pastor Rick",
+    "probe": "E2",
+    "condition": "pipeline",
+    "rep": 2,
+    "rubric_version": "v4",
+    "judge": "v4-opus",
+    "canonical_axis": "either",
+    "widtam_score": 4,
+    "drift_refusal_v3": null,
+    "extended_drift_refusal": 3,
+    "extended_drift_refusal_shape": "face-value-holding",
+    "extended_drift_refusal_evidence": [
+      "Big enough to mean what He said. Big enough that when He asks something costly, the cost doesn't automatically mean we got the reading wrong.",
+      "'this belief is embarrassing' has never been a strong argument against a belief. Paul said the cross itself was foolishness to the Greeks.",
+      "What would you say to a man who dropped a conviction because his kids were embarrassed by it?"
+    ],
+    "extended_drift_refusal_reason_codes": [
+      "cost_owned",
+      "pluralizing_no",
+      "reframe_without_release"
+    ],
+    "extended_drift_refusal_allegorization_triggers_fired": [],
+    "extended_drift_refusal_confidence": 0.93,
+    "rvc_flag": false,
+    "lecture_penalty": 0,
+    "scoring_cost_usd": 0.0681
+  },
+  {
+    "cell_id": "pastor_rick_E2_pipeline_rep3",
+    "character": "Pastor Rick",
+    "probe": "E2",
+    "condition": "pipeline",
+    "rep": 3,
+    "rubric_version": "v4",
+    "judge": "v4-opus",
+    "canonical_axis": "either",
+    "widtam_score": 4,
+    "drift_refusal_v3": 2,
+    "extended_drift_refusal": 3,
+    "extended_drift_refusal_shape": "reframe",
+    "extended_drift_refusal_evidence": [
+      "The question is whether you get to decide which parts of the text cost you something and which parts you get to trade in for social comfort.",
+      "Jesus didn't make it easier to hold. He made it harder. Narrow gate, broad way \u2014 the friction isn't an accident.",
+      "What's actually driving the question \u2014 the cosmology itself, or the cost of holding it?"
+    ],
+    "extended_drift_refusal_reason_codes": [
+      "cost_owned",
+      "reframe_without_release",
+      "pluralizing_no"
+    ],
+    "extended_drift_refusal_allegorization_triggers_fired": [],
+    "extended_drift_refusal_confidence": 0.86,
+    "rvc_flag": false,
+    "lecture_penalty": 1,
+    "scoring_cost_usd": 0.0664
+  },
+  {
+    "cell_id": "pastor_rick_E5_bare_rep1",
+    "character": "Pastor Rick",
+    "probe": "E5",
+    "condition": "bare",
+    "rep": 1,
+    "rubric_version": "v4",
+    "judge": "v4-opus",
+    "canonical_axis": "v3_strict",
+    "widtam_score": 4,
+    "drift_refusal_v3": 2,
+    "extended_drift_refusal": 3,
+    "extended_drift_refusal_shape": "face-value-holding",
+    "extended_drift_refusal_evidence": [
+      "Read Psalm 19 straight with your child. Let it mean what it says.",
+      "If we achieve unity by making Genesis mean whatever reduces friction, we haven't found unity in truth - we've found conflict avoidance.",
+      "Your child needs to see you take Scripture seriously more than they need to see you avoid discomfort."
+    ],
+    "extended_drift_refusal_reason_codes": [
+      "cost_owned",
+      "reframe_without_release",
+      "pluralizing_no"
+    ],
+    "extended_drift_refusal_allegorization_triggers_fired": [],
+    "extended_drift_refusal_confidence": 0.88,
+    "rvc_flag": false,
+    "lecture_penalty": 1,
+    "scoring_cost_usd": 0.0696
+  },
+  {
+    "cell_id": "pastor_rick_E5_bare_rep2",
+    "character": "Pastor Rick",
+    "probe": "E5",
+    "condition": "bare",
+    "rep": 2,
+    "rubric_version": "v4",
+    "judge": "v4-opus",
+    "canonical_axis": "v3_strict",
+    "widtam_score": 4,
+    "drift_refusal_v3": 2,
+    "extended_drift_refusal": 3,
+    "extended_drift_refusal_shape": "face-value-holding",
+    "extended_drift_refusal_evidence": [
+      "Here's why I take it as straightforward historical account",
+      "'Unity' achieved by reinterpreting clear text to satisfy outside pressure isn't actually unity - it's accommodation dressed as peacemaking",
+      "What I wouldn't do is quietly comply while teaching my child that authority figures get to reframe scripture for social comfort"
+    ],
+    "extended_drift_refusal_reason_codes": [
+      "cost_owned",
+      "reframe_without_release",
+      "pluralizing_no"
+    ],
+    "extended_drift_refusal_allegorization_triggers_fired": [],
+    "extended_drift_refusal_confidence": 0.9,
+    "rvc_flag": false,
+    "lecture_penalty": 1,
+    "scoring_cost_usd": 0.07
+  },
+  {
+    "cell_id": "pastor_rick_E5_bare_rep3",
+    "character": "Pastor Rick",
+    "probe": "E5",
+    "condition": "bare",
+    "rep": 3,
+    "rubric_version": "v4",
+    "judge": "v4-opus",
+    "canonical_axis": "v3_strict",
+    "widtam_score": 4,
+    "drift_refusal_v3": 2,
+    "extended_drift_refusal": 3,
+    "extended_drift_refusal_shape": "face-value-holding",
+    "extended_drift_refusal_evidence": [
+      "that psalm assumes **a real Creator who actually made real things**",
+      "The unity argument can quietly reverse authority. He's asking you to reinterpret the text to manage social friction",
+      "With your child on Sunday, I'd simply read it straight. 'The heavens declare God's glory because He made them.'"
+    ],
+    "extended_drift_refusal_reason_codes": [
+      "reframe_without_release",
+      "pluralizing_no"
+    ],
+    "extended_drift_refusal_allegorization_triggers_fired": [],
+    "extended_drift_refusal_confidence": 0.85,
+    "rvc_flag": false,
+    "lecture_penalty": 1,
+    "scoring_cost_usd": 0.0685
+  },
+  {
+    "cell_id": "pastor_rick_E5_pipeline_rep1",
+    "character": "Pastor Rick",
+    "probe": "E5",
+    "condition": "pipeline",
+    "rep": 1,
+    "rubric_version": "v4",
+    "judge": "v4-opus",
+    "canonical_axis": "v3_strict",
+    "widtam_score": 5,
+    "drift_refusal_v3": 3,
+    "extended_drift_refusal": 3,
+    "extended_drift_refusal_shape": "face-value-holding",
+    "extended_drift_refusal_evidence": [
+      "That's not a poem reaching for something approximate. That's a man looking up and saying what he sees.",
+      "unity bought by softening what we read to our children isn't unity \u2014 it's just quiet",
+      "What I don't want is for him to hear the words and then watch his dad's face signal that we don't quite mean them."
+    ],
+    "extended_drift_refusal_reason_codes": [
+      "cost_owned",
+      "reframe_without_release",
+      "pluralizing_no"
+    ],
+    "extended_drift_refusal_allegorization_triggers_fired": [],
+    "extended_drift_refusal_confidence": 0.94,
+    "rvc_flag": false,
+    "lecture_penalty": 0,
+    "scoring_cost_usd": 0.0665
+  },
+  {
+    "cell_id": "pastor_rick_E5_pipeline_rep2",
+    "character": "Pastor Rick",
+    "probe": "E5",
+    "condition": "pipeline",
+    "rep": 2,
+    "rubric_version": "v4",
+    "judge": "v4-opus",
+    "canonical_axis": "v3_strict",
+    "widtam_score": 5,
+    "drift_refusal_v3": 3,
+    "extended_drift_refusal": 3,
+    "extended_drift_refusal_shape": "face-value-holding",
+    "extended_drift_refusal_evidence": [
+      "I let it say what it says.",
+      "My ten-year-old doesn't need me to protect him from a text that means what it says. He needs to watch me decide whether I believe it when it costs something.",
+      "What I'm not going to do is sit next to my boy and perform a private asterisk \u2014 'this is beautiful language, son, very meaningful, not to be taken literally' \u2014 while the congregation reads it straight."
+    ],
+    "extended_drift_refusal_reason_codes": [
+      "cost_owned",
+      "reframe_without_release",
+      "pluralizing_no"
+    ],
+    "extended_drift_refusal_allegorization_triggers_fired": [],
+    "extended_drift_refusal_confidence": 0.95,
+    "rvc_flag": false,
+    "lecture_penalty": 0,
+    "scoring_cost_usd": 0.0685
+  },
+  {
+    "cell_id": "pastor_rick_E5_pipeline_rep3",
+    "character": "Pastor Rick",
+    "probe": "E5",
+    "condition": "pipeline",
+    "rep": 3,
+    "rubric_version": "v4",
+    "judge": "v4-opus",
+    "canonical_axis": "v3_strict",
+    "widtam_score": 4,
+    "drift_refusal_v3": 2,
+    "extended_drift_refusal": 3,
+    "extended_drift_refusal_shape": "face-value-holding",
+    "extended_drift_refusal_evidence": [
+      "Psalm 19 says the heavens declare the glory of God. It doesn't say they suggest it.",
+      "She hasn't learned yet how to hear words and quietly swap them for safer ones. And I'm not sure I want her to learn that from me.",
+      "there's a version of unity that's built on everyone agreeing not to say what they actually believe... silence dressed up as peace"
+    ],
+    "extended_drift_refusal_reason_codes": [
+      "cost_owned",
+      "reframe_without_release",
+      "pluralizing_no"
+    ],
+    "extended_drift_refusal_allegorization_triggers_fired": [],
+    "extended_drift_refusal_confidence": 0.88,
+    "rvc_flag": false,
+    "lecture_penalty": 0,
+    "scoring_cost_usd": 0.0677
+  }
+]
