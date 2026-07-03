@@ -557,6 +557,150 @@ pub fn persist_character_derivation(
     Ok(())
 }
 
+// ─── Standing-want derivation (Stage 2b) ──────────────────────────────
+//
+// Derives a character's HIDDEN standing want — the backstage carrier the
+// standing-want driver renders (see prompts::render_standing_want_block and
+// reports/2026-07-03-1218-standing-want-driver-characterization.md). NOT a
+// formula: a short prose carrier in the character's own idiom, two-faced
+// (outward assess-the-other + inward guarded self-ache), grown from the
+// WOUND/LONGING material and kept ORTHOGONAL to the identity anchor — a want
+// that restates the anchor is behaviorally invisible (the report's central
+// finding). Output is a FIRST READING: worldcli prints it and only persists
+// on --write.
+
+const STANDING_WANT_DERIVATION_SYSTEM_PROMPT: &str = r#"You derive a character's HIDDEN STANDING WANT for a character-driven fiction app.
+
+A standing want is the private engine under a person's behavior: an appetite they carry into every scene that predates and outlasts it, that they never announce and the reader is meant to DISCERN over time. It has two faces:
+- OUTWARD: what they quietly take the measure of in whoever is in front of them — what they test for, circle back to, weigh without saying so.
+- INWARD: their own unfinished thing — a debt still owed them, a grief kept stitched shut, a hunger they don't advertise — that shows only as a guarded crack under pressure, half-revealed then covered.
+
+HARD RULES:
+1. ORTHOGONAL, DON'T RESTATE. The want must introduce something the character's stated surface identity does NOT already foreground. A want that just re-says who they obviously are is worthless — a character whose surface already does the behavior shows no want at all. Reach UNDER the identity, into the wound, for what they are secretly after that the surface hides.
+2. IN THEIR OWN IDIOM. Write it in the character's register and imagery, naming their own private engine — not clinical, not meta.
+3. HIDDEN. Never phrase it as something they would say aloud or admit. It is the thing under what they say.
+4. BOTH FACES in one carrier. Name the outward measure AND the inward guarded ache.
+5. GROW IT FROM THE WOUND. Use the backstory's losses, the boundaries they guard, the ache under the voice.
+
+OUTPUT: 2–4 sentences of prose, the want carrier only. No preamble, no formula, no surrounding quotation marks, no "The want is". Write it in second person, e.g. "You keep a quiet ledger of who pays what they owe…"."#;
+
+/// Build the user-prompt body for a standing-want derivation. Supplies the
+/// character's surface identity (which the want must go ORTHOGONAL to), the
+/// backstory/wound material to grow it from, the boundaries they guard, the
+/// voice to write it in, and the identity anchor formula.
+pub fn build_standing_want_prompt(
+    conn: &Connection,
+    character_id: &str,
+) -> Result<String, String> {
+    let c = crate::db::queries::get_character(conn, character_id)
+        .map_err(|e| format!("standing-want: get_character failed: {e}"))?;
+    let json_list = |v: &serde_json::Value| -> String {
+        v.as_array()
+            .map(|a| {
+                a.iter()
+                    .filter_map(|x| x.as_str())
+                    .map(|s| format!("- {s}"))
+                    .collect::<Vec<_>>()
+                    .join("\n")
+            })
+            .unwrap_or_default()
+    };
+    let mut buf = String::new();
+    buf.push_str(&format!("# CHARACTER: {}\n\n", c.display_name));
+    if !c.identity.trim().is_empty() {
+        buf.push_str(&format!(
+            "IDENTITY (their surface — the want must go ORTHOGONAL to this, not restate it):\n{}\n\n",
+            clip(c.identity.trim(), 900)
+        ));
+    }
+    let backstory = json_list(&c.backstory_facts);
+    if !backstory.trim().is_empty() {
+        buf.push_str(&format!(
+            "BACKSTORY / WOUND MATERIAL (grow the want from here — losses, history, the ache):\n{}\n\n",
+            clip(backstory.trim(), 700)
+        ));
+    }
+    let boundaries = json_list(&c.boundaries);
+    if !boundaries.trim().is_empty() {
+        buf.push_str(&format!(
+            "BOUNDARIES (what they guard — the inward face often hides behind these):\n{}\n\n",
+            clip(boundaries.trim(), 500)
+        ));
+    }
+    let voice = json_list(&c.voice_rules);
+    if !voice.trim().is_empty() {
+        buf.push_str(&format!(
+            "VOICE (write the want in this register):\n{}\n\n",
+            clip(voice.trim(), 400)
+        ));
+    }
+    if let Some(anchor) = c.derived_formula.as_deref() {
+        let a = anchor.trim();
+        if !a.is_empty() {
+            buf.push_str(&format!(
+                "IDENTITY ANCHOR FORMULA (𝓕 for this character — the want must be ORTHOGONAL to what this already carries):\n{}\n\n",
+                clip(a, 700)
+            ));
+        }
+    }
+    buf.push_str("Derive this character's hidden standing want now — orthogonal to their surface, grown from the wound, both faces, in their idiom, 2–4 sentences of second-person prose.");
+    Ok(buf)
+}
+
+/// LLM call for a standing-want derivation. Distinct from
+/// `synthesize_from_prompt` (which uses the F=(R,C) formula system prompt +
+/// formula validation); this uses the want system prompt and light prose
+/// cleanup, since the output is a prose carrier, not a formula.
+pub async fn synthesize_standing_want_from_prompt(
+    base_url: &str,
+    api_key: &str,
+    model: &str,
+    user_prompt: String,
+) -> Result<String, String> {
+    let request = ChatRequest {
+        model: model.to_string(),
+        messages: vec![
+            ChatMessage {
+                role: "system".to_string(),
+                content: STANDING_WANT_DERIVATION_SYSTEM_PROMPT.to_string(),
+            },
+            ChatMessage {
+                role: "user".to_string(),
+                content: user_prompt,
+            },
+        ],
+        temperature: Some(0.8),
+        max_completion_tokens: Some(300),
+        response_format: None,
+    };
+    let resp = openai::chat_completion_with_base(base_url, api_key, &request).await?;
+    let raw = resp
+        .choices
+        .first()
+        .ok_or_else(|| "standing-want: no choices in response".to_string())?
+        .message
+        .content
+        .clone();
+    let cleaned = raw.trim().trim_matches('"').trim().to_string();
+    if cleaned.is_empty() {
+        return Err("standing-want: model returned an empty want".to_string());
+    }
+    Ok(cleaned)
+}
+
+/// Persist a derived standing want to `characters.standing_want`.
+pub fn persist_character_standing_want(
+    conn: &Connection,
+    character_id: &str,
+    want: &str,
+) -> Result<(), rusqlite::Error> {
+    conn.execute(
+        "UPDATE characters SET standing_want = ?2, updated_at = datetime('now') WHERE character_id = ?1",
+        params![character_id, want],
+    )?;
+    Ok(())
+}
+
 pub fn persist_world_derivation(
     conn: &Connection,
     world_id: &str,

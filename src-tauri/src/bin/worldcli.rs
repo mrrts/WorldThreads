@@ -403,6 +403,20 @@ enum Cmd {
         force: bool,
     },
 
+    /// Stage 2b: derive a character's HIDDEN standing want (the backstage
+    /// carrier the standing-want driver renders into dialogue prompts).
+    /// Prints a FIRST READING by default (LLM outputs are first readings —
+    /// review before persisting); pass --write to persist to
+    /// characters.standing_want. Derived ORTHOGONAL to the character's
+    /// identity anchor, two-faced (outward assess-the-other + inward guarded
+    /// self-ache), grown from the WOUND/LONGING material. One memory-model
+    /// call. See reports/2026-07-03-1218-standing-want-driver-characterization.md.
+    DeriveStandingWant {
+        character_id: String,
+        #[arg(long, default_value_t = false)]
+        write: bool,
+    },
+
     /// Backfill the location_derivations cache for every (world, name)
     /// pair that appears in saved_places, threads.current_location, or
     /// group_chats.current_location and is not yet cached. Useful as a
@@ -2465,6 +2479,20 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 cmd_derive_character(&r, &character_id, text.as_deref())
             }
         }
+        Cmd::DeriveStandingWant {
+            character_id,
+            write,
+        } => {
+            let api_key = match resolve_api_key(cli.api_key.as_deref()) {
+                Some(k) => k,
+                None => {
+                    return Err(Box::<dyn std::error::Error>::from(
+                        "derive-standing-want: no OpenAI API key resolved",
+                    ))
+                }
+            };
+            cmd_derive_standing_want(&r, &character_id, &api_key, write).await
+        }
         Cmd::BackfillLocationDerivations {
             world,
             force,
@@ -4130,6 +4158,50 @@ async fn cmd_derive_character_auto(
         app_lib::ai::derivation::persist_character_derivation(&conn, character_id, &derivation)?;
     }
     let v = json!({"character_id": character_id, "derived_formula": derivation, "updated": true, "auto": true});
+    emit(r.json, v);
+    Ok(())
+}
+
+/// Stage 2b: derive a character's hidden standing want. Prints a FIRST
+/// READING (LLM outputs are first readings — the operator reviews the want
+/// before it becomes real for the character); persists to
+/// characters.standing_want only when `write` is true. One memory-model call.
+async fn cmd_derive_standing_want(
+    r: &Resolved,
+    character_id: &str,
+    api_key: &str,
+    write: bool,
+) -> Result<(), Box<dyn std::error::Error>> {
+    let _ = r.check_character(character_id)?;
+    let model_config = {
+        let conn = r.db.conn.lock().unwrap();
+        orchestrator::load_model_config(&conn)
+    };
+    let model = model_config.memory_model.as_str();
+    let base_url = model_config.chat_api_base();
+    let base_url = base_url.as_str();
+    let prompt = {
+        let conn = r.db.conn.lock().unwrap();
+        app_lib::ai::derivation::build_standing_want_prompt(&conn, character_id)?
+    };
+    let want = app_lib::ai::derivation::synthesize_standing_want_from_prompt(
+        base_url, api_key, model, prompt,
+    )
+    .await?;
+    if write {
+        let conn = r.db.conn.lock().unwrap();
+        app_lib::ai::derivation::persist_character_standing_want(&conn, character_id, &want)?;
+    }
+    let v = json!({
+        "character_id": character_id,
+        "standing_want": want,
+        "written": write,
+        "note": if write {
+            "persisted to characters.standing_want"
+        } else {
+            "FIRST READING — not written. Re-run with --write to persist."
+        }
+    });
     emit(r.json, v);
     Ok(())
 }
