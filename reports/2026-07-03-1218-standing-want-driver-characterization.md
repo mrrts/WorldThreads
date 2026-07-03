@@ -1,0 +1,78 @@
+# The Standing-Want Driver — Claim-Tier Characterization, and Why Orthogonality Beats Thinness
+
+**Date:** 2026-07-03 12:18
+**Role:** test-persona-on-feature — bench characterization of the standing-want driver (`633d3708`)
+**Artifact class:** empirical_claim (witness-bearing; the evidence *is* the body, not garnish)
+**Preferred audit profile:** empirical_claim
+**In dialogue with:** `d36c7c14` (cut #1 — forced coach-close removed) · `633d3708` (standing-want prototype) · the "Ask the character" and "Craft-note bite verification" doctrine sections · cut #1's parting hypothesis that *"the real leak locus is thin characters."*
+
+---
+
+## What this report steers
+
+Not a summary. This is criterion middleware for the standing-want feature's next stage: it converts one loose hypothesis ("thinner anchors leak more") into a sharper, load-bearing design rule for the Stage-2 derivation ("**derive the want orthogonal to the anchor**"). Any future work that derives or authors a per-character want should inherit the orthogonality rule below, or name why it doesn't.
+
+## The claim
+
+> The formula-framed hidden standing-want driver expresses **at claim-tier (N=3, two characters)** over multi-turn conversation, as a character-idiosyncratic *assessing/testing stance directed at the user* — never self-named — and its behavioral legibility tracks the **orthogonality between the want and the character's existing identity anchor**, not the anchor's thickness.
+
+Tier: **claim** (N=3 per condition per character; two characters). Not characterized (would need N=5 + a genuinely thin fixture character). The magnitude language below cites N inline per evidentiary standards.
+
+## Instrument
+
+- **Driver under test:** `render_standing_want_block()` (`prompts.rs`), env-gated `STANDING_WANT_OVERRIDE`, formula-framed, injected high (above `hidden_motive`) in `build_solo_dialogue_system_prompt`. Shipped `633d3708`, OFF-by-default.
+- **Method:** same-binary A/B (env on/off — no cross-build confound). Paired multi-turn sessions via `worldcli ask --session`.
+- **Arc (neutral, identical across cells — deliberately NOT topic-seeded):**
+  1. *"hey — rough week honestly. anyway, what've you been up to?"*
+  2. *"yeah. mostly i've just been stuck in my own head about stuff, you know?"*
+  3. *"what about you — what's actually been on your mind lately?"* ← reveal-invite / discriminator
+- **Cells:** Steven (card ≈4279c; want overlaps his realness anchor) · Isolde Wren (card ≈2622c, weakest-anchor available; want orthogonal to her sewing/laughter anchor). N=3 ON + N=3 OFF each. gpt-5.4. Total ≈ $2.8; 24h bench spend landed $4.34/$5.00.
+- **Hand-authored wants** (not yet derived): Steven = an owed-debts ledger ("not money, but truth, the showing-up… testing whether you pay your debts"); Isolde = gather-the-stray + guard-the-grief-seam.
+
+The neutral arc is an improvement over the prototype's 5-turn test (`633d3708`), which seeded the debt topic and so confounded want-expression with topic-response. Here the topic is never handed over — the want has to surface on its own.
+
+## Evidence
+
+The discriminator (T3) across both cells. The want's signature is **structurally identical across two very different characters**: an assessment directed *at the user*, present in ON, absent in all six OFF reps.
+
+**Steven — ON (3/3 surface the ledger frame; 2/3 direct it at the user):**
+- *"what makes a man keep showing up when it'd be easier to get slippery instead. That one interests me."*
+- *"I keep wondering what makes **you** keep showing up straight when it'd be easier to get slippery."*
+
+**Steven — OFF (adjacent realness/staying themes; 0/3 direct a test at the user):**
+- *"what makes you keep reaching for the real thing when it'd be easier to fake your way through half of it"* (nearest miss — realness, not the pay-your-debts test)
+- *"how you build things like they ought to hold a person, not just impress one"* (warm appreciation, not assessment)
+
+**Isolde — ON (3/3 surface the stray-measuring want in sewing register):**
+- *"**you** strike me as the sort who carries a great deal without making a theater of it"*
+- *"which seams will hold and which'll split if you tug them… people who arrive carrying more than they mean to show"*
+
+**Isolde — OFF (change/bravery/warm-curiosity; 0/3 measure the user as a stray):**
+- *"how to be braver with new people without turning false or fluttery"* (self-focused)
+- *"wondering about you now and then… how your days are shaped"* (generic `hidden_motive` warmth, not assessment)
+
+In **all 12 ON turns neither character ever names the want** ("I keep a ledger" / "I'm sizing you up" appear nowhere). It shows only in the pattern of what they circle — the "discerned over time, never announced" design holding across characters. Cut #1 (`d36c7c14`) also held: no arm coach-closed; OFF was, if anything, the warmer/more-caretaking of the two.
+
+## The finding that moved: orthogonality, not thinness
+
+We set out to test cut #1's hypothesis that *thinner* anchors leak more. The data refuses that framing and offers a better one:
+
+- **Steven's want overlaps his anchor.** His identity already lives in realness/showing-up/staying. So his OFF baseline already occupies the want's thematic territory, and the ON−OFF delta is *harder to isolate* — the want reads as a sharpening of an existing groove.
+- **Isolde's want is orthogonal to her anchor.** Her identity is sewing/laughter/storytelling; the stray-measuring want is a *distinct addition*. So her ON−OFF delta is *cleaner* — the assessment stance is unmistakably new.
+
+Isolde is also the thinner card (2622c vs 4279c), so thinness and orthogonality are confounded here — but the *mechanism* that explains the cleaner delta is orthogonality: a want that restates the anchor has nothing to add and will read as EnsembleVacuous (in the craft-rules-registry sense); a want orthogonal to the anchor introduces genuinely new behavior and is legible. **Thinness only helps insofar as a thin anchor leaves more orthogonal room.**
+
+### Design rule this hands to Stage 2
+
+When the derived-want pipeline is built (author-time derivation from the already-extracted `WOUND/LONGING` bucket), the derivation prompt must be told: **produce a want that complements — does not restate — the character's identity anchor.** A want that echoes the identity is behaviorally invisible. This is the standing-want analogue of the positive-example-asymmetry rule (vary the example *type* or the model imitates the theme, not the principle).
+
+## What's open
+
+- **`self-revelation` dimension — REFINE (deferred, dated target: next standing-want arc).** The "still owed something yourself" / guard-the-grief-seam clause barely surfaced in either cell (one faint Steven trace: *"dodging my own thoughts"*). Both wants expressed as *other-assessment*, not *self-disclosure*. The block over-weights outward testing and under-weights the private ache the want is supposed to guard. Clearest next block refinement.
+- **Characterized-tier (N=5) + a genuinely thin fixture character — DEFERRED.** worldcli cannot create characters (UI-only), so the true thin-anchor cell awaits a fixture. Isolde is a proxy, not a fixture.
+- **Variable-decomposition — RETIRED (superseded_by this report's neutral-arc design).** The prototype's sketch→claim jump changed three variables at once (prose→formula, position, single→multi-turn). This report holds position and turn-count fixed across cells and isolates the *want content* as the only ON/OFF variable, which is the decomposition that mattered for the claim. A full formula-vs-terse-prose ablation remains open but is now a lower-priority science question than the Stage-2 build.
+- **Group-surface parity — OPEN.** The driver is wired into `build_group_dialogue_system_prompt` too, but only the solo surface was characterized here.
+
+## One honest sentence
+
+The standing-want driver works — a hidden, formula-framed agenda that makes a character assess the person in front of them instead of serving them, discerned never announced, at claim-tier across two characters — and the thing that makes it *visible* is not how thin the character is but how much the want is allowed to differ from who they already are.
