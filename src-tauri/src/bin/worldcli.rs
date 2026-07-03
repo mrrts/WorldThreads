@@ -415,6 +415,14 @@ enum Cmd {
         character_id: String,
         #[arg(long, default_value_t = false)]
         write: bool,
+        /// Persist this EXACT want text (skips the LLM entirely). Use to
+        /// commit a reviewed first-reading verbatim — since --write re-derives
+        /// (a fresh non-deterministic call that can confabulate), reviewing
+        /// then --writing does NOT persist what you read. --want closes that
+        /// gap: review with a plain run, then persist the good text with
+        /// --want "<verbatim>".
+        #[arg(long)]
+        want: Option<String>,
     },
 
     /// Backfill the location_derivations cache for every (world, name)
@@ -2482,16 +2490,21 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         Cmd::DeriveStandingWant {
             character_id,
             write,
+            want,
         } => {
-            let api_key = match resolve_api_key(cli.api_key.as_deref()) {
-                Some(k) => k,
-                None => {
-                    return Err(Box::<dyn std::error::Error>::from(
-                        "derive-standing-want: no OpenAI API key resolved",
-                    ))
-                }
-            };
-            cmd_derive_standing_want(&r, &character_id, &api_key, write).await
+            if let Some(w) = want {
+                cmd_set_standing_want(&r, &character_id, &w)
+            } else {
+                let api_key = match resolve_api_key(cli.api_key.as_deref()) {
+                    Some(k) => k,
+                    None => {
+                        return Err(Box::<dyn std::error::Error>::from(
+                            "derive-standing-want: no OpenAI API key resolved",
+                        ))
+                    }
+                };
+                cmd_derive_standing_want(&r, &character_id, &api_key, write).await
+            }
         }
         Cmd::BackfillLocationDerivations {
             world,
@@ -4158,6 +4171,29 @@ async fn cmd_derive_character_auto(
         app_lib::ai::derivation::persist_character_derivation(&conn, character_id, &derivation)?;
     }
     let v = json!({"character_id": character_id, "derived_formula": derivation, "updated": true, "auto": true});
+    emit(r.json, v);
+    Ok(())
+}
+
+/// Persist an exact standing-want text verbatim (no LLM). Closes the
+/// review-then-write gap: --write re-derives non-deterministically, so this
+/// lets a reviewed first-reading be committed as-is.
+fn cmd_set_standing_want(
+    r: &Resolved,
+    character_id: &str,
+    want: &str,
+) -> Result<(), Box<dyn std::error::Error>> {
+    let _ = r.check_character(character_id)?;
+    {
+        let conn = r.db.conn.lock().unwrap();
+        app_lib::ai::derivation::persist_character_standing_want(&conn, character_id, want)?;
+    }
+    let v = json!({
+        "character_id": character_id,
+        "standing_want": want,
+        "written": true,
+        "note": "set verbatim (no LLM)"
+    });
     emit(r.json, v);
     Ok(())
 }
