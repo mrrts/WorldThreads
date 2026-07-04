@@ -5981,6 +5981,16 @@ fn render_standing_want_block(character_want: &str) -> String {
 /// rule: that says "don't repeat anchors"; this says "here's whose fresh
 /// territory to sample"). Env-gated `PERCEPTUAL_FILTER_OVERRIDE`; "" when unset.
 fn render_perceptual_filter_block() -> String {
+    // Bench: PERCEPTUAL_FILTER_UNIVERSAL=1 renders a generic "see through your
+    // own trade's eye" invariant with NO per-character content (the character's
+    // identity fills it in) — the cheap alternative to a per-character derived
+    // filter. Tests whether the derivation pipeline is needed at all.
+    if std::env::var("PERCEPTUAL_FILTER_UNIVERSAL")
+        .map(|v| v.trim() == "1")
+        .unwrap_or(false)
+    {
+        return "PERCEPTUAL FILTER (how your eye works): When you render an action beat or take in the scene, describe it through YOUR OWN eye — the details your specific trade, your history, and your body have trained you to catch first — not the generic furniture of the room. A mechanic, a seamstress, a soldier, and a widow standing in the same square see four different squares. Describe yours. Don't announce it; let it choose what you look at.".to_string();
+    }
     match std::env::var("PERCEPTUAL_FILTER_OVERRIDE") {
         Ok(f) if !f.trim().is_empty() => format!(
             "PERCEPTUAL FILTER (how your eye works — what you notice first, before anything else):\n{}\n\n\
