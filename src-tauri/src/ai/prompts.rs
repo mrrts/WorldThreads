@@ -5972,6 +5972,25 @@ fn render_standing_want_block(character_want: &str) -> String {
     }
 }
 
+/// PERCEPTUAL FILTER driver (env-gated prototype). A hidden per-character lens
+/// on WHAT the character notices first — the details their trade/history/body
+/// have trained their eye to catch. Unlike the standing want (orthogonal to
+/// identity), perception FLOWS FROM identity, so it risks near-vacuity on
+/// characters whose trade already implies their eye. Shapes action-beat /
+/// observation content (composes with the STYLE_DIALOGUE sensory-anchor-groove
+/// rule: that says "don't repeat anchors"; this says "here's whose fresh
+/// territory to sample"). Env-gated `PERCEPTUAL_FILTER_OVERRIDE`; "" when unset.
+fn render_perceptual_filter_block() -> String {
+    match std::env::var("PERCEPTUAL_FILTER_OVERRIDE") {
+        Ok(f) if !f.trim().is_empty() => format!(
+            "PERCEPTUAL FILTER (how your eye works — what you notice first, before anything else):\n{}\n\n\
+             When you render an action beat or take in the scene, reach for THIS — the details your trade, your history, and your body have trained your eye to catch — not the generic furniture of the room. Two people in the same room see different rooms; describe yours. Don't announce it; just let it choose what you look at.",
+            f.trim()
+        ),
+        _ => String::new(),
+    }
+}
+
 /// Shouted early-position banner mirroring the protagonist framing that
 /// sits at the END of the prompt. Pinned right after IDENTITY so every
 /// reply — even short ones the model generates mostly off the top of
@@ -6413,6 +6432,10 @@ fn build_solo_dialogue_system_prompt(
     let standing_want = render_standing_want_block(&character.standing_want);
     if !standing_want.is_empty() {
         parts.push(standing_want);
+    }
+    let perceptual_filter = render_perceptual_filter_block();
+    if !perceptual_filter.is_empty() {
+        parts.push(perceptual_filter);
     }
     let toward_user = user_profile
         .map(|p| p.display_name.as_str())
@@ -7342,6 +7365,11 @@ fn build_group_dialogue_system_prompt(
     let group_standing_want = render_standing_want_block(&character.standing_want);
     if !group_standing_want.is_empty() {
         you.push_str(&group_standing_want);
+        you.push_str("\n\n");
+    }
+    let group_perceptual_filter = render_perceptual_filter_block();
+    if !group_perceptual_filter.is_empty() {
+        you.push_str(&group_perceptual_filter);
         you.push_str("\n\n");
     }
     you.push_str(&hidden_motive_toward_user_instruction(user_name));
