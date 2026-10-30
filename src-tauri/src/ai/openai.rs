@@ -13,6 +13,25 @@ pub struct ChatRequest {
     pub response_format: Option<ResponseFormat>,
 }
 
+/// Models that reject any non-default `temperature` with a 400. Matched by
+/// prefix so dated snapshots of a listed model are covered. Add a model here
+/// only after seeing that 400 from it: a wrong entry silently discards the
+/// temperature, while a missing one fails loudly.
+const FIXED_TEMPERATURE_MODEL_PREFIXES: &[&str] = &["gpt-6.1-terra"];
+
+/// The temperature to actually send. Omitting the field makes the API use the
+/// model's default, so the many call sites can keep stating their intent.
+fn resolve_temperature(model: &str, requested: Option<f64>) -> Option<f64> {
+    if FIXED_TEMPERATURE_MODEL_PREFIXES
+        .iter()
+        .any(|prefix| model.starts_with(prefix))
+    {
+        None
+    } else {
+        requested
+    }
+}
+
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct ChatMessage {
     pub role: String,
@@ -486,7 +505,7 @@ pub async fn vision_completion_with_base(
     let mut request = VisionRequest {
         model: request.model.clone(),
         messages: request.messages.clone(),
-        temperature: request.temperature,
+        temperature: resolve_temperature(&request.model, request.temperature),
         max_completion_tokens: request.max_completion_tokens,
     };
     // Keep doctrine ordering in multimodal path aligned with text path.
@@ -524,6 +543,7 @@ pub async fn chat_completion_with_base(
     let client = Client::new();
     let url = format!("{base_url}/chat/completions");
     let mut request = request.clone();
+    request.temperature = resolve_temperature(&request.model, request.temperature);
     // Order: inject Ryan's anchor FIRST so the Mission Formula prepends
     // above it, putting 𝓕 at top and 𝓕_Ryan immediately below — matching
     // the doctrine ordering (𝓕 ▷ 𝓕_Ryan ▷ Mission Statement ▷ doctrine).
@@ -833,7 +853,7 @@ pub async fn vision_completion_stream(
     let mut request = VisionStreamingRequest {
         model: request.model.clone(),
         messages: request.messages.clone(),
-        temperature: request.temperature,
+        temperature: resolve_temperature(&request.model, request.temperature),
         max_completion_tokens: request.max_completion_tokens,
         stream: request.stream,
     };
@@ -980,6 +1000,7 @@ pub async fn chat_completion_stream(
     let client = Client::new();
     let url = format!("{base_url}/chat/completions");
     let mut request = request.clone();
+    request.temperature = resolve_temperature(&request.model, request.temperature);
     // Order: inject Ryan's anchor FIRST so the Mission Formula prepends
     // above it, putting 𝓕 at top and 𝓕_Ryan immediately below — matching
     // the doctrine ordering (𝓕 ▷ 𝓕_Ryan ▷ Mission Statement ▷ doctrine).
@@ -1099,6 +1120,7 @@ pub async fn chat_completion_stream_silent(
     let client = Client::new();
     let url = format!("{base_url}/chat/completions");
     let mut request = request.clone();
+    request.temperature = resolve_temperature(&request.model, request.temperature);
     // Order: inject Ryan's anchor FIRST so the Mission Formula prepends
     // above it, putting 𝓕 at top and 𝓕_Ryan immediately below — matching
     // the doctrine ordering (𝓕 ▷ 𝓕_Ryan ▷ Mission Statement ▷ doctrine).
@@ -1663,4 +1685,37 @@ pub async fn list_models(base_url: &str, api_key: &str) -> Result<Vec<ModelInfo>
     let parsed: ModelsResponse =
         serde_json::from_str(&body).map_err(|e| format!("Parse error: {e}"))?;
     Ok(parsed.data)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn resolve_temperature_drops_for_fixed_temperature_models() {
+        assert_eq!(resolve_temperature("gpt-6.1-terra", Some(0.95)), None);
+        assert_eq!(
+            resolve_temperature("gpt-6.1-terra-2026-10-01", Some(0.0)),
+            None
+        );
+    }
+
+    #[test]
+    fn resolve_temperature_passes_through_for_other_models() {
+        assert_eq!(resolve_temperature("gpt-4o", Some(0.95)), Some(0.95));
+        assert_eq!(resolve_temperature("gpt-4o", None), None);
+    }
+
+    #[test]
+    fn serialized_request_omits_dropped_temperature() {
+        let request = ChatRequest {
+            model: "gpt-6.1-terra".to_string(),
+            messages: vec![],
+            temperature: resolve_temperature("gpt-6.1-terra", Some(0.95)),
+            max_completion_tokens: None,
+            response_format: None,
+        };
+        let json = serde_json::to_value(&request).unwrap();
+        assert!(json.get("temperature").is_none());
+    }
 }
